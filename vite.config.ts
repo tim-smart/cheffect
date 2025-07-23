@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react"
 import * as path from "node:path"
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
 import tailwindcss from "@tailwindcss/vite"
+import { livestoreDevtoolsPlugin } from "@livestore/devtools-vite"
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,6 +12,7 @@ export default defineConfig({
     TanStackRouterVite(),
     react(),
     tailwindcss(),
+    livestoreDevtoolsPlugin({ schemaPath: "./src/livestore/schema.ts" }),
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   Search,
   Clock,
@@ -14,11 +14,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { useQuery, useStore } from "@livestore/react"
-import { events } from "@/livestore/schema"
+import { useQuery } from "@livestore/react"
 import { allRecipes$ } from "@/livestore/queries"
-import { Rx, useRx, useRxValue } from "@effect-rx/rx-react"
+import { Rx, useRx, useRxSet, useRxValue } from "@effect-rx/rx-react"
+import * as Duration from "effect/Duration"
+import { createRecipeRx } from "@/services/Ai"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -91,10 +91,14 @@ export default function CheffectHome() {
                       </h3>
 
                       <div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span className="text-xs">{recipe.cookTime}</span>
-                        </div>
+                        {recipe.cookingTime && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span className="text-xs">
+                              {Duration.format(recipe.cookingTime)}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
                           <span className="text-xs">{recipe.servings}</span>
@@ -214,27 +218,42 @@ function NoResults() {
           ? "Try adjusting your search terms"
           : "Start by adding your first recipe"}
       </p>
-      <Button className="bg-orange-600 hover:bg-orange-700 h-12 px-6">
-        <Plus className="w-5 h-5 mr-2" />
-        Add Recipe
-      </Button>
+      <AddRecipeButton />
     </div>
   )
 }
 
-function RecipeTags({ tags }: { tags: string[] }) {
+function AddRecipeButton() {
+  const create = useRxSet(createRecipeRx)
+  const onClick = () => {
+    const url = prompt("Enter recipe URL:")
+    if (!url) return
+    create(url)
+  }
   return (
-    <div className="flex flex-wrap gap-1">
-      {tags.slice(0, 2).map((tag) => (
-        <Badge key={tag} variant="secondary" className="text-xs px-2 py-0">
-          {tag}
-        </Badge>
-      ))}
-      {tags.length > 2 && (
-        <Badge variant="secondary" className="text-xs px-2 py-0">
-          +{tags.length - 2}
-        </Badge>
-      )}
-    </div>
+    <Button
+      className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
+      onClick={onClick}
+    >
+      <Plus className="w-5 h-5 mr-2" />
+      Add Recipe
+    </Button>
   )
 }
+
+// function RecipeTags({ tags }: { tags: string[] }) {
+//   return (
+//     <div className="flex flex-wrap gap-1">
+//       {tags.slice(0, 2).map((tag) => (
+//         <Badge key={tag} variant="secondary" className="text-xs px-2 py-0">
+//           {tag}
+//         </Badge>
+//       ))}
+//       {tags.length > 2 && (
+//         <Badge variant="secondary" className="text-xs px-2 py-0">
+//           +{tags.length - 2}
+//         </Badge>
+//       )}
+//     </div>
+//   )
+// }

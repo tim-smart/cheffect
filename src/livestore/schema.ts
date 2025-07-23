@@ -1,3 +1,4 @@
+import { IngredientsComponent, Recipe, Step } from "@/domain/Recipe"
 import { Events, makeSchema, Schema, State } from "@livestore/livestore"
 
 // You can model your state as SQLite tables (https://docs.livestore.dev/reference/state/sqlite-schema)
@@ -7,9 +8,20 @@ export const tables = {
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       title: State.SQLite.text({ default: "" }),
-      cookTime: State.SQLite.text({ nullable: true }),
+      prepTime: State.SQLite.real({
+        nullable: true,
+        schema: Schema.DurationFromMillis,
+      }),
+      cookingTime: State.SQLite.real({
+        nullable: true,
+        schema: Schema.DurationFromMillis,
+      }),
       rating: State.SQLite.real({ nullable: true }),
-      servings: State.SQLite.integer({ nullable: true }),
+      servings: State.SQLite.real({ nullable: true }),
+      ingredients: State.SQLite.json({
+        schema: Schema.Array(IngredientsComponent),
+      }),
+      steps: State.SQLite.json({ schema: Schema.Array(Step) }),
       deletedAt: State.SQLite.integer({
         nullable: true,
         schema: Schema.DateTimeUtcFromNumber,
@@ -39,22 +51,25 @@ export const tables = {
   // }),
 }
 
+export const RecipeFromSqlite = Schema.transform(
+  tables.recipes.rowSchema,
+  Schema.typeSchema(Recipe),
+  {
+    strict: true,
+    decode: (row) => new Recipe(row),
+    encode: (recipe) => ({
+      ...recipe,
+      deletedAt: null,
+    }),
+  },
+)
+
 // Events describe data changes (https://docs.livestore.dev/reference/events)
 export const events = {
   recipeCreated: Events.synced({
     name: "v1.RecipeCreated",
-    schema: Schema.Struct({
-      id: Schema.String,
-      title: Schema.NonEmptyTrimmedString,
-      cookTime: Schema.optional(Schema.String),
-      rating: Schema.optional(Schema.Number),
-      servings: Schema.optional(Schema.Number),
-    }),
+    schema: Recipe.insert,
   }),
-  // recipeUpdated: Events.synced({
-  //   name: "v1.RecipeUpdated",
-  //   schema: Schema.Struct({ id: Schema.String }),
-  // }),
   recipeDeleted: Events.synced({
     name: "v1.RecipeDeleted",
     schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
@@ -63,8 +78,7 @@ export const events = {
 
 // Materializers are used to map events to state (https://docs.livestore.dev/reference/state/materializers)
 const materializers = State.SQLite.materializers(events, {
-  "v1.RecipeCreated": ({ id, title, cookTime, rating, servings }) =>
-    tables.recipes.insert({ id, title, cookTime, rating, servings }),
+  "v1.RecipeCreated": (insert) => tables.recipes.insert(insert),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
 })
