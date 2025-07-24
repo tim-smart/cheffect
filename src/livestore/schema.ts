@@ -1,5 +1,6 @@
 import { IngredientsComponent, Recipe, Step } from "@/domain/Recipe"
-import { Events, makeSchema, Schema, State } from "@livestore/livestore"
+import { Events, makeSchema, State } from "@livestore/livestore"
+import * as Schema from "effect/Schema"
 
 export const tables = {
   recipes: State.SQLite.table({
@@ -36,7 +37,7 @@ export const tables = {
       tag: State.SQLite.text({ nullable: false }),
       deletedAt: State.SQLite.integer({
         nullable: true,
-        schema: Schema.DateFromNumber,
+        schema: Schema.DateTimeUtcFromNumber,
       }),
     },
   }),
@@ -49,19 +50,6 @@ export const tables = {
     default: { id: "~/searchState", value: { query: "" } },
   }),
 }
-
-export const RecipeFromSqlite = Schema.transform(
-  tables.recipes.rowSchema,
-  Schema.typeSchema(Recipe),
-  {
-    strict: true,
-    decode: (row) => new Recipe(row),
-    encode: (recipe) => ({
-      ...recipe,
-      deletedAt: null,
-    }),
-  },
-)
 
 // Events describe data changes (https://docs.livestore.dev/reference/events)
 export const events = {
@@ -86,3 +74,12 @@ const materializers = State.SQLite.materializers(events, {
 const state = State.SQLite.makeState({ tables, materializers })
 
 export const schema = makeSchema({ events, state })
+
+// ----
+
+// ensure Recipe model is assignable to the recipes table
+Schema.transform(tables.recipes.rowSchema, Schema.typeSchema(Recipe), {
+  strict: true,
+  decode: (row) => new Recipe(row),
+  encode: (recipe) => recipe,
+})

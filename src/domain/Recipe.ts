@@ -116,6 +116,7 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
       ...this,
       rating: null,
       id: crypto.randomUUID(),
+      deletedAt: null,
     })
   }
 }
@@ -126,6 +127,7 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
     description: "A unique identifier for the recipe.",
   }),
   rating: Schema.NullOr(Schema.Number),
+  deletedAt: Model.Generated(Schema.NullOr(Schema.DateTimeUtcFromNumber)),
 }) {
   get totalTime(): Option.Option<Duration.Duration> {
     return Option.gen(this, function* () {
