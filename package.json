@@ -26,6 +26,7 @@
     "@livestore/wa-sqlite": "1.0.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@tanstack/react-router": "^1.129.8",
+    "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "effect": "^3.17.1",

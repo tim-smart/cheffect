@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import {
   Search,
   Clock,
@@ -14,11 +14,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { useQuery } from "@livestore/react"
-import { allRecipes$ } from "@/livestore/queries"
-import { Rx, useRx, useRxSet, useRxValue } from "@effect-rx/rx-react"
+import { allRecipes$, searchState$ } from "@/livestore/queries"
+import { useRx } from "@effect-rx/rx-react"
 import * as Duration from "effect/Duration"
-import { createRecipeRx } from "@/services/Ai"
+import { useQuery, useStore } from "@livestore/react"
+import { createRecipeRx } from "@/Recipes/rx"
+import { events } from "@/livestore/schema"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -39,12 +40,7 @@ export default function CheffectHome() {
               <ChefHat className="w-7 h-7 text-orange-600" />
               <h1 className="text-xl font-bold text-gray-900">Cheffect</h1>
             </div>
-            <Button
-              size="sm"
-              className="bg-orange-600 hover:bg-orange-700 h-9 px-3"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
+            <AddRecipeButton small />
           </div>
         </div>
       </header>
@@ -76,7 +72,7 @@ export default function CheffectHome() {
                     {/* Recipe Image */}
                     <div className="relative w-24 h-24 flex-shrink-0">
                       <img
-                        src="/placeholder.svg"
+                        src={recipe.imageUrl ?? "/placeholder.svg"}
                         alt={recipe.title}
                         width={96}
                         height={96}
@@ -181,10 +177,15 @@ export default function CheffectHome() {
   )
 }
 
-const searchQueryRx = Rx.make("")
-
 function SearchInput() {
-  const [searchQuery, setSearchQuery] = useRx(searchQueryRx)
+  const store = useStore().store
+  const searchQuery = useQuery(searchState$).query
+  const setSearchQuery = useCallback(
+    (query: string) => {
+      store.commit(events.searchStateSet({ query }))
+    },
+    [store],
+  )
 
   return (
     <div className="flex gap-2">
@@ -206,7 +207,7 @@ function SearchInput() {
 }
 
 function NoResults() {
-  const searchQuery = useRxValue(searchQueryRx)
+  const searchQuery = useQuery(searchState$).query
   return (
     <div className="text-center py-16">
       <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -223,20 +224,33 @@ function NoResults() {
   )
 }
 
-function AddRecipeButton() {
-  const create = useRxSet(createRecipeRx)
+function AddRecipeButton({ small = false }: { small?: boolean }) {
+  const [result, create] = useRx(createRecipeRx)
   const onClick = () => {
     const url = prompt("Enter recipe URL:")
     if (!url) return
     create(url)
   }
+  if (small) {
+    return (
+      <Button
+        size="sm"
+        className="bg-orange-600 hover:bg-orange-700 h-9 px-3"
+        onClick={onClick}
+        disabled={result.waiting}
+      >
+        <Plus className="w-4 h-4" />
+      </Button>
+    )
+  }
   return (
     <Button
       className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
       onClick={onClick}
+      disabled={result.waiting}
     >
       <Plus className="w-5 h-5 mr-2" />
-      Add Recipe
+      {result.waiting ? "Adding..." : "Add Recipe"}
     </Button>
   )
 }

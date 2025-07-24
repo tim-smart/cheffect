@@ -1,7 +1,16 @@
-import { queryDb, Schema, sql } from "@livestore/livestore"
+import { queryDb } from "@livestore/livestore"
 import { tables } from "./schema"
 
-export const allRecipes$ = queryDb({
-  query: sql`SELECT * FROM recipes WHERE deletedAt IS NULL ORDER BY title ASC`,
-  schema: Schema.Array(tables.recipes.rowSchema),
-})
+export const searchState$ = queryDb(tables.searchState.get())
+
+export const allRecipes$ = queryDb(
+  (get) => {
+    const { query } = get(searchState$)
+    const trimmedQuery = query.trim()
+    if (trimmedQuery === "") {
+      return tables.recipes
+    }
+    return tables.recipes.where("title", "LIKE", `%${trimmedQuery}%`)
+  },
+  { label: "allRecipes" },
+)

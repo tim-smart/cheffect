@@ -1,13 +1,15 @@
 import { RouterProvider } from "@tanstack/react-router"
 import { useRegisterSW } from "virtual:pwa-register/react"
-import { RegistryProvider } from "@effect-rx/rx-react"
+import { RegistryProvider, Rx } from "@effect-rx/rx-react"
 import { router } from "./Router"
 import { makePersistedAdapter } from "@livestore/adapter-web"
 import LiveStoreSharedWorker from "@livestore/adapter-web/shared-worker?sharedworker"
-import { LiveStoreProvider } from "@livestore/react"
+import { LiveStoreProvider, useStore } from "@livestore/react"
 import LiveStoreWorker from "./livestore/livestore.worker?worker"
 import { unstable_batchedUpdates as batchUpdates } from "react-dom"
 import { schema } from "./livestore/schema"
+import React from "react"
+import { liveStoreRx } from "./livestore/rx"
 
 const adapter = makePersistedAdapter({
   storage: { type: "opfs" },
@@ -28,9 +30,20 @@ export default function App() {
       batchUpdates={batchUpdates}
       syncPayload={{ authToken: "insecure-token-change-me" }}
     >
-      <RegistryProvider>
+      <StoreRegistration>
         <RouterProvider router={router} />
-      </RegistryProvider>
+      </StoreRegistration>
     </LiveStoreProvider>
+  )
+}
+
+function StoreRegistration({ children }: { children?: React.ReactNode }) {
+  const store = useStore().store
+  return (
+    <RegistryProvider
+      initialValues={[Rx.initialValue(liveStoreRx, store as any)]}
+    >
+      {children}
+    </RegistryProvider>
   )
 }

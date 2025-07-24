@@ -85,6 +85,10 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
     title: Schema.String.annotations({
       description: "A short title for the recipe. Exclude website names.",
     }),
+    imageUrl: Schema.NullOr(Schema.String).annotations({
+      description:
+        "An image URL for the recipe, preferrably from the og:image meta tag. Set to null if not available.",
+    }),
     prepTime: Schema.NullOr(DurationFromMinutes).annotations({
       description: "The time it takes to prepare the recipe in minutes.",
     }),
@@ -106,7 +110,15 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
   {
     description: "Represents a recipe with its details.",
   },
-) {}
+) {
+  get asRecipe(): Recipe {
+    return new Recipe({
+      ...this,
+      rating: null,
+      id: crypto.randomUUID(),
+    })
+  }
+}
 
 export class Recipe extends Model.Class<Recipe>("Recipe")({
   ...ExtractedRecipe.fields,

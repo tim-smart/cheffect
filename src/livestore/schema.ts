@@ -1,13 +1,13 @@
 import { IngredientsComponent, Recipe, Step } from "@/domain/Recipe"
 import { Events, makeSchema, Schema, State } from "@livestore/livestore"
 
-// You can model your state as SQLite tables (https://docs.livestore.dev/reference/state/sqlite-schema)
 export const tables = {
   recipes: State.SQLite.table({
     name: "recipes",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
       title: State.SQLite.text({ default: "" }),
+      imageUrl: State.SQLite.text({ nullable: true }),
       prepTime: State.SQLite.real({
         nullable: true,
         schema: Schema.DurationFromMillis,
@@ -40,15 +40,14 @@ export const tables = {
       }),
     },
   }),
-  // // Client documents can be used for local-only state (e.g. form inputs)
-  // uiState: State.SQLite.clientDocument({
-  //   name: "uiState",
-  //   schema: Schema.Struct({
-  //     newTodoText: Schema.String,
-  //     filter: Schema.Literal("all", "active", "completed"),
-  //   }),
-  //   default: { id: SessionIdSymbol, value: { newTodoText: "", filter: "all" } },
-  // }),
+  // Client documents can be used for local-only state (e.g. form inputs)
+  searchState: State.SQLite.clientDocument({
+    name: "searchState",
+    schema: Schema.Struct({
+      query: Schema.String,
+    }),
+    default: { id: "~/searchState", value: { query: "" } },
+  }),
 }
 
 export const RecipeFromSqlite = Schema.transform(
@@ -74,6 +73,7 @@ export const events = {
     name: "v1.RecipeDeleted",
     schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
   }),
+  searchStateSet: tables.searchState.set,
 }
 
 // Materializers are used to map events to state (https://docs.livestore.dev/reference/state/materializers)
