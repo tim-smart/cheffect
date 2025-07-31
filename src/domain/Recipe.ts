@@ -129,9 +129,11 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
 
 export class Recipe extends Model.Class<Recipe>("Recipe")({
   ...ExtractedRecipe.fields,
-  id: Schema.String.annotations({
-    description: "A unique identifier for the recipe.",
-  }),
+  id: Model.GeneratedByApp(
+    Schema.String.annotations({
+      description: "A unique identifier for the recipe.",
+    }),
+  ),
   cookingTime: Schema.NullOr(Schema.DurationFromMillis),
   prepTime: Schema.NullOr(Schema.DurationFromMillis),
   ingredients: Model.JsonFromString(Schema.Array(IngredientsComponent)),
@@ -139,7 +141,7 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   rating: Schema.NullOr(Schema.Number),
   createdAt: Model.DateTimeInsertFromNumber,
   updatedAt: Model.DateTimeUpdateFromNumber,
-  deletedAt: Schema.NullOr(Schema.DateTimeUtcFromNumber),
+  deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromNumber)),
 }) {
   static array = Schema.Array(Recipe)
 

@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { Search, Clock, Users, ChefHat, Plus, Star, Filter } from "lucide-react"
+import { Search, Clock, Users, ChefHat, Star, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
 import { allRecipesRx, searchStateRx } from "@/livestore/queries"
-import { Result, useRx, useRxValue } from "@effect-rx/rx-react"
+import { Result, useRxValue } from "@effect-rx/rx-react"
 import * as Duration from "effect/Duration"
-import { createRecipeRx } from "@/Recipes/rx"
 import { events } from "@/livestore/schema"
 import { Recipe } from "@/domain/Recipe"
 import * as Cause from "effect/Cause"
 import { useCommit } from "@/livestore/rx"
+import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -49,14 +48,7 @@ export default function CheffectHome() {
               Error loading recipes: {Cause.pretty(cause)}
             </div>
           ),
-          onSuccess: ({ value }) =>
-            value.length === 0 ? (
-              <NoResults />
-            ) : (
-              value.map((recipe) => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
-              ))
-            ),
+          onSuccess: ({ value }) => <RecipeList recipes={value} />,
         })}
       </div>
     </>
@@ -97,6 +89,19 @@ function SearchInput() {
   )
 }
 
+function RecipeList({ recipes }: { recipes: ReadonlyArray<Recipe> }) {
+  if (recipes.length === 0) {
+    return <NoResults />
+  }
+  return (
+    <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
+      {recipes.map((recipe) => (
+        <RecipeCard key={recipe.id} recipe={recipe} />
+      ))}
+    </div>
+  )
+}
+
 function NoResults() {
   const searchQuery = useSearchQuery()
   return (
@@ -115,43 +120,12 @@ function NoResults() {
   )
 }
 
-function AddRecipeButton({ small = false }: { small?: boolean }) {
-  const [result, create] = useRx(createRecipeRx)
-  const onClick = () => {
-    const url = prompt("Enter recipe URL:")
-    if (!url) return
-    create(url)
-  }
-  if (small) {
-    return (
-      <Button
-        size="sm"
-        className="bg-orange-600 hover:bg-orange-700 h-9 px-3"
-        onClick={onClick}
-        disabled={result.waiting}
-      >
-        <Plus className="w-4 h-4" />
-      </Button>
-    )
-  }
-  return (
-    <Button
-      className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
-      onClick={onClick}
-      disabled={result.waiting}
-    >
-      <Plus className="w-5 h-5 mr-2" />
-      {result.waiting ? "Adding..." : "Add Recipe"}
-    </Button>
-  )
-}
-
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
-    <Card className="overflow-hidden active:scale-[0.98] transition-transform">
-      <div className="flex">
-        {/* Recipe Image */}
-        <div className="relative w-24 h-24 flex-shrink-0">
+    <div className="active:bg-gray-50 transition-colors">
+      <div className="flex items-center">
+        {/* Recipe Image - No whitespace */}
+        <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden">
           <img
             src={recipe.imageUrl ?? "/placeholder.svg"}
             alt={recipe.title}
@@ -161,33 +135,35 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
           />
         </div>
 
-        {/* Recipe Info */}
-        <CardContent className="flex-1 p-3">
-          <h3 className="font-semibold text-base mb-2 line-clamp-1 pr-2">
+        {/* Recipe Info - More condensed */}
+        <div className="flex-1 flex-col p-2">
+          <h3 className="font-medium text-sm mb-1 line-clamp-1 pr-1">
             {recipe.title}
           </h3>
 
-          <div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
             {recipe.cookingTime && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <Clock className="w-3 h-3" />
-                <span className="text-xs">
-                  {Duration.format(recipe.cookingTime)}
-                </span>
+                <span>{Duration.format(recipe.cookingTime)}</span>
               </div>
             )}
-            <div className="flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              <span className="text-xs">{recipe.servings}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-              <span className="text-xs">{recipe.rating}</span>
-            </div>
+            {recipe.servings !== null && (
+              <div className="flex items-center gap-0.5">
+                <Users className="w-3 h-3" />
+                <span>{recipe.servings}</span>
+              </div>
+            )}
+            {recipe.rating !== null && (
+              <div className="flex items-center gap-0.5">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <span>{recipe.rating}</span>
+              </div>
+            )}
           </div>
-        </CardContent>
+        </div>
       </div>
-    </Card>
+    </div>
   )
 }
 
