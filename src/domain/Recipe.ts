@@ -1,5 +1,6 @@
 import { Duration, identity, Option, Schema } from "effect"
 import { Model } from "@effect/sql"
+import * as DateTime from "effect/DateTime"
 
 export const Unit = Schema.Literal(
   "g",
@@ -72,6 +73,9 @@ export class Step extends Schema.Class<Step>("Step")(
     text: Schema.String.annotations({
       description: "The text of the step in the recipe.",
     }),
+    tips: Schema.Array(Schema.String).annotations({
+      description: "Optional tips or notes for the step.",
+    }),
   },
   {
     description: "Represents a step in a recipe.",
@@ -116,6 +120,8 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
       ...this,
       rating: null,
       id: crypto.randomUUID(),
+      createdAt: DateTime.unsafeNow(),
+      updatedAt: DateTime.unsafeNow(),
       deletedAt: null,
     })
   }
@@ -126,9 +132,17 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   id: Schema.String.annotations({
     description: "A unique identifier for the recipe.",
   }),
+  cookingTime: Schema.NullOr(Schema.DurationFromMillis),
+  prepTime: Schema.NullOr(Schema.DurationFromMillis),
+  ingredients: Model.JsonFromString(Schema.Array(IngredientsComponent)),
+  steps: Model.JsonFromString(Schema.Array(Step)),
   rating: Schema.NullOr(Schema.Number),
-  deletedAt: Model.Generated(Schema.NullOr(Schema.DateTimeUtcFromNumber)),
+  createdAt: Model.DateTimeInsertFromNumber,
+  updatedAt: Model.DateTimeUpdateFromNumber,
+  deletedAt: Schema.NullOr(Schema.DateTimeUtcFromNumber),
 }) {
+  static array = Schema.Array(Recipe)
+
   get totalTime(): Option.Option<Duration.Duration> {
     return Option.gen(this, function* () {
       const prep = Option.fromNullable(this.prepTime).pipe(

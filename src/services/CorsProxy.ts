@@ -34,15 +34,31 @@ export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
           $("link").remove()
           $("nav").remove()
           $("svg").remove()
-          $("*")
+          $("#comments").remove()
+          $("#reviews").remove()
+          $("iframe").remove()
+          $("form").remove()
+          $(".ad").remove()
+          $(".advertisement").remove()
+          $("[aria-hidden='true']").remove()
+          $.root()
+            .contents()
             .filter(function () {
-              return (
-                this.type === "comment" ||
-                (this.type === "text" && !$(this).text().trim())
-              )
+              return this.type === "comment"
             })
             .remove()
-          return $.html().replace(/\s+/g, " ").trim()
+          $("*").each(function () {
+            const $el = $(this)
+            if ($el.is("meta, img")) {
+              return
+            } else if ($el.text().trim() === "") {
+              $el.remove()
+            } else if ("attribs" in this) {
+              this.attribs = {}
+            }
+          })
+          const stripped = $.html()
+          return stripped.replace(/\s+/g, " ").trim()
         }),
       )
 

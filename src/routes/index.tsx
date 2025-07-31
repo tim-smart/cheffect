@@ -1,191 +1,80 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useCallback, useState } from "react"
-import {
-  Search,
-  Clock,
-  Users,
-  ChefHat,
-  ShoppingCart,
-  Settings,
-  Plus,
-  Star,
-  Filter,
-} from "lucide-react"
+import { Search, Clock, Users, ChefHat, Plus, Star, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { allRecipes$, searchState$ } from "@/livestore/queries"
-import { useRx } from "@effect-rx/rx-react"
+import { allRecipesRx, searchStateRx } from "@/livestore/queries"
+import { Result, useRx, useRxValue } from "@effect-rx/rx-react"
 import * as Duration from "effect/Duration"
-import { useQuery, useStore } from "@livestore/react"
 import { createRecipeRx } from "@/Recipes/rx"
 import { events } from "@/livestore/schema"
+import { Recipe } from "@/domain/Recipe"
+import * as Cause from "effect/Cause"
+import { useCommit } from "@/livestore/rx"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
 })
 
 export default function CheffectHome() {
-  const recipes = useQuery(allRecipes$)
-
-  const [activeTab, setActiveTab] = useState("home")
+  const recipes = useRxValue(allRecipesRx)
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Mobile Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ChefHat className="w-7 h-7 text-orange-600" />
-              <h1 className="text-xl font-bold text-gray-900">Cheffect</h1>
+    <>
+      {/* Search Bar */}
+      <div className="mb-4">
+        <SearchInput />
+      </div>
+
+      {/* Recipe Count */}
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">
+          My Recipes (
+          {recipes.pipe(
+            Result.map((recipes) => recipes.length),
+            Result.getOrElse(() => 0),
+          )}
+          )
+        </h2>
+      </div>
+
+      {/* Recipe List - Mobile Optimized */}
+      <div className="space-y-4">
+        {Result.match(recipes, {
+          onInitial: () => (
+            <div className="text-gray-500 text-sm">Loading recipes...</div>
+          ),
+          onFailure: ({ cause }) => (
+            <div className="text-red-500 text-sm">
+              Error loading recipes: {Cause.pretty(cause)}
             </div>
-            <AddRecipeButton small />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="px-4 py-4">
-        {activeTab === "home" && (
-          <>
-            {/* Search Bar */}
-            <div className="mb-4">
-              <SearchInput />
-            </div>
-
-            {/* Recipe Count */}
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                My Recipes ({recipes.length})
-              </h2>
-            </div>
-
-            {/* Recipe List - Mobile Optimized */}
-            <div className="space-y-4">
-              {recipes.map((recipe) => (
-                <Card
-                  key={recipe.id}
-                  className="overflow-hidden active:scale-[0.98] transition-transform"
-                >
-                  <div className="flex">
-                    {/* Recipe Image */}
-                    <div className="relative w-24 h-24 flex-shrink-0">
-                      <img
-                        src={recipe.imageUrl ?? "/placeholder.svg"}
-                        alt={recipe.title}
-                        width={96}
-                        height={96}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    {/* Recipe Info */}
-                    <CardContent className="flex-1 p-3">
-                      <h3 className="font-semibold text-base mb-2 line-clamp-1 pr-2">
-                        {recipe.title}
-                      </h3>
-
-                      <div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
-                        {recipe.cookingTime && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            <span className="text-xs">
-                              {Duration.format(recipe.cookingTime)}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          <span className="text-xs">{recipe.servings}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs">{recipe.rating}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {recipes.length === 0 && <NoResults />}
-          </>
-        )}
-
-        {activeTab === "grocery" && (
-          <div className="text-center py-16">
-            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Grocery List
-            </h3>
-            <p className="text-gray-500">This section will be designed next</p>
-          </div>
-        )}
-
-        {activeTab === "settings" && (
-          <div className="text-center py-16">
-            <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Settings</h3>
-            <p className="text-gray-500">This section will be designed next</p>
-          </div>
-        )}
-      </main>
-
-      {/* Bottom Navigation - Mobile First */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-pb">
-        <div className="flex justify-around">
-          <button
-            onClick={() => setActiveTab("home")}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
-              activeTab === "home"
-                ? "text-orange-600 bg-orange-50"
-                : "text-gray-500 active:bg-gray-100"
-            }`}
-          >
-            <ChefHat className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Recipes</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("grocery")}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
-              activeTab === "grocery"
-                ? "text-orange-600 bg-orange-50"
-                : "text-gray-500 active:bg-gray-100"
-            }`}
-          >
-            <ShoppingCart className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Grocery</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
-              activeTab === "settings"
-                ? "text-orange-600 bg-orange-50"
-                : "text-gray-500 active:bg-gray-100"
-            }`}
-          >
-            <Settings className="w-6 h-6 mb-1" />
-            <span className="text-xs font-medium">Settings</span>
-          </button>
-        </div>
-      </nav>
-    </div>
+          ),
+          onSuccess: ({ value }) =>
+            value.length === 0 ? (
+              <NoResults />
+            ) : (
+              value.map((recipe) => (
+                <RecipeCard key={recipe.id} recipe={recipe} />
+              ))
+            ),
+        })}
+      </div>
+    </>
   )
 }
 
-function SearchInput() {
-  const store = useStore().store
-  const searchQuery = useQuery(searchState$).query
-  const setSearchQuery = useCallback(
-    (query: string) => {
-      store.commit(events.searchStateSet({ query }))
-    },
-    [store],
+const useSearchQuery = () =>
+  Result.getOrElse(
+    useRxValue(
+      searchStateRx,
+      Result.map((state) => state.query),
+    ),
+    () => "",
   )
+
+function SearchInput() {
+  const searchQuery = useSearchQuery()
+  const commit = useCommit()
 
   return (
     <div className="flex gap-2">
@@ -195,7 +84,9 @@ function SearchInput() {
           type="text"
           placeholder="Search recipes..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            commit(events.searchStateSet({ query: e.target.value }))
+          }}
           className="pl-10 h-11"
         />
       </div>
@@ -207,7 +98,7 @@ function SearchInput() {
 }
 
 function NoResults() {
-  const searchQuery = useQuery(searchState$).query
+  const searchQuery = useSearchQuery()
   return (
     <div className="text-center py-16">
       <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -252,6 +143,51 @@ function AddRecipeButton({ small = false }: { small?: boolean }) {
       <Plus className="w-5 h-5 mr-2" />
       {result.waiting ? "Adding..." : "Add Recipe"}
     </Button>
+  )
+}
+
+function RecipeCard({ recipe }: { recipe: Recipe }) {
+  return (
+    <Card className="overflow-hidden active:scale-[0.98] transition-transform">
+      <div className="flex">
+        {/* Recipe Image */}
+        <div className="relative w-24 h-24 flex-shrink-0">
+          <img
+            src={recipe.imageUrl ?? "/placeholder.svg"}
+            alt={recipe.title}
+            width={96}
+            height={96}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Recipe Info */}
+        <CardContent className="flex-1 p-3">
+          <h3 className="font-semibold text-base mb-2 line-clamp-1 pr-2">
+            {recipe.title}
+          </h3>
+
+          <div className="flex items-center gap-3 text-sm text-gray-600 mb-2">
+            {recipe.cookingTime && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                <span className="text-xs">
+                  {Duration.format(recipe.cookingTime)}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              <span className="text-xs">{recipe.servings}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-xs">{recipe.rating}</span>
+            </div>
+          </div>
+        </CardContent>
+      </div>
+    </Card>
   )
 }
 

@@ -23,6 +23,12 @@ export const tables = {
         schema: Schema.Array(IngredientsComponent),
       }),
       steps: State.SQLite.json({ schema: Schema.Array(Step) }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
       deletedAt: State.SQLite.integer({
         nullable: true,
         schema: Schema.DateTimeUtcFromNumber,
@@ -55,7 +61,7 @@ export const tables = {
 export const events = {
   recipeCreated: Events.synced({
     name: "v1.RecipeCreated",
-    schema: Recipe.insert,
+    schema: Recipe,
   }),
   recipeDeleted: Events.synced({
     name: "v1.RecipeDeleted",
