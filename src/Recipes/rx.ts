@@ -11,6 +11,6 @@ export const createRecipeRx = runtimeRx.fn(
     const ai = yield* AiHelpers
     const recipe = yield* ai.recipeFromUrl(url)
     const store = get(storeRxUnsafe)
-    store.commit(events.recipeCreated(recipe.asRecipe))
+    store!.commit(events.recipeCreated(recipe.asRecipe))
   }, Effect.tapErrorCause(Effect.log)),
 )

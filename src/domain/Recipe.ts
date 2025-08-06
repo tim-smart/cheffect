@@ -1,6 +1,7 @@
 import { Duration, identity, Option, Schema } from "effect"
 import { Model } from "@effect/sql"
 import * as DateTime from "effect/DateTime"
+import { Rating } from "./Rating"
 
 export const Unit = Schema.Literal(
   "g",
@@ -138,7 +139,7 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   prepTime: Schema.NullOr(Schema.DurationFromMillis),
   ingredients: Model.JsonFromString(Schema.Array(IngredientsComponent)),
   steps: Model.JsonFromString(Schema.Array(Step)),
-  rating: Schema.NullOr(Schema.Number),
+  rating: Schema.NullOr(Rating),
   createdAt: Model.DateTimeInsertFromNumber,
   updatedAt: Model.DateTimeUpdateFromNumber,
   deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromNumber)),

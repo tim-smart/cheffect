@@ -7,7 +7,6 @@ import { Result, useRxValue } from "@effect-rx/rx-react"
 import * as Duration from "effect/Duration"
 import { events } from "@/livestore/schema"
 import { Recipe } from "@/domain/Recipe"
-import * as Cause from "effect/Cause"
 import { useCommit } from "@/livestore/rx"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 
@@ -39,17 +38,12 @@ export default function CheffectHome() {
 
       {/* Recipe List - Mobile Optimized */}
       <div className="space-y-4">
-        {Result.match(recipes, {
-          onInitial: () => (
+        {Result.builder(recipes)
+          .onInitial(() => (
             <div className="text-gray-500 text-sm">Loading recipes...</div>
-          ),
-          onFailure: ({ cause }) => (
-            <div className="text-red-500 text-sm">
-              Error loading recipes: {Cause.pretty(cause)}
-            </div>
-          ),
-          onSuccess: ({ value }) => <RecipeList recipes={value} />,
-        })}
+          ))
+          .onSuccess((recipes) => <RecipeList recipes={recipes} />)
+          .render()}
       </div>
     </>
   )
