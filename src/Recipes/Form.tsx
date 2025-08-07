@@ -11,6 +11,7 @@ import { commitAtom } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { router } from "@/Router"
 import { Unit } from "@/domain/Recipe"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const Display = FormDisplay.make(RecipeFormSchema).pipe(
   Effect.provide(ShadcnReactHookFormLayer),
@@ -91,7 +92,7 @@ function FormCard({ children }: React.PropsWithChildren<{}>) {
 function AddComponent() {
   const controls = Display.ingredients.useControls()
   return (
-    <Button onClick={() => controls.append()} size="xs">
+    <Button type="button" onClick={() => controls.append()} size="xs">
       <Plus />
       Add Group
     </Button>
@@ -127,6 +128,7 @@ function ComponentCard() {
           </Button>
           {components.length > 1 && (
             <Button
+              type="button"
               onClick={() => remove()}
               variant="ghost"
               size="icon"
@@ -178,6 +180,7 @@ function IngredientFields() {
       </div>
       {ingredients.length > 1 && (
         <Button
+          type="button"
           onClick={() => remove()}
           variant="ghost"
           size="icon"
@@ -193,7 +196,7 @@ function IngredientFields() {
 function AddStep() {
   const controls = Display.steps.useControls()
   return (
-    <Button onClick={() => controls.append()} size="xs">
+    <Button type="button" onClick={() => controls.append()} size="xs">
       <Plus />
       Add Step
     </Button>
@@ -228,6 +231,7 @@ function StepCard() {
               <div className="flex-1" />
               {steps.length > 1 && (
                 <Button
+                  type="button"
                   onClick={() => remove()}
                   variant="ghost"
                   size="icon"
@@ -247,7 +251,7 @@ function StepCard() {
 function AddTip() {
   const controls = Display.steps.Element.tips.useControls()
   return (
-    <Button onClick={() => controls.append()} size="xs">
+    <Button type="button" onClick={() => controls.append()} size="xs">
       <Plus />
       Add Tip
     </Button>
@@ -273,6 +277,19 @@ function TipFields() {
       >
         <X className="w-4 h-4" />
       </Button>
+    </div>
+  )
+}
+
+export function RecipeFormSkeleton() {
+  return (
+    <div className="flex flex-col p-4 mb-8 max-w-lg mx-auto gap-4">
+      <h2 className="text-lg font-semibold text-gray-900">
+        Extracting recipe...
+      </h2>
+      <Skeleton className="h-72 mb-4 w-full" />
+      <Skeleton className="h-48 mb-4 w-full" />
+      <Skeleton className="h-48 mb-4 w-full" />
     </div>
   )
 }

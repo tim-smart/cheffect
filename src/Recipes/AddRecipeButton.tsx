@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { RegistryContext } from "@effect-atom/atom-react"
 import { createRecipeAtom } from "./atoms"
-import { router } from "@/Router"
 import { useContext } from "react"
 
 export function AddRecipeButton({ small = false }: { small?: boolean }) {
@@ -24,18 +23,11 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
             const url = prompt("Enter recipe URL:")
             if (!url) return
             registry.set(createRecipeAtom, url)
-            router.navigate({ to: "/add" })
           }}
         >
           From URL
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => {
-            router.navigate({ to: "/add" })
-          }}
-        >
-          From scratch
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {}}>From scratch</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
