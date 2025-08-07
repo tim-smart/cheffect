@@ -1,6 +1,6 @@
 import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
-import { Rx } from "@effect-rx/rx-react"
+import { Atom } from "@effect-atom/atom-react"
 
 export const router = createRouter({
   routeTree,
@@ -15,7 +15,7 @@ declare module "@tanstack/react-router" {
   }
 }
 
-export const locationRx = Rx.make((get) => {
+export const locationAtom = Atom.make((get) => {
   get.addFinalizer(
     router.subscribe("onRendered", (_) => {
       get.setSelf(_.toLocation)

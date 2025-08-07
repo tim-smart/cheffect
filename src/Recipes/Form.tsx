@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Plus, Trash, X } from "lucide-react"
 import * as Arr from "effect/Array"
 import * as Schema from "effect/Schema"
-import { useRxSet } from "@effect-rx/rx-react"
-import { commitRx } from "@/livestore/rx"
+import { useAtomSet } from "@effect-atom/atom-react"
+import { commitAtom } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { router } from "@/Router"
 import { Unit } from "@/domain/Recipe"
@@ -22,7 +22,7 @@ export function RecipeForm({
 }: {
   initialValues?: typeof RecipeFormSchema.schema.Encoded
 }) {
-  const commit = useRxSet(commitRx)
+  const commit = useAtomSet(commitAtom)
   return (
     <Display.Form
       initialValues={initialValues ? { encoded: initialValues } : undefined}

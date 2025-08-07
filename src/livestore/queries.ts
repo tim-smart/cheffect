@@ -1,12 +1,12 @@
 import { queryDb, sql } from "@livestore/livestore"
 import { tables } from "./schema"
 import { Recipe } from "@/domain/Recipe"
-import { makeQueryRx } from "./rx"
+import { makeQueryAtom } from "./atoms"
 
 export const searchState$ = queryDb(tables.searchState.get())
-export const searchStateRx = makeQueryRx(searchState$)
+export const searchStateAtom = makeQueryAtom(searchState$)
 
-export const allRecipesRx = makeQueryRx(
+export const allRecipesAtom = makeQueryAtom(
   queryDb(
     (get) => {
       const { query } = get(searchState$)

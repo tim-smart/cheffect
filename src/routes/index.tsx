@@ -2,12 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Search, Clock, Users, ChefHat, Star, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { allRecipesRx, searchStateRx } from "@/livestore/queries"
-import { Result, useRxValue } from "@effect-rx/rx-react"
+import { allRecipesAtom, searchStateAtom } from "@/livestore/queries"
+import { Result, useAtomValue } from "@effect-atom/atom-react"
 import * as Duration from "effect/Duration"
 import { events } from "@/livestore/schema"
 import { Recipe } from "@/domain/Recipe"
-import { useCommit } from "@/livestore/rx"
+import { useCommit } from "@/livestore/atoms"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 
 export const Route = createFileRoute("/")({
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
 })
 
 export default function CheffectHome() {
-  const recipes = useRxValue(allRecipesRx)
+  const recipes = useAtomValue(allRecipesAtom)
 
   return (
     <div className="max-w-lg mx-auto p-2 sm:p-4">
@@ -51,8 +51,8 @@ export default function CheffectHome() {
 
 const useSearchQuery = () =>
   Result.getOrElse(
-    useRxValue(
-      searchStateRx,
+    useAtomValue(
+      searchStateAtom,
       Result.map((state) => state.query),
     ),
     () => "",

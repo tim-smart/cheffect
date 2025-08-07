@@ -6,8 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { RegistryContext } from "@effect-rx/rx-react"
-import { createRecipeRx } from "./rx"
+import { RegistryContext } from "@effect-atom/atom-react"
+import { createRecipeAtom } from "./atoms"
 import { router } from "@/Router"
 import { useContext } from "react"
 
@@ -23,7 +23,7 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
           onClick={() => {
             const url = prompt("Enter recipe URL:")
             if (!url) return
-            registry.set(createRecipeRx, url)
+            registry.set(createRecipeAtom, url)
             router.navigate({ to: "/add" })
           }}
         >

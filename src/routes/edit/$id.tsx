@@ -1,6 +1,6 @@
-import { makeQueryRx } from "@/livestore/rx"
+import { makeQueryAtom } from "@/livestore/atoms"
 import { tables } from "@/livestore/schema"
-import { useRxSuspense } from "@effect-rx/rx-react"
+import { useAtomSuspense } from "@effect-atom/atom-react"
 import { queryDb } from "@livestore/livestore"
 import { createFileRoute } from "@tanstack/react-router"
 import { useMemo } from "react"
@@ -11,10 +11,10 @@ export const Route = createFileRoute("/edit/$id")({
 
 function ProductScreen() {
   const { id } = Route.useParams()
-  const queryRx = useMemo(
-    () => makeQueryRx(queryDb(tables.recipes.where("id", "=", id).first())),
+  const queryAtom = useMemo(
+    () => makeQueryAtom(queryDb(tables.recipes.where("id", "=", id).first())),
     [id],
   )
-  const recipe = useRxSuspense(queryRx).value
+  const recipe = useAtomSuspense(queryAtom).value
   return <div>Hello {recipe.title}!</div>
 }

@@ -1,14 +1,14 @@
 import { RouterProvider } from "@tanstack/react-router"
 import { useRegisterSW } from "virtual:pwa-register/react"
 import { router } from "./Router"
-import { useRxMount } from "@effect-rx/rx-react"
-import { runtimeRx } from "./livestore/rx"
+import { useAtomMount } from "@effect-atom/atom-react"
+import { runtimeAtom } from "./livestore/atoms"
 
 export default function App() {
   useRegisterSW({
     immediate: true,
   })
-  useRxMount(runtimeRx)
+  useAtomMount(runtimeAtom)
 
   return <RouterProvider router={router} />
 }
