@@ -1,4 +1,5 @@
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
+import { router } from "@/Router"
 import { createRootRoute, Outlet } from "@tanstack/react-router"
 import { ChefHat, Settings, ShoppingCart } from "lucide-react"
 import { useState } from "react"
@@ -12,16 +13,22 @@ export const Route = createRootRoute({
         <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="px-4 py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ChefHat className="w-7 h-7 text-orange-600" />
+              <button
+                className="flex items-center gap-3 cursor-pointer"
+                type="button"
+                onClick={() => {
+                  router.navigate({ to: "/" })
+                }}
+              >
+                <ChefHat className="w-7 h-7 text-orange-600 cursor-pointer" />
                 <h1 className="text-xl font-bold text-gray-900">Cheffect</h1>
-              </div>
+              </button>
               <AddRecipeButton small />
             </div>
           </div>
         </header>
 
-        <main className="px-4 py-4">
+        <main>
           <Outlet />
         </main>
 

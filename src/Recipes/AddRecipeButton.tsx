@@ -6,11 +6,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useRxSet } from "@effect-rx/rx-react"
+import { RegistryContext } from "@effect-rx/rx-react"
 import { createRecipeRx } from "./rx"
+import { router } from "@/Router"
+import { useContext } from "react"
 
 export function AddRecipeButton({ small = false }: { small?: boolean }) {
-  const createRecipe = useRxSet(createRecipeRx)
+  const registry = useContext(RegistryContext)
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -21,12 +23,19 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
           onClick={() => {
             const url = prompt("Enter recipe URL:")
             if (!url) return
-            createRecipe(url)
+            registry.set(createRecipeRx, url)
+            router.navigate({ to: "/add" })
           }}
         >
           From URL
         </DropdownMenuItem>
-        <DropdownMenuItem>From scratch</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            router.navigate({ to: "/add" })
+          }}
+        >
+          From scratch
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

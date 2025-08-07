@@ -18,6 +18,7 @@
     "@effect/platform-browser": "^0.70.0",
     "@effect/rpc": "^0.68.2",
     "@effect/sql": "^0.44.0",
+    "@hookform/resolvers": "^5.2.1",
     "@inato-form/core": "^0.1.0",
     "@inato-form/fields": "^0.1.1",
     "@inato-form/react-hook-form": "^0.1.1",
@@ -40,7 +41,9 @@
     "lucide-react": "^0.536.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "tailwind-merge": "^3.3.1"
+    "react-hook-form": "^7.62.0",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.0.15"
   },
   "devDependencies": {
     "@effect/language-service": "^0.34.0",

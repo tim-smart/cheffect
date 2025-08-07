@@ -21,15 +21,53 @@ import { Rating } from "@/domain/Rating"
 import * as Arr from "effect/Array"
 import { ReactHookForm } from "@inato-form/react-hook-form"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
+import { FormControl, FormItem, FormLabel } from "@/components/ui/form"
+import { DurationFromMinutes } from "@/domain/Duration"
+
+export const TextInputOrNull = TextInput.make({
+  schema: Schema.Trim.pipe(
+    Schema.transform(Schema.NullOr(Schema.NonEmptyTrimmedString), {
+      decode: (value) => (value === "" ? null : value),
+      encode: (value) => value ?? "",
+    }),
+  ),
+  defaultValue: "",
+})
+
+export const NumberInputOrNull = NumberInput.make({
+  schema: Schema.Union(Schema.Number, Schema.Literal(""), Schema.Null).pipe(
+    Schema.transform(Schema.NullOr(Schema.Number), {
+      decode: (value) => (typeof value === "number" ? value : null),
+      encode: (value) => value,
+    }),
+  ),
+  defaultValue: "",
+})
+
+export const DurationInput = NumberInput.make({
+  schema: NumberInputOrNull.schema.pipe(
+    Schema.compose(Schema.NullOr(DurationFromMinutes)),
+  ),
+  defaultValue: "",
+})
+
+export const SelectWithLiteralsOrNull = <
+  Literals extends Arr.NonEmptyReadonlyArray<string>,
+>(
+  ...literals: Literals
+) =>
+  Select.make({
+    schema: Schema.NullOr(Schema.Literal(...literals)),
+    defaultValue: null,
+  })
 
 export class RatingInput extends FormField.FormField("RatingInput")<
   RatingInput,
   RatingInputFC
 >() {
   static Optional = this.make({
-    schema: NumberInput.Optional.schema.pipe(
-      Schema.compose(Schema.OptionFromSelf(Rating)),
+    schema: NumberInputOrNull.schema.pipe(
+      Schema.compose(Schema.NullOr(Rating)),
       Schema.asSchema,
     ),
     defaultValue: "",
@@ -46,6 +84,7 @@ export interface RatingInputFC
     className?: string
     value?: number | undefined
     onChange?: (value: any) => void
+    size?: number
   }> {}
 
 export const ShadcnFields: Layer.Layer<
@@ -54,49 +93,61 @@ export const ShadcnFields: Layer.Layer<
   FormFramework.FormFramework
 > = Layer.mergeAll(
   TextInput.layerUncontrolled(({ label, ...props }) => (
-    <>
-      {label && <Label className="mb-1">{label}</Label>}
-      <Input {...props} />
-    </>
+    <FormItem className="w-full">
+      {label && <FormLabel>{label}</FormLabel>}
+      <FormControl>
+        <Input {...props} />
+      </FormControl>
+    </FormItem>
   )),
   TextArea.layerUncontrolled(({ label, ...props }) => (
-    <>
-      {label && <Label className="mb-1">{label}</Label>}
+    <FormItem className="w-full">
+      {label && <FormLabel>{label}</FormLabel>}
       <Textarea {...props} />
-    </>
+    </FormItem>
   )),
-  NumberInput.layerControlled(
-    React.forwardRef(
-      ({ ...props }, ref: React.ForwardedRef<HTMLInputElement>) => (
-        <Input {...props} ref={ref} type="number" />
-      ),
-    ),
-  ),
+  NumberInput.layerUncontrolled(({ label, ...props }) => (
+    <FormItem className="w-full">
+      {label && <FormLabel>{label}</FormLabel>}
+      <FormControl>
+        <Input type="number" step="any" {...props} />
+      </FormControl>
+    </FormItem>
+  )),
   Select.layerControlled(({ options, label, placeholder, ...props }) => (
-    <>
-      {label}
-      <SelectUi {...props}>
-        <SelectTrigger>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {options.map(({ label, value }) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </SelectUi>
-    </>
+    <FormItem className="w-full">
+      {label && <FormLabel>{label}</FormLabel>}
+      <FormControl>
+        <SelectUi {...props} onValueChange={(_) => (props as any).onChange(_)}>
+          <SelectTrigger>
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {options.map(({ label, value }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </SelectUi>
+      </FormControl>
+    </FormItem>
   )),
-  RatingInput.layerControlled(({ onChange, ...props }) => (
-    <RatingUi {...props} onValueChange={onChange}>
-      {Arr.range(1, 5).map((i) => (
-        <RatingButton key={i} />
-      ))}
-    </RatingUi>
+  RatingInput.layerControlled(({ onChange, label, size, ...props }) => (
+    <FormItem className="w-full">
+      {label && <FormLabel>{label}</FormLabel>}
+      <FormControl>
+        <div className="pt-1">
+          <RatingUi {...props} onValueChange={onChange}>
+            {Arr.range(1, 5).map((i) => (
+              <RatingButton key={i} size={size} />
+            ))}
+          </RatingUi>
+        </div>
+      </FormControl>
+    </FormItem>
   )),
   // MultiSelect.layerControlled(
   //   React.forwardRef(

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { Search, Clock, Users, ChefHat, Star, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +18,7 @@ export default function CheffectHome() {
   const recipes = useRxValue(allRecipesRx)
 
   return (
-    <>
+    <div className="max-w-lg mx-auto p-2 sm:p-4">
       {/* Search Bar */}
       <div className="mb-4">
         <SearchInput />
@@ -45,7 +45,7 @@ export default function CheffectHome() {
           .onSuccess((recipes) => <RecipeList recipes={recipes} />)
           .render()}
       </div>
-    </>
+    </div>
   )
 }
 
@@ -116,7 +116,11 @@ function NoResults() {
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
-    <div className="active:bg-gray-50 transition-colors">
+    <Link
+      to="/edit/$id"
+      params={{ id: recipe.id }}
+      className="block active:bg-gray-50 transition-colors"
+    >
       <div className="flex items-center">
         {/* Recipe Image - No whitespace */}
         <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden">
@@ -157,7 +161,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 

@@ -1,7 +1,9 @@
-import { Duration, identity, Option, Schema } from "effect"
+import { Duration, Option } from "effect"
 import { Model } from "@effect/sql"
 import * as DateTime from "effect/DateTime"
 import { Rating } from "./Rating"
+import * as Schema from "effect/Schema"
+import { DurationFromMinutes } from "./Duration"
 
 export const Unit = Schema.Literal(
   "g",
@@ -29,10 +31,7 @@ export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
     name: Schema.String.annotations({
       description: "The name of the ingredient.",
     }),
-    quantity: Schema.transform(Schema.NullOr(Schema.Number), Schema.Number, {
-      decode: (_) => (_ === null ? 1 : _),
-      encode: identity,
-    }).annotations({
+    quantity: Schema.NullOr(Schema.Number).annotations({
       description: "The quantity of the ingredient, if applicable.",
     }),
     unit: Schema.NullOr(Unit).annotations({
@@ -59,15 +58,6 @@ export class IngredientsComponent extends Schema.Class<IngredientsComponent>(
     description: "Represents a component of a recipe with its ingredients.",
   },
 ) {}
-
-export const DurationFromMinutes = Schema.transform(
-  Schema.Number,
-  Schema.DurationFromSelf,
-  {
-    decode: Duration.minutes,
-    encode: Duration.toMinutes,
-  },
-)
 
 export class Step extends Schema.Class<Step>("Step")(
   {

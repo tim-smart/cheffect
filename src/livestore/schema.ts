@@ -1,3 +1,4 @@
+import { Rating } from "@/domain/Rating"
 import { IngredientsComponent, Recipe, Step } from "@/domain/Recipe"
 import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Schema from "effect/Schema"
@@ -86,6 +87,10 @@ export const schema = makeSchema({ events, state })
 // ensure Recipe model is assignable to the recipes table
 Schema.transform(tables.recipes.rowSchema, Schema.typeSchema(Recipe), {
   strict: true,
-  decode: (row) => new Recipe(row),
+  decode: (row) =>
+    new Recipe({
+      ...row,
+      rating: row.rating != null ? Rating.make(row.rating) : null,
+    }),
   encode: (recipe) => recipe,
 })
