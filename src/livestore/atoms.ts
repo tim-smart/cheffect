@@ -12,18 +12,11 @@ const adapter = makePersistedAdapter({
   sharedWorker: LiveStoreSharedWorker,
 })
 
-export const {
-  runtimeAtom,
-  commitAtom,
-  storeAtom,
-  storeAtomUnsafe,
-  makeQueryAtomUnsafe,
-  makeQueryAtom,
-} = AtomLivestore.make({
+export class Store extends AtomLivestore.Tag<Store>()("Store", {
   schema,
   storeId: "default",
   adapter,
   batchUpdates: unstable_batchedUpdates,
-})
+}) {}
 
-export const useCommit = () => useAtomSet(commitAtom)
+export const useCommit = () => useAtomSet(Store.commit)
