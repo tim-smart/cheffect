@@ -117,7 +117,7 @@ function NoResults() {
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
     <Link
-      to="/edit/$id"
+      to="/recipe/$id"
       params={{ id: recipe.id }}
       className="block active:bg-gray-50 transition-colors"
     >
