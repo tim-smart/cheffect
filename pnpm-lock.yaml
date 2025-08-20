@@ -13,8 +13,8 @@ importers:
   .:
     dependencies:
       '@effect-atom/atom-livestore':
-        specifier: ^0.1.14
-        version: 0.1.14(@effect/experimental@0.54.6(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@effect/platform@0.90.5(effect@3.17.8))(@effect/rpc@0.69.0(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@livestore/livestore@0.3.1(ad4d407ce5f45798cccad437d880b9c9))(effect@3.17.8)
+        specifier: ^0.1.15
+        version: 0.1.15(@effect/experimental@0.54.6(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@effect/platform@0.90.5(effect@3.17.8))(@effect/rpc@0.69.0(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@livestore/livestore@0.3.1(ad4d407ce5f45798cccad437d880b9c9))(effect@3.17.8)
       '@effect-atom/atom-react':
         specifier: ^0.1.14
         version: 0.1.14(@effect/experimental@0.54.6(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@effect/platform@0.90.5(effect@3.17.8))(@effect/rpc@0.69.0(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(effect@3.17.8)(react@19.1.1)(scheduler@0.26.0)
@@ -97,7 +97,7 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       effect:
-        specifier: ^3.17.8
+        specifier: ^3.17.1
         version: 3.17.8
       lucide-react:
         specifier: ^0.540.0
@@ -719,8 +719,8 @@ packages:
   '@canvas/image-data@1.0.0':
     resolution: {integrity: sha512-BxOqI5LgsIQP1odU5KMwV9yoijleOPzHL18/YvNqF9KFSGF2K/DLlYAbDQsWqd/1nbaFuSkYD/191dpMtNh4vw==}
 
-  '@effect-atom/atom-livestore@0.1.14':
-    resolution: {integrity: sha512-V3WSj3Yin7GVVWskCQmQ0sxYInMsjG5jTxujyNhFUsLWHqG+fd2mTabZXrmOcKSneziCg2T3jSTWU3ZkSr7SNg==}
+  '@effect-atom/atom-livestore@0.1.15':
+    resolution: {integrity: sha512-XAg9vt7xT6KVjSIrCBN7OcOy2Hsno94fdZ+TjOdFWd/huvi1gFRyydYFaZtkPXbOit9amsS9l0+Wm5Skr317vA==}
     peerDependencies:
       '@livestore/livestore': '*'
       effect: ^3.17.1
@@ -4455,7 +4455,7 @@ snapshots:
 
   '@canvas/image-data@1.0.0': {}
 
-  '@effect-atom/atom-livestore@0.1.14(@effect/experimental@0.54.6(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@effect/platform@0.90.5(effect@3.17.8))(@effect/rpc@0.69.0(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@livestore/livestore@0.3.1(ad4d407ce5f45798cccad437d880b9c9))(effect@3.17.8)':
+  '@effect-atom/atom-livestore@0.1.15(@effect/experimental@0.54.6(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@effect/platform@0.90.5(effect@3.17.8))(@effect/rpc@0.69.0(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@livestore/livestore@0.3.1(ad4d407ce5f45798cccad437d880b9c9))(effect@3.17.8)':
     dependencies:
       '@effect-atom/atom': 0.1.17(@effect/experimental@0.54.6(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(@effect/platform@0.90.5(effect@3.17.8))(@effect/rpc@0.69.0(@effect/platform@0.90.5(effect@3.17.8))(effect@3.17.8))(effect@3.17.8)
       '@livestore/livestore': 0.3.1(ad4d407ce5f45798cccad437d880b9c9)

@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@effect-atom/atom-livestore": "^0.1.14",
+    "@effect-atom/atom-livestore": "^0.1.15",
     "@effect-atom/atom-react": "^0.1.14",
     "@effect/ai": "^0.26.0",
     "@effect/ai-openai": "^0.29.0",

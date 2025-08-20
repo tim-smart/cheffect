@@ -18,14 +18,14 @@ const Display = FormDisplay.make(RecipeFormSchema).pipe(
 )
 
 export function RecipeForm({
-  initialValues,
+  initialValue,
 }: {
-  initialValues?: typeof RecipeFormSchema.schema.Encoded
+  initialValue?: typeof RecipeFormSchema.schema.Encoded
 }) {
   const commit = useCommit()
   return (
     <Display.Form
-      initialValues={initialValues ? { encoded: initialValues } : undefined}
+      initialValues={initialValue ? { encoded: initialValue } : undefined}
       onError={(error) => {
         console.error("Form submission error:", error)
       }}
@@ -166,8 +166,8 @@ function IngredientFields() {
   }
   return (
     <div className="flex items-center gap-1">
-      <div className="w-16">
-        <Display.ingredients.Element.ingredients.Element.quantity />
+      <div className="w-14">
+        <Display.ingredients.Element.ingredients.Element.quantity className="no-step-button" />
       </div>
       <div>
         <Display.ingredients.Element.ingredients.Element.unit

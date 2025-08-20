@@ -18,6 +18,13 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
   }
+
+  .no-step-button::-webkit-inner-spin-button,
+  .no-step-button::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+    -moz-appearance: textfield;
+  }
 }
 
 @theme inline {

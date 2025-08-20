@@ -1,6 +1,1 @@
-- Make form look nice
-- Hook up add button to form
-  - Show extraction loading state
-  - pre-fill form when extracted
-- Hook up form submit to livestore
 - Recipe details page
