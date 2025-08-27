@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Recipe } from "@/domain/Recipe"
 import { recipeByIdAtom } from "@/livestore/queries"
+import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import { Result, useAtomValue } from "@effect-atom/atom-react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import * as Duration from "effect/Duration"
 import { ArrowLeft, Clock, Star, Users } from "lucide-react"
 import { useState } from "react"
@@ -52,9 +53,12 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-semibold text-gray-900 line-clamp-1">
+            <h1 className="text-lg font-semibold text-gray-900 line-clamp-1 flex-1">
               {recipe.title}
             </h1>
+            <Link to="/edit/$id" params={{ id: recipe.id }} className="mr-2">
+              <Button size="sm">Edit</Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -202,17 +206,6 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-export function NoRecipeFound() {
-  return (
-    <div className="p-4 text-center text-gray-600">
-      <h2 className="text-xl font-semibold mb-2">Recipe Not Found</h2>
-      <p className="text-sm">
-        The recipe you are looking for does not exist or has been removed.
-      </p>
     </div>
   )
 }

@@ -1,13 +1,10 @@
-import { RecipeFormSchema, RecipeInsert } from "@/domain/RecipeForm"
+import { RecipeFormSchema } from "@/domain/RecipeForm"
 import { FormDisplay } from "@inato-form/core"
 import * as Effect from "effect/Effect"
 import { ShadcnReactHookFormLayer } from "@/lib/InatoForm"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash, X } from "lucide-react"
 import * as Arr from "effect/Array"
-import * as Schema from "effect/Schema"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
 import { router } from "@/Router"
 import { Unit } from "@/domain/Recipe"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -19,10 +16,13 @@ const Display = FormDisplay.make(RecipeFormSchema).pipe(
 
 export function RecipeForm({
   initialValue,
+  variant = "add",
+  onSubmit,
 }: {
   initialValue?: typeof RecipeFormSchema.schema.Encoded
+  variant?: "add" | "edit"
+  onSubmit: (decoded: typeof RecipeFormSchema.schema.Type) => void
 }) {
-  const commit = useCommit()
   return (
     <Display.Form
       initialValues={initialValue ? { encoded: initialValue } : undefined}
@@ -30,8 +30,8 @@ export function RecipeForm({
         console.error("Form submission error:", error)
       }}
       onSubmit={({ decoded }) => {
-        commit(events.recipeCreated(Schema.decodeSync(RecipeInsert)(decoded)))
         router.navigate({ to: "/" })
+        onSubmit(decoded)
       }}
     >
       <div className="flex flex-col gap-4 p-2 pt-8 max-w-lg mx-auto">
@@ -74,7 +74,9 @@ export function RecipeForm({
           </div>
         </Display.steps>
 
-        <Display.Submit>Add Recipe</Display.Submit>
+        <Display.Submit>
+          {variant === "add" ? "Add" : "Save"} Recipe
+        </Display.Submit>
       </div>
     </Display.Form>
   )

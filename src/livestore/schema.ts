@@ -64,6 +64,10 @@ export const events = {
     name: "v1.RecipeCreated",
     schema: Recipe,
   }),
+  recipeUpdated: Events.synced({
+    name: "v1.RecipeUpdated",
+    schema: Recipe.update,
+  }),
   recipeDeleted: Events.synced({
     name: "v1.RecipeDeleted",
     schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
@@ -74,6 +78,8 @@ export const events = {
 // Materializers are used to map events to state (https://docs.livestore.dev/reference/state/materializers)
 const materializers = State.SQLite.materializers(events, {
   "v1.RecipeCreated": (insert) => tables.recipes.insert(insert),
+  "v1.RecipeUpdated": (update) =>
+    tables.recipes.update(update).where({ id: update.id }),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
 })
