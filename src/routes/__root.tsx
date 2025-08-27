@@ -1,12 +1,17 @@
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import { router } from "@/Router"
-import { createRootRoute, Outlet } from "@tanstack/react-router"
+import {
+  createRootRoute,
+  Link,
+  Outlet,
+  useLocation,
+} from "@tanstack/react-router"
 import { ChefHat, Settings, ShoppingCart } from "lucide-react"
 import { useState } from "react"
 
 export const Route = createRootRoute({
   component: () => {
-    const [activeTab, setActiveTab] = useState("home")
+    const location = useLocation()
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         {/* Mobile Header */}
@@ -35,41 +40,35 @@ export const Route = createRootRoute({
         {/* Bottom Navigation - Mobile First */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-pb">
           <div className="flex justify-around">
-            <button
-              onClick={() => setActiveTab("home")}
-              className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
-                activeTab === "home"
-                  ? "text-orange-600 bg-orange-50"
-                  : "text-gray-500 active:bg-gray-100"
-              }`}
+            <Link
+              to="/"
+              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
+              activeProps={{ className: "text-orange-600 bg-orange-50" }}
+              inactiveProps={{ className: "text-gray-500 active:bg-gray-100" }}
             >
               <ChefHat className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Recipes</span>
-            </button>
+            </Link>
 
-            <button
-              onClick={() => setActiveTab("grocery")}
-              className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
-                activeTab === "grocery"
-                  ? "text-orange-600 bg-orange-50"
-                  : "text-gray-500 active:bg-gray-100"
-              }`}
+            <Link
+              to="/groceries"
+              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
+              activeProps={{ className: "text-orange-600 bg-orange-50" }}
+              inactiveProps={{ className: "text-gray-500 active:bg-gray-100" }}
             >
               <ShoppingCart className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Grocery</span>
-            </button>
+            </Link>
 
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
-                activeTab === "settings"
-                  ? "text-orange-600 bg-orange-50"
-                  : "text-gray-500 active:bg-gray-100"
-              }`}
+            <Link
+              to="/settings"
+              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
+              activeProps={{ className: "text-orange-600 bg-orange-50" }}
+              inactiveProps={{ className: "text-gray-500 active:bg-gray-100" }}
             >
               <Settings className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Settings</span>
-            </button>
+            </Link>
           </div>
         </nav>
       </div>
