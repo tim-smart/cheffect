@@ -1,13 +1,25 @@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { GroceryItem } from "@/domain/GroceryItem"
 import { Recipe } from "@/domain/Recipe"
+import { useCommit } from "@/livestore/atoms"
 import { recipeByIdAtom } from "@/livestore/queries"
+import { events } from "@/livestore/schema"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
-import { Result, useAtomValue } from "@effect-atom/atom-react"
+import { Atom, Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import * as Duration from "effect/Duration"
-import { ArrowLeft, Clock, Star, Users } from "lucide-react"
+import * as Effect from "effect/Effect"
+import {
+  ArrowLeft,
+  Check,
+  Clock,
+  Plus,
+  ShoppingCart,
+  Star,
+  Users,
+} from "lucide-react"
 import { useState } from "react"
 
 export const Route = createFileRoute("/recipe/$id")({
@@ -37,6 +49,18 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
       newChecked.add(ingredientId)
     }
     setCheckedIngredients(newChecked)
+  }
+
+  const commit = useCommit()
+  const [groceryAddResult, setGroceryAddCompleted] =
+    useAtom(groceryAddCompleted)
+  const addAllToGrocery = () => {
+    recipe.ingredients.forEach((group) => {
+      group.ingredients.forEach((ingredient) => {
+        commit(events.groceryItemAdded(GroceryItem.fromIngredient(ingredient)))
+      })
+    })
+    setGroceryAddCompleted()
   }
 
   return (
@@ -96,9 +120,25 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
       {/* Ingredients */}
       <div className="bg-white mt-2">
         <div className="p-4">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Ingredients
-          </h2>
+          <div className="flex">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Ingredients
+            </h2>
+            <div className="flex-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-0 !px-2"
+              onClick={addAllToGrocery}
+            >
+              {groceryAddResult.waiting ? (
+                <Check className="size-3 mt-[1px]" />
+              ) : (
+                <Plus className="size-3 mt-[1px]" />
+              )}
+              <ShoppingCart />
+            </Button>
+          </div>
 
           <div className="space-y-6">
             {recipe.ingredients.map((group, groupIndex) => (
@@ -209,3 +249,9 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
     </div>
   )
 }
+
+const groceryAddCompleted = Atom.fn<void>()(
+  Effect.fnUntraced(function* () {
+    yield* Effect.sleep("3 seconds")
+  }),
+)

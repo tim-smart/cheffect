@@ -5,6 +5,7 @@ import { Store } from "./atoms"
 import { Atom } from "@effect-atom/atom-react"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
+import { GroceryItem } from "@/domain/GroceryItem"
 
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
@@ -46,3 +47,27 @@ export const recipeByIdAtom = Atom.family((id: string) => {
 
   return Atom.make((get) => get.result(result).pipe(Effect.flatten))
 })
+
+export const allGroceryItemsAtom = Store.makeQuery(
+  queryDb(
+    {
+      query: sql`SELECT * FROM grocery_items ORDER BY name DESC`,
+      schema: GroceryItem.array,
+    },
+    {
+      map: (items) => {
+        const aisles = new Map<string, Array.NonEmptyArray<GroceryItem>>()
+        for (const item of items) {
+          const aisle = item.aisle ?? "Other"
+          const existing = aisles.get(aisle)
+          if (existing) {
+            existing.push(item)
+          } else {
+            aisles.set(aisle, [item])
+          }
+        }
+        return aisles
+      },
+    },
+  ),
+)

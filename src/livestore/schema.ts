@@ -1,3 +1,4 @@
+import { GroceryIsle, GroceryItem } from "@/domain/GroceryItem"
 import { Rating } from "@/domain/Rating"
 import { IngredientsComponent, Recipe, Step } from "@/domain/Recipe"
 import { Events, makeSchema, State } from "@livestore/livestore"
@@ -48,6 +49,25 @@ export const tables = {
       }),
     },
   }),
+  groceryItems: State.SQLite.table({
+    name: "grocery_items",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      name: State.SQLite.text({ default: "" }),
+      quantity: State.SQLite.text({ nullable: true }),
+      aisle: State.SQLite.text({
+        schema: GroceryIsle,
+        nullable: true,
+      }),
+      completed: State.SQLite.boolean({ default: false }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+  }),
   // Client documents can be used for local-only state (e.g. form inputs)
   searchState: State.SQLite.clientDocument({
     name: "searchState",
@@ -72,6 +92,26 @@ export const events = {
     name: "v1.RecipeDeleted",
     schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
   }),
+  groceryItemAdded: Events.synced({
+    name: "v1.GroceryItemAdded",
+    schema: GroceryItem,
+  }),
+  groceryItemUpdated: Events.synced({
+    name: "v1.GroceryItemUpdated",
+    schema: GroceryItem.pipe(Schema.pick("id", "name", "aisle", "quantity")),
+  }),
+  groceryItemCleared: Events.synced({
+    name: "v1.GroceryItemCleared",
+    schema: Schema.Void,
+  }),
+  groceryItemDeleted: Events.synced({
+    name: "v1.GroceryItemDeleted",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
+  groceryItemToggled: Events.synced({
+    name: "v1.GroceryItemToggled",
+    schema: Schema.Struct({ id: Schema.String, completed: Schema.Boolean }),
+  }),
   searchStateSet: tables.searchState.set,
 }
 
@@ -82,6 +122,14 @@ const materializers = State.SQLite.materializers(events, {
     tables.recipes.update(update).where({ id: update.id }),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
+  "v1.GroceryItemAdded": (insert) => tables.groceryItems.insert(insert),
+  "v1.GroceryItemUpdated": ({ id, ...update }) =>
+    tables.groceryItems.update(update).where({ id }),
+  "v1.GroceryItemCleared": () => tables.groceryItems.delete(),
+  "v1.GroceryItemDeleted": ({ id }) =>
+    tables.groceryItems.delete().where({ id }),
+  "v1.GroceryItemToggled": ({ completed, id }) =>
+    tables.groceryItems.update({ completed }).where({ id }),
 })
 
 const state = State.SQLite.makeState({ tables, materializers })
@@ -100,3 +148,14 @@ Schema.transform(tables.recipes.rowSchema, Schema.typeSchema(Recipe), {
     }),
   encode: (recipe) => recipe,
 })
+
+// ensure GroceryItem model is assignable to the table
+Schema.transform(
+  tables.groceryItems.rowSchema,
+  Schema.typeSchema(GroceryItem),
+  {
+    strict: true,
+    decode: (row) => new GroceryItem(row),
+    encode: (item) => item,
+  },
+)

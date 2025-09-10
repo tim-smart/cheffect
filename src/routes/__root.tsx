@@ -1,17 +1,10 @@
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import { router } from "@/Router"
-import {
-  createRootRoute,
-  Link,
-  Outlet,
-  useLocation,
-} from "@tanstack/react-router"
+import { createRootRoute, Link, Outlet } from "@tanstack/react-router"
 import { ChefHat, Settings, ShoppingCart } from "lucide-react"
-import { useState } from "react"
 
 export const Route = createRootRoute({
   component: () => {
-    const location = useLocation()
     return (
       <div className="min-h-screen bg-gray-50 pb-20">
         {/* Mobile Header */}

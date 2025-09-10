@@ -41,7 +41,13 @@ export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
   {
     description: "Represents an ingredient used in a recipe.",
   },
-) {}
+) {
+  get quantityWithUnit(): string | null {
+    if (this.quantity === null) return null
+    if (this.unit === null) return `${this.quantity}`
+    return `${this.quantity} ${this.unit}`
+  }
+}
 
 export class IngredientsComponent extends Schema.Class<IngredientsComponent>(
   "IngredientsComponent",
