@@ -1,5 +1,5 @@
 import { ExtractedRecipe } from "@/domain/Recipe"
-import { AiLanguageModel } from "@effect/ai"
+import { LanguageModel } from "@effect/ai"
 import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai"
 import * as FetchHttpClient from "@effect/platform/FetchHttpClient"
 import * as Config from "effect/Config"
@@ -14,18 +14,23 @@ const OpenAiClientLayer = OpenAiClient.layerConfig({
 export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
   dependencies: [OpenAiClientLayer, CorsProxy.Default],
   scoped: Effect.gen(function* () {
-    const model = yield* OpenAiLanguageModel.model("gpt-4.1-mini")
+    const model = yield* OpenAiLanguageModel.model("gpt-5-mini")
     const proxy = yield* CorsProxy
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
       url: string,
     ) {
-      const llm = yield* AiLanguageModel.AiLanguageModel
+      const llm = yield* LanguageModel.LanguageModel
       yield* Effect.annotateCurrentSpan({ url })
       const html = yield* proxy.htmlStripped(url)
       const response = yield* llm.generateObject({
-        system: "Extract a recipe from the provided HTML.",
-        prompt: html,
+        prompt: [
+          {
+            role: "system",
+            content: "Extract a recipe from the provided HTML.",
+          },
+          { role: "user", content: [{ type: "text", text: html }] },
+        ],
         schema: ExtractedRecipe,
       })
       yield* Effect.log(response.value)

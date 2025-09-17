@@ -51,7 +51,7 @@ export const recipeByIdAtom = Atom.family((id: string) => {
 export const allGroceryItemsAtom = Store.makeQuery(
   queryDb(
     {
-      query: sql`SELECT * FROM grocery_items ORDER BY name DESC`,
+      query: sql`SELECT * FROM grocery_items ORDER BY aisle, name DESC`,
       schema: GroceryItem.array,
     },
     {
@@ -65,6 +65,11 @@ export const allGroceryItemsAtom = Store.makeQuery(
           } else {
             aisles.set(aisle, [item])
           }
+        }
+        if (aisles.has("Other")) {
+          const other = aisles.get("Other")!
+          aisles.delete("Other")
+          aisles.set("Other", other)
         }
         return aisles
       },

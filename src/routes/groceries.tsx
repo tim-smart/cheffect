@@ -10,7 +10,6 @@ import {
   Trash,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -20,120 +19,39 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import { Result, useAtomValue } from "@effect-atom/atom-react"
-import { allGroceryItemsAtom } from "@/livestore/queries"
-import { GroceryIsle, GroceryItem } from "@/domain/GroceryItem"
+import { Atom, Result, useAtomValue } from "@effect-atom/atom-react"
+import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
+import { FormBody, FormDisplay } from "@inato-form/core"
+import { TextInput } from "@inato-form/fields"
+import {
+  SelectWithLiteralsOrNull,
+  ShadcnReactHookFormLayer,
+  TextInputOrNull,
+} from "@/lib/InatoForm"
+import * as Effect from "effect/Effect"
+import * as DateTime from "effect/DateTime"
+import { groceryCountAtom } from "@/Groceries/atoms"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
 })
 
-export default function GroceryList() {
+function GroceryList() {
+  const result = useAtomValue(groceryCountAtom)
+
   const commit = useCommit()
-  const items = useAtomValue(
-    allGroceryItemsAtom,
-    Result.getOrElse(() => new Map<never, never>()),
-  )
-  const [newItemName, setNewItemName] = useState("")
-  const [newItemQuantity, setNewItemQuantity] = useState("")
-  const [selectedAisle, setSelectedAisle] = useState("Produce")
   const [showAddForm, setShowAddForm] = useState(false)
-  const [editingItem, setEditingItem] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
-  const [editQuantity, setEditQuantity] = useState("")
-
-  const toggleItem = (_item: GroceryItem) => {
-    // TODO
+  const clearCompleted = () => {
+    commit(events.groceryItemClearedCompleted())
   }
-
-  const removeItem = (_item: GroceryItem) => {
-    // TODO
-  }
-
-  const addItem = () => {
-    if (!newItemName.trim()) return
-
-    // const aisleIndex = groceryList.findIndex(
-    //   (aisle) => aisle.name === selectedAisle,
-    // )
-    // if (aisleIndex === -1) return
-    //
-    // const newItem: GroceryItem = {
-    //   id: Date.now().toString(),
-    //   name: newItemName.trim(),
-    //   quantity: newItemQuantity.trim() || undefined,
-    //   completed: false,
-    // }
-    //
-    // setGroceryList((prev) =>
-    //   prev.map((aisle, i) =>
-    //     i === aisleIndex
-    //       ? {
-    //           ...aisle,
-    //           items: [...aisle.items, newItem],
-    //         }
-    //       : aisle,
-    //   ),
-    // )
-
-    setNewItemName("")
-    setNewItemQuantity("")
-    setShowAddForm(false)
-  }
-
-  const clearCompleted = () => {}
 
   const clearAll = () => {
     commit(events.groceryItemCleared())
   }
 
-  const startEditing = (item: any) => {
-    setEditingItem(item.id)
-    setEditName(item.name)
-    setEditQuantity(item.quantity || "")
-  }
-
-  const saveEdit = (_edit: {}) => {
-    if (!editName.trim()) return
-    //
-    // setGroceryList((prev) =>
-    //   prev.map((aisle, i) =>
-    //     i === aisleIndex
-    //       ? {
-    //           ...aisle,
-    //           items: aisle.items.map((item) =>
-    //             item.id === itemId
-    //               ? {
-    //                   ...item,
-    //                   name: editName.trim(),
-    //                   quantity: editQuantity.trim() || undefined,
-    //                 }
-    //               : item,
-    //           ),
-    //         }
-    //       : aisle,
-    //   ),
-    // )
-
-    setEditingItem(null)
-    setEditName("")
-    setEditQuantity("")
-  }
-
-  const cancelEdit = () => {
-    setEditingItem(null)
-    setEditName("")
-    setEditQuantity("")
-  }
-
-  let totalItems = 0
-  let completedItems = 0
-  let aisles: Array<{ name: string; items: GroceryItem[] }> = []
-  items.forEach((items, aisle) => {
-    totalItems += items.length
-    completedItems += items.filter((item) => item.completed).length
-    aisles.push({ name: aisle, items })
-  })
+  const total = result._tag === "Success" ? result.value.total : 0
+  const completed = result._tag === "Success" ? result.value.completed : 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -148,7 +66,7 @@ export default function GroceryList() {
                   Grocery List
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {completedItems} of {totalItems} items
+                  {completed} of {total} items
                 </p>
               </div>
             </div>
@@ -156,7 +74,7 @@ export default function GroceryList() {
               <Button
                 onClick={() => setShowAddForm(!showAddForm)}
                 size="sm"
-                className="bg-orange-600 hover:bg-orange-700"
+                variant="outline"
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -186,10 +104,7 @@ export default function GroceryList() {
               <div
                 className="bg-orange-600 h-2 rounded-full transition-all duration-300"
                 style={{
-                  width:
-                    totalItems > 0
-                      ? `${(completedItems / totalItems) * 100}%`
-                      : "0%",
+                  width: total > 0 ? `${(completed / total) * 100}%` : "0%",
                 }}
               />
             </div>
@@ -197,179 +112,261 @@ export default function GroceryList() {
         </div>
       </header>
 
-      <div className="p-4 space-y-4">
-        {/* Add Item Form */}
-        {showAddForm && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="font-medium text-gray-900 mb-3">Add New Item</h3>
-            <div className="space-y-3">
-              <div>
-                <Input
-                  placeholder="Item name"
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Quantity (optional)"
-                  value={newItemQuantity}
-                  onChange={(e) => setNewItemQuantity(e.target.value)}
-                  className="flex-1"
-                />
-                <select
-                  value={selectedAisle}
-                  onChange={(e) => setSelectedAisle(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white"
-                >
-                  {GroceryIsle.literals.map((aisle) => (
-                    <option key={aisle} value={aisle}>
-                      {aisle}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={addItem}
-                  className="flex-1 bg-orange-600 hover:bg-orange-700"
-                >
-                  Add Item
-                </Button>
-                <Button
-                  onClick={() => setShowAddForm(false)}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </div>
+      {Result.builder(result)
+        .onSuccess((state) => <GroceryListList {...state} />)
+        .orElse(() => (
+          <GroceryListSkeleton />
+        ))}
+    </div>
+  )
+}
+
+const ItemFormSchema = FormBody.struct({
+  name: TextInput.Required,
+  quantity: TextInputOrNull,
+  aisle: SelectWithLiteralsOrNull(...GroceryAisle.literals),
+})
+
+const Display = FormDisplay.make(ItemFormSchema).pipe(
+  Effect.provide(ShadcnReactHookFormLayer),
+  Effect.runSync,
+)
+
+const aisleOptions = [
+  {
+    label: "Unknown",
+    value: null as string | null,
+  },
+].concat(
+  GroceryAisle.literals.map((value) => ({
+    label: value,
+    value,
+  })),
+)
+
+function GroceryItemForm({
+  onSubmit,
+  onCancel,
+  initialValue,
+}: {
+  onSubmit: (item: GroceryItem) => void
+  onCancel: () => void
+  initialValue?: GroceryItem | undefined
+}) {
+  const isEditing = !!initialValue
+  return (
+    <Display.Form
+      initialValues={
+        initialValue
+          ? {
+              encoded: {
+                ...initialValue,
+                quantity: initialValue.quantity ?? "",
+              },
+            }
+          : undefined
+      }
+      onError={(error) => {
+        console.error("Form submission error:", error)
+      }}
+      onSubmit={({ decoded }) => {
+        const item = initialValue
+          ? new GroceryItem({
+              ...initialValue,
+              ...decoded,
+              updatedAt: DateTime.unsafeNow(),
+            })
+          : GroceryItem.fromForm(decoded)
+        onSubmit(item)
+      }}
+    >
+      <div className="bg-white rounded-lg border border-gray-200 p-3">
+        {!isEditing && (
+          <h3 className="font-medium text-gray-900 mb-2">Add New Item</h3>
         )}
+        <div className="space-y-2">
+          <div>
+            <Display.name placeholder="Item name" />
+          </div>
+          <div className="flex gap-2">
+            <Display.quantity
+              placeholder="Quantity (optional)"
+              className="flex-1"
+            />
+            <Display.aisle options={aisleOptions as any} />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              className="flex-1 bg-orange-600 hover:bg-orange-700"
+            >
+              {isEditing ? "Save" : "Add Item"}
+            </Button>
+            <Button
+              onClick={() => onCancel()}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Display.Form>
+  )
+}
 
-        {/* Grocery List by Aisle */}
-        {aisles.map(({ name, items }) => {
-          return (
-            <div key={name}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-gray-900">{name}</h2>
-              </div>
+function GroceryListList({
+  total,
+  aisles,
+}: Atom.Success<typeof groceryCountAtom>) {
+  const commit = useCommit()
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingItem, setEditingItem] = useState<GroceryItem | null>(null)
 
-              <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center gap-3 p-3 transition-colors ${
-                      item.completed ? "bg-gray-50" : "active:bg-gray-50"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={item.completed}
-                      onChange={() => toggleItem(item)}
-                      className="flex-shrink-0"
-                    />
+  const toggleItem = (item: GroceryItem) => {
+    commit(
+      events.groceryItemToggled({ id: item.id, completed: !item.completed }),
+    )
+  }
 
-                    {editingItem === item.id ? (
-                      // Edit mode
-                      <div className="flex-1 space-y-2">
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          placeholder="Item name"
-                          className="text-sm"
-                        />
-                        <Input
-                          value={editQuantity}
-                          onChange={(e) => setEditQuantity(e.target.value)}
-                          placeholder="Quantity (optional)"
-                          className="text-sm"
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => saveEdit({})}
-                            size="sm"
-                            className="bg-orange-600 hover:bg-orange-700 text-xs px-2 py-1 h-7"
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            onClick={cancelEdit}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs px-2 py-1 h-7 bg-transparent"
-                          >
-                            Cancel
-                          </Button>
+  const removeItem = (item: GroceryItem) => {
+    commit(events.groceryItemDeleted({ id: item.id }))
+  }
+
+  const startEditing = (item: GroceryItem) => {
+    setEditingItem(item)
+  }
+
+  const cancelEdit = () => {
+    setEditingItem(null)
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Add Item Form */}
+      {showAddForm && (
+        <GroceryItemForm
+          onSubmit={(item) => {
+            commit(events.groceryItemAdded(item))
+            setShowAddForm(false)
+          }}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
+
+      {/* Grocery List by Aisle */}
+      {aisles.map(({ name, items }) => {
+        return (
+          <div key={name}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-gray-900">{name}</h2>
+            </div>
+
+            <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 p-3 transition-colors ${
+                    item.completed ? "bg-gray-50" : "active:bg-gray-50"
+                  }`}
+                >
+                  <Checkbox
+                    checked={item.completed}
+                    onCheckedChange={() => toggleItem(item)}
+                    className="flex-shrink-0"
+                  />
+
+                  {editingItem?.id === item.id ? (
+                    // Edit mode
+                    <div className="flex-1">
+                      <GroceryItemForm
+                        initialValue={item}
+                        onSubmit={(updated) => {
+                          commit(events.groceryItemUpdated(updated))
+                          setEditingItem(null)
+                        }}
+                        onCancel={cancelEdit}
+                      />
+                    </div>
+                  ) : (
+                    // Display mode
+                    <>
+                      <div
+                        className="flex-1 min-w-0"
+                        onDoubleClick={() => startEditing(item)}
+                      >
+                        <div
+                          className={`${item.completed ? "line-through text-gray-500" : "text-gray-900"}`}
+                        >
+                          <span>{item.name}</span>
+                          {item.quantity && (
+                            <span className="text-sm text-gray-600 ml-2">
+                              ({item.quantity})
+                            </span>
+                          )}
                         </div>
                       </div>
-                    ) : (
-                      // Display mode
-                      <>
-                        <div
-                          className="flex-1 min-w-0"
-                          onDoubleClick={() => startEditing(item)}
-                        >
-                          <div
-                            className={`${item.completed ? "line-through text-gray-500" : "text-gray-900"}`}
-                          >
-                            <span className="font-medium">{item.name}</span>
-                            {item.quantity && (
-                              <span className="text-sm text-gray-600 ml-2">
-                                ({item.quantity})
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      <div>
                         <Button
                           onClick={() => startEditing(item)}
                           variant="ghost"
                           size="sm"
-                          className="p-1 text-gray-400 hover:text-orange-500 flex-shrink-0"
+                          className="!p-2 text-gray-400 hover:text-orange-500 flex-shrink-0"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                      </>
-                    )}
-
-                    {editingItem !== item.id && (
-                      <Button
-                        onClick={() => removeItem(item)}
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                        {editingItem?.id !== item.id && (
+                          <Button
+                            onClick={() => removeItem(item)}
+                            variant="ghost"
+                            size="sm"
+                            className="!p-2 text-gray-400 hover:text-red-500 flex-shrink-0"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
-          )
-        })}
-
-        {/* Empty State */}
-        {totalItems === 0 && (
-          <div className="text-center py-16">
-            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Your grocery list is empty
-            </h3>
-            <p className="text-gray-500 mb-6">
-              Add items to start building your shopping list
-            </p>
-            <Button
-              onClick={() => setShowAddForm(true)}
-              className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Add First Item
-            </Button>
           </div>
-        )}
-      </div>
+        )
+      })}
+
+      {/* Empty State */}
+      {total === 0 && (
+        <div className="text-center py-16">
+          <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Your grocery list is empty
+          </h3>
+          <p className="text-gray-500 mb-6">
+            Add items to start building your shopping list
+          </p>
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Add First Item
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function GroceryListSkeleton() {
+  return (
+    <div className="p-4 pt-12 space-y-4">
+      <Skeleton className="h-12 w-full mb-4" />
+      <Skeleton className="h-12 w-full mb-4" />
+      <Skeleton className="h-12 w-full mb-4" />
+      <Skeleton className="h-12 w-full mb-4" />
+      <Skeleton className="h-12 w-full mb-4" />
     </div>
   )
 }

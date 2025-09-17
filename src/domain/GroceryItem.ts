@@ -3,7 +3,7 @@ import * as Schema from "effect/Schema"
 import { Ingredient } from "./Recipe"
 import * as DateTime from "effect/DateTime"
 
-export const GroceryIsle = Schema.Literal(
+export const GroceryAisle = Schema.Literal(
   "Bakery",
   "Dairy & Eggs",
   "Meat & Seafood",
@@ -13,18 +13,30 @@ export const GroceryIsle = Schema.Literal(
   "Beverages",
   "Snacks",
 )
-export type GroceryIsle = typeof GroceryIsle.Type
+export type GroceryAisle = typeof GroceryAisle.Type
 
 export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   id: Model.GeneratedByApp(Schema.String),
   name: Schema.String,
   quantity: Schema.NullOr(Schema.String),
-  aisle: Schema.NullOr(GroceryIsle),
+  aisle: Schema.NullOr(GroceryAisle),
   completed: Model.BooleanFromNumber,
   createdAt: Model.DateTimeInsertFromNumber,
   updatedAt: Model.DateTimeUpdateFromNumber,
 }) {
   static array = Schema.Array(GroceryItem)
+
+  static fromForm(input: Pick<GroceryItem, "name" | "quantity" | "aisle">) {
+    return new GroceryItem({
+      id: crypto.randomUUID(),
+      name: input.name,
+      quantity: input.quantity ?? null,
+      aisle: input.aisle ?? null,
+      completed: false,
+      createdAt: DateTime.unsafeNow(),
+      updatedAt: DateTime.unsafeNow(),
+    })
+  }
 
   static fromIngredient(ingredient: Ingredient): GroceryItem {
     return new GroceryItem({

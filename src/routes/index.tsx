@@ -121,34 +121,30 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       params={{ id: recipe.id }}
       className="block active:bg-gray-50 transition-colors"
     >
-      <div className="flex items-center">
+      <div className="flex items-center h-20">
         {/* Recipe Image - No whitespace */}
-        <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden">
+        <div className="relative h-full aspect-square">
           <img
             src={recipe.imageUrl ?? "/placeholder.svg"}
             alt={recipe.title}
-            width={96}
-            height={96}
-            className="w-full h-full object-cover"
+            className="object-cover"
           />
         </div>
 
         {/* Recipe Info - More condensed */}
-        <div className="flex-1 flex-col p-2">
-          <h3 className="font-medium text-sm mb-1 line-clamp-1 pr-1">
-            {recipe.title}
-          </h3>
+        <div className="flex-1 flex-col p-3">
+          <h3 className="mb-1 line-clamp-1 pr-1">{recipe.title}</h3>
 
-          <div className="flex items-center gap-2 text-xs text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-gray-600">
             {recipe.cookingTime && (
               <div className="flex items-center gap-0.5">
-                <Clock className="w-3 h-3" />
+                <Clock className="w-4 h-4" />
                 <span>{Duration.format(recipe.cookingTime)}</span>
               </div>
             )}
             {recipe.servings !== null && (
               <div className="flex items-center gap-0.5">
-                <Users className="w-3 h-3" />
+                <Users className="w-4 h-4" />
                 <span>{recipe.servings}</span>
               </div>
             )}

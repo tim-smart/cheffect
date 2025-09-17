@@ -119,7 +119,7 @@ export const ShadcnFields: Layer.Layer<
       {label && <FormLabel>{label}</FormLabel>}
       <FormControl>
         <SelectUi {...props} onValueChange={(_) => (props as any).onChange(_)}>
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>

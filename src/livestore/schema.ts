@@ -1,4 +1,4 @@
-import { GroceryIsle, GroceryItem } from "@/domain/GroceryItem"
+import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { Rating } from "@/domain/Rating"
 import { IngredientsComponent, Recipe, Step } from "@/domain/Recipe"
 import { Events, makeSchema, State } from "@livestore/livestore"
@@ -56,7 +56,7 @@ export const tables = {
       name: State.SQLite.text({ default: "" }),
       quantity: State.SQLite.text({ nullable: true }),
       aisle: State.SQLite.text({
-        schema: GroceryIsle,
+        schema: GroceryAisle,
         nullable: true,
       }),
       completed: State.SQLite.boolean({ default: false }),
@@ -104,6 +104,10 @@ export const events = {
     name: "v1.GroceryItemCleared",
     schema: Schema.Void,
   }),
+  groceryItemClearedCompleted: Events.synced({
+    name: "v1.GroceryItemClearedCompleted",
+    schema: Schema.Void,
+  }),
   groceryItemDeleted: Events.synced({
     name: "v1.GroceryItemDeleted",
     schema: Schema.Struct({ id: Schema.String }),
@@ -126,6 +130,8 @@ const materializers = State.SQLite.materializers(events, {
   "v1.GroceryItemUpdated": ({ id, ...update }) =>
     tables.groceryItems.update(update).where({ id }),
   "v1.GroceryItemCleared": () => tables.groceryItems.delete(),
+  "v1.GroceryItemClearedCompleted": () =>
+    tables.groceryItems.delete().where({ completed: true }),
   "v1.GroceryItemDeleted": ({ id }) =>
     tables.groceryItems.delete().where({ id }),
   "v1.GroceryItemToggled": ({ completed, id }) =>

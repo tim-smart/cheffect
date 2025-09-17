@@ -81,7 +81,9 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
               {recipe.title}
             </h1>
             <Link to="/edit/$id" params={{ id: recipe.id }} className="mr-2">
-              <Button size="sm">Edit</Button>
+              <Button size="sm" variant="outline">
+                Edit
+              </Button>
             </Link>
           </div>
         </div>
@@ -157,7 +159,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                     return (
                       <div
                         key={ingredientIndex}
-                        className="flex items-start gap-3 p-3 active:bg-gray-50 transition-colors text-sm"
+                        className="flex items-start gap-3 p-3 active:bg-gray-50 transition-colors"
                         onClick={() => toggleIngredient(ingredientId)}
                       >
                         <Checkbox
@@ -168,7 +170,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                         <div
                           className={`flex-1 ${isChecked ? "line-through text-gray-500" : "text-gray-900"}`}
                         >
-                          <span className="font-medium">
+                          <span>
                             {ingredient.quantity && (
                               <>
                                 {ingredient.quantity}
