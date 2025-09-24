@@ -1,2 +1,3 @@
 - Prevent race conditions when beautifing groceries
+- toggle grocery item when tapping entire tile
 - Use skeleton for main loading ui
