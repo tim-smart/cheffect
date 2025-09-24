@@ -2,6 +2,8 @@ import { Model } from "@effect/sql"
 import * as Schema from "effect/Schema"
 import { Ingredient } from "./Recipe"
 import * as DateTime from "effect/DateTime"
+import * as Struct from "effect/Struct"
+import { UnknownToXml } from "./Xml"
 
 export const GroceryAisle = Schema.Literal(
   "Bakery",
@@ -50,3 +52,29 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
     })
   }
 }
+
+export const GroceryItemAi = Schema.Struct(
+  Struct.pick(GroceryItem.fields, "id", "name", "quantity", "aisle"),
+).annotations({
+  description: "An item to be added to the grocery list",
+})
+
+export const GroceryItemList = Schema.Struct({
+  items: Schema.Array(GroceryItemAi),
+})
+
+const GroceryItemListXml = UnknownToXml.pipe(
+  Schema.compose(
+    Schema.Struct({
+      groceryItems: Schema.Array(
+        Schema.Struct({
+          groceryItem: GroceryItemAi,
+        }),
+      ),
+    }),
+  ),
+)
+export const encodeGroceryItemListXml = (list: ReadonlyArray<GroceryItem>) =>
+  Schema.encodeSync(GroceryItemListXml)({
+    groceryItems: list.map((item) => ({ groceryItem: item })),
+  })

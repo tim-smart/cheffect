@@ -1,6 +1,14 @@
 import { GroceryItem } from "@/domain/GroceryItem"
-import { allGroceryItemsAtom } from "@/livestore/queries"
+import { Store } from "@/livestore/atoms"
+import {
+  allGroceryItemsArrayAtom,
+  allGroceryItemsAtom,
+} from "@/livestore/queries"
+import { events } from "@/livestore/schema"
+import { AiHelpers } from "@/services/AiHelpers"
 import { Atom } from "@effect-atom/atom-react"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
 
 export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
   const aisles: Array<{ name: string; items: GroceryItem[] }> = []
@@ -13,3 +21,21 @@ export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
   })
   return { total, completed, aisles }
 })
+
+const runtime = Atom.runtime(Layer.mergeAll(AiHelpers.Default, Store.layer))
+
+export const beautifyGroceriesAtom = runtime.fn<void>()(
+  Effect.fnUntraced(function* (_, get) {
+    const store = yield* Store
+    const currentItems = yield* get.result(allGroceryItemsArrayAtom)
+    yield* Effect.log("Beautifying groceries...", currentItems)
+    const ai = yield* AiHelpers
+    const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
+    for (const item of removed) {
+      store.commit(events.groceryItemDeleted({ id: item.id }))
+    }
+    for (const item of updated) {
+      store.commit(events.groceryItemUpdated(item))
+    }
+  }),
+)

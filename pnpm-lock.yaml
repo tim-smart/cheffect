@@ -90,6 +90,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.132.2
         version: 1.132.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@types/jstoxml':
+        specifier: ^5.0.0
+        version: 5.0.0
       cheerio:
         specifier: ^1.1.2
         version: 1.1.2
@@ -102,6 +105,9 @@ importers:
       effect:
         specifier: ^3.17.1
         version: 3.17.14
+      jstoxml:
+        specifier: ^7.0.1
+        version: 7.0.1
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.1.1)
@@ -2160,6 +2166,9 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/jstoxml@5.0.0':
+    resolution: {integrity: sha512-6W1oNiZ/frqtloQdjRm+UtZ0jioU4SMX7iU0OWistGQsr5nrrrhNs82O3Wa8csWKttCBifJTe+CDLFyzNkIOLQ==}
+
   '@types/react-dom@19.1.9':
     resolution: {integrity: sha512-qXRuZaOsAdXKFyOhRBg6Lqqc0yay13vN7KrIg4L7N4aaHN68ma9OK3NE1BoDFgFOTfM7zg+3/8+2n8rLUH3OKQ==}
     peerDependencies:
@@ -2887,6 +2896,9 @@ packages:
   jsonpointer@5.0.1:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
     engines: {node: '>=0.10.0'}
+
+  jstoxml@7.0.1:
+    resolution: {integrity: sha512-yqCv6FoW1uTqtqO/wqQzvdRhVp+iIFwu153pLdSmJwlRRW3+eRWwfHjCE1E+06hB17s934iFDZI1GW0g4QvA8w==}
 
   leven@3.1.0:
     resolution: {integrity: sha512-qsda+H8jTaUaN/x5vzW2rzc+8Rw4TAQ/4KjB46IwK5VH+IlVeeeje/EoZRpiXvIqjFgK84QffqPztGI3VBLG1A==}
@@ -6037,6 +6049,8 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/jstoxml@5.0.0': {}
+
   '@types/react-dom@19.1.9(@types/react@19.1.13)':
     dependencies:
       '@types/react': 19.1.13
@@ -6867,6 +6881,8 @@ snapshots:
       graceful-fs: 4.2.11
 
   jsonpointer@5.0.1: {}
+
+  jstoxml@7.0.1: {}
 
   leven@3.1.0: {}
 

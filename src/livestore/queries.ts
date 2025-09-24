@@ -76,3 +76,10 @@ export const allGroceryItemsAtom = Store.makeQuery(
     },
   ),
 )
+
+export const allGroceryItemsArrayAtom = Store.makeQuery(
+  queryDb({
+    query: sql`SELECT * FROM grocery_items ORDER BY name DESC`,
+    schema: GroceryItem.array,
+  }),
+)

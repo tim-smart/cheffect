@@ -8,6 +8,8 @@ import {
   MoreVertical,
   Edit,
   Trash,
+  WandSparkles,
+  LoaderCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -19,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import { Atom, Result, useAtomValue } from "@effect-atom/atom-react"
+import { Atom, Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { FormBody, FormDisplay } from "@inato-form/core"
 import { TextInput } from "@inato-form/fields"
@@ -30,7 +32,7 @@ import {
 } from "@/lib/InatoForm"
 import * as Effect from "effect/Effect"
 import * as DateTime from "effect/DateTime"
-import { groceryCountAtom } from "@/Groceries/atoms"
+import { beautifyGroceriesAtom, groceryCountAtom } from "@/Groceries/atoms"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export const Route = createFileRoute("/groceries")({
@@ -71,6 +73,7 @@ function GroceryList() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <BeautifyButton />
               <Button
                 onClick={() => setShowAddForm(!showAddForm)}
                 size="sm"
@@ -368,5 +371,23 @@ function GroceryListSkeleton() {
       <Skeleton className="h-12 w-full mb-4" />
       <Skeleton className="h-12 w-full mb-4" />
     </div>
+  )
+}
+
+function BeautifyButton() {
+  const [result, beautifyGroceries] = useAtom(beautifyGroceriesAtom)
+
+  return (
+    <Button
+      onClick={() => beautifyGroceries()}
+      disabled={result.waiting}
+      variant="outline"
+    >
+      {result.waiting ? (
+        <LoaderCircle className="w-4 h-4 animate-spin" />
+      ) : (
+        <WandSparkles className="w-4 h-4" />
+      )}
+    </Button>
   )
 }
