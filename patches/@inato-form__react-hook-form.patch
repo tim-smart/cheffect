@@ -1,0 +1,17 @@
+diff --git a/dist/esm/ReactHookForm.js b/dist/esm/ReactHookForm.js
+index d0a19964fbee873424246aec5bcc86f2c95823da..e255eff4823adfa1d302d306b7a30454e86ff896 100644
+--- a/dist/esm/ReactHookForm.js
++++ b/dist/esm/ReactHookForm.js
+@@ -199,11 +199,7 @@ export const layer = Button => Layer.effect(FormFramework.FormFramework, Effect.
+         const formMethods = RHF.useForm({
+           mode: props.validationMode ?? "onBlur",
+           resolver: effectTsResolver(schema),
+-          defaultValues: resetValues_,
+-          values: initialValues,
+-          resetOptions: {
+-            keepDefaultValues: true
+-          }
++          defaultValues: initialValues ?? resetValues_
+         });
+         return React.createElement(RHF.FormProvider, {
+           ...formMethods

@@ -8,6 +8,11 @@ overrides:
   '@effect/opentelemetry': ^0.56.0
   effect: ^3.17.1
 
+patchedDependencies:
+  '@inato-form/react-hook-form':
+    hash: 25e870ad70134b9e7d6f586d184883b4a1e4809f3855d35292102b40f32325b6
+    path: patches/@inato-form__react-hook-form.patch
+
 importers:
 
   .:
@@ -50,7 +55,7 @@ importers:
         version: 0.1.1(@mantine/core@7.17.8(@mantine/hooks@7.17.8(react@19.1.1))(@types/react@19.1.13)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@mantine/hooks@7.17.8(react@19.1.1))(effect@3.17.14)(react@19.1.1)
       '@inato-form/react-hook-form':
         specifier: ^0.1.1
-        version: 0.1.1(@hookform/resolvers@5.2.2(react-hook-form@7.63.0(react@19.1.1)))(effect@3.17.14)(react-hook-form@7.63.0(react@19.1.1))(react@19.1.1)
+        version: 0.1.1(patch_hash=25e870ad70134b9e7d6f586d184883b4a1e4809f3855d35292102b40f32325b6)(@hookform/resolvers@5.2.2(react-hook-form@7.63.0(react@19.1.1)))(effect@3.17.14)(react-hook-form@7.63.0(react@19.1.1))(react@19.1.1)
       '@livestore/adapter-web':
         specifier: ^0.3.1
         version: 0.3.1(194a1e54b748f1589b596cc63256f232)
@@ -4947,7 +4952,7 @@ snapshots:
     transitivePeerDependencies:
       - react
 
-  '@inato-form/react-hook-form@0.1.1(@hookform/resolvers@5.2.2(react-hook-form@7.63.0(react@19.1.1)))(effect@3.17.14)(react-hook-form@7.63.0(react@19.1.1))(react@19.1.1)':
+  '@inato-form/react-hook-form@0.1.1(patch_hash=25e870ad70134b9e7d6f586d184883b4a1e4809f3855d35292102b40f32325b6)(@hookform/resolvers@5.2.2(react-hook-form@7.63.0(react@19.1.1)))(effect@3.17.14)(react-hook-form@7.63.0(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@hookform/resolvers': 5.2.2(react-hook-form@7.63.0(react@19.1.1))
       '@inato-form/core': 0.1.0(effect@3.17.14)(react@19.1.1)

@@ -116,7 +116,13 @@ function GroceryList() {
       </header>
 
       {Result.builder(result)
-        .onSuccess((state) => <GroceryListList {...state} />)
+        .onSuccess((state) => (
+          <GroceryListList
+            {...state}
+            showAddForm={showAddForm}
+            setShowAddForm={setShowAddForm}
+          />
+        ))
         .orElse(() => (
           <GroceryListSkeleton />
         ))}
@@ -222,9 +228,13 @@ function GroceryItemForm({
 function GroceryListList({
   total,
   aisles,
-}: Atom.Success<typeof groceryCountAtom>) {
+  showAddForm,
+  setShowAddForm,
+}: Atom.Success<typeof groceryCountAtom> & {
+  readonly showAddForm: boolean
+  readonly setShowAddForm: (show: boolean) => void
+}) {
   const commit = useCommit()
-  const [showAddForm, setShowAddForm] = useState(false)
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null)
 
   const toggleItem = (item: GroceryItem) => {
