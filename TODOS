@@ -1,3 +1,5 @@
 - Prevent race conditions when beautifing groceries
 - toggle grocery item when tapping entire tile
+- Always show form to add grocery items
+- Extract recipes in the background (show toast?)
 - Use skeleton for main loading ui

@@ -21,6 +21,7 @@ export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
   dependencies: [OpenAiClientLayer, CorsProxy.Default],
   scoped: Effect.gen(function* () {
     const model = yield* OpenAiLanguageModel.model("gpt-5-mini")
+    const groceryModel = yield* OpenAiLanguageModel.model("gpt-5-nano")
     const proxy = yield* CorsProxy
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
@@ -93,7 +94,7 @@ ${encodeGroceryItemListXml(Array.from(leftoverItems.values()))}
 
         return { updated, removed } as const
       },
-      Effect.provide(model),
+      Effect.provide(groceryModel),
     )
 
     return { recipeFromUrl, beautifyGroceries } as const
