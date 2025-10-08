@@ -10,6 +10,7 @@ import { RegistryContext } from "@effect-atom/atom-react"
 import { createRecipeAtom } from "./atoms"
 import { useContext } from "react"
 import { router } from "@/Router"
+import { toast } from "sonner"
 
 export function AddRecipeButton({ small = false }: { small?: boolean }) {
   const registry = useContext(RegistryContext)
@@ -24,7 +25,6 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
             const url = prompt("Enter recipe URL:")
             if (!url) return
             registry.set(createRecipeAtom, url)
-            router.navigate({ to: "/add" })
           }}
         >
           From URL

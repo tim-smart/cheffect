@@ -1,2 +1,6 @@
-- Extract recipes in the background (show toast?)
+- groceries hide completed items
+- try improve groceries prompting
 - Use skeleton for main loading ui
+- Meal planner screen
+  - add a week to groceries
+- Menu screen (make a list of recipes)
