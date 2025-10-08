@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import {
-  Plus,
   X,
   ShoppingCart,
   Check,
@@ -21,7 +20,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import { Atom, Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import {
+  Atom,
+  Result,
+  useAtom,
+  useAtomSet,
+  useAtomValue,
+} from "@effect-atom/atom-react"
 import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { FormBody, FormDisplay } from "@inato-form/core"
 import { TextInput } from "@inato-form/fields"
@@ -34,6 +39,7 @@ import * as Effect from "effect/Effect"
 import * as DateTime from "effect/DateTime"
 import { beautifyGroceriesAtom, groceryCountAtom } from "@/Groceries/atoms"
 import { Skeleton } from "@/components/ui/skeleton"
+import clsx from "clsx"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
@@ -43,7 +49,6 @@ function GroceryList() {
   const result = useAtomValue(groceryCountAtom)
 
   const commit = useCommit()
-  const [showAddForm, setShowAddForm] = useState(false)
   const clearCompleted = () => {
     commit(events.groceryItemClearedCompleted())
   }
@@ -74,13 +79,6 @@ function GroceryList() {
             </div>
             <div className="flex items-center gap-2">
               <BeautifyButton />
-              <Button
-                onClick={() => setShowAddForm(!showAddForm)}
-                size="sm"
-                variant="outline"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-2">
@@ -116,13 +114,7 @@ function GroceryList() {
       </header>
 
       {Result.builder(result)
-        .onSuccess((state) => (
-          <GroceryListList
-            {...state}
-            showAddForm={showAddForm}
-            setShowAddForm={setShowAddForm}
-          />
-        ))
+        .onSuccess((state) => <GroceryListList {...state} />)
         .orElse(() => (
           <GroceryListSkeleton />
         ))}
@@ -154,13 +146,17 @@ const aisleOptions = [
 )
 
 function GroceryItemForm({
+  className,
   onSubmit,
   onCancel,
   initialValue,
+  compact = false,
 }: {
+  className?: string
   onSubmit: (item: GroceryItem) => void
-  onCancel: () => void
+  onCancel?: () => void
   initialValue?: GroceryItem | undefined
+  compact?: boolean
 }) {
   const isEditing = !!initialValue
   return (
@@ -178,7 +174,9 @@ function GroceryItemForm({
       onError={(error) => {
         console.error("Form submission error:", error)
       }}
-      onSubmit={({ decoded }) => {
+      onSubmit={(...args) => {
+        const [{ decoded }] = args
+        const controls = (args as any)[1]
         const item = initialValue
           ? new GroceryItem({
               ...initialValue,
@@ -187,37 +185,47 @@ function GroceryItemForm({
             })
           : GroceryItem.fromForm(decoded)
         onSubmit(item)
+        controls.reset()
       }}
     >
-      <div className="bg-white rounded-lg border border-gray-200 p-3">
-        {!isEditing && (
+      <div
+        className={clsx(
+          className,
+          compact
+            ? "bg-white p-3"
+            : "bg-white rounded-lg border border-gray-200 p-3",
+        )}
+      >
+        {!compact && !isEditing && (
           <h3 className="font-medium text-gray-900 mb-2">Add New Item</h3>
         )}
-        <div className="space-y-2">
+        <div className={compact ? "space-y-1" : "space-y-2"}>
           <div>
             <Display.name placeholder="Item name" />
           </div>
-          <div className="flex gap-2">
+          <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
             <Display.quantity
               placeholder="Quantity (optional)"
               className="flex-1"
             />
             <Display.aisle options={aisleOptions as any} />
           </div>
-          <div className="flex gap-2">
+          <div className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}>
             <Button
               type="submit"
               className="flex-1 bg-orange-600 hover:bg-orange-700"
             >
               {isEditing ? "Save" : "Add Item"}
             </Button>
-            <Button
-              onClick={() => onCancel()}
-              variant="outline"
-              className="flex-1"
-            >
-              Cancel
-            </Button>
+            {onCancel && (
+              <Button
+                onClick={() => onCancel()}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -228,14 +236,11 @@ function GroceryItemForm({
 function GroceryListList({
   total,
   aisles,
-  showAddForm,
-  setShowAddForm,
-}: Atom.Success<typeof groceryCountAtom> & {
-  readonly showAddForm: boolean
-  readonly setShowAddForm: (show: boolean) => void
-}) {
+}: Atom.Success<typeof groceryCountAtom>) {
   const commit = useCommit()
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null)
+  const beautifyResult = useAtomSet(beautifyGroceriesAtom)
+  const cancelBeautify = () => beautifyResult(Atom.Reset)
 
   const toggleItem = (item: GroceryItem) => {
     commit(
@@ -244,10 +249,12 @@ function GroceryListList({
   }
 
   const removeItem = (item: GroceryItem) => {
+    cancelBeautify()
     commit(events.groceryItemDeleted({ id: item.id }))
   }
 
   const startEditing = (item: GroceryItem) => {
+    cancelBeautify()
     setEditingItem(item)
   }
 
@@ -256,119 +263,111 @@ function GroceryListList({
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <>
       {/* Add Item Form */}
-      {showAddForm && (
-        <GroceryItemForm
-          onSubmit={(item) => {
-            commit(events.groceryItemAdded(item))
-            setShowAddForm(false)
-          }}
-          onCancel={() => setShowAddForm(false)}
-        />
-      )}
+      <GroceryItemForm
+        className="border-b border-gray-200"
+        onSubmit={(item) => {
+          commit(events.groceryItemAdded(item))
+        }}
+        compact
+      />
+      <div className="p-4 space-y-4">
+        {/* Grocery List by Aisle */}
+        {aisles.map(({ name, items }) => {
+          return (
+            <div key={name}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-gray-900">{name}</h2>
+              </div>
 
-      {/* Grocery List by Aisle */}
-      {aisles.map(({ name, items }) => {
-        return (
-          <div key={name}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-gray-900">{name}</h2>
-            </div>
+              <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex items-center gap-3 p-3 transition-colors ${
+                      item.completed ? "bg-gray-50" : "active:bg-gray-50"
+                    }`}
+                  >
+                    <Checkbox
+                      checked={item.completed}
+                      onCheckedChange={() => toggleItem(item)}
+                      className="flex-shrink-0"
+                    />
 
-            <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className={`flex items-center gap-3 p-3 transition-colors ${
-                    item.completed ? "bg-gray-50" : "active:bg-gray-50"
-                  }`}
-                >
-                  <Checkbox
-                    checked={item.completed}
-                    onCheckedChange={() => toggleItem(item)}
-                    className="flex-shrink-0"
-                  />
-
-                  {editingItem?.id === item.id ? (
-                    // Edit mode
-                    <div className="flex-1">
-                      <GroceryItemForm
-                        initialValue={item}
-                        onSubmit={(updated) => {
-                          commit(events.groceryItemUpdated(updated))
-                          setEditingItem(null)
-                        }}
-                        onCancel={cancelEdit}
-                      />
-                    </div>
-                  ) : (
-                    // Display mode
-                    <>
-                      <div
-                        className="flex-1 min-w-0"
-                        onDoubleClick={() => startEditing(item)}
-                      >
-                        <div
-                          className={`${item.completed ? "line-through text-gray-500" : "text-gray-900"}`}
-                        >
-                          <span>{item.name}</span>
-                          {item.quantity && (
-                            <span className="text-sm text-gray-600 ml-2">
-                              ({item.quantity})
-                            </span>
-                          )}
-                        </div>
+                    {editingItem?.id === item.id ? (
+                      // Edit mode
+                      <div className="flex-1">
+                        <GroceryItemForm
+                          initialValue={item}
+                          onSubmit={(updated) => {
+                            commit(events.groceryItemUpdated(updated))
+                            setEditingItem(null)
+                          }}
+                          onCancel={cancelEdit}
+                        />
                       </div>
-                      <div>
-                        <Button
-                          onClick={() => startEditing(item)}
-                          variant="ghost"
-                          size="sm"
-                          className="!p-2 text-gray-400 hover:text-orange-500 flex-shrink-0"
+                    ) : (
+                      // Display mode
+                      <>
+                        <div
+                          className="flex-1 min-w-0"
+                          onClick={() => toggleItem(item)}
                         >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        {editingItem?.id !== item.id && (
+                          <div
+                            className={`${item.completed ? "line-through text-gray-500" : "text-gray-900"}`}
+                          >
+                            <span>{item.name}</span>
+                            {item.quantity && (
+                              <span className="text-sm text-gray-600 ml-2">
+                                ({item.quantity})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
                           <Button
-                            onClick={() => removeItem(item)}
+                            onClick={() => startEditing(item)}
                             variant="ghost"
                             size="sm"
-                            className="!p-2 text-gray-400 hover:text-red-500 flex-shrink-0"
+                            className="!p-2 text-gray-400 hover:text-orange-500 flex-shrink-0"
                           >
-                            <X className="w-4 h-4" />
+                            <Edit className="w-4 h-4" />
                           </Button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
+                          {editingItem?.id !== item.id && (
+                            <Button
+                              onClick={() => removeItem(item)}
+                              variant="ghost"
+                              size="sm"
+                              className="!p-2 text-gray-400 hover:text-red-500 flex-shrink-0"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
 
-      {/* Empty State */}
-      {total === 0 && (
-        <div className="text-center py-16">
-          <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Your grocery list is empty
-          </h3>
-          <p className="text-gray-500 mb-6">
-            Add items to start building your shopping list
-          </p>
-          <Button
-            onClick={() => setShowAddForm(true)}
-            className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add First Item
-          </Button>
-        </div>
-      )}
-    </div>
+        {/* Empty State */}
+        {total === 0 && (
+          <div className="text-center py-16">
+            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Your grocery list is empty
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Add items to start building your shopping list
+            </p>
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 
