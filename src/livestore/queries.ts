@@ -13,16 +13,17 @@ export const searchStateAtom = Store.makeQuery(searchState$)
 export const allRecipesAtom = Store.makeQuery(
   queryDb(
     (get) => {
-      const { query } = get(searchState$)
+      const { query, sortBy } = get(searchState$)
       const trimmedQuery = query.trim()
+      const sort = sortBy === "createdAt" ? "createdAt DESC" : "title ASC"
       if (trimmedQuery === "") {
         return {
-          query: sql`SELECT * FROM recipes ORDER BY createdAt DESC`,
+          query: sql`SELECT * FROM recipes ORDER BY ${sort}`,
           schema: Recipe.array,
         }
       }
       return {
-        query: sql`SELECT * FROM recipes WHERE title LIKE ? ORDER BY createdAt DESC`,
+        query: sql`SELECT * FROM recipes WHERE title LIKE ? ORDER BY ${sort}`,
         schema: Recipe.array,
         bindValues: [`%${trimmedQuery}%`],
       }

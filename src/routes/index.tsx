@@ -9,6 +9,7 @@ import { events } from "@/livestore/schema"
 import { Recipe } from "@/domain/Recipe"
 import { useCommit } from "@/livestore/atoms"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
+import * as Option from "effect/Option"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -136,11 +137,14 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
           <h3 className="mb-1 line-clamp-1 pr-1">{recipe.title}</h3>
 
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            {recipe.cookingTime && (
-              <div className="flex items-center gap-0.5">
-                <Clock className="w-4 h-4" />
-                <span>{Duration.format(recipe.cookingTime)}</span>
-              </div>
+            {recipe.totalTime.pipe(
+              Option.map((d) => (
+                <div className="flex items-center gap-0.5">
+                  <Clock className="w-4 h-4" />
+                  <span>{Duration.format(d)}</span>
+                </div>
+              )),
+              Option.getOrNull,
             )}
             {recipe.servings !== null && (
               <div className="flex items-center gap-0.5">

@@ -73,8 +73,9 @@ export const tables = {
     name: "searchState",
     schema: Schema.Struct({
       query: Schema.String,
+      sortBy: Schema.Literal("createdAt", "title"),
     }),
-    default: { id: "~/searchState", value: { query: "" } },
+    default: { id: "~/searchState", value: { query: "", sortBy: "title" } },
   }),
 }
 

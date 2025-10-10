@@ -4,6 +4,7 @@ import * as DateTime from "effect/DateTime"
 import { Rating } from "./Rating"
 import * as Schema from "effect/Schema"
 import { DurationFromMinutes } from "./Duration"
+import * as Predicate from "effect/Predicate"
 
 export const Unit = Schema.Literal(
   "g",
@@ -143,12 +144,14 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   static array = Schema.Array(Recipe)
 
   get totalTime(): Option.Option<Duration.Duration> {
-    return Option.gen(this, function* () {
-      const prep = Option.fromNullable(this.prepTime).pipe(
-        Option.getOrElse(() => Duration.zero),
-      )
-      const cook = yield* Option.fromNullable(this.cookingTime)
-      return Duration.sum(prep, cook)
-    })
+    const prep = Option.fromNullable(this.prepTime).pipe(
+      Option.getOrElse(() => Duration.zero),
+    )
+    const cook = Option.fromNullable(this.cookingTime).pipe(
+      Option.getOrElse(() => Duration.zero),
+    )
+    return filterZero(Duration.sum(prep, cook))
   }
 }
+
+const filterZero = Option.liftPredicate(Predicate.not(Duration.isZero))
