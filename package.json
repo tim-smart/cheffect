@@ -1,5 +1,5 @@
 {
-  "name": "effect-meals",
+  "name": "cheffect",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@effect-atom/atom-livestore": "^0.3.0",
-    "@effect-atom/atom-react": "^0.3.0",
+    "@effect-atom/atom-livestore": "^0.3.2",
+    "@effect-atom/atom-react": "^0.3.2",
     "@effect/ai": "^0.31.0",
     "@effect/ai-openai": "^0.34.0",
     "@effect/experimental": "^0.56.0",
@@ -36,6 +36,7 @@
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@tanstack/react-router": "^1.132.47",
     "@types/jstoxml": "^5.0.0",
+    "@vanillaes/csv": "^3.0.4",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -51,7 +52,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.43.2",
+    "@effect/language-service": "^0.44.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/router-devtools": "^1.132.51",

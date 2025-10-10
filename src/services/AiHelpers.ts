@@ -21,7 +21,11 @@ export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
   dependencies: [OpenAiClientLayer, CorsProxy.Default],
   scoped: Effect.gen(function* () {
     const model = yield* OpenAiLanguageModel.model("gpt-5-mini")
-    const groceryModel = yield* OpenAiLanguageModel.model("gpt-5-nano")
+    const groceryModel = yield* OpenAiLanguageModel.model("o4-mini", {
+      reasoning: {
+        effort: "low",
+      },
+    })
     const proxy = yield* CorsProxy
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
@@ -58,18 +62,27 @@ export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
           prompt: [
             {
               role: "system",
-              content: `You are an AI assistant that cleans up a list of grocery items by:
+              content: `You are an AI assistant that creates a clean grocery list from messy input.
 
-- merging duplicate items (similar names, different quantities)
-- standardizing item names (e.g., "tomato sauce" and "tomato paste" should be distinct items)
-- ensuring quantities are clear and consistent
-- when merging quantities, do not show the calculation, just the final quantity (e.g., "1 tbsp + 3 tsp" becomes "2 tbsp")
-- categorizing items into aisles
-- id's should be preseved from the original list. If multiple items are merged, use the id of the first item.
+You will receive a list of recipe ingredients in XML format. Your task is to clean up the item names, merge similar items, and categorize them into aisles.
 
-Here is the list of items in an XML format:
+- only keep the item name, remove any adjectives and cooking instructions
+  - "1 cup chopped fresh parsley" becomes "1 cup parsley"
+  - "2 large eggs, beaten" becomes "2 eggs"
+- merging similar items, simlifying names and merging quantities:
+  - "tomato sauce" and "tomato sauce, organic" becomes "tomato sauce"
+  - "2 eggs" and "1 egg" becomes one item "3 eggs"
+  - "1 cup milk" and "250ml milk" becomes one item "1.25 cups milk"
+  - "2 crushed garlic cloves" and "1 garlic clove, minced" becomes one item "3 garlic cloves"
+  - "1 plump garlic cloves" becomes one item "1 garlic clove"
+- you **MUST NOT** miss any item quantities when merging
+- keep "optional" items, but add "(optional)" to the item name
+- you *MUST* categorize items into aisles
+- if multiple items are merged, only use the id of the first item
 
-${encodeGroceryItemListXml(Array.from(leftoverItems.values()))}
+Here is the list of items as XML:
+
+${encodeGroceryItemListXml(leftoverItems.values())}
 `,
             },
           ],

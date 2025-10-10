@@ -24,18 +24,20 @@ export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
 
 const runtime = Atom.runtime(Layer.mergeAll(AiHelpers.Default, Store.layer))
 
-export const beautifyGroceriesAtom = runtime.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const store = yield* Store
-    const currentItems = yield* get.result(allGroceryItemsArrayAtom)
-    yield* Effect.log("Beautifying groceries...", currentItems)
-    const ai = yield* AiHelpers
-    const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
-    for (const item of removed) {
-      store.commit(events.groceryItemDeleted({ id: item.id }))
-    }
-    for (const item of updated) {
-      store.commit(events.groceryItemUpdated(item))
-    }
-  }),
-)
+export const beautifyGroceriesAtom = runtime
+  .fn<void>()(
+    Effect.fnUntraced(function* (_, get) {
+      const store = yield* Store
+      const currentItems = yield* get.result(allGroceryItemsArrayAtom)
+      yield* Effect.log("Beautifying groceries...", currentItems)
+      const ai = yield* AiHelpers
+      const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
+      for (const item of removed) {
+        store.commit(events.groceryItemDeleted({ id: item.id }))
+      }
+      for (const item of updated) {
+        store.commit(events.groceryItemUpdated(item))
+      }
+    }),
+  )
+  .pipe(Atom.keepAlive)

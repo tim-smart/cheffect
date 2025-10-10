@@ -10,7 +10,6 @@ import { RegistryContext } from "@effect-atom/atom-react"
 import { createRecipeAtom } from "./atoms"
 import { useContext } from "react"
 import { router } from "@/Router"
-import { toast } from "sonner"
 
 export function AddRecipeButton({ small = false }: { small?: boolean }) {
   const registry = useContext(RegistryContext)

@@ -4,6 +4,7 @@ import { Ingredient } from "./Recipe"
 import * as DateTime from "effect/DateTime"
 import * as Struct from "effect/Struct"
 import { UnknownToXml } from "./Xml"
+import * as Csv from "@vanillaes/csv"
 
 export const GroceryAisle = Schema.Literal(
   "Bakery",
@@ -74,7 +75,15 @@ const GroceryItemListXml = UnknownToXml.pipe(
     }),
   ),
 )
-export const encodeGroceryItemListXml = (list: ReadonlyArray<GroceryItem>) =>
+export const encodeGroceryItemListXml = (list: Iterable<GroceryItem>) =>
   Schema.encodeSync(GroceryItemListXml)({
-    groceryItems: list.map((item) => ({ groceryItem: item })),
+    groceryItems: Array.from(list, (item) => ({ groceryItem: item })),
   })
+
+export const encodeGroceryItemListCsv = (list: Iterable<GroceryItem>) => {
+  const rows: Array<Array<string>> = []
+  for (const item of list) {
+    rows.push([item.id, item.name, item.quantity ?? "", item.aisle ?? ""])
+  }
+  return Csv.stringify([["id", "name", "quantity", "aisle"], ...rows])
+}
