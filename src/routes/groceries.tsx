@@ -265,14 +265,16 @@ function GroceryListList({
   return (
     <>
       {/* Add Item Form */}
-      <GroceryItemForm
-        className="border-b border-gray-200"
-        onSubmit={(item) => {
-          commit(events.groceryItemAdded(item))
-        }}
-        compact
-      />
-      <div className="p-4 space-y-4">
+      <div className="bg-white border-b border-gray-200">
+        <GroceryItemForm
+          className="max-w-lg mx-auto px-2 sm:px-4"
+          onSubmit={(item) => {
+            commit(events.groceryItemAdded(item))
+          }}
+          compact
+        />
+      </div>
+      <div className="space-y-4 max-w-lg mx-auto p-2 sm:p-4">
         {/* Grocery List by Aisle */}
         {aisles.map(({ name, items }) => {
           return (

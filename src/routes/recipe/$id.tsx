@@ -91,7 +91,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
 
       <div className="bg-white p-4">
         {/* Recipe Image & Basic Info */}
-        <div className="grid grid-cols-2 items-center gap-2 text-sm text-gray-600">
+        <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-gray-600">
           {recipe.prepTime && (
             <div className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
@@ -119,132 +119,135 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         </div>
       </div>
 
-      {/* Ingredients */}
-      <div className="bg-white mt-2">
-        <div className="p-4">
-          <div className="flex">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Ingredients
-            </h2>
-            <div className="flex-1" />
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-0 !px-2"
-              onClick={addAllToGrocery}
-            >
-              {groceryAddResult.waiting ? (
-                <Check className="size-3 mt-[1px]" />
-              ) : (
-                <Plus className="size-3 mt-[1px]" />
-              )}
-              <ShoppingCart />
-            </Button>
-          </div>
-
-          <div className="space-y-6">
-            {recipe.ingredients.map((group, groupIndex) => (
-              <div key={groupIndex}>
-                {group.name && (
-                  <h3 className="font-medium text-gray-900 mb-3 text-base">
-                    {group.name}
-                  </h3>
+      <div className="flex flex-col lg:items-start gap-4 mt-4 lg:flex-row max-w-7xl lg:px-4 mx-auto">
+        {/* Ingredients */}
+        <div className="bg-white flex-1 lg:rounded-lg">
+          <div className="p-4">
+            <div className="flex">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Ingredients
+              </h2>
+              <div className="flex-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-0 !px-2"
+                onClick={addAllToGrocery}
+              >
+                {groceryAddResult.waiting ? (
+                  <Check className="size-3 mt-[1px]" />
+                ) : (
+                  <Plus className="size-3 mt-[1px]" />
                 )}
+                <ShoppingCart />
+              </Button>
+            </div>
 
-                <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
-                  {group.ingredients.map((ingredient, ingredientIndex) => {
-                    const ingredientId = `${groupIndex}-${ingredientIndex}`
-                    const isChecked = checkedIngredients.has(ingredientId)
+            <div className="space-y-6">
+              {recipe.ingredients.map((group, groupIndex) => (
+                <div key={groupIndex}>
+                  {group.name && (
+                    <h3 className="font-medium text-gray-900 mb-3 text-base">
+                      {group.name}
+                    </h3>
+                  )}
 
-                    return (
-                      <div
-                        key={ingredientIndex}
-                        className="flex items-start gap-3 p-3 active:bg-gray-50 transition-colors"
-                        onClick={() => toggleIngredient(ingredientId)}
-                      >
-                        <Checkbox
-                          checked={isChecked}
-                          onChange={() => toggleIngredient(ingredientId)}
-                          className="mt-0.5"
-                        />
+                  <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
+                    {group.ingredients.map((ingredient, ingredientIndex) => {
+                      const ingredientId = `${groupIndex}-${ingredientIndex}`
+                      const isChecked = checkedIngredients.has(ingredientId)
+
+                      return (
                         <div
-                          className={`flex-1 ${isChecked ? "line-through text-gray-500" : "text-gray-900"}`}
+                          key={ingredientIndex}
+                          className="flex items-start gap-3 p-3 active:bg-gray-50 transition-colors"
+                          onClick={() => toggleIngredient(ingredientId)}
                         >
-                          <span>
-                            {ingredient.quantity && (
-                              <>
-                                {ingredient.quantity}
-                                {ingredient.unit && ` ${ingredient.unit}`}{" "}
-                              </>
-                            )}
-                            {ingredient.name}
-                          </span>
+                          <Checkbox
+                            checked={isChecked}
+                            onChange={() => toggleIngredient(ingredientId)}
+                            className="mt-0.5"
+                          />
+                          <div
+                            className={`flex-1 ${isChecked ? "line-through text-gray-500" : "text-gray-900"}`}
+                          >
+                            <span>
+                              {ingredient.quantity && (
+                                <>
+                                  {ingredient.quantity}
+                                  {ingredient.unit &&
+                                    ` ${ingredient.unit}`}{" "}
+                                </>
+                              )}
+                              {ingredient.name}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Instructions */}
-      <div className="bg-white mt-2">
-        <div className="p-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Instructions
-          </h2>
+        {/* Instructions */}
+        <div className="bg-white flex-2 lg:rounded-lg">
+          <div className="p-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Instructions
+            </h2>
 
-          <div className="space-y-4">
-            {recipe.steps.map((step, stepIndex) => (
-              <div
-                key={stepIndex}
-                className={`border rounded-lg p-4 transition-all ${
-                  currentStep === stepIndex
-                    ? "border-orange-500 bg-orange-50"
-                    : "border-gray-200 bg-white"
-                }`}
-                onClick={() => setCurrentStep(stepIndex)}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      currentStep === stepIndex
-                        ? "bg-orange-600 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {stepIndex + 1}
-                  </div>
+            <div className="space-y-4">
+              {recipe.steps.map((step, stepIndex) => (
+                <div
+                  key={stepIndex}
+                  className={`border rounded-lg p-4 transition-all ${
+                    currentStep === stepIndex
+                      ? "border-orange-500 bg-orange-50"
+                      : "border-gray-200 bg-white"
+                  }`}
+                  onClick={() => setCurrentStep(stepIndex)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                        currentStep === stepIndex
+                          ? "bg-orange-600 text-white"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {stepIndex + 1}
+                    </div>
 
-                  <div className="flex-1">
-                    <p className="text-gray-900 leading-relaxed mb-3">
-                      {step.text}
-                    </p>
+                    <div className="flex-1">
+                      <p className="text-gray-900 leading-relaxed mb-3">
+                        {step.text}
+                      </p>
 
-                    {step.tips.length > 0 && (
-                      <div className="space-y-2">
-                        {step.tips.map((tip, tipIndex) => (
-                          <div
-                            key={tipIndex}
-                            className="flex items-start gap-2"
-                          >
-                            <span className="text-orange-600 text-sm mt-0.5">
-                              💡
-                            </span>
-                            <p className="text-sm text-gray-600 italic">
-                              {tip}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                      {step.tips.length > 0 && (
+                        <div className="space-y-2">
+                          {step.tips.map((tip, tipIndex) => (
+                            <div
+                              key={tipIndex}
+                              className="flex items-start gap-2"
+                            >
+                              <span className="text-orange-600 text-sm mt-0.5">
+                                💡
+                              </span>
+                              <p className="text-sm text-gray-600 italic">
+                                {tip}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

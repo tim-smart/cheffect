@@ -127,7 +127,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
           <img
             src={recipe.imageUrl ?? "/placeholder.svg"}
             alt={recipe.title}
-            className="object-cover"
+            className="object-cover h-full w-full"
           />
         </div>
 
