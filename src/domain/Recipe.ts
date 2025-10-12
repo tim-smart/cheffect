@@ -155,3 +155,16 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
 }
 
 const filterZero = Option.liftPredicate(Predicate.not(Duration.isZero))
+
+export const SortBy = [
+  {
+    label: "Latest",
+    value: "createdAt",
+  },
+  {
+    label: "Title",
+    value: "title",
+  },
+] as const
+export const SortByValue = Schema.Literal(...SortBy.map((s) => s.value))
+export type SortBy = (typeof SortBy)[number]["value"]

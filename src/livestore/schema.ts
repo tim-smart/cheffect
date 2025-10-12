@@ -1,6 +1,11 @@
 import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { Rating } from "@/domain/Rating"
-import { IngredientsComponent, Recipe, Step } from "@/domain/Recipe"
+import {
+  IngredientsComponent,
+  Recipe,
+  SortByValue,
+  Step,
+} from "@/domain/Recipe"
 import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Schema from "effect/Schema"
 
@@ -73,7 +78,7 @@ export const tables = {
     name: "searchState",
     schema: Schema.Struct({
       query: Schema.String,
-      sortBy: Schema.Literal("createdAt", "title"),
+      sortBy: SortByValue,
     }),
     default: { id: "~/searchState", value: { query: "", sortBy: "title" } },
   }),

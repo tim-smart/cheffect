@@ -77,8 +77,10 @@
       "effect": "^3.17.1"
     },
     "onlyBuiltDependencies": [
-      "@tailwindcss/oxide",
-      "esbuild"
+      "@parcel/watcher",
+      "esbuild",
+      "msgpackr-extract",
+      "sharp"
     ],
     "patchedDependencies": {
       "@inato-form/react-hook-form": "patches/@inato-form__react-hook-form.patch"

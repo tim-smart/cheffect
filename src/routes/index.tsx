@@ -1,15 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Search, Clock, Users, ChefHat, Star, Filter } from "lucide-react"
+import {
+  Search,
+  Clock,
+  Users,
+  ChefHat,
+  Star,
+  ArrowDownWideNarrow,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { allRecipesAtom, searchStateAtom } from "@/livestore/queries"
+import {
+  allRecipesAtom,
+  searchSortByAtom,
+  searchStateAtom,
+} from "@/livestore/queries"
 import { Result, useAtomValue } from "@effect-atom/atom-react"
 import * as Duration from "effect/Duration"
 import { events } from "@/livestore/schema"
-import { Recipe } from "@/domain/Recipe"
+import { Recipe, SortBy } from "@/domain/Recipe"
 import { useCommit } from "@/livestore/atoms"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import * as Option from "effect/Option"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -77,10 +95,39 @@ function SearchInput() {
           className="pl-10 h-11"
         />
       </div>
-      <Button variant="outline" size="sm" className="h-11 px-3 bg-transparent">
-        <Filter className="w-4 h-4" />
-      </Button>
+      <SortButton />
     </div>
+  )
+}
+
+function SortButton() {
+  const sortBy = useAtomValue(searchSortByAtom)
+  const commit = useCommit()
+  const set = (value: SortBy) =>
+    commit(events.searchStateSet({ sortBy: value }))
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-11 px-3 bg-transparent"
+        >
+          <ArrowDownWideNarrow className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {SortBy.map(({ label, value }) => (
+          <DropdownMenuCheckboxItem
+            key={value}
+            checked={sortBy === value}
+            onClick={() => set(value)}
+          >
+            {label}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

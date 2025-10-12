@@ -284,10 +284,7 @@ function TipFields() {
 
 export function RecipeFormSkeleton() {
   return (
-    <div className="flex flex-col p-4 mb-8 max-w-lg mx-auto gap-4">
-      <h2 className="text-lg font-semibold text-gray-900">
-        Extracting recipe...
-      </h2>
+    <div className="flex flex-col p-4 mb-8 max-w-lg mx-auto gap-4 pt-22">
       <Skeleton className="h-72 mb-4 w-full" />
       <Skeleton className="h-48 mb-4 w-full" />
       <Skeleton className="h-48 mb-4 w-full" />

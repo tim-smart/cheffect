@@ -2,13 +2,19 @@ import { queryDb, sql } from "@livestore/livestore"
 import { tables } from "./schema"
 import { Recipe } from "@/domain/Recipe"
 import { Store } from "./atoms"
-import { Atom } from "@effect-atom/atom-react"
+import { Atom, Result } from "@effect-atom/atom-react"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
 
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
+export const searchSortByAtom = Atom.map(searchStateAtom, (r) =>
+  r.pipe(
+    Result.map((s) => s.sortBy),
+    Result.getOrElse(() => "title" as const),
+  ),
+)
 
 export const allRecipesAtom = Store.makeQuery(
   queryDb(
