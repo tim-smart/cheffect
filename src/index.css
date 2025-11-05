@@ -12,6 +12,10 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  .nav-pb {
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--spacing) * 2);
+  }
+
   .line-clamp-1 {
     overflow: hidden;
     display: -webkit-box;

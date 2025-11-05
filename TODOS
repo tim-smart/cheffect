@@ -1,3 +1,7 @@
 - Meal planner screen
-  - add a week to groceries
+  - data model
+  - add box around add buttons
+  - add button to recipe to add to plan
+  - search modal for adding recipes to days
+  - add an entire week to groceries
 - Menu screen (make a list of recipes)

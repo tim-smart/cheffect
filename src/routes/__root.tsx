@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import { router } from "@/Router"
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router"
-import { ChefHat, Settings, ShoppingCart } from "lucide-react"
+import { Calendar, ChefHat, Settings, ShoppingCart } from "lucide-react"
 
 export const Route = createRootRoute({
   component: () => {
@@ -33,7 +33,7 @@ export const Route = createRootRoute({
         </main>
 
         {/* Bottom Navigation - Mobile First */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-pb">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 nav-pb">
           <div className="flex justify-around">
             <Link
               to="/"
@@ -45,6 +45,18 @@ export const Route = createRootRoute({
             >
               <ChefHat className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Recipes</span>
+            </Link>
+
+            <Link
+              to="/plan"
+              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
+              activeProps={{ className: "text-orange-600 bg-orange-50" }}
+              inactiveProps={{
+                className: "text-gray-500 active:bg-gray-100",
+              }}
+            >
+              <Calendar className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">Meal Plan</span>
             </Link>
 
             <Link
