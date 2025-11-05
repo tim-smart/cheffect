@@ -114,7 +114,12 @@ function GroceryList() {
       </header>
 
       {Result.builder(result)
-        .onSuccess((state) => <GroceryListList {...state} />)
+        .onSuccess((state) => (
+          <>
+            <GroceryListList {...state} showForm />
+            <GroceryListList {...state} showCompleted />
+          </>
+        ))
         .orElse(() => (
           <GroceryListSkeleton />
         ))}
@@ -236,7 +241,12 @@ function GroceryItemForm({
 function GroceryListList({
   total,
   aisles,
-}: Atom.Success<typeof groceryCountAtom>) {
+  showCompleted = false,
+  showForm = false,
+}: Atom.Success<typeof groceryCountAtom> & {
+  readonly showCompleted?: boolean
+  readonly showForm?: boolean
+}) {
   const commit = useCommit()
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null)
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
@@ -261,23 +271,59 @@ function GroceryListList({
   const cancelEdit = () => {
     setEditingItem(null)
   }
+  const filteredAisles = aisles.flatMap((aisle) => {
+    const items = aisle.items.filter((item) =>
+      showCompleted ? item.completed : !item.completed,
+    )
+    if (items.length === 0) {
+      return []
+    }
+    return [
+      {
+        ...aisle,
+        items,
+      },
+    ]
+  })
+
+  if (filteredAisles.length === 0) {
+    return null
+  }
 
   return (
     <>
-      {/* Add Item Form */}
-      <div className="bg-white border-b border-gray-200">
-        <GroceryItemForm
-          className="max-w-lg mx-auto px-2 sm:px-4"
-          onSubmit={(item) => {
-            commit(events.groceryItemAdded(item))
-          }}
-          compact
-        />
-      </div>
+      {showForm && (
+        <div className="bg-white border-b border-gray-200">
+          <GroceryItemForm
+            className="max-w-lg mx-auto px-2 sm:px-4"
+            onSubmit={(item) => {
+              commit(events.groceryItemAdded(item))
+            }}
+            compact
+          />
+        </div>
+      )}
       <div className="space-y-4 max-w-lg mx-auto p-2 sm:p-4">
+        {showCompleted && (
+          <h2 className="text-lg font-semibold text-gray-900">Completed</h2>
+        )}
         {/* Grocery List by Aisle */}
-        {aisles.map(({ name, items }) => {
-          return (
+        {aisles
+          .flatMap((aisle) => {
+            const items = aisle.items.filter((item) =>
+              showCompleted ? item.completed : !item.completed,
+            )
+            if (items.length === 0) {
+              return []
+            }
+            return [
+              {
+                ...aisle,
+                items,
+              },
+            ]
+          })
+          .map(({ name, items }) => (
             <div key={name}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-gray-900">{name}</h2>
@@ -287,9 +333,7 @@ function GroceryListList({
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-3 p-3 transition-colors ${
-                      item.completed ? "bg-gray-50" : "active:bg-gray-50"
-                    }`}
+                    className={`flex items-center gap-3 p-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`}
                   >
                     <Checkbox
                       checked={item.completed}
@@ -353,8 +397,7 @@ function GroceryListList({
                 ))}
               </div>
             </div>
-          )
-        })}
+          ))}
 
         {/* Empty State */}
         {total === 0 && (

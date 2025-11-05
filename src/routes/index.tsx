@@ -25,9 +25,9 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -45,22 +45,13 @@ export default function CheffectHome() {
 
       {/* Recipe Count */}
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">
-          My Recipes (
-          {recipes.pipe(
-            Result.map((recipes) => recipes.length),
-            Result.getOrElse(() => 0),
-          )}
-          )
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900">My Recipes</h2>
       </div>
 
       {/* Recipe List - Mobile Optimized */}
       <div className="space-y-4">
         {Result.builder(recipes)
-          .onInitial(() => (
-            <div className="text-gray-500 text-sm">Loading recipes...</div>
-          ))
+          .onInitial(() => <RecipeListSkeleton />)
           .onSuccess((recipes) => <RecipeList recipes={recipes} />)
           .render()}
       </div>
@@ -140,6 +131,16 @@ function RecipeList({ recipes }: { recipes: ReadonlyArray<Recipe> }) {
       {recipes.map((recipe) => (
         <RecipeCard key={recipe.id} recipe={recipe} />
       ))}
+    </div>
+  )
+}
+
+function RecipeListSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-20" />
+      <Skeleton className="h-20" />
+      <Skeleton className="h-20" />
     </div>
   )
 }
