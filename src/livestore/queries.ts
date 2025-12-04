@@ -8,6 +8,7 @@ import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
+import { MealPlanEntry } from "@/domain/MealPlanEntry"
 
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
@@ -107,24 +108,20 @@ const mealPlanEntries$ = (startDay: DateTime.Utc) => {
   return queryDb(
     {
       query: sql`
-        select json_object(
-          'id', r.id,
-          'title', r.title
-        ) as recipe
+        select
+          json_object(
+            ${Object.keys(Recipe.fields)
+              .map((f) => `'${f}', r.${f}`)
+              .join(", ")}
+          ) as recipe,
+          m.day as day,
+          m.id as id
         from meal_plan m
         join recipes r on m.recipeId = r.id
-        where day IN ('${weekDays.join("','")}')
+        where m.day IN ('${weekDays.join("','")}')
+        order by m.day ASC, r.title ASC
       `,
-      schema: Schema.Array(
-        Schema.Struct({
-          recipe: Schema.parseJson(
-            Schema.Struct({
-              id: Schema.String,
-              title: Schema.String,
-            }),
-          ),
-        }),
-      ),
+      schema: MealPlanEntry.array,
     },
     {
       deps: [startDay.epochMillis],

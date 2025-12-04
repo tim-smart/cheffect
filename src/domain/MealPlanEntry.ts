@@ -4,7 +4,7 @@ import { Recipe } from "./Recipe"
 
 export class MealPlanEntry extends Model.Class<MealPlanEntry>("MealPlanEntry")({
   id: Model.GeneratedByApp(Schema.String),
-  recipe: Recipe,
+  recipe: Model.JsonFromString(Recipe),
   day: Model.Date,
 }) {
   static array = Schema.Array(MealPlanEntry)
