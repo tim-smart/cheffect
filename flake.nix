@@ -12,6 +12,7 @@
         packages = with pkgs; [
           corepack
           nodejs
+          sqlite
         ];
       };
     });

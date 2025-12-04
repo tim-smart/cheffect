@@ -6,6 +6,8 @@ import { Atom, Result } from "@effect-atom/atom-react"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
+import * as DateTime from "effect/DateTime"
+import * as Schema from "effect/Schema"
 
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
@@ -14,6 +16,10 @@ export const searchSortByAtom = Atom.map(searchStateAtom, (r) =>
     Result.map((s) => s.sortBy),
     Result.getOrElse(() => "title" as const),
   ),
+)
+
+export const mealPlanWeekAtom = Atom.make(
+  DateTime.unsafeNow().pipe(DateTime.startOf("week")),
 )
 
 export const allRecipesAtom = Store.makeQuery(
@@ -88,5 +94,48 @@ export const allGroceryItemsArrayAtom = Store.makeQuery(
   queryDb({
     query: sql`SELECT * FROM grocery_items ORDER BY name DESC`,
     schema: GroceryItem.array,
+  }),
+)
+
+const mealPlanEntries$ = (startDay: DateTime.Utc) => {
+  const weekDays = Array.of(DateTime.formatIsoDate(startDay))
+  for (let i = 1; i < 7; i++) {
+    weekDays.push(
+      DateTime.add(startDay, { days: i }).pipe(DateTime.formatIsoDate),
+    )
+  }
+  return queryDb(
+    {
+      query: sql`
+        select json_object(
+          'id', r.id,
+          'title', r.title
+        ) as recipe
+        from meal_plan m
+        join recipes r on m.recipeId = r.id
+        where day IN ('${weekDays.join("','")}')
+      `,
+      schema: Schema.Array(
+        Schema.Struct({
+          recipe: Schema.parseJson(
+            Schema.Struct({
+              id: Schema.String,
+              title: Schema.String,
+            }),
+          ),
+        }),
+      ),
+    },
+    {
+      deps: [startDay.epochMillis],
+    },
+  )
+}
+
+export const mealPlanEntriesAtom = Store.runtime.atom(
+  Effect.fnUntraced(function* (get) {
+    const store = yield* Store
+    const startDay = get(mealPlanWeekAtom)
+    return store.query(mealPlanEntries$(startDay))
   }),
 )

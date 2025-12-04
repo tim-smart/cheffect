@@ -1,5 +1,6 @@
 - Meal planner screen
   - data model
+    - use domain models in meal plan query
   - add box around add buttons
   - add button to recipe to add to plan
   - search modal for adding recipes to days

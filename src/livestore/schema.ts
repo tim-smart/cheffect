@@ -6,6 +6,7 @@ import {
   SortByValue,
   Step,
 } from "@/domain/Recipe"
+import { Model } from "@effect/sql"
 import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Schema from "effect/Schema"
 
@@ -54,6 +55,23 @@ export const tables = {
       }),
     },
   }),
+  mealPlan: State.SQLite.table({
+    name: "meal_plan",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      recipeId: State.SQLite.text({ nullable: false }),
+      day: State.SQLite.text({
+        nullable: false,
+        schema: Model.Date,
+      }),
+    },
+    indexes: [
+      {
+        name: "meal_plan_day_idx",
+        columns: ["day"],
+      },
+    ],
+  }),
   groceryItems: State.SQLite.table({
     name: "grocery_items",
     columns: {
@@ -98,6 +116,18 @@ export const events = {
     name: "v1.RecipeDeleted",
     schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
   }),
+  mealPlanAdd: Events.synced({
+    name: "v1.MealPlanAdd",
+    schema: Schema.Struct({
+      id: Schema.String,
+      recipeId: Schema.String,
+      day: Model.Date,
+    }),
+  }),
+  mealPlanRemove: Events.synced({
+    name: "v1.MealPlanRemove",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
   groceryItemAdded: Events.synced({
     name: "v1.GroceryItemAdded",
     schema: GroceryItem,
@@ -132,6 +162,8 @@ const materializers = State.SQLite.materializers(events, {
     tables.recipes.update(update).where({ id: update.id }),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
+  "v1.MealPlanAdd": (insert) => tables.mealPlan.insert(insert),
+  "v1.MealPlanRemove": ({ id }) => tables.mealPlan.delete().where({ id }),
   "v1.GroceryItemAdded": (insert) => tables.groceryItems.insert(insert),
   "v1.GroceryItemUpdated": ({ id, ...update }) =>
     tables.groceryItems.update(update).where({ id }),
