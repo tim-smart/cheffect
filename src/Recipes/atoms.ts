@@ -1,7 +1,7 @@
 import { RecipeCreate } from "@/domain/RecipeForm"
 import { Store } from "@/livestore/atoms"
-import { recipeByIdAtom } from "@/livestore/queries"
-import { Atom } from "@effect-atom/atom-react"
+import { recipeByIdAtom, searchStateAtom } from "@/livestore/queries"
+import { Atom, Result, useAtomValue } from "@effect-atom/atom-react"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
@@ -26,3 +26,12 @@ export const recipeFormByIdAtom = Atom.family((id: string) =>
     }),
   ),
 )
+
+export const useSearchQuery = () =>
+  Result.getOrElse(
+    useAtomValue(
+      searchStateAtom,
+      Result.map((state) => state.query),
+    ),
+    () => "",
+  )

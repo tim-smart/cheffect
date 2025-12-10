@@ -7,7 +7,6 @@ import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
-import * as Schema from "effect/Schema"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 
 export const searchState$ = queryDb(tables.searchState.get())
@@ -133,6 +132,47 @@ export const mealPlanEntriesAtom = Store.runtime.atom(
   Effect.fnUntraced(function* (get) {
     const store = yield* Store
     const startDay = get(mealPlanWeekAtom)
-    return store.query(mealPlanEntries$(startDay))
+    const query = mealPlanEntries$(startDay)
+    const result = store.query(query)
+    get.addFinalizer(
+      store.subscribe(query, {
+        onUpdate(value) {
+          get.setSelf(Result.success(value))
+        },
+      }),
+    )
+    return result
   }),
 )
+
+const mealPlanRecipes$ = (query: string) => {
+  const trimmedQuery = query.trim()
+  return queryDb(
+    {
+      query:
+        trimmedQuery === ""
+          ? sql`SELECT * FROM recipes ORDER BY title ASC, createdAt DESC`
+          : sql`SELECT * FROM recipes WHERE title LIKE ? ORDER BY title ASC, createdAt DESC`,
+      schema: Recipe.array,
+      bindValues: trimmedQuery === "" ? [] : [`%${trimmedQuery}%`],
+    },
+    { label: "mealPlanRecipes", deps: [trimmedQuery] },
+  )
+}
+
+export const mealPlanRecipesQueryAtom = Atom.make("")
+
+export const mealPlanRecipesAtom = Atom.make((get) => {
+  const store = get(Store.storeUnsafe)!
+  const searchQuery = get(mealPlanRecipesQueryAtom)
+  const query = mealPlanRecipes$(searchQuery)
+  const result = store.query(query)
+  get.addFinalizer(
+    store.subscribe(query, {
+      onUpdate(value) {
+        get.setSelf(value)
+      },
+    }),
+  )
+  return result
+})

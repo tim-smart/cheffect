@@ -1,8 +1,5 @@
 - Meal planner screen
-  - data model
-    - use domain models in meal plan query
-  - add box around add buttons
+  - adjust arrow button on select recipe items
   - add button to recipe to add to plan
-  - search modal for adding recipes to days
   - add an entire week to groceries
 - Menu screen (make a list of recipes)

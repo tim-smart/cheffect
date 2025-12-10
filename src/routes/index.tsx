@@ -1,26 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import {
-  Search,
-  Clock,
-  Users,
-  ChefHat,
-  Star,
-  ArrowDownWideNarrow,
-} from "lucide-react"
+import { createFileRoute } from "@tanstack/react-router"
+import { Search, ArrowDownWideNarrow } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  allRecipesAtom,
-  searchSortByAtom,
-  searchStateAtom,
-} from "@/livestore/queries"
+import { allRecipesAtom, searchSortByAtom } from "@/livestore/queries"
 import { Result, useAtomValue } from "@effect-atom/atom-react"
-import * as Duration from "effect/Duration"
 import { events } from "@/livestore/schema"
-import { Recipe, SortBy } from "@/domain/Recipe"
+import { SortBy } from "@/domain/Recipe"
 import { useCommit } from "@/livestore/atoms"
-import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
-import * as Option from "effect/Option"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -28,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useSearchQuery } from "@/Recipes/atoms"
+import { RecipeList } from "@/Recipes/List"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -52,21 +40,17 @@ export default function CheffectHome() {
       <div className="space-y-4">
         {Result.builder(recipes)
           .onInitial(() => <RecipeListSkeleton />)
-          .onSuccess((recipes) => <RecipeList recipes={recipes} />)
+          .onSuccess((recipes) => <WrappedList recipes={recipes} />)
           .render()}
       </div>
     </div>
   )
 }
 
-const useSearchQuery = () =>
-  Result.getOrElse(
-    useAtomValue(
-      searchStateAtom,
-      Result.map((state) => state.query),
-    ),
-    () => "",
-  )
+function WrappedList({ recipes }: { recipes: ReadonlyArray<any> }) {
+  const searchQuery = useSearchQuery()
+  return <RecipeList recipes={recipes} searchQuery={searchQuery} />
+}
 
 function SearchInput() {
   const searchQuery = useSearchQuery()
@@ -122,19 +106,6 @@ function SortButton() {
   )
 }
 
-function RecipeList({ recipes }: { recipes: ReadonlyArray<Recipe> }) {
-  if (recipes.length === 0) {
-    return <NoResults />
-  }
-  return (
-    <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
-      {recipes.map((recipe) => (
-        <RecipeCard key={recipe.id} recipe={recipe} />
-      ))}
-    </div>
-  )
-}
-
 function RecipeListSkeleton() {
   return (
     <div className="flex flex-col gap-2">
@@ -142,74 +113,6 @@ function RecipeListSkeleton() {
       <Skeleton className="h-20" />
       <Skeleton className="h-20" />
     </div>
-  )
-}
-
-function NoResults() {
-  const searchQuery = useSearchQuery()
-  return (
-    <div className="text-center py-16">
-      <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-gray-900 mb-2">
-        No recipes found
-      </h3>
-      <p className="text-gray-500 mb-6 px-4">
-        {searchQuery
-          ? "Try adjusting your search terms"
-          : "Start by adding your first recipe"}
-      </p>
-      <AddRecipeButton />
-    </div>
-  )
-}
-
-function RecipeCard({ recipe }: { recipe: Recipe }) {
-  return (
-    <Link
-      to="/recipe/$id"
-      params={{ id: recipe.id }}
-      className="block active:bg-gray-50 transition-colors"
-    >
-      <div className="flex items-center h-20">
-        {/* Recipe Image - No whitespace */}
-        <div className="relative h-full aspect-square">
-          <img
-            src={recipe.imageUrl ?? "/placeholder.svg"}
-            alt={recipe.title}
-            className="object-cover h-full w-full"
-          />
-        </div>
-
-        {/* Recipe Info - More condensed */}
-        <div className="flex-1 flex-col p-3">
-          <h3 className="mb-1 line-clamp-1 pr-1">{recipe.title}</h3>
-
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            {recipe.totalTime.pipe(
-              Option.map((d) => (
-                <div className="flex items-center gap-0.5">
-                  <Clock className="w-4 h-4" />
-                  <span>{Duration.format(d)}</span>
-                </div>
-              )),
-              Option.getOrNull,
-            )}
-            {recipe.servings !== null && (
-              <div className="flex items-center gap-0.5">
-                <Users className="w-4 h-4" />
-                <span>{recipe.servings}</span>
-              </div>
-            )}
-            {recipe.rating !== null && (
-              <div className="flex items-center gap-0.5">
-                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                <span>{recipe.rating}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </Link>
   )
 }
 
