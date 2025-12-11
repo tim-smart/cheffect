@@ -30,6 +30,7 @@ export const beautifyGroceriesAtom = runtime
       const store = yield* Store
       const currentItems = yield* get.result(allGroceryItemsArrayAtom)
       yield* Effect.log("Beautifying groceries...", currentItems)
+      if (currentItems.length === 0) return
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
       for (const item of removed) {

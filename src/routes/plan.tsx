@@ -205,7 +205,10 @@ export function MealPlanPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRemoveEntry(id)}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              return handleRemoveEntry(id)
+                            }}
                             className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 shrink-0"
                           >
                             <X className="w-4 h-4" />
