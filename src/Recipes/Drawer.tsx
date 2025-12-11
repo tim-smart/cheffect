@@ -3,7 +3,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -15,13 +14,8 @@ import {
   mealPlanRecipesAtom,
   mealPlanRecipesQueryAtom,
 } from "@/livestore/queries"
-import {
-  AtomRef,
-  useAtom,
-  useAtomRef,
-  useAtomValue,
-} from "@effect-atom/atom-react"
-import React, { useMemo, useState } from "react"
+import { useAtom, useAtomValue } from "@effect-atom/atom-react"
+import React, { useState } from "react"
 import { RecipeList } from "./List"
 
 export function SelectRecipeDrawer({
@@ -76,7 +70,7 @@ function SearchInput() {
 
 function SearchResults({ onSelect }: { onSelect: (recipe: Recipe) => void }) {
   const query = useAtomValue(mealPlanRecipesQueryAtom)
-  const recipes = useAtomValue(mealPlanRecipesAtom)
+  const recipes = useAtomValue(mealPlanRecipesAtom)!
   return (
     <RecipeList recipes={recipes} searchQuery={query} onSelect={onSelect} />
   )

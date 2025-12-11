@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as DateTime from "effect/DateTime"
@@ -45,21 +45,6 @@ export function MealPlanPage() {
   const isToday = (date: DateTime.Utc) => DateTime.Equivalence(date, today)
 
   const weekDays = getWeekDays()
-
-  // const handleAddRecipe = (dateStr: string, recipeId: number) => {
-  //   setMealPlan((prev) => ({
-  //     ...prev,
-  //     [dateStr]: [...(prev[dateStr] || []), recipeId],
-  //   }))
-  //   setShowRecipeSelector(null)
-  // }
-  //
-  // const handleRemoveRecipe = (dateStr: string, index: number) => {
-  //   setMealPlan((prev) => ({
-  //     ...prev,
-  //     [dateStr]: prev[dateStr].filter((_, i) => i !== index),
-  //   }))
-  // }
 
   const handlePreviousWeek = () => {
     setWeekStart(DateTime.subtract(weekStart, { weeks: 1 }))
@@ -184,7 +169,12 @@ export function MealPlanPage() {
                   {dayEntries.length > 0 && (
                     <div className="divide-y divide-gray-200">
                       {dayEntries.map(({ id, recipe }) => (
-                        <div key={id} className="flex items-center p-3 gap-3">
+                        <Link
+                          key={id}
+                          className="flex items-center p-3 gap-3"
+                          to="/recipe/$id"
+                          params={{ id: recipe.id }}
+                        >
                           <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
                             <img
                               src={recipe.imageUrl || "/placeholder.svg"}
@@ -220,7 +210,7 @@ export function MealPlanPage() {
                           >
                             <X className="w-4 h-4" />
                           </Button>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   )}

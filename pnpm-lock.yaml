@@ -18,8 +18,8 @@ importers:
   .:
     dependencies:
       '@effect-atom/atom-livestore':
-        specifier: ^0.4.3
-        version: 0.4.3(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@livestore/livestore@0.3.1(3705dc221ce2f28a0b79a482fc133919))(effect@3.19.11)
+        specifier: ^0.4.5
+        version: 0.4.5(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@livestore/livestore@0.3.1(3705dc221ce2f28a0b79a482fc133919))(effect@3.19.11)
       '@effect-atom/atom-react':
         specifier: ^0.4.3
         version: 0.4.3(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)(react@19.2.1)(scheduler@0.27.0)
@@ -120,8 +120,8 @@ importers:
         specifier: ^7.0.1
         version: 7.0.1
       lucide-react:
-        specifier: ^0.559.0
-        version: 0.559.0(react@19.2.1)
+        specifier: ^0.560.0
+        version: 0.560.0(react@19.2.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -744,8 +744,8 @@ packages:
   '@canvas/image-data@1.1.0':
     resolution: {integrity: sha512-QdObRRjRbcXGmM1tmJ+MrHcaz1MftF2+W7YI+MsphnsCrmtyfS0d5qJbk0MeSbUeyM/jCb0hmnkXPsy026L7dA==}
 
-  '@effect-atom/atom-livestore@0.4.3':
-    resolution: {integrity: sha512-CSO6FVn2nNSumUAporZPEdwjJNqMT2o0bb2bZnx0dCmNQCWlFwF//kLBVQmlwFf2kDozadUMvvy8lnurtif0Zw==}
+  '@effect-atom/atom-livestore@0.4.5':
+    resolution: {integrity: sha512-YGIaYGDkdYt0KzkRatC7P6D03qKaCJHUA/PvoqCvHz3OZSw799fdOZcY1UGyMUUkiRLxDubbyTmBLUnpeiyLXA==}
     peerDependencies:
       '@livestore/livestore': '*'
       effect: ^3.17.1
@@ -757,8 +757,8 @@ packages:
       react: '>=18 <20'
       scheduler: '*'
 
-  '@effect-atom/atom@0.4.8':
-    resolution: {integrity: sha512-QMRTCjiHmlovZu/F50CIrYnl+i+3F4fpRnhpno+E8WX04xQV31ekjXTIZmaSTaUg3kkguwD44BAdSVw09TI91Q==}
+  '@effect-atom/atom@0.4.9':
+    resolution: {integrity: sha512-C3He5G2EYaJIjZaP3170zYm+34jVeI3iHWn2aTunahExmlqMneGHGktC5K8pQRa5JIACbj2O3hlUZrDirsXKoA==}
     peerDependencies:
       '@effect/experimental': ^0.57.0
       '@effect/platform': ^0.93.0
@@ -3231,8 +3231,8 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
-  lucide-react@0.559.0:
-    resolution: {integrity: sha512-3ymrkBPXWk3U2bwUDg6TdA6hP5iGDMgPEAMLhchEgTQmA+g0Zk24tOtKtXMx35w1PizTmsBC3RhP88QYm+7mHQ==}
+  lucide-react@0.560.0:
+    resolution: {integrity: sha512-NwKoUA/aBShsdL8WE5lukV2F/tjHzQRlonQs7fkNGI1sCT0Ay4a9Ap3ST2clUUkcY+9eQ0pBe2hybTQd2fmyDA==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -4803,9 +4803,9 @@ snapshots:
 
   '@canvas/image-data@1.1.0': {}
 
-  '@effect-atom/atom-livestore@0.4.3(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@livestore/livestore@0.3.1(3705dc221ce2f28a0b79a482fc133919))(effect@3.19.11)':
+  '@effect-atom/atom-livestore@0.4.5(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@livestore/livestore@0.3.1(3705dc221ce2f28a0b79a482fc133919))(effect@3.19.11)':
     dependencies:
-      '@effect-atom/atom': 0.4.8(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)
+      '@effect-atom/atom': 0.4.9(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)
       '@livestore/livestore': 0.3.1(3705dc221ce2f28a0b79a482fc133919)
       effect: 3.19.11
     transitivePeerDependencies:
@@ -4815,7 +4815,7 @@ snapshots:
 
   '@effect-atom/atom-react@0.4.3(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)(react@19.2.1)(scheduler@0.27.0)':
     dependencies:
-      '@effect-atom/atom': 0.4.8(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)
+      '@effect-atom/atom': 0.4.9(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)
       effect: 3.19.11
       react: 19.2.1
       scheduler: 0.27.0
@@ -4824,7 +4824,7 @@ snapshots:
       - '@effect/platform'
       - '@effect/rpc'
 
-  '@effect-atom/atom@0.4.8(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)':
+  '@effect-atom/atom@0.4.9(@effect/experimental@0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(@effect/platform@0.93.6(effect@3.19.11))(@effect/rpc@0.72.2(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11))(effect@3.19.11)':
     dependencies:
       '@effect/experimental': 0.57.11(@effect/platform@0.93.6(effect@3.19.11))(effect@3.19.11)
       '@effect/platform': 0.93.6(effect@3.19.11)
@@ -7359,7 +7359,7 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
-  lucide-react@0.559.0(react@19.2.1):
+  lucide-react@0.560.0(react@19.2.1):
     dependencies:
       react: 19.2.1
 

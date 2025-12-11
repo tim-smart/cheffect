@@ -128,21 +128,8 @@ const mealPlanEntries$ = (startDay: DateTime.Utc) => {
   )
 }
 
-export const mealPlanEntriesAtom = Store.runtime.atom(
-  Effect.fnUntraced(function* (get) {
-    const store = yield* Store
-    const startDay = get(mealPlanWeekAtom)
-    const query = mealPlanEntries$(startDay)
-    const result = store.query(query)
-    get.addFinalizer(
-      store.subscribe(query, {
-        onUpdate(value) {
-          get.setSelf(Result.success(value))
-        },
-      }),
-    )
-    return result
-  }),
+export const mealPlanEntriesAtom = Store.makeQuery((get) =>
+  mealPlanEntries$(get(mealPlanWeekAtom)),
 )
 
 const mealPlanRecipes$ = (query: string) => {
@@ -162,17 +149,6 @@ const mealPlanRecipes$ = (query: string) => {
 
 export const mealPlanRecipesQueryAtom = Atom.make("")
 
-export const mealPlanRecipesAtom = Atom.make((get) => {
-  const store = get(Store.storeUnsafe)!
-  const searchQuery = get(mealPlanRecipesQueryAtom)
-  const query = mealPlanRecipes$(searchQuery)
-  const result = store.query(query)
-  get.addFinalizer(
-    store.subscribe(query, {
-      onUpdate(value) {
-        get.setSelf(value)
-      },
-    }),
-  )
-  return result
-})
+export const mealPlanRecipesAtom = Store.makeQueryUnsafe((get) =>
+  mealPlanRecipes$(get(mealPlanRecipesQueryAtom)),
+)
