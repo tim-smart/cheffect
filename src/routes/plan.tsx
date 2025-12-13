@@ -71,7 +71,7 @@ export function MealPlanPage() {
           </div>
 
           {/* Week Navigation */}
-          <div className="flex items-center justify-between">
+          <div className="max-w-lg mx-auto flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
@@ -111,7 +111,7 @@ export function MealPlanPage() {
       </header>
 
       {/* Main Content */}
-      <main className="px-4 py-3">
+      <main className="max-w-lg mx-auto px-2 py-3">
         {/* Week List */}
         <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-200">
           {weekDays.map((date) => {

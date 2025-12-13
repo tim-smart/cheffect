@@ -138,17 +138,10 @@ const Display = FormDisplay.make(ItemFormSchema).pipe(
   Effect.runSync,
 )
 
-const aisleOptions = [
-  {
-    label: "Unknown",
-    value: null as string | null,
-  },
-].concat(
-  GroceryAisle.literals.map((value) => ({
-    label: value,
-    value,
-  })),
-)
+const aisleOptions = GroceryAisle.literals.map((value) => ({
+  label: value,
+  value,
+}))
 
 function GroceryItemForm({
   className,
@@ -172,6 +165,7 @@ function GroceryItemForm({
               encoded: {
                 ...initialValue,
                 quantity: initialValue.quantity ?? "",
+                aisle: initialValue.aisle ?? "",
               },
             }
           : undefined
@@ -213,7 +207,7 @@ function GroceryItemForm({
               placeholder="Quantity (optional)"
               className="flex-1"
             />
-            <Display.aisle options={aisleOptions as any} />
+            <Display.aisle options={aisleOptions} placeholder="Other" />
           </div>
           <div className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}>
             <Button
@@ -286,7 +280,7 @@ function GroceryListList({
     ]
   })
 
-  if (filteredAisles.length === 0) {
+  if (showCompleted && filteredAisles.length === 0) {
     return null
   }
 

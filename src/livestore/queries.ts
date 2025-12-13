@@ -30,12 +30,12 @@ export const allRecipesAtom = Store.makeQuery(
       const sort = sortBy === "createdAt" ? "createdAt DESC" : "title ASC"
       if (trimmedQuery === "") {
         return {
-          query: sql`SELECT * FROM recipes ORDER BY ${sort}`,
+          query: sql`SELECT * FROM recipes WHERE deletedAt IS NULL ORDER BY ${sort}`,
           schema: Recipe.array,
         }
       }
       return {
-        query: sql`SELECT * FROM recipes WHERE title LIKE ? ORDER BY ${sort}`,
+        query: sql`SELECT * FROM recipes WHERE title LIKE ? AND deletedAt IS NULL ORDER BY ${sort}`,
         schema: Recipe.array,
         bindValues: [`%${trimmedQuery}%`],
       }
@@ -138,8 +138,8 @@ const mealPlanRecipes$ = (query: string) => {
     {
       query:
         trimmedQuery === ""
-          ? sql`SELECT * FROM recipes ORDER BY title ASC, createdAt DESC`
-          : sql`SELECT * FROM recipes WHERE title LIKE ? ORDER BY title ASC, createdAt DESC`,
+          ? sql`SELECT * FROM recipes WHERE deletedAt IS NULL ORDER BY title ASC, createdAt DESC`
+          : sql`SELECT * FROM recipes WHERE title LIKE ? AND deletedAt IS NULL ORDER BY title ASC, createdAt DESC`,
       schema: Recipe.array,
       bindValues: trimmedQuery === "" ? [] : [`%${trimmedQuery}%`],
     },

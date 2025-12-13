@@ -144,17 +144,10 @@ function ComponentCard() {
   )
 }
 
-const unitOptions = [
-  {
-    label: "-",
-    value: null as string | null,
-  },
-].concat(
-  Unit.literals.map((value) => ({
-    label: value,
-    value,
-  })),
-)
+const unitOptions = Unit.literals.map((value) => ({
+  label: value,
+  value,
+}))
 
 function IngredientFields() {
   const controls = Display.ingredients.Element.ingredients.useControls()
@@ -173,7 +166,8 @@ function IngredientFields() {
       </div>
       <div>
         <Display.ingredients.Element.ingredients.Element.unit
-          options={unitOptions as any}
+          options={unitOptions}
+          placeholder="-"
         />
       </div>
       <div className="flex-1">
@@ -274,7 +268,7 @@ function TipFields() {
         onClick={() => removeTip()}
         size="sm"
         variant="ghost"
-        className="!p-0"
+        className="p-0!"
       >
         <X className="w-4 h-4" />
       </Button>

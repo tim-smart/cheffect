@@ -57,8 +57,14 @@ export const SelectWithLiteralsOrNull = <
   ...literals: Literals
 ) =>
   Select.make({
-    schema: Schema.NullOr(Schema.Literal(...literals)),
-    defaultValue: null,
+    schema: Schema.Union(
+      Schema.Literal(...literals),
+      Schema.transform(Schema.Literal(""), Schema.Null, {
+        decode: () => null,
+        encode: () => "" as const,
+      }),
+    ),
+    defaultValue: "",
   })
 
 export class RatingInput extends FormField.FormField("RatingInput")<
@@ -77,15 +83,14 @@ export class RatingInput extends FormField.FormField("RatingInput")<
   })
 }
 
-export interface RatingInputFC
-  extends React.FC<{
-    label?: React.ReactNode
-    placeholder?: string | undefined | undefined
-    className?: string
-    value?: number | undefined
-    onChange?: (value: any) => void
-    size?: number
-  }> {}
+export interface RatingInputFC extends React.FC<{
+  label?: React.ReactNode
+  placeholder?: string | undefined | undefined
+  className?: string
+  value?: number | undefined
+  onChange?: (value: any) => void
+  size?: number
+}> {}
 
 export const ShadcnFields: Layer.Layer<
   TextInput | TextArea | NumberInput | Select | RatingInput,

@@ -9,15 +9,18 @@ import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import { Atom, Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
+import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import {
   ArrowLeft,
+  Calendar,
   Check,
   Clock,
   Plus,
   ShoppingCart,
   Star,
+  Trash,
   Users,
 } from "lucide-react"
 import { useState } from "react"
@@ -80,11 +83,42 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
             <h1 className="text-lg font-semibold text-gray-900 line-clamp-1 flex-1">
               {recipe.title}
             </h1>
-            <Link to="/edit/$id" params={{ id: recipe.id }} className="mr-2">
-              <Button size="sm" variant="outline">
-                Edit
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 cursor-pointer"
+                onClick={() => {
+                  if (
+                    !confirm("Are you sure you want to delete this recipe?")
+                  ) {
+                    return
+                  }
+                  commit(
+                    events.recipeDeleted({
+                      id: recipe.id,
+                      deletedAt: DateTime.unsafeNow(),
+                    }),
+                  )
+                  return router.history.back()
+                }}
+              >
+                <Trash className="w-5 h-5" />
               </Button>
-            </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 cursor-pointer"
+                onClick={() => {}}
+              >
+                <Calendar className="w-5 h-5" />
+              </Button>
+              <Link to="/edit/$id" params={{ id: recipe.id }} className="mx-2">
+                <Button size="sm" variant="outline">
+                  Edit
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -131,13 +165,13 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-0 !px-2"
+                className="gap-0 px-2!"
                 onClick={addAllToGrocery}
               >
                 {groceryAddResult.waiting ? (
-                  <Check className="size-3 mt-[1px]" />
+                  <Check className="size-3 mt-px" />
                 ) : (
-                  <Plus className="size-3 mt-[1px]" />
+                  <Plus className="size-3 mt-px" />
                 )}
                 <ShoppingCart />
               </Button>
@@ -212,7 +246,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
                         currentStep === stepIndex
                           ? "bg-orange-600 text-white"
                           : "bg-gray-200 text-gray-700"
