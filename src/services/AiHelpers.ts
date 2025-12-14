@@ -95,7 +95,9 @@ You will receive a list of recipe ingredients in XML format. Your task is to cle
 
 Here is the list of items as XML:
 
+\`\`\`xml
 ${encodeGroceryItemListXml(leftoverItems.values())}
+\`\`\`
 `,
             },
           ],

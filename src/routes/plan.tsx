@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as DateTime from "effect/DateTime"
-import { useAtom, useAtomSuspense, useAtomValue } from "@effect-atom/atom-react"
+import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import {
   mealPlanEntriesAtom,
   mealPlanWeekAdjustedAtom,
@@ -17,6 +17,9 @@ import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
+import { MealPlanEntry } from "@/domain/MealPlanEntry"
+import { AddToGroceriesButton } from "@/Groceries/AddButton"
+import * as Iterable from "effect/Iterable"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -41,7 +44,7 @@ export function MealPlanPage() {
   )
   const [weekStartRaw, setWeekStart] = useAtom(mealPlanWeekAtom)
   const weekStart = useAtomValue(mealPlanWeekAdjustedAtom)
-  const entries = useAtomSuspense(mealPlanEntriesAtom).value
+  const entries = useAtomValue(mealPlanEntriesAtom)
 
   const getWeekDays = () => {
     const days = []
@@ -50,8 +53,6 @@ export function MealPlanPage() {
     }
     return days
   }
-
-  const isToday = (date: DateTime.Utc) => DateTime.Equivalence(date, today)
 
   const weekDays = getWeekDays()
 
@@ -77,6 +78,15 @@ export function MealPlanPage() {
               <Calendar className="w-5 h-5 text-orange-600" />
               <h1 className="text-lg font-bold text-gray-900">Meal Plan</h1>
             </div>
+            <div className="flex-1" />
+            <div>
+              <AddToGroceriesButton
+                recipes={entries.pipe(
+                  Result.map(Iterable.map((entry) => entry.recipe)),
+                  Result.getOrElse(() => []),
+                )}
+              />
+            </div>
           </div>
 
           {/* Week Navigation */}
@@ -91,7 +101,11 @@ export function MealPlanPage() {
             </Button>
 
             <div className="text-center flex-1">
-              <p className="text-xs font-medium text-gray-900">
+              <Button
+                variant="ghost"
+                className="text-xs font-medium text-gray-900"
+                onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
+              >
                 {DateTime.formatUtc(weekStart, {
                   month: "short",
                   day: "numeric",
@@ -104,7 +118,7 @@ export function MealPlanPage() {
                     day: "numeric",
                   }),
                 )}
-              </p>
+              </Button>
             </div>
 
             <Button
@@ -121,139 +135,160 @@ export function MealPlanPage() {
 
       {/* Main Content */}
       <main className="max-w-lg mx-auto px-2 py-3">
-        {/* Week List */}
-        <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-200">
-          {weekDays.map((date) => {
-            const dateParts = DateTime.toPartsUtc(date)
-            const isTodayDate = isToday(date)
-            const dayEntries = entries.filter((entry) =>
-              DateTime.Equivalence(entry.day, date),
-            )
+        <WeekList
+          today={today}
+          entries={Result.getOrElse(entries, () => [])}
+          weekDays={weekDays}
+          handleRemoveEntry={handleRemoveEntry}
+        />
+      </main>
+    </div>
+  )
+}
 
-            return (
-              <div key={date.epochMillis} className="bg-white">
-                {/* Day Header with Add Button */}
-                <div
-                  className={`w-full px-3 py-3 flex items-center justify-between border-b ${
-                    isTodayDate ? "bg-orange-50" : "bg-gray-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <div>
-                      <p
-                        className={`font-semibold text-sm ${isTodayDate ? "text-orange-600" : "text-gray-900"}`}
-                      >
-                        {dayNames[dateParts.weekDay]}
-                      </p>
-                      <p
-                        className={`text-xs ${isTodayDate ? "text-orange-500" : "text-gray-500"}`}
-                      >
-                        {DateTime.formatUtc(date, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                        {isTodayDate && " • Today"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <SelectRecipeDrawer
-                      onSelect={(recipe) => {
-                        commit(
-                          events.mealPlanAdd({
-                            id: crypto.randomUUID(),
-                            day: date,
-                            recipeId: recipe.id,
-                          }),
-                        )
-                      }}
-                    >
-                      <SelectRecipeButton />
-                    </SelectRecipeDrawer>
-                  </div>
-                </div>
+function WeekList({
+  entries,
+  weekDays,
+  handleRemoveEntry,
+  today,
+}: {
+  entries: ReadonlyArray<MealPlanEntry>
+  weekDays: Array<DateTime.Utc>
+  handleRemoveEntry: (id: string) => void
+  today: DateTime.Utc
+}) {
+  const commit = useCommit()
+  const isToday = (date: DateTime.Utc) => DateTime.Equivalence(date, today)
 
-                {/* Day Content - Always Visible */}
+  return (
+    <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-200">
+      {weekDays.map((date) => {
+        const dateParts = DateTime.toPartsUtc(date)
+        const isTodayDate = isToday(date)
+        const dayEntries = entries.filter((entry) =>
+          DateTime.Equivalence(entry.day, date),
+        )
+
+        return (
+          <div key={date.epochMillis} className="bg-white">
+            {/* Day Header with Add Button */}
+            <div
+              className={`w-full px-3 py-3 flex items-center justify-between border-b ${
+                isTodayDate ? "bg-orange-50" : "bg-gray-50"
+              }`}
+            >
+              <div className="flex items-center gap-3 flex-1">
                 <div>
-                  {dayEntries.length > 0 && (
-                    <div className="divide-y divide-gray-200">
-                      {dayEntries.map(({ id, recipe }) => (
-                        <Link
-                          key={id}
-                          className="flex items-center p-3 gap-3"
-                          to="/recipe/$id"
-                          params={{ id: recipe.id }}
-                        >
-                          <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
-                            <img
-                              src={recipe.imageUrl || "/placeholder.svg"}
-                              alt={recipe.title}
-                              width={48}
-                              height={48}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
-                              {recipe.title}
-                            </h4>
-                            <p className="text-xs text-gray-500">
-                              {[
-                                ...Option.match(recipe.totalTime, {
-                                  onNone: () => [],
-                                  onSome: (duration) => [
-                                    Duration.format(duration),
-                                  ],
-                                }),
-                                ...(recipe.servings
-                                  ? [`${recipe.servings} servings`]
-                                  : []),
-                              ].join(" • ")}
-                            </p>
-                          </div>
-                          <div>
-                            <MealPlanDatePicker
-                              target={MealPlanDatePickerTarget.Existing({
-                                id,
-                                initialValue: date,
-                              })}
-                            >
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0 text-gray-400 cursor-pointer"
-                              >
-                                <Calendar className="w-4 h-4" />
-                              </Button>
-                            </MealPlanDatePicker>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                return handleRemoveEntry(id)
-                              }}
-                              className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 cursor-pointer"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
-                  {dayEntries.length === 0 && (
-                    <div className="p-3 text-center">
-                      <p className="text-sm text-gray-500">No meals planned</p>
-                    </div>
-                  )}
+                  <p
+                    className={`font-semibold text-sm ${isTodayDate ? "text-orange-600" : "text-gray-900"}`}
+                  >
+                    {dayNames[dateParts.weekDay]}
+                  </p>
+                  <p
+                    className={`text-xs ${isTodayDate ? "text-orange-500" : "text-gray-500"}`}
+                  >
+                    {DateTime.formatUtc(date, {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    {isTodayDate && " • Today"}
+                  </p>
                 </div>
               </div>
-            )
-          })}
-        </div>
-      </main>
+              <div className="flex items-center gap-2">
+                <SelectRecipeDrawer
+                  onSelect={(recipe) => {
+                    commit(
+                      events.mealPlanAdd({
+                        id: crypto.randomUUID(),
+                        day: date,
+                        recipeId: recipe.id,
+                      }),
+                    )
+                  }}
+                >
+                  <SelectRecipeButton />
+                </SelectRecipeDrawer>
+              </div>
+            </div>
+
+            {/* Day Content - Always Visible */}
+            <div>
+              {dayEntries.length > 0 && (
+                <div className="divide-y divide-gray-200">
+                  {dayEntries.map(({ id, recipe }) => (
+                    <Link
+                      key={id}
+                      className="flex items-center p-3 gap-3"
+                      to="/recipe/$id"
+                      params={{ id: recipe.id }}
+                    >
+                      <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
+                        <img
+                          src={recipe.imageUrl || "/placeholder.svg"}
+                          alt={recipe.title}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
+                          {recipe.title}
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          {[
+                            ...Option.match(recipe.totalTime, {
+                              onNone: () => [],
+                              onSome: (duration) => [Duration.format(duration)],
+                            }),
+                            ...(recipe.servings
+                              ? [`${recipe.servings} servings`]
+                              : []),
+                          ].join(" • ")}
+                        </p>
+                      </div>
+                      <div>
+                        <MealPlanDatePicker
+                          target={MealPlanDatePickerTarget.Existing({
+                            id,
+                            initialValue: date,
+                          })}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-gray-400"
+                          >
+                            <Calendar className="w-4 h-4" />
+                          </Button>
+                        </MealPlanDatePicker>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            return handleRemoveEntry(id)
+                          }}
+                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {dayEntries.length === 0 && (
+                <div className="p-3 text-center">
+                  <p className="text-sm text-gray-500">No meals planned</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import { router } from "@/Router"
@@ -22,7 +23,18 @@ export const Route = createRootRoute({
                 <ChefHat className="w-7 h-7 text-orange-600 cursor-pointer" />
                 <h1 className="text-xl font-bold text-gray-900">Cheffect</h1>
               </button>
-              <AddRecipeButton small />
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  className="p-2"
+                  onClick={() => {
+                    router.navigate({ to: "/settings" })
+                  }}
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
+                <AddRecipeButton small />
+              </div>
             </div>
           </div>
         </header>
@@ -48,18 +60,6 @@ export const Route = createRootRoute({
             </Link>
 
             <Link
-              to="/plan"
-              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-orange-600 bg-orange-50" }}
-              inactiveProps={{
-                className: "text-gray-500 active:bg-gray-100",
-              }}
-            >
-              <Calendar className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Meal Plan</span>
-            </Link>
-
-            <Link
               to="/groceries"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
               activeProps={{ className: "text-orange-600 bg-orange-50" }}
@@ -72,15 +72,15 @@ export const Route = createRootRoute({
             </Link>
 
             <Link
-              to="/settings"
+              to="/plan"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
               activeProps={{ className: "text-orange-600 bg-orange-50" }}
               inactiveProps={{
                 className: "text-gray-500 active:bg-gray-100",
               }}
             >
-              <Settings className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Settings</span>
+              <Calendar className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">Meal Plan</span>
             </Link>
           </div>
         </nav>

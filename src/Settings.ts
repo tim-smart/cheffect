@@ -6,7 +6,8 @@ import { queryDb, sql } from "@livestore/livestore"
 import { flow } from "effect"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
-import { Atom } from "@effect-atom/atom-react"
+import { Atom, Result } from "@effect-atom/atom-react"
+import { kvsRuntime } from "./atoms"
 
 const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   setting: Setting<S>,
@@ -31,12 +32,39 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
         ),
       },
     ),
-  ).read
+  )
 
-  return Atom.writable(read, (ctx, newValue: Option.Option<S["Type"]>) => {
-    const value = Schema.encodeSync(optionSchema)(newValue)
-    ctx.set(Store.commit, events.settingsSet({ id: setting.name, value }))
-  })
+  const cacheAtom =
+    setting.cached &&
+    Atom.kvs({
+      runtime: kvsRuntime,
+      key: `setting:${setting.name}`,
+      schema: Schema.Option(schema),
+      defaultValue: Option.none,
+    })
+
+  return Atom.writable(
+    (get) => {
+      const result = get(read)
+      if (Result.isSuccess(result) || !cacheAtom) {
+        return result
+      }
+      const cached = get(cacheAtom)
+      if (Option.isSome(cached)) {
+        return Result.success(cached)
+      } else if (setting.initialValue !== undefined) {
+        return Result.success(Option.some(setting.initialValue))
+      }
+      return result
+    },
+    (ctx, newValue: Option.Option<S["Type"]>) => {
+      const value = Schema.encodeSync(optionSchema)(newValue)
+      ctx.set(Store.commit, events.settingsSet({ id: setting.name, value }))
+      if (cacheAtom) {
+        ctx.set(cacheAtom, newValue)
+      }
+    },
+  )
 }
 
 export class Setting<S extends Schema.Schema.AnyNoContext> extends Data.Class<{
@@ -44,6 +72,8 @@ export class Setting<S extends Schema.Schema.AnyNoContext> extends Data.Class<{
   label: string
   schema: S
   schemaInput: Schema.Schema<Option.Option<S["Type"]>, string>
+  initialValue?: S["Type"] | undefined
+  cached?: boolean | undefined
 }> {
   readonly atom = makeAtom(this)
 }
@@ -88,4 +118,5 @@ export const mealPlanWeekStart = new Setting({
     Schema.NumberFromString.pipe(Schema.compose(WeekDays)),
     () => 0 as const,
   ),
+  cached: true,
 })

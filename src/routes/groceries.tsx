@@ -329,7 +329,10 @@ function GroceryListList({
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-3 p-3 py-2 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`}
+                    className={cn(
+                      `flex items-center gap-3 p-3 py-2 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
+                      editingItem?.id === item.id ? "" : "cursor-default",
+                    )}
                   >
                     <Checkbox
                       checked={item.completed}
@@ -371,7 +374,7 @@ function GroceryListList({
                               )}
                             </div>
                             {item.recipeIds && (
-                              <div className="text-xs text-gray-500 [&>*:not(:last-child)]:after:content-[','] pb-1 [&>*:not(:last-child)]:after:mr-1">
+                              <div className="text-xs text-gray-500 [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
                                 {item.recipeIds.map((id) => (
                                   <RecipeTitle key={id} id={id} />
                                 ))}

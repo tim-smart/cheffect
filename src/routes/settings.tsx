@@ -84,7 +84,7 @@ function SettingSection({
   return (
     <div>
       <h2 className="text-md font-semibold text-gray-900 mb-1">{title}</h2>
-      <div className="rounded-lg bg-white border border-gray-200 overflow-hidden p-3 flex flex-col gap-2">
+      <div className="rounded-lg bg-white border border-gray-200 overflow-hidden p-4 flex flex-col gap-2">
         {children}
       </div>
     </div>

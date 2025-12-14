@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { GroceryItem } from "@/domain/GroceryItem"
 import { Recipe } from "@/domain/Recipe"
+import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { useCommit } from "@/livestore/atoms"
 import { recipeByIdAtom } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
@@ -11,22 +11,11 @@ import {
 } from "@/MealPlan/DatePicker"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
-import { Atom, Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import { Result, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
-import * as Effect from "effect/Effect"
-import {
-  ArrowLeft,
-  Calendar,
-  Check,
-  Clock,
-  Plus,
-  ShoppingCart,
-  Star,
-  Trash,
-  Users,
-} from "lucide-react"
+import { ArrowLeft, Calendar, Clock, Star, Trash, Users } from "lucide-react"
 import { useState } from "react"
 
 export const Route = createFileRoute("/recipe/$id")({
@@ -43,6 +32,8 @@ function RouteComponent() {
 }
 
 export function RecipeDetails({ recipe }: { recipe: Recipe }) {
+  const commit = useCommit()
+
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
     new Set(),
   )
@@ -56,22 +47,6 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
       newChecked.add(ingredientId)
     }
     setCheckedIngredients(newChecked)
-  }
-
-  const commit = useCommit()
-  const [groceryAddResult, setGroceryAddCompleted] =
-    useAtom(groceryAddCompleted)
-  const addAllToGrocery = () => {
-    recipe.ingredients.forEach((group) => {
-      group.ingredients.forEach((ingredient) => {
-        commit(
-          events.groceryItemAdded(
-            GroceryItem.fromIngredient(ingredient, recipe),
-          ),
-        )
-      })
-    })
-    setGroceryAddCompleted()
   }
 
   return (
@@ -174,19 +149,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                 Ingredients
               </h2>
               <div className="flex-1" />
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-0 px-2!"
-                onClick={addAllToGrocery}
-              >
-                {groceryAddResult.waiting ? (
-                  <Check className="size-3 mt-px" />
-                ) : (
-                  <Plus className="size-3 mt-px" />
-                )}
-                <ShoppingCart />
-              </Button>
+              <AddToGroceriesButton recipes={[recipe]} />
             </div>
 
             <div className="space-y-6">
@@ -300,9 +263,3 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
     </div>
   )
 }
-
-const groceryAddCompleted = Atom.fn<void>()(
-  Effect.fnUntraced(function* () {
-    yield* Effect.sleep("3 seconds")
-  }),
-)
