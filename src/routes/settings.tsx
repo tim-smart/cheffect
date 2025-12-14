@@ -50,7 +50,7 @@ function SettingsPage() {
 
       {/* Main Content */}
       <main className="max-w-lg mx-auto px-2 py-3 flex flex-col gap-4">
-        <SettingSection title="API Settings">
+        <SettingSection title="AI Settings">
           <SettingControl
             setting={openAiApiKey}
             render={({ value, onChange, onBlur, onKeyDown }) => (

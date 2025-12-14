@@ -22,7 +22,7 @@ export const searchSortByAtom = Atom.map(searchStateAtom, (r) =>
 
 export const mealPlanWeekAtom = Atom.make(
   DateTime.unsafeNow().pipe(DateTime.startOf("week")),
-)
+).pipe(Atom.keepAlive)
 
 export const mealPlanWeekAdjustedAtom = Atom.make((get) => {
   const today = new Date().getDay()

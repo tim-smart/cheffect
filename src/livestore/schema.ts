@@ -141,6 +141,13 @@ export const events = {
       day: Model.Date,
     }),
   }),
+  mealPlanSetDay: Events.synced({
+    name: "v1.MealPlanSetDay",
+    schema: Schema.Struct({
+      id: Schema.String,
+      day: Model.Date,
+    }),
+  }),
   mealPlanRemove: Events.synced({
     name: "v1.MealPlanRemove",
     schema: Schema.Struct({ id: Schema.String }),
@@ -187,6 +194,8 @@ const materializers = State.SQLite.materializers(events, {
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
   "v1.MealPlanAdd": (insert) => tables.mealPlan.insert(insert),
+  "v1.MealPlanSetDay": ({ id, day }) =>
+    tables.mealPlan.update({ day }).where({ id }),
   "v1.MealPlanRemove": ({ id }) => tables.mealPlan.delete().where({ id }),
   "v1.GroceryItemAdded": (insert) => tables.groceryItems.insert(insert),
   "v1.GroceryItemUpdated": ({ id, ...update }) =>

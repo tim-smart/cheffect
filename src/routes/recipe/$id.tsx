@@ -5,6 +5,10 @@ import { Recipe } from "@/domain/Recipe"
 import { useCommit } from "@/livestore/atoms"
 import { recipeByIdAtom } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
+import {
+  MealPlanDatePicker,
+  MealPlanDatePickerTarget,
+} from "@/MealPlan/DatePicker"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import { Atom, Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
@@ -105,14 +109,18 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
               >
                 <Trash className="w-5 h-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-2 cursor-pointer"
-                onClick={() => {}}
+              <MealPlanDatePicker
+                target={MealPlanDatePickerTarget.New({ recipeId: recipe.id })}
               >
-                <Calendar className="w-5 h-5" />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 cursor-pointer"
+                  onClick={() => {}}
+                >
+                  <Calendar className="w-5 h-5" />
+                </Button>
+              </MealPlanDatePicker>
               <Link to="/edit/$id" params={{ id: recipe.id }} className="mx-2">
                 <Button size="sm" variant="outline">
                   Edit
