@@ -37,7 +37,7 @@ export function SelectRecipeDrawer({
           </DrawerHeader>
           <div className="px-4 flex flex-col gap-4">
             <SearchInput />
-            <div className="h-80 overflow-y-auto">
+            <div className="h-80 overflow-y-auto border border-gray-200 rounded-lg">
               <SearchResults
                 onSelect={(recipe) => {
                   onSelect(recipe)
@@ -72,6 +72,11 @@ function SearchResults({ onSelect }: { onSelect: (recipe: Recipe) => void }) {
   const query = useAtomValue(mealPlanRecipesQueryAtom)
   const recipes = useAtomValue(mealPlanRecipesAtom)!
   return (
-    <RecipeList recipes={recipes} searchQuery={query} onSelect={onSelect} />
+    <RecipeList
+      recipes={recipes}
+      searchQuery={query}
+      onSelect={onSelect}
+      rounded={false}
+    />
   )
 }

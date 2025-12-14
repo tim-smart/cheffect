@@ -8,6 +8,8 @@ import {
 } from "@/domain/Recipe"
 import { Model } from "@effect/sql"
 import { Events, makeSchema, State } from "@livestore/livestore"
+import * as DateTime from "effect/DateTime"
+import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 
 export const tables = {
@@ -91,6 +93,21 @@ export const tables = {
       }),
     },
   }),
+  settings: State.SQLite.table({
+    name: "settings",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      value: State.SQLite.text({
+        nullable: true,
+      }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+  }),
   // Client documents can be used for local-only state (e.g. form inputs)
   searchState: State.SQLite.clientDocument({
     name: "searchState",
@@ -152,6 +169,13 @@ export const events = {
     name: "v1.GroceryItemToggled",
     schema: Schema.Struct({ id: Schema.String, completed: Schema.Boolean }),
   }),
+  settingsSet: Events.synced({
+    name: "v1.SettingsSet",
+    schema: Schema.Struct({
+      id: Schema.String,
+      value: Schema.Option(Schema.Unknown),
+    }),
+  }),
   searchStateSet: tables.searchState.set,
 }
 
@@ -174,6 +198,24 @@ const materializers = State.SQLite.materializers(events, {
     tables.groceryItems.delete().where({ id }),
   "v1.GroceryItemToggled": ({ completed, id }) =>
     tables.groceryItems.update({ completed }).where({ id }),
+  "v1.SettingsSet": ({ id, value }) => {
+    const now = DateTime.unsafeNow()
+    const encoded = value.pipe(
+      Option.map((v) => JSON.stringify(v)),
+      Option.getOrNull,
+    )
+    return tables.settings
+      .insert({
+        id,
+        value: encoded,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflict("id", "update", {
+        value: encoded,
+        updatedAt: now,
+      })
+  },
 })
 
 const state = State.SQLite.makeState({ tables, materializers })

@@ -5,21 +5,29 @@ import { Recipe } from "@/domain/Recipe"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import * as Option from "effect/Option"
 import { Button } from "@/components/ui/button"
+import clsx from "clsx"
 
 export function RecipeList({
   recipes,
   searchQuery,
   onSelect,
+  rounded = true,
 }: {
   recipes: ReadonlyArray<Recipe>
   searchQuery: string
   onSelect?: ((recipe: Recipe) => void) | undefined
+  rounded?: boolean
 }) {
   if (recipes.length === 0) {
     return <NoResults searchQuery={searchQuery} />
   }
   return (
-    <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
+    <div
+      className={clsx(
+        rounded && `rounded-lg border`,
+        `bg-white overflow-hidden divide-y divide-gray-200 border-gray-200`,
+      )}
+    >
       {recipes.map((recipe) => (
         <RecipeCard key={recipe.id} recipe={recipe} onSelect={onSelect} />
       ))}
@@ -107,7 +115,7 @@ function RecipeCard({
         {/* Right Arrow */}
         {onSelect && (
           <div>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 mr-2">
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>

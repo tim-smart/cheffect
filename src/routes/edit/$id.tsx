@@ -8,7 +8,7 @@ import { RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import { Result, useAtomValue } from "@effect-atom/atom-react"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import * as Schema from "effect/Schema"
 import { ArrowLeft } from "lucide-react"
 

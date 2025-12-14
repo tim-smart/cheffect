@@ -119,27 +119,47 @@ export const ShadcnFields: Layer.Layer<
       </FormControl>
     </FormItem>
   )),
-  Select.layerControlled(({ options, label, placeholder, ...props }) => (
-    <FormItem className="w-full">
-      {label && <FormLabel>{label}</FormLabel>}
-      <FormControl>
-        <SelectUi {...props} onValueChange={(_) => (props as any).onChange(_)}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {options.map(({ label, value }) => (
-                <SelectItem key={value} value={value}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </SelectUi>
-      </FormControl>
-    </FormItem>
-  )),
+  Select.layerControlled(({ options, label, placeholder, ...props }) => {
+    const [open, setOpen] = React.useState(false)
+    return (
+      <FormItem className="w-full">
+        {label && <FormLabel>{label}</FormLabel>}
+        <FormControl>
+          <SelectUi
+            {...props}
+            onValueChange={(_) => (props as any).onChange(_)}
+            open={open}
+            onOpenChange={setOpen}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {placeholder && (
+                  <SelectItem
+                    value="__"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      ;(props as any).onChange("")
+                      setOpen(false)
+                    }}
+                  >
+                    {placeholder}
+                  </SelectItem>
+                )}
+                {options.map(({ label, value }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </SelectUi>
+        </FormControl>
+      </FormItem>
+    )
+  }),
   RatingInput.layerControlled(({ onChange, label, size, ...props }) => (
     <FormItem className="w-full">
       {label && <FormLabel>{label}</FormLabel>}
