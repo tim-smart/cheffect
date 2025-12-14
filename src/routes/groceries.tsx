@@ -40,6 +40,8 @@ import * as DateTime from "effect/DateTime"
 import { beautifyGroceriesAtom, groceryCountAtom } from "@/Groceries/atoms"
 import { Skeleton } from "@/components/ui/skeleton"
 import clsx from "clsx"
+import { recipeTitleAtom } from "@/livestore/queries"
+import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
@@ -327,12 +329,12 @@ function GroceryListList({
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-3 p-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`}
+                    className={`flex items-center gap-3 p-3 py-2 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`}
                   >
                     <Checkbox
                       checked={item.completed}
                       onCheckedChange={() => toggleItem(item)}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
 
                     {editingItem?.id === item.id ? (
@@ -355,13 +357,25 @@ function GroceryListList({
                           onClick={() => toggleItem(item)}
                         >
                           <div
-                            className={`${item.completed ? "line-through text-gray-500" : "text-gray-900"}`}
+                            className={cn(
+                              "flex flex-col gap-1",
+                              `${item.completed ? "line-through text-gray-500" : "text-gray-900"}`,
+                            )}
                           >
-                            <span>{item.name}</span>
-                            {item.quantity && (
-                              <span className="text-sm text-gray-600 ml-2">
-                                ({item.quantity})
-                              </span>
+                            <div>
+                              <span>{item.name}</span>
+                              {item.quantity && (
+                                <span className="text-sm text-gray-600 ml-2">
+                                  ({item.quantity})
+                                </span>
+                              )}
+                            </div>
+                            {item.recipeIds && (
+                              <div className="text-xs text-gray-500 [&>*:not(:last-child)]:after:content-[','] pb-1 [&>*:not(:last-child)]:after:mr-1">
+                                {item.recipeIds.map((id) => (
+                                  <RecipeTitle key={id} id={id} />
+                                ))}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -370,7 +384,7 @@ function GroceryListList({
                             onClick={() => startEditing(item)}
                             variant="ghost"
                             size="sm"
-                            className="!p-2 text-gray-400 hover:text-orange-500 flex-shrink-0"
+                            className="p-2! text-gray-400 hover:text-orange-500 shrink-0"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -379,7 +393,7 @@ function GroceryListList({
                               onClick={() => removeItem(item)}
                               variant="ghost"
                               size="sm"
-                              className="!p-2 text-gray-400 hover:text-red-500 flex-shrink-0"
+                              className="p-2! text-gray-400 hover:text-red-500 shrink-0"
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -438,4 +452,9 @@ function BeautifyButton() {
       )}
     </Button>
   )
+}
+
+function RecipeTitle({ id }: { readonly id: string }) {
+  const title = useAtomValue(recipeTitleAtom(id))
+  return <span>{title}</span>
 }

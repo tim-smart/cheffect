@@ -11,7 +11,10 @@ import * as DateTime from "effect/DateTime"
 import { useState } from "react"
 
 export type MealPlanDatePickerTarget = Data.TaggedEnum<{
-  Existing: { id: string }
+  Existing: {
+    id: string
+    initialValue: DateTime.Utc
+  }
   New: { recipeId: string }
 }>
 export const MealPlanDatePickerTarget =
@@ -28,10 +31,23 @@ export function MealPlanDatePicker({
   const commit = useCommit()
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverTrigger
+        asChild
+        onClick={(e) => {
+          e.preventDefault()
+          setOpen(true)
+        }}
+      >
+        {children}
+      </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
         <Calendar
           mode="single"
+          selected={
+            target._tag === "Existing"
+              ? DateTime.toDateUtc(target.initialValue)
+              : undefined
+          }
           onSelect={(date) => {
             setOpen(false)
             if (!date) return

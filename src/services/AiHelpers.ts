@@ -13,6 +13,7 @@ import {
 import * as DateTime from "effect/DateTime"
 import { Atom } from "@effect-atom/atom-react"
 import { openAiApiKey } from "@/Settings"
+import * as Array from "effect/Array"
 
 export const openAiClientLayer = Atom.make((get) =>
   Layer.unwrapEffect(
@@ -105,17 +106,29 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
         for (const item of response.value.items) {
           const prev = leftoverItems.get(item.id)
           if (!prev) continue
+          const recipeIds = new Set(
+            prev.recipeIds ? prev.recipeIds.slice() : [],
+          )
           leftoverItems.delete(item.id)
+          for (const mergedId of item.mergedIds) {
+            const mergedItem = leftoverItems.get(mergedId)
+            if (!mergedItem || !mergedItem.recipeIds) continue
+            mergedItem.recipeIds.forEach((id) => recipeIds.add(id))
+          }
+          const recipeIdsArray = Array.fromIterable(recipeIds)
           updated.push(
             new GroceryItem({
               ...prev,
               ...item,
+              recipeIds: Array.isNonEmptyArray(recipeIdsArray)
+                ? recipeIdsArray
+                : null,
               updatedAt: DateTime.unsafeNow(),
             }),
           )
         }
 
-        const removed = Array.from(leftoverItems.values())
+        const removed = Array.fromIterable(leftoverItems.values())
 
         return { updated, removed } as const
       },

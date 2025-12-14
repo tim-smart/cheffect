@@ -1,6 +1,6 @@
 import { Model } from "@effect/sql"
 import * as Schema from "effect/Schema"
-import { Ingredient } from "./Recipe"
+import { Ingredient, Recipe } from "./Recipe"
 import * as DateTime from "effect/DateTime"
 import * as Struct from "effect/Struct"
 import { UnknownToXml } from "./Xml"
@@ -23,6 +23,9 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   name: Schema.String,
   quantity: Schema.NullOr(Schema.String),
   aisle: Schema.NullOr(GroceryAisle),
+  recipeIds: Schema.NullOr(
+    Schema.parseJson(Schema.NonEmptyArray(Schema.String)),
+  ),
   completed: Model.BooleanFromNumber,
   createdAt: Model.DateTimeInsertFromNumber,
   updatedAt: Model.DateTimeUpdateFromNumber,
@@ -35,18 +38,20 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
       name: input.name,
       quantity: input.quantity ?? null,
       aisle: input.aisle ?? null,
+      recipeIds: null,
       completed: false,
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
     })
   }
 
-  static fromIngredient(ingredient: Ingredient): GroceryItem {
+  static fromIngredient(ingredient: Ingredient, recipe?: Recipe): GroceryItem {
     return new GroceryItem({
       id: crypto.randomUUID(),
       name: ingredient.name,
       quantity: ingredient.quantityWithUnit,
       completed: false,
+      recipeIds: recipe ? [recipe.id] : null,
       aisle: null,
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
@@ -61,7 +66,16 @@ export const GroceryItemAi = Schema.Struct(
 })
 
 export const GroceryItemList = Schema.Struct({
-  items: Schema.Array(GroceryItemAi),
+  items: Schema.Array(
+    Schema.Struct({
+      ...GroceryItemAi.fields,
+      mergedIds: Schema.Array(Schema.String).annotations({
+        description: "IDs of items that were merged into this one",
+      }),
+    }).annotations({
+      description: "An item to be added to the grocery list",
+    }),
+  ),
 })
 
 const GroceryItemListXml = UnknownToXml.pipe(

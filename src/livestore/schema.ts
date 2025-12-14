@@ -84,6 +84,10 @@ export const tables = {
         schema: GroceryAisle,
         nullable: true,
       }),
+      recipeIds: State.SQLite.json({
+        nullable: true,
+        schema: Schema.NonEmptyArray(Schema.String),
+      }),
       completed: State.SQLite.boolean({ default: false }),
       createdAt: State.SQLite.integer({
         schema: Schema.DateTimeUtcFromNumber,
@@ -158,7 +162,9 @@ export const events = {
   }),
   groceryItemUpdated: Events.synced({
     name: "v1.GroceryItemUpdated",
-    schema: GroceryItem.pipe(Schema.pick("id", "name", "aisle", "quantity")),
+    schema: GroceryItem.pipe(
+      Schema.pick("id", "name", "aisle", "quantity", "recipeIds"),
+    ),
   }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",

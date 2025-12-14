@@ -64,7 +64,11 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
   const addAllToGrocery = () => {
     recipe.ingredients.forEach((group) => {
       group.ingredients.forEach((ingredient) => {
-        commit(events.groceryItemAdded(GroceryItem.fromIngredient(ingredient)))
+        commit(
+          events.groceryItemAdded(
+            GroceryItem.fromIngredient(ingredient, recipe),
+          ),
+        )
       })
     })
     setGroceryAddCompleted()

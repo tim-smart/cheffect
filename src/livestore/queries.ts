@@ -10,6 +10,7 @@ import * as DateTime from "effect/DateTime"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { mealPlanWeekStart } from "@/Settings"
 import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
@@ -76,10 +77,31 @@ export const recipeByIdAtom = Atom.family((id: string) => {
   return Atom.make((get) => get.result(result).pipe(Effect.flatten))
 })
 
+export const recipeTitleAtom = Atom.family((id: string) =>
+  Store.makeQueryUnsafe(
+    queryDb(
+      {
+        query: sql`SELECT title FROM recipes WHERE id = ?`,
+        bindValues: [id],
+        schema: TitleStruct,
+      },
+      {
+        map: ([{ title }]) => title,
+      },
+    ),
+  ),
+)
+
+const TitleStruct = Schema.Array(
+  Schema.Struct({
+    title: Schema.String,
+  }),
+)
+
 export const allGroceryItemsAtom = Store.makeQuery(
   queryDb(
     {
-      query: sql`SELECT * FROM grocery_items ORDER BY aisle, name DESC`,
+      query: sql`SELECT * FROM grocery_items ORDER BY aisle, name ASC`,
       schema: GroceryItem.array,
     },
     {
@@ -107,7 +129,7 @@ export const allGroceryItemsAtom = Store.makeQuery(
 
 export const allGroceryItemsArrayAtom = Store.makeQuery(
   queryDb({
-    query: sql`SELECT * FROM grocery_items ORDER BY name DESC`,
+    query: sql`SELECT * FROM grocery_items ORDER BY name ASC`,
     schema: GroceryItem.array,
   }),
 )

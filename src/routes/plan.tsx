@@ -13,6 +13,10 @@ import * as Duration from "effect/Duration"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { SelectRecipeDrawer } from "@/Recipes/Drawer"
+import {
+  MealPlanDatePicker,
+  MealPlanDatePickerTarget,
+} from "@/MealPlan/DatePicker"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -207,17 +211,33 @@ export function MealPlanPage() {
                               ].join(" • ")}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              return handleRemoveEntry(id)
-                            }}
-                            className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 shrink-0"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                          <div>
+                            <MealPlanDatePicker
+                              target={MealPlanDatePickerTarget.Existing({
+                                id,
+                                initialValue: date,
+                              })}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-gray-400 cursor-pointer"
+                              >
+                                <Calendar className="w-4 h-4" />
+                              </Button>
+                            </MealPlanDatePicker>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                return handleRemoveEntry(id)
+                              }}
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-red-600 cursor-pointer"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </Link>
                       ))}
                     </div>
