@@ -5,7 +5,7 @@ import {
   allGroceryItemsAtom,
 } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
-import { AiHelpers } from "@/services/AiHelpers"
+import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { Atom } from "@effect-atom/atom-react"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -22,7 +22,11 @@ export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
   return { total, completed, aisles }
 })
 
-const runtime = Atom.runtime(Layer.mergeAll(AiHelpers.Default, Store.layer))
+const runtime = Atom.runtime((get) =>
+  Layer.mergeAll(AiHelpers.Default, Store.layer).pipe(
+    Layer.provide(get(openAiClientLayer)),
+  ),
+)
 
 export const beautifyGroceriesAtom = runtime
   .fn<void>()(

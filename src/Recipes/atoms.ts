@@ -6,12 +6,15 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import { RecipeExtractionManager } from "./RecipeExtractionManager"
+import { openAiClientLayer } from "@/services/AiHelpers"
 
-export const runtimeAtom = Atom.runtime(
-  Layer.mergeAll(RecipeExtractionManager.Default, Store.layer),
+export const extractRuntime = Atom.runtime((get) =>
+  Layer.mergeAll(RecipeExtractionManager.Default, Store.layer).pipe(
+    Layer.provide(get(openAiClientLayer)),
+  ),
 ).pipe(Atom.keepAlive)
 
-export const createRecipeAtom = runtimeAtom.fn<string>()(
+export const createRecipeAtom = extractRuntime.fn<string>()(
   Effect.fn(function* (url) {
     const manager = yield* RecipeExtractionManager
     yield* manager.extractFork(url)

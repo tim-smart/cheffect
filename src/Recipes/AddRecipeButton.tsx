@@ -6,28 +6,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { RegistryContext } from "@effect-atom/atom-react"
-import { createRecipeAtom } from "./atoms"
+import { RegistryContext, Result, useAtomValue } from "@effect-atom/atom-react"
+import { createRecipeAtom, extractRuntime } from "./atoms"
 import { useContext } from "react"
 import { router } from "@/Router"
 
 export function AddRecipeButton({ small = false }: { small?: boolean }) {
   const registry = useContext(RegistryContext)
+  const canExtract = Result.isSuccess(useAtomValue(extractRuntime))
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <AddRecipeTrigger small={small} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuItem
-          onClick={() => {
-            const url = prompt("Enter recipe URL:")
-            if (!url) return
-            registry.set(createRecipeAtom, url)
-          }}
-        >
-          From URL
-        </DropdownMenuItem>
+        {canExtract && (
+          <DropdownMenuItem
+            onClick={() => {
+              const url = prompt("Enter recipe URL:")
+              if (!url) return
+              registry.set(createRecipeAtom, url)
+            }}
+          >
+            From URL
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={() => {
             router.navigate({ to: "/add" })

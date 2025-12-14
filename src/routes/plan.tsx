@@ -9,6 +9,7 @@ import * as Duration from "effect/Duration"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { SelectRecipeDrawer } from "@/Recipes/Drawer"
+import { mealPlanWeekStart } from "@/Settings"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -31,7 +32,15 @@ export function MealPlanPage() {
     DateTime.setZone(DateTime.zoneMakeLocal()),
     DateTime.removeTime,
   )
-  const [weekStart, setWeekStart] = useAtom(mealPlanWeekAtom)
+  const todayParts = DateTime.toPartsUtc(today)
+  const weekStartsOn = Option.getOrElse(
+    useAtomSuspense(mealPlanWeekStart.atom).value,
+    () => 0 as const,
+  )
+  const [weekStartRaw, setWeekStart] = useAtom(mealPlanWeekAtom)
+  const weekStart = DateTime.add(weekStartRaw, {
+    days: todayParts.weekDay < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
+  })
   const entries = useAtomSuspense(mealPlanEntriesAtom).value
 
   const getWeekDays = () => {
@@ -47,11 +56,11 @@ export function MealPlanPage() {
   const weekDays = getWeekDays()
 
   const handlePreviousWeek = () => {
-    setWeekStart(DateTime.subtract(weekStart, { weeks: 1 }))
+    setWeekStart(DateTime.subtract(weekStartRaw, { weeks: 1 }))
   }
 
   const handleNextWeek = () => {
-    setWeekStart(DateTime.add(weekStart, { weeks: 1 }))
+    setWeekStart(DateTime.add(weekStartRaw, { weeks: 1 }))
   }
 
   const handleRemoveEntry = (id: string) => {

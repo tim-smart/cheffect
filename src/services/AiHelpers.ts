@@ -2,7 +2,6 @@ import { ExtractedRecipe } from "@/domain/Recipe"
 import { LanguageModel } from "@effect/ai"
 import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai"
 import * as FetchHttpClient from "@effect/platform/FetchHttpClient"
-import * as Config from "effect/Config"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { CorsProxy } from "./CorsProxy"
@@ -12,13 +11,26 @@ import {
   GroceryItemList,
 } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
+import { Atom } from "@effect-atom/atom-react"
+import { openAiApiKey } from "@/Settings"
 
-const OpenAiClientLayer = OpenAiClient.layerConfig({
-  apiKey: Config.redacted("VITE_OPENAI_API_KEY"),
-}).pipe(Layer.provide(FetchHttpClient.layer))
+export const openAiClientLayer = Atom.make((get) =>
+  Layer.unwrapEffect(
+    Effect.gen(function* () {
+      const apiKeyOption = yield* get.result(openAiApiKey.atom)
+      if (apiKeyOption._tag === "None") {
+        return yield* Effect.never
+      }
+      const apiKey = apiKeyOption.value
+      return OpenAiClient.layer({ apiKey }).pipe(
+        Layer.provide(FetchHttpClient.layer),
+      )
+    }),
+  ),
+)
 
 export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
-  dependencies: [OpenAiClientLayer, CorsProxy.Default],
+  dependencies: [CorsProxy.Default],
   scoped: Effect.gen(function* () {
     const model = yield* OpenAiLanguageModel.model("gpt-5-mini")
     const groceryModel = yield* OpenAiLanguageModel.model("o4-mini", {
