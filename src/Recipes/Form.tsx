@@ -93,9 +93,14 @@ function FormCard({ children }: React.PropsWithChildren<{}>) {
 function AddComponent() {
   const controls = Display.ingredients.useControls()
   return (
-    <Button type="button" onClick={() => controls.append()} size="xs">
+    <Button
+      type="button"
+      onClick={() => controls.append()}
+      size="xs"
+      variant="outline"
+    >
       <Plus />
-      Add Group
+      Add group
     </Button>
   )
 }
@@ -191,9 +196,14 @@ function IngredientFields() {
 function AddStep() {
   const controls = Display.steps.useControls()
   return (
-    <Button type="button" onClick={() => controls.append()} size="xs">
+    <Button
+      type="button"
+      onClick={() => controls.append()}
+      size="xs"
+      variant="outline"
+    >
       <Plus />
-      Add Step
+      Add step
     </Button>
   )
 }
@@ -246,9 +256,14 @@ function StepCard() {
 function AddTip() {
   const controls = Display.steps.Element.tips.useControls()
   return (
-    <Button type="button" onClick={() => controls.append()} size="xs">
+    <Button
+      type="button"
+      onClick={() => controls.append()}
+      size="xs"
+      variant="outline"
+    >
       <Plus />
-      Add Tip
+      Add tip
     </Button>
   )
 }

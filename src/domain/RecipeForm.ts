@@ -10,6 +10,7 @@ import {
 } from "@/lib/InatoForm"
 import * as Schema from "effect/Schema"
 import { Ingredient, IngredientsComponent, Recipe, Step, Unit } from "./Recipe"
+import * as Array from "effect/Array"
 
 export const RecipeFormSchema = FormBody.struct({
   title: TextInput.Required,
@@ -29,12 +30,23 @@ export const RecipeFormSchema = FormBody.struct({
               unit: SelectWithLiteralsOrNull(...Unit.literals),
             }),
           ),
-          defaultValue: [{ name: "", quantity: "", unit: null }],
+          defaultValue: Array.makeBy(3, () => ({
+            name: "",
+            quantity: "",
+            unit: "",
+          })),
         },
       }),
     ),
     defaultValue: [
-      { name: "", ingredients: [{ name: "", quantity: "", unit: null }] },
+      {
+        name: "",
+        ingredients: Array.makeBy(3, () => ({
+          name: "",
+          quantity: "",
+          unit: "",
+        })),
+      },
     ],
   },
   steps: {
