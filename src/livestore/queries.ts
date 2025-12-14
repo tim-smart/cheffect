@@ -8,6 +8,8 @@ import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
+import { mealPlanWeekStart } from "@/Settings"
+import * as Option from "effect/Option"
 
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
@@ -21,6 +23,19 @@ export const searchSortByAtom = Atom.map(searchStateAtom, (r) =>
 export const mealPlanWeekAtom = Atom.make(
   DateTime.unsafeNow().pipe(DateTime.startOf("week")),
 )
+
+export const mealPlanWeekAdjustedAtom = Atom.make((get) => {
+  const today = new Date().getDay()
+  const selectedWeek = get(mealPlanWeekAtom)
+  const weekStartsOn = get(mealPlanWeekStart.atom).pipe(
+    Result.value,
+    Option.flatten,
+    Option.getOrElse(() => 0 as const),
+  )
+  return DateTime.add(selectedWeek, {
+    days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
+  })
+})
 
 export const allRecipesAtom = Store.makeQuery(
   queryDb(
@@ -129,7 +144,7 @@ const mealPlanEntries$ = (startDay: DateTime.Utc) => {
 }
 
 export const mealPlanEntriesAtom = Store.makeQuery((get) =>
-  mealPlanEntries$(get(mealPlanWeekAtom)),
+  mealPlanEntries$(get(mealPlanWeekAdjustedAtom)),
 )
 
 const mealPlanRecipes$ = (query: string) => {

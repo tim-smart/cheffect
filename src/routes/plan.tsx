@@ -2,14 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { ChevronLeft, ChevronRight, Plus, X, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as DateTime from "effect/DateTime"
-import { useAtom, useAtomSuspense } from "@effect-atom/atom-react"
-import { mealPlanEntriesAtom, mealPlanWeekAtom } from "@/livestore/queries"
+import { useAtom, useAtomSuspense, useAtomValue } from "@effect-atom/atom-react"
+import {
+  mealPlanEntriesAtom,
+  mealPlanWeekAdjustedAtom,
+  mealPlanWeekAtom,
+} from "@/livestore/queries"
 import * as Option from "effect/Option"
 import * as Duration from "effect/Duration"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { SelectRecipeDrawer } from "@/Recipes/Drawer"
-import { mealPlanWeekStart } from "@/Settings"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -32,15 +35,8 @@ export function MealPlanPage() {
     DateTime.setZone(DateTime.zoneMakeLocal()),
     DateTime.removeTime,
   )
-  const todayParts = DateTime.toPartsUtc(today)
-  const weekStartsOn = Option.getOrElse(
-    useAtomSuspense(mealPlanWeekStart.atom).value,
-    () => 0 as const,
-  )
   const [weekStartRaw, setWeekStart] = useAtom(mealPlanWeekAtom)
-  const weekStart = DateTime.add(weekStartRaw, {
-    days: todayParts.weekDay < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
-  })
+  const weekStart = useAtomValue(mealPlanWeekAdjustedAtom)
   const entries = useAtomSuspense(mealPlanEntriesAtom).value
 
   const getWeekDays = () => {
