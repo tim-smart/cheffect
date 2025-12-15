@@ -74,10 +74,7 @@ function AddMenuForm() {
   )
 }
 
-function MenuList({}: {
-  // searchQuery: string
-  // rounded?: boolean
-}) {
+function MenuList() {
   const menus = useAtomSuspense(allMenusAtom).value
 
   if (menus.length === 0) {
@@ -110,66 +107,62 @@ function MenuCard({ menu }: { menu: Menu }) {
   const [editing, setEditing] = useState(false)
   const recipeCount = useAtomValue(menuRecipeCountAtom(menu.id))
   return (
-    <Link
-      to="/menu/$id"
-      params={{ id: menu.id }}
-      className="block active:bg-gray-50 transition-colors"
-      disabled={editing}
-    >
-      <div className="flex items-center h-20 px-4">
-        <div className="flex-1 flex flex-col gap-1">
-          <div className="flex flex-row items-center gap-2">
-            <BookOpen className="w-5 h-5 text-orange-600" />
-            <h3 className={cn(editing ? "" : "line-clamp-1", "font-medium")}>
-              {editing ? (
-                <MenuForm
-                  initialValue={menu}
-                  onSubmit={(updated) => {
-                    commit(events.menuUpdate(updated))
-                    setEditing(false)
-                  }}
-                  onCancel={() => setEditing(false)}
-                  compact
-                />
-              ) : (
-                menu.name
-              )}
-            </h3>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <div className="flex items-center gap-0.5">{menu.days} days</div>
-            &bull;
-            <div className="flex items-center gap-0.5">
-              {recipeCount} recipes
-            </div>
-          </div>
+    <div className="flex items-center h-20 px-4 active:bg-gray-50 transition-colors">
+      <Link
+        to="/menu/$id"
+        params={{ id: menu.id }}
+        className="flex-1 flex flex-col gap-1"
+        disabled={editing}
+      >
+        <div className="flex flex-row items-center gap-2">
+          <BookOpen className="w-5 h-5 text-orange-600" />
+          <h3 className={cn(editing ? "" : "line-clamp-1", "font-medium")}>
+            {editing ? (
+              <MenuForm
+                initialValue={menu}
+                onSubmit={(updated) => {
+                  commit(events.menuUpdate(updated))
+                  setEditing(false)
+                }}
+                onCancel={() => setEditing(false)}
+                compact
+              />
+            ) : (
+              menu.name
+            )}
+          </h3>
         </div>
 
-        <div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={(e) => {
-              e.preventDefault()
-              setEditing(true)
-            }}
-          >
-            <Edit className="w-4 h-4" />
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-0.5">{menu.days} days</div>
+          &bull;
+          <div className="flex items-center gap-0.5">{recipeCount} recipes</div>
+        </div>
+      </Link>
+
+      <div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={(e) => {
+            e.preventDefault()
+            setEditing(true)
+          }}
+        >
+          <Edit className="w-4 h-4" />
+        </Button>
+        <MealPlanDatePicker
+          target={MealPlanDatePickerTarget.Menu({
+            id: menu.id,
+          })}
+        >
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Calendar className="w-4 h-4" />
           </Button>
-          <MealPlanDatePicker
-            target={MealPlanDatePickerTarget.Menu({
-              id: menu.id,
-            })}
-          >
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Calendar className="w-4 h-4" />
-            </Button>
-          </MealPlanDatePicker>
-        </div>
+        </MealPlanDatePicker>
       </div>
-    </Link>
+    </div>
   )
 }
 
