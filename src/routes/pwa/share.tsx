@@ -40,9 +40,5 @@ function RouteComponent() {
     }
   }
 
-  return (
-    <div className="max-w-lg mx-auto p-2 sm:p-4 pb-30">
-      <h1 className="text-lg font-semibold text-gray-900">Redirecting...</h1>
-    </div>
-  )
+  return null
 }
