@@ -14,5 +14,9 @@ function AddRecipe() {
   function onSubmit(data: typeof RecipeFormSchema.schema.Type) {
     commit(events.recipeCreated(Schema.decodeSync(RecipeInsert)(data)))
   }
-  return <RecipeForm onSubmit={onSubmit} />
+  return (
+    <div className="pb-30">
+      <RecipeForm onSubmit={onSubmit} />
+    </div>
+  )
 }
