@@ -14,7 +14,7 @@ import {
 export const Route = createRootRoute({
   component: () => {
     return (
-      <div className="bg-gray-50">
+      <div>
         {/* Mobile Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="px-4 py-3">
