@@ -1,3 +1,4 @@
+- Sync
 - Scale recipe ingredients
 - AI recipe chat
   - Add tools for ai to interact with app
