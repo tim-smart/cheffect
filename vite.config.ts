@@ -27,6 +27,7 @@ export default defineConfig({
         name: "Cheffect",
         short_name: "Cheffect",
         description: "A local-first meal planner app",
+        display: "standalone",
         theme_color: "#ffffff",
         background_color: "#ffffff",
         shortcuts: [],
