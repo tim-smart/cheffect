@@ -34,6 +34,7 @@ export default defineConfig({
         launch_handler: {
           client_mode: "navigate-existing",
         },
+        scope: "/",
         share_target: {
           action: "/pwa/share",
           method: "GET",
