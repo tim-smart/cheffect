@@ -63,7 +63,7 @@ function GroceryList() {
   const completed = result._tag === "Success" ? result.value.completed : 0
 
   return (
-    <div className="bg-gray-50">
+    <div className="bg-gray-50 pb-30">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="px-4 py-4">
@@ -202,7 +202,7 @@ function GroceryItemForm({
         )}
         <div className={compact ? "space-y-1" : "space-y-2"}>
           <div>
-            <Display.name placeholder="Item name" {...{ autoFocus: true }} />
+            <Display.name placeholder="Item name" />
           </div>
           <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
             <Display.quantity
