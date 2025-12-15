@@ -125,7 +125,7 @@ function SettingControl<S extends Schema.Schema.AnyNoContext>({
 
   return (
     <form
-      className="flex flex-col gap-1"
+      className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault()
         onBlur()

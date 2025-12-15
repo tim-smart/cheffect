@@ -23,12 +23,16 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   name: Schema.String,
   quantity: Schema.NullOr(Schema.String),
   aisle: Schema.NullOr(GroceryAisle),
-  recipeIds: Schema.NullOr(
-    Schema.parseJson(Schema.NonEmptyArray(Schema.String)),
+  recipeIds: Model.fieldEvolve(
+    Schema.NullOr(Schema.NonEmptyArray(Schema.String)),
+    {
+      select: () =>
+        Schema.NullOr(Schema.parseJson(Schema.NonEmptyArray(Schema.String))),
+    },
   ),
   completed: Model.BooleanFromNumber,
-  createdAt: Model.DateTimeInsertFromNumber,
-  updatedAt: Model.DateTimeUpdateFromNumber,
+  createdAt: Schema.DateTimeUtcFromNumber.pipe(Model.FieldExcept("update")),
+  updatedAt: Schema.DateTimeUtcFromNumber.pipe(Model.FieldExcept("update")),
 }) {
   static array = Schema.Array(GroceryItem)
 

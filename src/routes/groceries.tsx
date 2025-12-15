@@ -447,6 +447,7 @@ function BeautifyButton() {
       onClick={() => beautifyGroceries()}
       disabled={result.waiting}
       variant="outline"
+      size="sm"
     >
       {result.waiting ? (
         <LoaderCircle className="w-4 h-4 animate-spin" />

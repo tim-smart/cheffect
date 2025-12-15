@@ -3,7 +3,13 @@ import { Toaster } from "@/components/ui/sonner"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import { router } from "@/Router"
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router"
-import { Calendar, ChefHat, Settings, ShoppingCart } from "lucide-react"
+import {
+  BookOpen,
+  Calendar,
+  ChefHat,
+  Settings,
+  ShoppingCart,
+} from "lucide-react"
 
 export const Route = createRootRoute({
   component: () => {
@@ -81,6 +87,18 @@ export const Route = createRootRoute({
             >
               <Calendar className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Meal Plan</span>
+            </Link>
+
+            <Link
+              to="/menus"
+              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
+              activeProps={{ className: "text-orange-600 bg-orange-50" }}
+              inactiveProps={{
+                className: "text-gray-500 active:bg-gray-100",
+              }}
+            >
+              <BookOpen className="w-6 h-6 mb-1" />
+              <span className="text-xs font-medium">Menus</span>
             </Link>
           </div>
         </nav>

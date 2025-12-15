@@ -1,5 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ChevronLeft, ChevronRight, Plus, X, Calendar } from "lucide-react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  Calendar,
+  Eraser,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as DateTime from "effect/DateTime"
 import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
@@ -79,7 +86,20 @@ export function MealPlanPage() {
               <h1 className="text-lg font-bold text-gray-900">Meal Plan</h1>
             </div>
             <div className="flex-1" />
-            <div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                title="Clear Week"
+                onClick={() => {
+                  const toRemove = Result.getOrElse(entries, () => [])
+                  toRemove.forEach((entry) => {
+                    commit(events.mealPlanRemove({ id: entry.id }))
+                  })
+                }}
+              >
+                <Eraser className="w-4 h-4" />
+              </Button>
               <AddToGroceriesButton
                 recipes={entries.pipe(
                   Result.map(Iterable.map((entry) => entry.recipe)),

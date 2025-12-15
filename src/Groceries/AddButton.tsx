@@ -35,6 +35,7 @@ export function AddToGroceriesButton({
       onClick={addWeekToGrocery}
       size="sm"
       className="gap-0 px-2!"
+      title="Add to grocery list"
     >
       {groceryAddResult.waiting ? (
         <Check className="size-3 mt-px" />

@@ -1,4 +1,6 @@
 import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
+import { Menu } from "@/domain/Menu"
+import { MenuEntry } from "@/domain/MenuEntry"
 import { Rating } from "@/domain/Rating"
 import {
   IngredientsComponent,
@@ -97,6 +99,41 @@ export const tables = {
       }),
     },
   }),
+  menus: State.SQLite.table({
+    name: "menus",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      name: State.SQLite.text({ nullable: false }),
+      days: State.SQLite.integer({ nullable: false }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+  }),
+  menuEntries: State.SQLite.table({
+    name: "menu_entries",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      menuId: State.SQLite.text({ nullable: false }),
+      day: State.SQLite.integer({ nullable: false }),
+      recipeId: State.SQLite.text({ nullable: false }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+    indexes: [
+      {
+        name: "menu_entries_select_idx",
+        columns: ["day", "menuId"],
+      },
+    ],
+  }),
   settings: State.SQLite.table({
     name: "settings",
     columns: {
@@ -158,13 +195,11 @@ export const events = {
   }),
   groceryItemAdded: Events.synced({
     name: "v1.GroceryItemAdded",
-    schema: GroceryItem,
+    schema: GroceryItem.insert,
   }),
   groceryItemUpdated: Events.synced({
     name: "v1.GroceryItemUpdated",
-    schema: GroceryItem.pipe(
-      Schema.pick("id", "name", "aisle", "quantity", "recipeIds"),
-    ),
+    schema: GroceryItem.update,
   }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
@@ -181,6 +216,43 @@ export const events = {
   groceryItemToggled: Events.synced({
     name: "v1.GroceryItemToggled",
     schema: Schema.Struct({ id: Schema.String, completed: Schema.Boolean }),
+  }),
+  menuAdd: Events.synced({
+    name: "v1.MenuAdd",
+    schema: Menu.insert,
+  }),
+  menuUpdate: Events.synced({
+    name: "v1.MenuUpdate",
+    schema: Menu.update,
+  }),
+  menuDayRemove: Events.synced({
+    name: "v1.MenuDayRemove",
+    schema: Schema.Struct({
+      id: Schema.String,
+      newDays: Schema.Number,
+      day: Schema.Number,
+      updatedAt: Schema.DateTimeUtcFromNumber,
+    }),
+  }),
+  menuRemove: Events.synced({
+    name: "v1.MenuRemove",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
+  menuEntryAdd: Events.synced({
+    name: "v1.MenuEntryAdd",
+    schema: MenuEntry.insert,
+  }),
+  menuEntrySetDay: Events.synced({
+    name: "v1.MenuEntrySetDay",
+    schema: Schema.Struct({
+      id: Schema.String,
+      day: Schema.Number,
+      updatedAt: Schema.DateTimeUtc,
+    }),
+  }),
+  menuEntryRemove: Events.synced({
+    name: "v1.MenuEntryRemove",
+    schema: Schema.Struct({ id: Schema.String }),
   }),
   settingsSet: Events.synced({
     name: "v1.SettingsSet",
@@ -213,6 +285,25 @@ const materializers = State.SQLite.materializers(events, {
     tables.groceryItems.delete().where({ id }),
   "v1.GroceryItemToggled": ({ completed, id }) =>
     tables.groceryItems.update({ completed }).where({ id }),
+  "v1.MenuAdd": (insert) => {
+    const now = DateTime.unsafeNow()
+    return tables.menus.insert({
+      ...insert,
+      createdAt: now,
+      updatedAt: now,
+    })
+  },
+  "v1.MenuUpdate": ({ id, ...update }) =>
+    tables.menus.update(update).where({ id }),
+  "v1.MenuDayRemove": ({ id, newDays, day, updatedAt }) => [
+    tables.menus.update({ days: newDays, updatedAt }).where({ id }),
+    tables.menuEntries.delete().where({ menuId: id, day }),
+  ],
+  "v1.MenuRemove": ({ id }) => tables.menus.delete().where({ id }),
+  "v1.MenuEntryAdd": (insert) => tables.menuEntries.insert(insert),
+  "v1.MenuEntrySetDay": ({ id, ...update }) =>
+    tables.menuEntries.update(update).where({ id }),
+  "v1.MenuEntryRemove": ({ id }) => tables.menuEntries.delete().where({ id }),
   "v1.SettingsSet": ({ id, value }) => {
     const now = DateTime.unsafeNow()
     const encoded = value.pipe(
