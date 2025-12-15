@@ -92,7 +92,7 @@ function RecipeCard({
         <div className="flex-1 flex-col p-3">
           <h3 className="mb-1 line-clamp-1 pr-1">{recipe.title}</h3>
 
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
             {recipe.totalTime.pipe(
               Option.map((d) => (
                 <div className="flex items-center gap-0.5">

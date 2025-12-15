@@ -401,7 +401,7 @@ function GroceryListItem({
                 )}
               </div>
               {item.recipeIds && (
-                <div className="text-xs text-gray-500 [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
+                <div className="text-xs text-gray-400 [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
                   {item.recipeIds.map((id) => (
                     <RecipeTitle key={id} id={id} />
                   ))}
