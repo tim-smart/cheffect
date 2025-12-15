@@ -202,7 +202,7 @@ function GroceryItemForm({
         )}
         <div className={compact ? "space-y-1" : "space-y-2"}>
           <div>
-            <Display.name placeholder="Item name" />
+            <Display.name placeholder="Item name" {...{ autoFocus: true }} />
           </div>
           <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
             <Display.quantity

@@ -262,7 +262,7 @@ function MenuForm({
           )}
           <div className={"space-y-2"}>
             <div>
-              <Display.name placeholder="Menu name" />
+              <Display.name placeholder="Menu name" {...{ autoFocus: true }} />
             </div>
             <div className={`flex gap-2`}>
               <Button
