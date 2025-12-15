@@ -64,6 +64,7 @@ function SearchInput() {
       placeholder="Search for recipes"
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      autoFocus
     />
   )
 }
