@@ -11,21 +11,21 @@ export default defineConfig({
   preset: {
     ...combinePresetAndAppleSplashScreens(preset, {
       resizeOptions: {
-        background: "#0d5257",
+        background: "#ffffff",
       },
     }),
     apple: {
       ...preset.apple,
       resizeOptions: {
         ...preset.apple.resizeOptions,
-        background: "#0d5257",
+        background: "#ffffff",
       },
     },
     maskable: {
       ...preset.maskable,
       resizeOptions: {
         ...preset.maskable.resizeOptions,
-        background: "#0d5257",
+        background: "#ffffff",
       },
     },
   },
