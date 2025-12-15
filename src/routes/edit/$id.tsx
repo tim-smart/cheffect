@@ -23,7 +23,7 @@ function ProductScreen() {
   return Result.builder(result)
     .onWaiting(() => <RecipeFormSkeleton />)
     .onSuccess(([initialValue, recipe]) => (
-      <>
+      <div className="pb-30">
         <Header recipe={recipe} />
         <RecipeForm
           initialValue={initialValue}
@@ -41,7 +41,7 @@ function ProductScreen() {
             )
           }}
         />
-      </>
+      </div>
     ))
     .onErrorTag("NoSuchElementException", () => <NoRecipeFound />)
     .render()
