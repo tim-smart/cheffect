@@ -1,4 +1,7 @@
 - Scale recipe ingredients
 - AI recipe chat
+  - Add tools for ai to interact with app
+    - Add to meal plan
+    - Add to menu
 - AI metric/imperial conversions
 - Dark mode
