@@ -14,12 +14,16 @@ export const extractRuntime = Atom.runtime((get) =>
   ),
 ).pipe(Atom.keepAlive)
 
-export const createRecipeAtom = extractRuntime.fn<string>()(
-  Effect.fn(function* (url) {
-    const manager = yield* RecipeExtractionManager
-    yield* manager.extractFork(url)
-  }),
-)
+export const createRecipeAtom = extractRuntime
+  .fn<string>()(
+    Effect.fn(function* (url) {
+      console.log("Created recipe from URL:", url)
+      const manager = yield* RecipeExtractionManager
+      yield* manager.extractFork(url)
+    }),
+    { concurrent: true },
+  )
+  .pipe(Atom.setIdleTTL("20 seconds"))
 
 export const recipeFormByIdAtom = Atom.family((id: string) =>
   Atom.make(

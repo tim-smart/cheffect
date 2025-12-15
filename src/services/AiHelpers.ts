@@ -11,9 +11,14 @@ import {
   GroceryItemList,
 } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
-import { Atom } from "@effect-atom/atom-react"
+import { Atom, Result } from "@effect-atom/atom-react"
 import { openAiApiKey } from "@/Settings"
 import * as Array from "effect/Array"
+import * as Option from "effect/Option"
+
+export const isAiEnabledAtom = Atom.make((get) =>
+  Result.map(get(openAiApiKey.atom), Option.isSome),
+)
 
 export const openAiClientLayer = Atom.make((get) =>
   Layer.unwrapEffect(

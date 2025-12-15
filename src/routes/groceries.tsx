@@ -87,7 +87,7 @@ function GroceryList() {
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent>
                   <DropdownMenuItem onClick={clearCompleted}>
                     <Check className="w-4 h-4 mr-2" />
                     Clear completed

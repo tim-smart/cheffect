@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Recipe } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { useCommit } from "@/livestore/atoms"
@@ -15,7 +21,16 @@ import { Result, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
-import { ArrowLeft, Calendar, Clock, Star, Trash, Users } from "lucide-react"
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Edit,
+  MoreVertical,
+  Star,
+  Trash,
+  Users,
+} from "lucide-react"
 import { useState } from "react"
 
 export const Route = createFileRoute("/recipe/$id")({
@@ -67,44 +82,50 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
               {recipe.title}
             </h1>
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-2 cursor-pointer"
-                onClick={() => {
-                  if (
-                    !confirm("Are you sure you want to delete this recipe?")
-                  ) {
-                    return
-                  }
-                  commit(
-                    events.recipeDeleted({
-                      id: recipe.id,
-                      deletedAt: DateTime.unsafeNow(),
-                    }),
-                  )
-                  return router.history.back()
-                }}
-              >
-                <Trash className="w-5 h-5" />
-              </Button>
-              <MealPlanDatePicker
-                target={MealPlanDatePickerTarget.New({ recipeId: recipe.id })}
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="p-2 cursor-pointer"
-                  onClick={() => {}}
-                >
-                  <Calendar className="w-5 h-5" />
-                </Button>
-              </MealPlanDatePicker>
-              <Link to="/edit/$id" params={{ id: recipe.id }} className="mx-2">
-                <Button size="sm" variant="outline">
-                  Edit
-                </Button>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/edit/$id" params={{ id: recipe.id }}>
+                      <Edit />
+                      Edit
+                    </Link>
+                  </DropdownMenuItem>
+                  <MealPlanDatePicker
+                    target={MealPlanDatePickerTarget.New({
+                      recipeId: recipe.id,
+                    })}
+                  >
+                    <DropdownMenuItem>
+                      <Calendar />
+                      Add to meal plan
+                    </DropdownMenuItem>
+                  </MealPlanDatePicker>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (
+                        !confirm("Are you sure you want to delete this recipe?")
+                      ) {
+                        return
+                      }
+                      commit(
+                        events.recipeDeleted({
+                          id: recipe.id,
+                          deletedAt: DateTime.unsafeNow(),
+                        }),
+                      )
+                      return router.history.back()
+                    }}
+                  >
+                    <Trash />
+                    Remove recipe
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

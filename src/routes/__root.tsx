@@ -37,7 +37,7 @@ export const Route = createRootRoute({
                     router.navigate({ to: "/settings" })
                   }}
                 >
-                  <Settings className="w-5 h-5" />
+                  <Settings />
                 </Button>
                 <AddRecipeButton small />
               </div>

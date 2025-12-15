@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react"
+import { Earth, Form, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -28,6 +28,7 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
               registry.set(createRecipeAtom, url)
             }}
           >
+            <Earth />
             From URL
           </DropdownMenuItem>
         )}
@@ -36,6 +37,7 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
             router.navigate({ to: "/add" })
           }}
         >
+          <Form />
           From scratch
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -51,13 +53,13 @@ const AddRecipeTrigger = function ({ small, ...rest }: { small: boolean }) {
         className="bg-orange-600 hover:bg-orange-700 h-9 px-3"
         {...rest}
       >
-        <Plus className="w-4 h-4" />
+        <Plus />
       </Button>
     )
   }
   return (
     <Button className="bg-orange-600 hover:bg-orange-700 h-12 px-6" {...rest}>
-      <Plus className="w-5 h-5 mr-2" />
+      <Plus />
       Add Recipe
     </Button>
   )

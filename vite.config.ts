@@ -33,6 +33,15 @@ export default defineConfig({
         launch_handler: {
           client_mode: "navigate-existing",
         },
+        share_target: {
+          action: "/pwa/share",
+          method: "GET",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+          },
+        },
       },
 
       workbox: {

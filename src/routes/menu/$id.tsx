@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { X, Plus, ArrowLeft, Calendar } from "lucide-react"
+import { X, Plus, ArrowLeft, Calendar, MoreVertical, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as Option from "effect/Option"
 import * as Duration from "effect/Duration"
@@ -17,6 +17,12 @@ import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export const Route = createFileRoute("/menu/$id")({
   component: MenuDetailPage,
@@ -29,7 +35,7 @@ export function MenuDetailPage() {
   const entries = useAtomValue(menuEntriesAtom(id))!
 
   return (
-    <div className="bg-gray-50 pb-20">
+    <div className="bg-gray-50 pb-30">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="pl-2 pr-4 py-4">
@@ -40,7 +46,7 @@ export function MenuDetailPage() {
               className="p-2"
               onClick={() => router.history.back()}
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft />
             </Button>
             <h1 className="text-lg font-semibold text-gray-900 line-clamp-1 flex-1">
               {menu.name}
@@ -50,10 +56,34 @@ export function MenuDetailPage() {
                 id: menu.id,
               })}
             >
-              <Button variant="outline" size="icon" className="h-8 w-8">
-                <Calendar className="w-4 h-4" />
+              <Button variant="outline" size="sm">
+                <Calendar />
+                Plan
               </Button>
             </MealPlanDatePicker>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-2">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (
+                      !confirm("Are you sure you want to remove this menu?")
+                    ) {
+                      return
+                    }
+                    router.navigate({ to: "/menus" })
+                    commit(events.menuRemove({ id: menu.id }))
+                  }}
+                >
+                  <Trash />
+                  Remove menu
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>

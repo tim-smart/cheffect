@@ -6,6 +6,7 @@ import {
   X,
   Calendar,
   Eraser,
+  MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as DateTime from "effect/DateTime"
@@ -27,6 +28,12 @@ import {
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import * as Iterable from "effect/Iterable"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -87,25 +94,37 @@ export function MealPlanPage() {
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                title="Clear Week"
-                onClick={() => {
-                  const toRemove = Result.getOrElse(entries, () => [])
-                  toRemove.forEach((entry) => {
-                    commit(events.mealPlanRemove({ id: entry.id }))
-                  })
-                }}
-              >
-                <Eraser className="w-4 h-4" />
-              </Button>
               <AddToGroceriesButton
                 recipes={entries.pipe(
                   Result.map(Iterable.map((entry) => entry.recipe)),
                   Result.getOrElse(() => []),
                 )}
               />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-2">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (
+                        !confirm("Are you sure you want to clear this week?")
+                      ) {
+                        return
+                      }
+                      const toRemove = Result.getOrElse(entries, () => [])
+                      toRemove.forEach((entry) => {
+                        commit(events.mealPlanRemove({ id: entry.id }))
+                      })
+                    }}
+                  >
+                    <Eraser />
+                    Clear week
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
