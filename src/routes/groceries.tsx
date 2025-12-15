@@ -244,7 +244,6 @@ function GroceryListList({
   readonly showForm?: boolean
 }) {
   const commit = useCommit()
-  const [editingItem, setEditingItem] = useState<GroceryItem | null>(null)
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
   const cancelBeautify = () => beautifyResult(Atom.Reset)
 
@@ -259,14 +258,6 @@ function GroceryListList({
     commit(events.groceryItemDeleted({ id: item.id }))
   }
 
-  const startEditing = (item: GroceryItem) => {
-    cancelBeautify()
-    setEditingItem(item)
-  }
-
-  const cancelEdit = () => {
-    setEditingItem(null)
-  }
   const filteredAisles = aisles.flatMap((aisle) => {
     const items = aisle.items.filter((item) =>
       showCompleted ? item.completed : !item.completed,
@@ -327,84 +318,12 @@ function GroceryListList({
 
               <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
                 {items.map((item) => (
-                  <div
+                  <GroceryListItem
                     key={item.id}
-                    className={cn(
-                      `flex items-center gap-3 p-3 py-2 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
-                      editingItem?.id === item.id ? "" : "cursor-default",
-                    )}
-                  >
-                    <Checkbox
-                      checked={item.completed}
-                      onCheckedChange={() => toggleItem(item)}
-                      className="shrink-0"
-                    />
-
-                    {editingItem?.id === item.id ? (
-                      // Edit mode
-                      <div className="flex-1">
-                        <GroceryItemForm
-                          initialValue={item}
-                          onSubmit={(updated) => {
-                            commit(events.groceryItemUpdated(updated))
-                            setEditingItem(null)
-                          }}
-                          onCancel={cancelEdit}
-                        />
-                      </div>
-                    ) : (
-                      // Display mode
-                      <>
-                        <div
-                          className="flex-1 min-w-0"
-                          onClick={() => toggleItem(item)}
-                        >
-                          <div
-                            className={cn(
-                              "flex flex-col gap-1",
-                              `${item.completed ? "line-through text-gray-500" : "text-gray-900"}`,
-                            )}
-                          >
-                            <div>
-                              <span>{item.name}</span>
-                              {item.quantity && (
-                                <span className="text-sm text-gray-600 ml-2">
-                                  ({item.quantity})
-                                </span>
-                              )}
-                            </div>
-                            {item.recipeIds && (
-                              <div className="text-xs text-gray-500 [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
-                                {item.recipeIds.map((id) => (
-                                  <RecipeTitle key={id} id={id} />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <Button
-                            onClick={() => startEditing(item)}
-                            variant="ghost"
-                            size="sm"
-                            className="p-2! text-gray-400 hover:text-orange-500 shrink-0"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          {editingItem?.id !== item.id && (
-                            <Button
-                              onClick={() => removeItem(item)}
-                              variant="ghost"
-                              size="sm"
-                              className="p-2! text-gray-400 hover:text-red-500 shrink-0"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                    item={item}
+                    toggleItem={toggleItem}
+                    removeItem={removeItem}
+                  />
                 ))}
               </div>
             </div>
@@ -424,6 +343,93 @@ function GroceryListList({
         )}
       </div>
     </>
+  )
+}
+
+function GroceryListItem({
+  item,
+  toggleItem,
+  removeItem,
+}: {
+  item: GroceryItem
+  toggleItem: (item: GroceryItem) => void
+  removeItem: (item: GroceryItem) => void
+}) {
+  const commit = useCommit()
+  const [editingItem, setEditingItem] = useState(false)
+  return (
+    <div
+      className={cn(
+        `flex items-center gap-3 p-1 pt-2 px-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
+        editingItem ? "" : "cursor-default",
+      )}
+    >
+      <Checkbox
+        checked={item.completed}
+        onCheckedChange={() => toggleItem(item)}
+        className="shrink-0"
+      />
+
+      {editingItem ? (
+        // Edit mode
+        <div className="flex-1">
+          <GroceryItemForm
+            initialValue={item}
+            onSubmit={(updated) => {
+              commit(events.groceryItemUpdated(updated))
+              setEditingItem(false)
+            }}
+            onCancel={() => setEditingItem(false)}
+          />
+        </div>
+      ) : (
+        // Display mode
+        <>
+          <div className="flex-1 min-w-0" onClick={() => toggleItem(item)}>
+            <div
+              className={cn(
+                "flex flex-col leading-tight",
+                `${item.completed ? "line-through text-gray-500" : "text-gray-900"}`,
+              )}
+            >
+              <div>
+                <span>{item.name}</span>
+                {item.quantity && (
+                  <span className="text-sm text-gray-600 ml-2">
+                    ({item.quantity})
+                  </span>
+                )}
+              </div>
+              {item.recipeIds && (
+                <div className="text-xs text-gray-500 [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
+                  {item.recipeIds.map((id) => (
+                    <RecipeTitle key={id} id={id} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <Button
+              onClick={() => setEditingItem(true)}
+              variant="ghost"
+              size="sm"
+              className="p-2! text-gray-400 hover:text-orange-500 shrink-0"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              onClick={() => removeItem(item)}
+              variant="ghost"
+              size="sm"
+              className="p-2! text-gray-400 hover:text-red-500 shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
