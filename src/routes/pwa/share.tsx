@@ -13,13 +13,12 @@ export const Route = createFileRoute("/pwa/share")({
 const createAndRedirect = Atom.fn<string>()(
   Effect.fnUntraced(function* (url, get) {
     const aiEnabled = yield* get.result(isAiEnabledAtom)
-    console.log("AI Enabled:", aiEnabled)
     if (!aiEnabled) {
-      // router.navigate({ to: "/" })
+      router.navigate({ to: "/" })
       return
     }
     yield* get.setResult(createRecipeAtom, url)
-    // router.navigate({ to: "/" })
+    router.navigate({ to: "/" })
   }),
 )
 
@@ -30,14 +29,14 @@ function RouteComponent() {
   if (!shared.current) {
     shared.current = true
     const urlParams = new URLSearchParams(window.location.search)
-    const url = urlParams.get("url")
-
-    console.log("Shared URL:", url)
+    const maybeUrl = urlParams.get("url")
+    const text = urlParams.get("text")
+    const url = maybeUrl ?? (text && text.startsWith("http") ? text : null)
 
     if (url) {
       createRecipe(url)
     } else {
-      // router.navigate({ to: "/" })
+      router.navigate({ to: "/" })
     }
   }
 
