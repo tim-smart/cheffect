@@ -360,7 +360,7 @@ function GroceryListItem({
   return (
     <div
       className={cn(
-        `flex items-center gap-3 p-1 pt-2 px-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
+        `flex items-center gap-3 p-1 pt-2 pl-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
         editingItem ? "" : "cursor-default",
       )}
     >
@@ -414,9 +414,9 @@ function GroceryListItem({
               onClick={() => setEditingItem(true)}
               variant="ghost"
               size="sm"
-              className="p-2! text-gray-400 hover:text-orange-500 shrink-0"
+              className="p-2! text-gray-400 hover:text-orange-500 shrink-0 -mr-2"
             >
-              <Edit className="w-4 h-4" />
+              <Edit />
             </Button>
             <Button
               onClick={() => removeItem(item)}
@@ -424,7 +424,7 @@ function GroceryListItem({
               size="sm"
               className="p-2! text-gray-400 hover:text-red-500 shrink-0"
             >
-              <X className="w-4 h-4" />
+              <X />
             </Button>
           </div>
         </>
