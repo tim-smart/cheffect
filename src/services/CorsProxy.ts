@@ -49,7 +49,9 @@ export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
             .remove()
           $("*").each(function () {
             const $el = $(this)
-            if ($el.is("meta")) {
+            if ($el.is("meta, img")) {
+              return
+            } else if ($el.find("img").length > 0) {
               return
             } else if ($el.text().trim() === "") {
               $el.remove()
