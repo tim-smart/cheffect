@@ -34,6 +34,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+import { Placeholder } from "@/components/placeholder"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -263,13 +264,15 @@ function WeekList({
                       params={{ id: recipe.id }}
                     >
                       <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
-                        <img
-                          src={recipe.imageUrl || "/placeholder.svg"}
-                          alt={recipe.title}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover"
-                        />
+                        {recipe.imageUrl ? (
+                          <img
+                            src={recipe.imageUrl}
+                            alt={recipe.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Placeholder />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm text-gray-900 line-clamp-1">

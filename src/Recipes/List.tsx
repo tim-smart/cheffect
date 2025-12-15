@@ -6,6 +6,7 @@ import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import * as Option from "effect/Option"
 import { Button } from "@/components/ui/button"
 import clsx from "clsx"
+import { Placeholder } from "@/components/placeholder"
 
 export function RecipeList({
   recipes,
@@ -76,11 +77,15 @@ function RecipeCard({
       <div className="flex items-center h-20">
         {/* Recipe Image - No whitespace */}
         <div className="relative h-full aspect-square">
-          <img
-            src={recipe.imageUrl ?? "/placeholder.svg"}
-            alt={recipe.title}
-            className="object-cover h-full w-full"
-          />
+          {recipe.imageUrl ? (
+            <img
+              src={recipe.imageUrl}
+              alt={recipe.title}
+              className="object-cover h-full w-full"
+            />
+          ) : (
+            <Placeholder />
+          )}
         </div>
 
         {/* Recipe Info - More condensed */}
