@@ -208,8 +208,13 @@ function GroceryItemForm({
             <Display.quantity
               placeholder="Quantity (optional)"
               className="flex-1"
+              {...{ tabIndex: -1 }}
             />
-            <Display.aisle options={aisleOptions} placeholder="Other" />
+            <Display.aisle
+              options={aisleOptions}
+              placeholder="Other"
+              {...{ tabIndex: -1 }}
+            />
           </div>
           <div className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}>
             <Button

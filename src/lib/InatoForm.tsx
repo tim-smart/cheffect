@@ -131,7 +131,10 @@ export const ShadcnFields: Layer.Layer<
             open={open}
             onOpenChange={setOpen}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger
+              className="w-full text-base md:text-sm"
+              tabIndex={-1}
+            >
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
