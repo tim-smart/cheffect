@@ -74,6 +74,8 @@
     "vite": "^7.2.7",
     "vite-plugin-pwa": "^1.2.0",
     "workbox-core": "^7.4.0",
+    "workbox-precaching": "^7.4.0",
+    "workbox-routing": "^7.4.0",
     "workbox-window": "^7.4.0"
   },
   "pnpm": {

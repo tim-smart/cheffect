@@ -67,6 +67,11 @@ function SearchInput() {
           onChange={(e) => {
             commit(events.searchStateSet({ query: e.target.value }))
           }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return
+            const target = e.target as HTMLInputElement
+            target.blur()
+          }}
           className="pl-10 h-11"
         />
       </div>

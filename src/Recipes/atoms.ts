@@ -7,11 +7,15 @@ import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import { RecipeExtractionManager } from "./RecipeExtractionManager"
 import { openAiClientLayer } from "@/services/AiHelpers"
+import { ServiceWorkerMessages } from "@/services/ServiceWorkerMessages"
+import * as Stream from "effect/Stream"
 
 export const extractRuntime = Atom.runtime((get) =>
-  Layer.mergeAll(RecipeExtractionManager.Default, Store.layer).pipe(
-    Layer.provide(get(openAiClientLayer)),
-  ),
+  Layer.mergeAll(
+    RecipeExtractionManager.Default,
+    Store.layer,
+    ServiceWorkerMessages.Default,
+  ).pipe(Layer.provide(get(openAiClientLayer))),
 ).pipe(Atom.keepAlive)
 
 export const createRecipeAtom = extractRuntime
@@ -24,6 +28,18 @@ export const createRecipeAtom = extractRuntime
     { concurrent: true },
   )
   .pipe(Atom.setIdleTTL("20 seconds"))
+
+export const createRecipeFromShareUrl = extractRuntime.atom(
+  Effect.fnUntraced(function* (get) {
+    const { stream } = yield* ServiceWorkerMessages
+
+    yield* Stream.runForEach(stream, (message) =>
+      Effect.sync(() => {
+        get.set(createRecipeAtom, message.url)
+      }),
+    )
+  }),
+)
 
 export const recipeFormByIdAtom = Atom.family((id: string) =>
   Atom.make(

@@ -37,8 +37,8 @@ export default defineConfig({
         scope: "/",
         share_target: {
           action: "/pwa/share",
-          method: "GET",
-          enctype: "application/x-www-form-urlencoded",
+          method: "POST",
+          enctype: "multipart/form-data",
           params: {
             title: "title",
             text: "text",
