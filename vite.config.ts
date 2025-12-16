@@ -14,8 +14,9 @@ export default defineConfig({
     tailwindcss(),
     livestoreDevtoolsPlugin({ schemaPath: "./src/livestore/schema.ts" }),
     VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "auto",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
 
       pwaAssets: {
         disabled: false,
@@ -51,6 +52,10 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm}"],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
+        maximumFileSizeToCacheInBytes: 6_000_000,
+      },
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm}"],
         maximumFileSizeToCacheInBytes: 6_000_000,
       },
 
