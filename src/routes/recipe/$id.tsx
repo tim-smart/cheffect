@@ -31,7 +31,7 @@ import {
   Trash,
   Users,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 export const Route = createFileRoute("/recipe/$id")({
   component: RouteComponent,
@@ -52,7 +52,30 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
     new Set(),
   )
+  const stepElements: Array<HTMLDivElement> = []
   const [currentStep, setCurrentStep] = useState(0)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
+        return
+      }
+      e.preventDefault()
+      const nextIndex =
+        e.key === "ArrowUp"
+          ? Math.max(currentStep - 1, 0)
+          : Math.min(currentStep + 1, recipe.steps.length - 1)
+      setCurrentStep(nextIndex)
+      stepElements[nextIndex]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      })
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [currentStep, recipe.steps.length, stepElements])
 
   const toggleIngredient = (ingredientId: string) => {
     const newChecked = new Set(checkedIngredients)
@@ -161,9 +184,9 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         </div>
       </div>
 
-      <div className="flex flex-col lg:items-start gap-4 mt-4 lg:flex-row max-w-7xl lg:px-4 mx-auto">
+      <div className="flex flex-col md:items-start gap-4 mt-4 md:flex-row max-w-7xl md:px-4 mx-auto">
         {/* Ingredients */}
-        <div className="bg-white flex-1 lg:rounded-lg">
+        <div className="bg-white flex-1 md:rounded-lg">
           <div className="p-4">
             <div className="flex">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -233,6 +256,9 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
               {recipe.steps.map((step, stepIndex) => (
                 <div
                   key={stepIndex}
+                  ref={(el) => {
+                    stepElements[stepIndex] = el!
+                  }}
                   className={`border rounded-lg p-4 transition-all ${
                     currentStep === stepIndex
                       ? "border-orange-500 bg-orange-50"
