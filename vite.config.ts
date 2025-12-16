@@ -33,7 +33,7 @@ export default defineConfig({
         background_color: "#ffffff",
         shortcuts: [],
         launch_handler: {
-          client_mode: "navigate-existing",
+          client_mode: "focus-existing",
         },
         scope: "/",
         share_target: {

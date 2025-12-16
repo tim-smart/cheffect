@@ -3,9 +3,11 @@ import { useRegisterSW } from "virtual:pwa-register/react"
 import { router } from "./Router"
 import { useAtomMount } from "@effect-atom/atom-react"
 import { Store } from "./livestore/atoms"
+import { launchQueueAtom } from "./atoms"
 
 export default function App() {
   useAtomMount(Store.runtime)
+  useAtomMount(launchQueueAtom)
 
   useRegisterSW({
     immediate: true,
