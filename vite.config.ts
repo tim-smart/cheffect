@@ -38,8 +38,8 @@ export default defineConfig({
         scope: "/",
         share_target: {
           action: "/pwa/share",
-          method: "POST",
-          enctype: "multipart/form-data",
+          method: "GET",
+          enctype: "application/x-www-form-urlencoded",
           params: {
             title: "title",
             text: "text",
@@ -48,12 +48,6 @@ export default defineConfig({
         },
       },
 
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm}"],
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        maximumFileSizeToCacheInBytes: 6_000_000,
-      },
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm}"],
         maximumFileSizeToCacheInBytes: 6_000_000,

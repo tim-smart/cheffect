@@ -16,6 +16,7 @@ import { Route as GroceriesRouteImport } from './routes/groceries'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecipeIdRouteImport } from './routes/recipe/$id'
+import { Route as PwaShareRouteImport } from './routes/pwa/share'
 import { Route as MenuIdRouteImport } from './routes/menu/$id'
 import { Route as EditIdRouteImport } from './routes/edit/$id'
 
@@ -54,6 +55,11 @@ const RecipeIdRoute = RecipeIdRouteImport.update({
   path: '/recipe/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PwaShareRoute = PwaShareRouteImport.update({
+  id: '/pwa/share',
+  path: '/pwa/share',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MenuIdRoute = MenuIdRouteImport.update({
   id: '/menu/$id',
   path: '/menu/$id',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/edit/$id': typeof EditIdRoute
   '/menu/$id': typeof MenuIdRoute
+  '/pwa/share': typeof PwaShareRoute
   '/recipe/$id': typeof RecipeIdRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/edit/$id': typeof EditIdRoute
   '/menu/$id': typeof MenuIdRoute
+  '/pwa/share': typeof PwaShareRoute
   '/recipe/$id': typeof RecipeIdRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/edit/$id': typeof EditIdRoute
   '/menu/$id': typeof MenuIdRoute
+  '/pwa/share': typeof PwaShareRoute
   '/recipe/$id': typeof RecipeIdRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/edit/$id'
     | '/menu/$id'
+    | '/pwa/share'
     | '/recipe/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/edit/$id'
     | '/menu/$id'
+    | '/pwa/share'
     | '/recipe/$id'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/edit/$id'
     | '/menu/$id'
+    | '/pwa/share'
     | '/recipe/$id'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   EditIdRoute: typeof EditIdRoute
   MenuIdRoute: typeof MenuIdRoute
+  PwaShareRoute: typeof PwaShareRoute
   RecipeIdRoute: typeof RecipeIdRoute
 }
 
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecipeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pwa/share': {
+      id: '/pwa/share'
+      path: '/pwa/share'
+      fullPath: '/pwa/share'
+      preLoaderRoute: typeof PwaShareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/menu/$id': {
       id: '/menu/$id'
       path: '/menu/$id'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   EditIdRoute: EditIdRoute,
   MenuIdRoute: MenuIdRoute,
+  PwaShareRoute: PwaShareRoute,
   RecipeIdRoute: RecipeIdRoute,
 }
 export const routeTree = rootRouteImport

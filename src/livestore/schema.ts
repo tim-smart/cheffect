@@ -59,6 +59,17 @@ export const tables = {
       }),
     },
   }),
+  recipeExtractJobs: State.SQLite.table({
+    name: "recipe_extract_jobs",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      url: State.SQLite.text({ nullable: false }),
+      completedAt: State.SQLite.integer({
+        nullable: true,
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+  }),
   mealPlan: State.SQLite.table({
     name: "meal_plan",
     columns: {
@@ -174,6 +185,20 @@ export const events = {
     name: "v1.RecipeDeleted",
     schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
   }),
+  recipeExtractJobAdded: Events.synced({
+    name: "v1.RecipeExtractJobAdded",
+    schema: Schema.Struct({
+      id: Schema.String,
+      url: Schema.String,
+    }),
+  }),
+  recipeExtractJobCompleted: Events.synced({
+    name: "v1.RecipeExtractJobCompleted",
+    schema: Schema.Struct({
+      id: Schema.String,
+      completedAt: Schema.DateTimeUtc,
+    }),
+  }),
   mealPlanAdd: Events.synced({
     name: "v1.MealPlanAdd",
     schema: Schema.Struct({
@@ -271,6 +296,10 @@ const materializers = State.SQLite.materializers(events, {
     tables.recipes.update(update).where({ id: update.id }),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
+  "v1.RecipeExtractJobAdded": (insert) =>
+    tables.recipeExtractJobs.insert(insert),
+  "v1.RecipeExtractJobCompleted": ({ id, completedAt }) =>
+    tables.recipeExtractJobs.update({ completedAt }).where({ id }),
   "v1.MealPlanAdd": (insert) => tables.mealPlan.insert(insert),
   "v1.MealPlanSetDay": ({ id, day }) =>
     tables.mealPlan.update({ day }).where({ id }),
