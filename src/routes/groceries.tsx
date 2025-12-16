@@ -365,7 +365,7 @@ function GroceryListItem({
   return (
     <div
       className={cn(
-        `flex items-center gap-3 p-1 pt-2 pl-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
+        `flex items-center gap-3 p-1 pl-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
         editingItem ? "" : "cursor-default",
       )}
     >
@@ -390,7 +390,10 @@ function GroceryListItem({
       ) : (
         // Display mode
         <>
-          <div className="flex-1 min-w-0" onClick={() => toggleItem(item)}>
+          <div
+            className={cn("flex-1 min-w-0", item.recipeIds ? "pt-1" : "")}
+            onClick={() => toggleItem(item)}
+          >
             <div
               className={cn(
                 "flex flex-col leading-tight",
