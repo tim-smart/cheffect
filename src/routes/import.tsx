@@ -6,7 +6,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import * as Effect from "effect/Effect"
 import { useRef } from "react"
 
-export const Route = createFileRoute("/pwa/share")({
+export const Route = createFileRoute("/import")({
   component: RouteComponent,
 })
 
