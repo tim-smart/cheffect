@@ -45,7 +45,7 @@ registerRoute(
         url,
       })
     }
-    return new Response(null, { status: 204 })
+    return Response.redirect("/", 303)
   },
   "POST",
 )
