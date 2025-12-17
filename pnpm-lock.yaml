@@ -222,6 +222,9 @@ importers:
       workbox-routing:
         specifier: ^7.4.0
         version: 7.4.0
+      workbox-strategies:
+        specifier: ^7.4.0
+        version: 7.4.0
       workbox-window:
         specifier: ^7.4.0
         version: 7.4.0

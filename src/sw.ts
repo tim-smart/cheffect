@@ -5,6 +5,7 @@ import {
   precacheAndRoute,
 } from "workbox-precaching"
 import { NavigationRoute, registerRoute } from "workbox-routing"
+import { NetworkOnly } from "workbox-strategies"
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -16,6 +17,8 @@ cleanupOutdatedCaches()
 
 // to allow work offline
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")))
+
+registerRoute(({ url }) => url.pathname.startsWith("/api/"), new NetworkOnly())
 
 self.addEventListener("message", (event) => {
   if (!event.data) return
