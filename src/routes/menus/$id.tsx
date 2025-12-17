@@ -47,7 +47,7 @@ export function MenuDetailPage() {
   const entries = useAtomValue(menuEntriesAtom(id))!
 
   return (
-    <div className="bg-gray-50 pb-30">
+    <div className="pb-30">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="pl-2 pr-4 py-4">
