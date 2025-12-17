@@ -293,16 +293,28 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
       style={style}
       {...attributes}
     >
-      <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
-        {recipe.imageUrl ? (
-          <img
-            src={recipe.imageUrl}
-            alt={recipe.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <Placeholder />
-        )}
+      <div className="flex items-center -ml-3">
+        <div
+          ref={setActivatorNodeRef}
+          className={cn(
+            "touch-none p-1",
+            isDragging ? "cursor-grabbing" : "cursor-grab",
+          )}
+          {...listeners}
+        >
+          <GripVertical className="size-5 text-gray-400" />
+        </div>
+        <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
+          {recipe.imageUrl ? (
+            <img
+              src={recipe.imageUrl}
+              alt={recipe.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Placeholder />
+          )}
+        </div>
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
@@ -318,17 +330,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
           ].join(" • ")}
         </p>
       </div>
-      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-        <div
-          ref={setActivatorNodeRef}
-          className={cn(
-            "touch-none p-2",
-            isDragging ? "cursor-grabbing" : "cursor-grab",
-          )}
-          {...listeners}
-        >
-          <GripVertical className="size-5 text-gray-400" />
-        </div>
+      <div className="flex items-center">
         <Button
           variant="ghost"
           size="sm"
