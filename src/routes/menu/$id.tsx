@@ -285,7 +285,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
 
   return (
     <Link
-      className="flex items-center p-3 gap-3 bg-white relative rounded border-gray-200"
+      className="flex items-center p-3 gap-3 bg-white relative rounded-lg border-gray-200"
       to="/recipe/$id"
       disabled={debouncedIsDragging}
       params={{ id: recipe.id }}
@@ -318,14 +318,11 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
           ].join(" • ")}
         </p>
       </div>
-      <div
-        className="flex items-center gap-2"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
         <div
           ref={setActivatorNodeRef}
           className={cn(
-            "touch-none",
+            "touch-none p-2",
             isDragging ? "cursor-grabbing" : "cursor-grab",
           )}
           {...listeners}
