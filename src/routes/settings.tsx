@@ -77,20 +77,20 @@ function SettingsPage() {
                 >
                   <Import />
                   Import recipes
-                  <input
-                    ref={importRef}
-                    type="file"
-                    className="hidden"
-                    accept="text/plain"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-                      importRecipes(file)
-                    }}
-                  />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <input
+              ref={importRef}
+              type="file"
+              className="hidden"
+              accept="text/plain"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                importRecipes(file)
+              }}
+            />
           </div>
         </div>
       </header>
