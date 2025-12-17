@@ -199,7 +199,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
             <div className="space-y-6">
               {ingredients.map((group, groupIndex) => (
                 <div key={groupIndex}>
-                  {group.name && (
+                  {ingredients.length > 1 && (
                     <h3 className="font-medium text-gray-900 mb-3 text-base">
                       {group.name}
                     </h3>
