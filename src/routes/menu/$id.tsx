@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { X, Plus, ArrowLeft, Calendar, MoreVertical, Trash } from "lucide-react"
+import {
+  X,
+  Plus,
+  ArrowLeft,
+  Calendar,
+  MoreVertical,
+  Trash,
+  GripVertical,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as Option from "effect/Option"
 import * as Duration from "effect/Duration"
@@ -24,6 +32,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Placeholder } from "@/components/placeholder"
+import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
+import { cn } from "@/lib/utils"
+import { useEffect, useState } from "react"
 
 export const Route = createFileRoute("/menu/$id")({
   component: MenuDetailPage,
@@ -91,7 +102,24 @@ export function MenuDetailPage() {
 
       {/* Main Content */}
       <main className="max-w-lg mx-auto px-2 py-3 flex flex-col gap-4">
-        <DayList menu={menu} entries={entries} />
+        <DndContext
+          onDragEnd={(event) => {
+            const { active, over } = event
+            const targetDay = over?.id as number | undefined
+            if (targetDay === undefined) return
+            const entry = entries.find((e) => e.id === active.id)
+            if (!entry || entry.day === targetDay) return
+            commit(
+              events.menuEntrySetDay({
+                id: entry.id,
+                day: targetDay,
+                updatedAt: DateTime.unsafeNow(),
+              }),
+            )
+          }}
+        >
+          <DayList menu={menu} entries={entries} />
+        </DndContext>
         <div className="flex items-center">
           <div className="flex-1" />
           <Button
@@ -121,123 +149,202 @@ function DayList({
   menu: Menu
   entries: ReadonlyArray<MenuEntry>
 }) {
-  const commit = useCommit()
   return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-200">
+    <div className="rounded-lg border border-gray-200 divide-y divide-gray-200 overflow-hidden">
       {Array.range(1, menu.days).map((day) => {
         const dayEntries = entries.filter((entry) => entry.day === day)
         return (
-          <div key={day} className="bg-white">
-            <div
-              className={`w-full px-3 py-3 flex items-center justify-between border-b bg-gray-50`}
-            >
-              <div className="flex items-center gap-3 flex-1">
-                <p className={`font-semibold text-gray-900`}>Day {day}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                {menu.days > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
-                    onClick={() => {
-                      commit(
-                        events.menuDayRemove({
-                          id: menu.id,
-                          day,
-                          newDays: menu.days - 1,
-                          updatedAt: DateTime.unsafeNow(),
-                        }),
-                      )
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
-                <SelectRecipeDrawer
-                  onSelect={(recipe) => {
-                    commit(
-                      events.menuEntryAdd(
-                        MenuEntry.fromForm({
-                          menuId: menu.id,
-                          recipeId: recipe.id,
-                          day,
-                        }),
-                      ),
-                    )
-                  }}
-                >
-                  <SelectRecipeButton />
-                </SelectRecipeDrawer>
-              </div>
-            </div>
-
-            {/* Day Content - Always Visible */}
-            <div>
-              {dayEntries.length > 0 && (
-                <div className="divide-y divide-gray-200">
-                  {dayEntries.map(({ id, recipe }) => (
-                    <Link
-                      key={id}
-                      className="flex items-center p-3 gap-3"
-                      to="/recipe/$id"
-                      params={{ id: recipe.id }}
-                    >
-                      <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
-                        {recipe.imageUrl ? (
-                          <img
-                            src={recipe.imageUrl}
-                            alt={recipe.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Placeholder />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
-                          {recipe.title}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          {[
-                            ...Option.match(recipe.totalTime, {
-                              onNone: () => [],
-                              onSome: (duration) => [Duration.format(duration)],
-                            }),
-                            ...(recipe.servings
-                              ? [`${recipe.servings} servings`]
-                              : []),
-                          ].join(" • ")}
-                        </p>
-                      </div>
-                      <div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            commit(events.menuEntryRemove({ id }))
-                          }}
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-
-              {dayEntries.length === 0 && (
-                <div className="p-3 text-center">
-                  <p className="text-sm text-gray-500">No recipes added yet</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <DayListItem
+            key={day}
+            menu={menu}
+            day={day}
+            dayEntries={dayEntries}
+          />
         )
       })}
     </div>
+  )
+}
+
+function DayListItem({
+  menu,
+  day,
+  dayEntries,
+}: {
+  menu: Menu
+  day: number
+  dayEntries: ReadonlyArray<MenuEntry>
+}) {
+  const commit = useCommit()
+  const { isOver, setNodeRef } = useDroppable({
+    id: day,
+  })
+  return (
+    <div ref={setNodeRef} className="bg-white">
+      <div
+        className={cn(
+          `w-full px-3 py-3 flex items-center justify-between border-b`,
+
+          isOver ? "bg-orange-50 text-orange-600" : "bg-gray-50 text-gray-900",
+        )}
+      >
+        <div className="flex items-center gap-3 flex-1">
+          <p className={`font-semibold`}>Day {day}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {menu.days > 1 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+              onClick={() => {
+                commit(
+                  events.menuDayRemove({
+                    id: menu.id,
+                    day,
+                    newDays: menu.days - 1,
+                    updatedAt: DateTime.unsafeNow(),
+                  }),
+                )
+              }}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+          <SelectRecipeDrawer
+            onSelect={(recipe) => {
+              commit(
+                events.menuEntryAdd(
+                  MenuEntry.fromForm({
+                    menuId: menu.id,
+                    recipeId: recipe.id,
+                    day,
+                  }),
+                ),
+              )
+            }}
+          >
+            <SelectRecipeButton />
+          </SelectRecipeDrawer>
+        </div>
+      </div>
+
+      {/* Day Content - Always Visible */}
+      <div>
+        {dayEntries.length > 0 && (
+          <div className="divide-y divide-gray-200">
+            {dayEntries.map((entry) => (
+              <DayEntryItem key={entry.id} entry={entry} />
+            ))}
+          </div>
+        )}
+
+        {dayEntries.length === 0 && (
+          <div className="p-3 text-center">
+            <p className="text-sm text-gray-500">No recipes added yet</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DayEntryItem({ entry }: { entry: MenuEntry }) {
+  const { id, recipe } = entry
+  const commit = useCommit()
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    setActivatorNodeRef,
+    isDragging,
+  } = useDraggable({
+    id: entry.id,
+  })
+  const style = transform
+    ? {
+        borderWidth: "1px",
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 999,
+      }
+    : undefined
+  const [debouncedIsDragging, setDebouncedIsDragging] = useState(isDragging)
+  useEffect(() => {
+    let timeout: number | undefined
+    if (isDragging) {
+      setDebouncedIsDragging(true)
+    } else {
+      timeout = setTimeout(() => setDebouncedIsDragging(false), 100)
+    }
+    return () => {
+      if (timeout) clearTimeout(timeout)
+    }
+  }, [isDragging])
+
+  return (
+    <Link
+      className="flex items-center p-3 gap-3 bg-white relative rounded border-gray-200"
+      to="/recipe/$id"
+      disabled={debouncedIsDragging}
+      params={{ id: recipe.id }}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+    >
+      <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
+        {recipe.imageUrl ? (
+          <img
+            src={recipe.imageUrl}
+            alt={recipe.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Placeholder />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
+          {recipe.title}
+        </h4>
+        <p className="text-xs text-gray-500">
+          {[
+            ...Option.match(recipe.totalTime, {
+              onNone: () => [],
+              onSome: (duration) => [Duration.format(duration)],
+            }),
+            ...(recipe.servings ? [`${recipe.servings} servings`] : []),
+          ].join(" • ")}
+        </p>
+      </div>
+      <div
+        className="flex items-center gap-2"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          ref={setActivatorNodeRef}
+          className={cn(
+            "touch-none",
+            isDragging ? "cursor-grabbing" : "cursor-grab",
+          )}
+          {...listeners}
+        >
+          <GripVertical className="size-5 text-gray-400" />
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault()
+            commit(events.menuEntryRemove({ id }))
+          }}
+          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+    </Link>
   )
 }
 

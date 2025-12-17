@@ -137,13 +137,13 @@ export function MealPlanPage() {
               onClick={handlePreviousWeek}
               className="h-8 w-8 p-0"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft />
             </Button>
 
             <div className="text-center flex-1">
               <Button
                 variant="ghost"
-                className="text-xs font-medium text-gray-900"
+                className="text-sm font-medium text-gray-900"
                 onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
               >
                 {DateTime.formatUtc(weekStart, {
@@ -163,11 +163,10 @@ export function MealPlanPage() {
 
             <Button
               variant="ghost"
-              size="sm"
               onClick={handleNextWeek}
               className="h-8 w-8 p-0"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight />
             </Button>
           </div>
         </div>

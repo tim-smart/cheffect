@@ -48,6 +48,10 @@ export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
     if (this.unit === null) return `${this.quantity}`
     return `${this.quantity} ${this.unit}`
   }
+
+  id(groupIndex: number, ingredientIndex: number): string {
+    return `${groupIndex}-${ingredientIndex}`
+  }
 }
 
 export class IngredientsComponent extends Schema.Class<IngredientsComponent>(

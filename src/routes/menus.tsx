@@ -107,7 +107,7 @@ function MenuCard({ menu }: { menu: Menu }) {
   const [editing, setEditing] = useState(false)
   const recipeCount = useAtomValue(menuRecipeCountAtom(menu.id))
   return (
-    <div className="flex items-center h-20 px-4 active:bg-gray-50 transition-colors">
+    <div className="flex items-center h-20 pl-4 pr-2 active:bg-gray-50 transition-colors">
       <Link
         to="/menu/$id"
         params={{ id: menu.id }}
@@ -150,7 +150,7 @@ function MenuCard({ menu }: { menu: Menu }) {
             setEditing(true)
           }}
         >
-          <Edit className="w-4 h-4" />
+          <Edit />
         </Button>
         <MealPlanDatePicker
           target={MealPlanDatePickerTarget.Menu({
@@ -158,7 +158,7 @@ function MenuCard({ menu }: { menu: Menu }) {
           })}
         >
           <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Calendar className="w-4 h-4" />
+            <Calendar />
           </Button>
         </MealPlanDatePicker>
       </div>
@@ -184,7 +184,7 @@ function AddMenuButton({ small = false }: { small?: boolean }) {
       className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
       onClick={() => setShowAddMenu(true)}
     >
-      <Plus className="w-5 h-5 mr-2" />
+      <Plus />
       Add Menu
     </Button>
   )

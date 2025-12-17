@@ -15,12 +15,14 @@ import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
+import { checkedIngredientsAtom } from "@/Recipes/atoms"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
-import { Result, useAtomValue } from "@effect-atom/atom-react"
+import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
+import * as HashSet from "effect/HashSet"
 import {
   ArrowLeft,
   Calendar,
@@ -49,8 +51,8 @@ function RouteComponent() {
 export function RecipeDetails({ recipe }: { recipe: Recipe }) {
   const commit = useCommit()
 
-  const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(
-    new Set(),
+  const [checkedIngredients, setCheckedIngredients] = useAtom(
+    checkedIngredientsAtom(recipe.id),
   )
   const stepElements: Array<HTMLDivElement> = []
   const [currentStep, setCurrentStep] = useState(0)
@@ -78,13 +80,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
   }, [currentStep, recipe.steps.length, stepElements])
 
   const toggleIngredient = (ingredientId: string) => {
-    const newChecked = new Set(checkedIngredients)
-    if (newChecked.has(ingredientId)) {
-      newChecked.delete(ingredientId)
-    } else {
-      newChecked.add(ingredientId)
-    }
-    setCheckedIngredients(newChecked)
+    setCheckedIngredients(HashSet.toggle(ingredientId))
   }
 
   return (
@@ -154,7 +150,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         </div>
       </header>
 
-      <div className="bg-white p-4">
+      <div className="bg-white p-4 border-b border-gray-200">
         {/* Recipe Image & Basic Info */}
         <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-gray-600">
           {recipe.prepTime && (
@@ -193,7 +189,10 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                 Ingredients
               </h2>
               <div className="flex-1" />
-              <AddToGroceriesButton recipes={[recipe]} />
+              <AddToGroceriesButton
+                recipes={[recipe]}
+                excludeIngredients={checkedIngredients}
+              />
             </div>
 
             <div className="space-y-6">
@@ -207,13 +206,19 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
 
                   <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
                     {group.ingredients.map((ingredient, ingredientIndex) => {
-                      const ingredientId = `${groupIndex}-${ingredientIndex}`
-                      const isChecked = checkedIngredients.has(ingredientId)
+                      const ingredientId = ingredient.id(
+                        groupIndex,
+                        ingredientIndex,
+                      )
+                      const isChecked = HashSet.has(
+                        checkedIngredients,
+                        ingredientId,
+                      )
 
                       return (
                         <div
                           key={ingredientIndex}
-                          className="flex items-start gap-3 p-3 active:bg-gray-50 transition-colors"
+                          className="flex items-start gap-3 p-3 active:bg-gray-50 transition-colors cursor-default"
                           onClick={() => toggleIngredient(ingredientId)}
                         >
                           <Checkbox

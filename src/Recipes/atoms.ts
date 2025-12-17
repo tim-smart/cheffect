@@ -8,6 +8,7 @@ import * as Schema from "effect/Schema"
 import { RecipeExtractionManager } from "./RecipeExtractionManager"
 import { openAiClientLayer } from "@/services/AiHelpers"
 import { events } from "@/livestore/schema"
+import * as HashSet from "effect/HashSet"
 
 export const extractRuntime = Atom.runtime((get) =>
   Layer.mergeAll(RecipeExtractionManager, Store.layer).pipe(
@@ -48,3 +49,7 @@ export const useSearchQuery = () =>
     ),
     () => "",
   )
+
+export const checkedIngredientsAtom = Atom.family((_recipeId: string) =>
+  Atom.make(HashSet.empty<string>()).pipe(Atom.keepAlive),
+)
