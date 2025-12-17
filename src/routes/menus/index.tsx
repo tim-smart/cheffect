@@ -210,8 +210,8 @@ function AddMenuButton({ small = false }: { small?: boolean }) {
   if (small) {
     return (
       <Button variant="outline" size="sm" onClick={() => setShowAddMenu(true)}>
-        <Plus className="w-4 h-4" />
-        Menu
+        <Plus />
+        New
       </Button>
     )
   }
