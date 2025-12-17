@@ -61,7 +61,9 @@ export const RecipeFormSchema = FormBody.struct({
   rating: RatingInput.Optional,
 })
 
-const decodeFromForm = (input: typeof RecipeFormSchema.schema.Type) => ({
+const decodeFromForm = (
+  input: typeof RecipeFormSchema.schema.Type,
+): ConstructorParameters<typeof Recipe>[0] => ({
   ...input,
   id: crypto.randomUUID(),
   ingredients: input.ingredients.map(
@@ -71,6 +73,8 @@ const decodeFromForm = (input: typeof RecipeFormSchema.schema.Type) => ({
         ingredients: c.ingredients.map((i) => new Ingredient(i)),
       }),
   ),
+  ingredientsConverted: null,
+  ingredientScale: 1,
   steps: input.steps.map((s) => new Step(s)),
   deletedAt: null,
   createdAt: DateTime.unsafeNow(),

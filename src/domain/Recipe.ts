@@ -163,6 +163,14 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   static array = Schema.Array(Recipe)
   static arrayJson = Schema.Array(Recipe.json)
 
+  get hasNoDetails(): boolean {
+    if (this.prepTime !== null) return false
+    if (this.cookingTime !== null) return false
+    if (this.servings !== null) return false
+    if (this.rating !== null) return false
+    return true
+  }
+
   get totalTime(): Option.Option<Duration.Duration> {
     const prep = Option.fromNullable(this.prepTime).pipe(
       Option.getOrElse(() => Duration.zero),

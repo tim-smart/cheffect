@@ -156,35 +156,37 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         </div>
       </header>
 
-      <div className="bg-white p-4 border-b border-gray-200">
-        {/* Recipe Image & Basic Info */}
-        <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-gray-600">
-          {recipe.prepTime && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>Prep: {Duration.format(recipe.prepTime)}</span>
-            </div>
-          )}
-          {recipe.cookingTime && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>Cook: {Duration.format(recipe.cookingTime)}</span>
-            </div>
-          )}
-          {recipe.servings && (
-            <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              <span>{recipe.servings} servings</span>
-            </div>
-          )}
-          {recipe.rating && (
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span>{recipe.rating}</span>
-            </div>
-          )}
+      {!recipe.hasNoDetails && (
+        <div className="bg-white p-4 border-b border-gray-200">
+          {/* Recipe Image & Basic Info */}
+          <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-gray-600">
+            {recipe.prepTime && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>Prep: {Duration.format(recipe.prepTime)}</span>
+              </div>
+            )}
+            {recipe.cookingTime && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                <span>Cook: {Duration.format(recipe.cookingTime)}</span>
+              </div>
+            )}
+            {recipe.servings && (
+              <div className="flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                <span>{recipe.servings} servings</span>
+              </div>
+            )}
+            {recipe.rating && (
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span>{recipe.rating}</span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col md:items-start gap-4 mt-4 md:flex-row max-w-7xl md:px-4 mx-auto">
         {/* Ingredients */}

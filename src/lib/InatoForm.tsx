@@ -35,7 +35,12 @@ export const TextInputOrNull = TextInput.make({
 })
 
 export const NumberInputOrNull = NumberInput.make({
-  schema: Schema.Union(Schema.Number, Schema.Literal(""), Schema.Null).pipe(
+  schema: Schema.Union(
+    Schema.Number,
+    Schema.Literal(""),
+    Schema.NumberFromString,
+    Schema.Null,
+  ).pipe(
     Schema.transform(Schema.NullOr(Schema.Number), {
       decode: (value) => (typeof value === "number" ? value : null),
       encode: (value) => value,
