@@ -1,6 +1,6 @@
 import * as Data from "effect/Data"
 import * as Schema from "effect/Schema"
-import { Store } from "./livestore/atoms"
+import { Store, storeIdAtom } from "./livestore/atoms"
 import { events } from "./livestore/schema"
 import { queryDb, sql } from "@livestore/livestore"
 import { flow } from "effect"
@@ -74,8 +74,12 @@ export class Setting<S extends Schema.Schema.AnyNoContext> extends Data.Class<{
   schemaInput: Schema.Schema<Option.Option<S["Type"]>, string>
   initialValue?: S["Type"] | undefined
   cached?: boolean | undefined
+  atomOverride?: Atom.Writable<
+    Result.Result<Option.Option<S["Type"]>>,
+    Option.Option<S["Type"]>
+  >
 }> {
-  readonly atom = makeAtom(this)
+  readonly atom = this.atomOverride ?? makeAtom(this)
 }
 
 const OptionFromString = Schema.String.pipe(
@@ -119,4 +123,19 @@ export const mealPlanWeekStart = new Setting({
     () => 0 as const,
   ),
   cached: true,
+})
+
+export const livestoreStoreId = new Setting({
+  name: "livestoreStoreId",
+  label: "LiveStore Store ID",
+  schema: Schema.NonEmptyString,
+  schemaInput: OptionFromString,
+  atomOverride: Atom.writable(
+    (get) => Result.success(Option.some(get(storeIdAtom))),
+    (ctx, newValue: Option.Option<string>) => {
+      if (Option.isSome(newValue)) {
+        ctx.set(storeIdAtom, newValue.value)
+      }
+    },
+  ),
 })

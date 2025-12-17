@@ -16,7 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
-import { mealPlanWeekStart, openAiApiKey, Setting } from "@/Settings"
+import {
+  livestoreStoreId,
+  mealPlanWeekStart,
+  openAiApiKey,
+  Setting,
+} from "@/Settings"
 import { useAtomSet, useAtomSuspense } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Schema } from "effect"
@@ -115,6 +120,21 @@ function SettingsPage() {
 
         <SettingSection title="Meal Plan">
           <SettingSelect setting={mealPlanWeekStart} options={weekDayOptions} />
+        </SettingSection>
+
+        <SettingSection title="Sync Settings">
+          <SettingControl
+            setting={livestoreStoreId}
+            render={({ value, onChange, onBlur, onKeyDown }) => (
+              <Input
+                id={livestoreStoreId.name}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={() => onBlur()}
+                onKeyDown={onKeyDown}
+              />
+            )}
+          />
         </SettingSection>
       </main>
     </div>
