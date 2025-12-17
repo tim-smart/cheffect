@@ -74,6 +74,9 @@ importers:
       '@livestore/sync-cf':
         specifier: 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba
         version: 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba(0a6fdcf2d1791b81baccfdaed0745e2e)
+      '@livestore/sync-electric':
+        specifier: 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba
+        version: 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba(0a6fdcf2d1791b81baccfdaed0745e2e)
       '@livestore/wa-sqlite':
         specifier: 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba
         version: 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba
@@ -134,6 +137,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      postgres:
+        specifier: ^3.4.7
+        version: 3.4.7
       react:
         specifier: ^19.2.3
         version: 19.2.3
@@ -1389,6 +1395,9 @@ packages:
 
   '@livestore/sync-cf@0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba':
     resolution: {integrity: sha512-2nOTkttJ6uw7z6KtAby09jyVZFj0S7i4aDatRm7YES8ki/bstvBL0j8Bb/HrzX8bx4d+fqMT++omOnFEl/QewA==}
+
+  '@livestore/sync-electric@0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba':
+    resolution: {integrity: sha512-hxJ28mcjAu8XrIa7Uomc6OJE2X04aRZYhCacG/9+msryXheBXS5QHFOf4M+W4vvMnrS41Ir+Bm5WVeiViEwHgA==}
 
   '@livestore/utils@0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba':
     resolution: {integrity: sha512-d5BGq7S3mFWEjDAtsNMfcudvUVPQu57hiweMnA1DN3GnlF/wVXzDK7jROe/2VHePFTOzsh8Fo7mitPNOI2sROQ==}
@@ -3328,6 +3337,10 @@ packages:
   postcss@8.5.6:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
+
+  postgres@3.4.7:
+    resolution: {integrity: sha512-Jtc2612XINuBjIl/QTWsV5UvE8UHuNblcO3vVADSrKsrc6RqGX6lOW1cEo3CM2v0XG4Nat8nI+YM7/f26VxXLw==}
+    engines: {node: '>=12'}
 
   prettier@3.7.4:
     resolution: {integrity: sha512-v6UNi1+3hSlVvv8fSaoUbggEM5VErKmmpGA7Pl3HF8V6uKY7rvClBOJlH6yNwQtfTueNkGVpOv/mtWL9L4bgRA==}
@@ -5649,6 +5662,29 @@ snapshots:
       - '@opentelemetry/resources'
       - effect
 
+  '@livestore/sync-electric@0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba(0a6fdcf2d1791b81baccfdaed0745e2e)':
+    dependencies:
+      '@livestore/common': 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba(b3ad0bb41b54204c37d4750c7b310565)
+      '@livestore/utils': 0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba(0a6fdcf2d1791b81baccfdaed0745e2e)
+    transitivePeerDependencies:
+      - '@effect/ai'
+      - '@effect/cli'
+      - '@effect/cluster'
+      - '@effect/experimental'
+      - '@effect/opentelemetry'
+      - '@effect/platform'
+      - '@effect/platform-browser'
+      - '@effect/platform-bun'
+      - '@effect/platform-node'
+      - '@effect/printer'
+      - '@effect/printer-ansi'
+      - '@effect/rpc'
+      - '@effect/sql'
+      - '@effect/typeclass'
+      - '@opentelemetry/api'
+      - '@opentelemetry/resources'
+      - effect
+
   '@livestore/utils@0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba(0a6fdcf2d1791b81baccfdaed0745e2e)':
     dependencies:
       '@effect/ai': 0.32.1(@effect/experimental@0.57.11(@effect/platform@0.93.8(effect@3.19.12))(effect@3.19.12))(@effect/platform@0.93.8(effect@3.19.12))(@effect/rpc@0.72.2(@effect/platform@0.93.8(effect@3.19.12))(effect@3.19.12))(effect@3.19.12)
@@ -7609,6 +7645,8 @@ snapshots:
       nanoid: 3.3.11
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  postgres@3.4.7: {}
 
   prettier@3.7.4: {}
 
