@@ -49,7 +49,10 @@ async function POST(request: Request) {
 }
 
 export default {
-  fetch(request: Request) {
+  async fetch(request: Request) {
+    if (request.method === "HEAD") {
+      return new Response(null, { status: 200 })
+    }
     if (request.method === "GET") {
       return GET(request)
     }
