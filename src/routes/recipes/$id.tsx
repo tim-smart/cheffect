@@ -84,6 +84,8 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
     setCheckedIngredients(HashSet.toggle(ingredientId))
   }
 
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <div className="pb-30">
       {/* Header */}
@@ -102,7 +104,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
               {recipe.title}
             </h1>
             <div className="flex items-center gap-1">
-              <DropdownMenu>
+              <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-2">
                     <MoreVertical className="w-4 h-4" />
@@ -119,6 +121,9 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                     target={MealPlanDatePickerTarget.New({
                       recipeId: recipe.id,
                     })}
+                    onSelect={() => {
+                      setMenuOpen(false)
+                    }}
                   >
                     <DropdownMenuItem>
                       <Calendar />

@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { BookOpen, Plus, ChefHat, Edit, Calendar } from "lucide-react"
+import {
+  BookOpen,
+  Plus,
+  ChefHat,
+  Edit,
+  Calendar,
+  MoreVertical,
+  Trash,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FormBody, FormDisplay } from "@inato-form/core"
 import { TextInput } from "@inato-form/fields"
@@ -23,6 +31,12 @@ import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export const Route = createFileRoute("/menus/")({
   component: MenusPage,
@@ -104,6 +118,7 @@ function NoResults() {
 
 function MenuCard({ menu }: { menu: Menu }) {
   const commit = useCommit()
+  const [menuOpen, setMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const recipeCount = useAtomValue(menuRecipeCountAtom(menu.id))
   return (
@@ -140,28 +155,49 @@ function MenuCard({ menu }: { menu: Menu }) {
         </div>
       </Link>
 
-      <div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={(e) => {
-            e.preventDefault()
-            setEditing(true)
-          }}
-        >
-          <Edit />
-        </Button>
-        <MealPlanDatePicker
-          target={MealPlanDatePickerTarget.Menu({
-            id: menu.id,
-          })}
-        >
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Calendar />
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="p-2">
+            <MoreVertical className="w-4 h-4" />
           </Button>
-        </MealPlanDatePicker>
-      </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
+          <MealPlanDatePicker
+            target={MealPlanDatePickerTarget.Menu({
+              id: menu.id,
+            })}
+            onSelect={() => setMenuOpen(false)}
+          >
+            <DropdownMenuItem>
+              <Calendar />
+              Add to meal plan
+            </DropdownMenuItem>
+          </MealPlanDatePicker>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.preventDefault()
+              setMenuOpen(false)
+              setTimeout(() => setEditing(true), 50)
+            }}
+          >
+            <Edit />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.preventDefault()
+              setMenuOpen(false)
+              if (!confirm("Are you sure you want to remove this menu?")) {
+                return
+              }
+              commit(events.menuRemove({ id: menu.id }))
+            }}
+          >
+            <Trash />
+            Remove
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

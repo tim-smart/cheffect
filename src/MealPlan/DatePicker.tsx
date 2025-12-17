@@ -26,16 +26,18 @@ export const MealPlanDatePickerTarget =
 export function MealPlanDatePicker({
   target,
   children,
+  onSelect,
 }: {
   readonly target: MealPlanDatePickerTarget
   readonly children: React.ReactNode
+  readonly onSelect?: (date: DateTime.Utc) => void
 }) {
   const [open, setOpen] = useState(false)
   const commit = useCommit()
   const addMenu = useAtomSet(addMenuToMealPlanAtom)
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger
         asChild
         onClick={(e) => {
@@ -80,6 +82,7 @@ export function MealPlanDatePicker({
                 })
               },
             })
+            onSelect?.(day)
           }}
         />
       </PopoverContent>
