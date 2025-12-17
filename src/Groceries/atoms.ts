@@ -23,7 +23,7 @@ export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
 })
 
 const runtime = Atom.runtime((get) =>
-  Layer.mergeAll(AiHelpers.Default, Store.layer).pipe(
+  Layer.mergeAll(AiHelpers.Default, get(Store.layer)).pipe(
     Layer.provide(get(openAiClientLayer)),
   ),
 )

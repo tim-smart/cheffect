@@ -67,7 +67,7 @@ export const RecipeExtractionManager = Layer.scopedDiscard(
               label: "View",
               onClick() {
                 router.navigate({
-                  to: `/recipe/$id`,
+                  to: `/recipes/$id`,
                   params: { id: recipe.id },
                 })
               },
@@ -90,4 +90,4 @@ export const RecipeExtractionManager = Layer.scopedDiscard(
       Effect.forkScoped,
     )
   }),
-).pipe(Layer.provide([AiHelpers.Default, Store.layer]))
+).pipe(Layer.provide(AiHelpers.Default))

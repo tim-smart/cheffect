@@ -16,8 +16,9 @@ import * as HashSet from "effect/HashSet"
 import { Recipe } from "@/domain/Recipe"
 
 export const extractRuntime = Atom.runtime((get) =>
-  Layer.mergeAll(RecipeExtractionManager, Store.layer).pipe(
+  RecipeExtractionManager.pipe(
     Layer.provide(get(openAiClientLayer)),
+    Layer.provideMerge(get(Store.layer)),
   ),
 ).pipe(Atom.keepAlive)
 
