@@ -219,7 +219,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                           <Checkbox
                             checked={isChecked}
                             onChange={() => toggleIngredient(ingredientId)}
-                            className="mt-0.5"
+                            className="mt-[0.25em]"
                           />
                           <div
                             className={`flex-1 ${isChecked ? "line-through text-gray-500" : "text-gray-900"}`}

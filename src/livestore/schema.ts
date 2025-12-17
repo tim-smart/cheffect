@@ -1,13 +1,13 @@
-import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
-import { Menu } from "@/domain/Menu"
-import { MenuEntry } from "@/domain/MenuEntry"
-import { Rating } from "@/domain/Rating"
+import { GroceryAisle, GroceryItem } from "../domain/GroceryItem"
+import { Menu } from "../domain/Menu"
+import { MenuEntry } from "../domain/MenuEntry"
+import { Rating } from "../domain/Rating"
 import {
   IngredientsComponent,
   Recipe,
   SortByValue,
   Step,
-} from "@/domain/Recipe"
+} from "../domain/Recipe"
 import { Model } from "@effect/sql"
 import { Events, makeSchema, State } from "@livestore/livestore"
 import * as DateTime from "effect/DateTime"
