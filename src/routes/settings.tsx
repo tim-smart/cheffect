@@ -1,3 +1,10 @@
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -8,12 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { exportAtom, importAtom } from "@/Recipes/atoms"
 import { mealPlanWeekStart, openAiApiKey, Setting } from "@/Settings"
 import { useAtomSet, useAtomSuspense } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Schema } from "effect"
-import { Settings } from "lucide-react"
-import { useState } from "react"
+import { Import, MoreVertical, Settings, Share } from "lucide-react"
+import { useRef, useState } from "react"
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -34,6 +42,9 @@ const weekDayOptions = days.map((day, index) => ({
 }))
 
 function SettingsPage() {
+  const exportRecipes = useAtomSet(exportAtom)
+  const importRecipes = useAtomSet(importAtom)
+  const importRef = useRef<HTMLInputElement>(null)
   return (
     <div className="bg-gray-50 pb-20">
       {/* Header */}
@@ -44,6 +55,42 @@ function SettingsPage() {
               <Settings className="w-5 h-5 text-orange-600" />
               <h1 className="text-lg font-bold text-gray-900">Settings</h1>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-2">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem
+                  onClick={() => {
+                    exportRecipes()
+                  }}
+                >
+                  <Share />
+                  Export recipes
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    importRef.current?.click()
+                  }}
+                >
+                  <Import />
+                  Import recipes
+                  <input
+                    ref={importRef}
+                    type="file"
+                    className="hidden"
+                    accept="text/plain"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      importRecipes(file)
+                    }}
+                  />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>

@@ -155,12 +155,13 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   steps: Model.JsonFromString(Schema.Array(Step)),
   rating: Schema.NullOr(Rating),
   createdAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldOnly("insert", "select"),
+    Model.FieldOnly("insert", "select", "json"),
   ),
   updatedAt: Schema.DateTimeUtcFromNumber,
   deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromNumber)),
 }) {
   static array = Schema.Array(Recipe)
+  static arrayJson = Schema.Array(Recipe.json)
 
   get totalTime(): Option.Option<Duration.Duration> {
     const prep = Option.fromNullable(this.prepTime).pipe(

@@ -296,7 +296,8 @@ export const events = {
 
 // Materializers are used to map events to state (https://docs.livestore.dev/reference/state/materializers)
 const materializers = State.SQLite.materializers(events, {
-  "v1.RecipeCreated": (insert) => tables.recipes.insert(insert),
+  "v1.RecipeCreated": (insert) =>
+    tables.recipes.insert(insert).onConflict("id", "ignore"),
   "v1.RecipeUpdated": (update) =>
     tables.recipes.update(update).where({ id: update.id }),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
