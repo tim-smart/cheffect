@@ -33,9 +33,9 @@ import {
   Trash,
   Users,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
-export const Route = createFileRoute("/recipe/$id")({
+export const Route = createFileRoute("/recipes/$id")({
   component: RouteComponent,
 })
 
@@ -51,6 +51,7 @@ function RouteComponent() {
 export function RecipeDetails({ recipe }: { recipe: Recipe }) {
   const commit = useCommit()
 
+  const ingredients = useMemo(() => recipe.ingredientsDisplay, [recipe])
   const [checkedIngredients, setCheckedIngredients] = useAtom(
     checkedIngredientsAtom(recipe.id),
   )
@@ -196,7 +197,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
             </div>
 
             <div className="space-y-6">
-              {recipe.ingredients.map((group, groupIndex) => (
+              {ingredients.map((group, groupIndex) => (
                 <div key={groupIndex}>
                   {group.name && (
                     <h3 className="font-medium text-gray-900 mb-3 text-base">

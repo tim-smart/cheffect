@@ -259,7 +259,7 @@ function WeekList({
                     <Link
                       key={id}
                       className="flex items-center p-3 gap-3"
-                      to="/recipe/$id"
+                      to="/recipes/$id"
                       params={{ id: recipe.id }}
                     >
                       <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">

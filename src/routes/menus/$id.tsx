@@ -36,7 +36,7 @@ import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 
-export const Route = createFileRoute("/menu/$id")({
+export const Route = createFileRoute("/menus/$id")({
   component: MenuDetailPage,
 })
 
@@ -286,7 +286,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
   return (
     <Link
       className="flex items-center p-3 gap-3 bg-white relative rounded-lg border-gray-200"
-      to="/recipe/$id"
+      to="/recipes/$id"
       disabled={debouncedIsDragging}
       params={{ id: recipe.id }}
       ref={setNodeRef}

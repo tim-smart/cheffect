@@ -68,7 +68,10 @@ export class IngredientsComponent extends Schema.Class<IngredientsComponent>(
   {
     description: "Represents a component of a recipe with its ingredients.",
   },
-) {}
+) {
+  static array = Schema.Array(IngredientsComponent)
+  static arrayJson = Schema.parseJson(this.array)
+}
 
 export class Step extends Schema.Class<Step>("Step")(
   {
@@ -121,6 +124,8 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
     return new Recipe({
       ...this,
       rating: null,
+      ingredientsConverted: null,
+      ingredientScale: 1,
       id: crypto.randomUUID(),
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
@@ -138,11 +143,21 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   ),
   cookingTime: Schema.NullOr(Schema.DurationFromMillis),
   prepTime: Schema.NullOr(Schema.DurationFromMillis),
-  ingredients: Model.JsonFromString(Schema.Array(IngredientsComponent)),
+  ingredients: Model.JsonFromString(IngredientsComponent.array),
+  ingredientsConverted: Model.Field({
+    select: Schema.NullOr(IngredientsComponent.arrayJson),
+    update: Schema.NullOr(IngredientsComponent.array),
+  }),
+  ingredientScale: Model.Field({
+    select: Schema.Number,
+    update: Schema.Number,
+  }),
   steps: Model.JsonFromString(Schema.Array(Step)),
   rating: Schema.NullOr(Rating),
-  createdAt: Model.DateTimeInsertFromNumber,
-  updatedAt: Model.DateTimeUpdateFromNumber,
+  createdAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldOnly("insert", "select"),
+  ),
+  updatedAt: Schema.DateTimeUtcFromNumber,
   deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromNumber)),
 }) {
   static array = Schema.Array(Recipe)
@@ -155,6 +170,29 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
       Option.getOrElse(() => Duration.zero),
     )
     return filterZero(Duration.sum(prep, cook))
+  }
+
+  get ingredientsDisplay(): ReadonlyArray<IngredientsComponent> {
+    const scale = this.ingredientScale
+    const ingredients = this.ingredientsConverted ?? this.ingredients
+    if (scale === 1) {
+      return ingredients
+    }
+    return ingredients.map((component) => {
+      const scaledIngredients = component.ingredients.map((ingredient) => {
+        if (ingredient.quantity === null) {
+          return ingredient
+        }
+        return new Ingredient({
+          ...ingredient,
+          quantity: ingredient.quantity * scale,
+        })
+      })
+      return new IngredientsComponent({
+        ...component,
+        ingredients: scaledIngredients,
+      })
+    })
   }
 }
 

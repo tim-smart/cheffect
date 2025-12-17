@@ -9,6 +9,7 @@ import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import { Result, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
+import * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
 import { ArrowLeft } from "lucide-react"
 
@@ -35,7 +36,7 @@ function ProductScreen() {
                 Recipe.update.make({
                   ...formRecipe,
                   id: recipe.id,
-                  updatedAt: undefined,
+                  updatedAt: DateTime.unsafeNow(),
                 }),
               ),
             )

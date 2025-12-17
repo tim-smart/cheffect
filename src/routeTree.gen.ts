@@ -16,8 +16,9 @@ import { Route as ImportRouteImport } from './routes/import'
 import { Route as GroceriesRouteImport } from './routes/groceries'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as RecipeIdRouteImport } from './routes/recipe/$id'
-import { Route as MenuIdRouteImport } from './routes/menu/$id'
+import { Route as MenusIndexRouteImport } from './routes/menus/index'
+import { Route as RecipesIdRouteImport } from './routes/recipes/$id'
+import { Route as MenusIdRouteImport } from './routes/menus/$id'
 import { Route as EditIdRouteImport } from './routes/edit/$id'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -55,15 +56,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RecipeIdRoute = RecipeIdRouteImport.update({
-  id: '/recipe/$id',
-  path: '/recipe/$id',
+const MenusIndexRoute = MenusIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MenusRoute,
+} as any)
+const RecipesIdRoute = RecipesIdRouteImport.update({
+  id: '/recipes/$id',
+  path: '/recipes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MenuIdRoute = MenuIdRouteImport.update({
-  id: '/menu/$id',
-  path: '/menu/$id',
-  getParentRoute: () => rootRouteImport,
+const MenusIdRoute = MenusIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => MenusRoute,
 } as any)
 const EditIdRoute = EditIdRouteImport.update({
   id: '/edit/$id',
@@ -76,24 +82,25 @@ export interface FileRoutesByFullPath {
   '/add': typeof AddRoute
   '/groceries': typeof GroceriesRoute
   '/import': typeof ImportRoute
-  '/menus': typeof MenusRoute
+  '/menus': typeof MenusRouteWithChildren
   '/plan': typeof PlanRoute
   '/settings': typeof SettingsRoute
   '/edit/$id': typeof EditIdRoute
-  '/menu/$id': typeof MenuIdRoute
-  '/recipe/$id': typeof RecipeIdRoute
+  '/menus/$id': typeof MenusIdRoute
+  '/recipes/$id': typeof RecipesIdRoute
+  '/menus/': typeof MenusIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
   '/groceries': typeof GroceriesRoute
   '/import': typeof ImportRoute
-  '/menus': typeof MenusRoute
   '/plan': typeof PlanRoute
   '/settings': typeof SettingsRoute
   '/edit/$id': typeof EditIdRoute
-  '/menu/$id': typeof MenuIdRoute
-  '/recipe/$id': typeof RecipeIdRoute
+  '/menus/$id': typeof MenusIdRoute
+  '/recipes/$id': typeof RecipesIdRoute
+  '/menus': typeof MenusIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -101,12 +108,13 @@ export interface FileRoutesById {
   '/add': typeof AddRoute
   '/groceries': typeof GroceriesRoute
   '/import': typeof ImportRoute
-  '/menus': typeof MenusRoute
+  '/menus': typeof MenusRouteWithChildren
   '/plan': typeof PlanRoute
   '/settings': typeof SettingsRoute
   '/edit/$id': typeof EditIdRoute
-  '/menu/$id': typeof MenuIdRoute
-  '/recipe/$id': typeof RecipeIdRoute
+  '/menus/$id': typeof MenusIdRoute
+  '/recipes/$id': typeof RecipesIdRoute
+  '/menus/': typeof MenusIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,20 +127,21 @@ export interface FileRouteTypes {
     | '/plan'
     | '/settings'
     | '/edit/$id'
-    | '/menu/$id'
-    | '/recipe/$id'
+    | '/menus/$id'
+    | '/recipes/$id'
+    | '/menus/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/add'
     | '/groceries'
     | '/import'
-    | '/menus'
     | '/plan'
     | '/settings'
     | '/edit/$id'
-    | '/menu/$id'
-    | '/recipe/$id'
+    | '/menus/$id'
+    | '/recipes/$id'
+    | '/menus'
   id:
     | '__root__'
     | '/'
@@ -143,8 +152,9 @@ export interface FileRouteTypes {
     | '/plan'
     | '/settings'
     | '/edit/$id'
-    | '/menu/$id'
-    | '/recipe/$id'
+    | '/menus/$id'
+    | '/recipes/$id'
+    | '/menus/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -152,12 +162,11 @@ export interface RootRouteChildren {
   AddRoute: typeof AddRoute
   GroceriesRoute: typeof GroceriesRoute
   ImportRoute: typeof ImportRoute
-  MenusRoute: typeof MenusRoute
+  MenusRoute: typeof MenusRouteWithChildren
   PlanRoute: typeof PlanRoute
   SettingsRoute: typeof SettingsRoute
   EditIdRoute: typeof EditIdRoute
-  MenuIdRoute: typeof MenuIdRoute
-  RecipeIdRoute: typeof RecipeIdRoute
+  RecipesIdRoute: typeof RecipesIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -211,19 +220,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/recipe/$id': {
-      id: '/recipe/$id'
-      path: '/recipe/$id'
-      fullPath: '/recipe/$id'
-      preLoaderRoute: typeof RecipeIdRouteImport
+    '/menus/': {
+      id: '/menus/'
+      path: '/'
+      fullPath: '/menus/'
+      preLoaderRoute: typeof MenusIndexRouteImport
+      parentRoute: typeof MenusRoute
+    }
+    '/recipes/$id': {
+      id: '/recipes/$id'
+      path: '/recipes/$id'
+      fullPath: '/recipes/$id'
+      preLoaderRoute: typeof RecipesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/menu/$id': {
-      id: '/menu/$id'
-      path: '/menu/$id'
-      fullPath: '/menu/$id'
-      preLoaderRoute: typeof MenuIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/menus/$id': {
+      id: '/menus/$id'
+      path: '/$id'
+      fullPath: '/menus/$id'
+      preLoaderRoute: typeof MenusIdRouteImport
+      parentRoute: typeof MenusRoute
     }
     '/edit/$id': {
       id: '/edit/$id'
@@ -235,17 +251,28 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MenusRouteChildren {
+  MenusIdRoute: typeof MenusIdRoute
+  MenusIndexRoute: typeof MenusIndexRoute
+}
+
+const MenusRouteChildren: MenusRouteChildren = {
+  MenusIdRoute: MenusIdRoute,
+  MenusIndexRoute: MenusIndexRoute,
+}
+
+const MenusRouteWithChildren = MenusRoute._addFileChildren(MenusRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddRoute: AddRoute,
   GroceriesRoute: GroceriesRoute,
   ImportRoute: ImportRoute,
-  MenusRoute: MenusRoute,
+  MenusRoute: MenusRouteWithChildren,
   PlanRoute: PlanRoute,
   SettingsRoute: SettingsRoute,
   EditIdRoute: EditIdRoute,
-  MenuIdRoute: MenuIdRoute,
-  RecipeIdRoute: RecipeIdRoute,
+  RecipesIdRoute: RecipesIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

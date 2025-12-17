@@ -62,7 +62,7 @@ function RecipeCard({
 }) {
   return (
     <Link
-      to="/recipe/$id"
+      to="/recipes/$id"
       params={{ id: recipe.id }}
       className="block active:bg-gray-50 transition-colors"
       onClick={

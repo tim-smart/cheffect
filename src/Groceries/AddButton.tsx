@@ -20,7 +20,7 @@ export function AddToGroceriesButton({
     useAtom(groceryAddCompleted)
   const addWeekToGrocery = () => {
     for (const recipe of recipes) {
-      recipe.ingredients.forEach((group, gi) => {
+      recipe.ingredientsDisplay.forEach((group, gi) => {
         group.ingredients.forEach((ingredient, ii) => {
           if (
             excludeIngredients &&

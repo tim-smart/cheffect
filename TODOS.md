@@ -1,8 +1,11 @@
 - Sync
 - Scale recipe ingredients
+- AI metric/imperial conversions
 - AI recipe chat
   - Add tools for ai to interact with app
     - Add to meal plan
     - Add to menu
-- AI metric/imperial conversions
+    - List menus
+    - Modify ingredients
+    - Add to grocery list
 - Dark mode
