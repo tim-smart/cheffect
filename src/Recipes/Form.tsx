@@ -45,10 +45,6 @@ export function RecipeForm({
               <Display.servings label="Servings" />
               <Display.rating label="Rating" />
             </div>
-            <div className="flex gap-2">
-              <Display.sourceName label="Source" />
-              <Display.sourceUrl label="Source URL" />
-            </div>
           </div>
         </FormCard>
         <FormCard>
