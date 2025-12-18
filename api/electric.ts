@@ -33,18 +33,14 @@ async function GET(request: Request) {
   }
 
   // Proxy pull request to Electric server for reading
-  try {
-    const response = await fetch(url)
-    if (!response.ok) {
-      console.error("Electric pull request failed", {
-        url,
-        status: response.status,
-      })
-    }
-    return response
-  } catch (error) {
-    throw error
-  }
+  const response = await fetch(url)
+  const headers = new Headers(response.headers)
+  headers.delete("content-encoding")
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
 }
 
 // POST /api/electric - Push events (direct database write)
