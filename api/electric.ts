@@ -13,7 +13,7 @@ declare const process: {
 async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams
   const { url, storeId, needsInit } = makeElectricUrl({
-    sourceId: "76928e3b-7831-4475-91be-c3bea1007ed8",
+    sourceId: "75f6f9bc-7e5b-4ff2-abae-ae4528afed03",
     electricHost,
     searchParams,
     sourceSecret: process.env.ELECTRIC_SOURCE_SECRET,
