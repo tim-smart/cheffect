@@ -6,11 +6,13 @@ import {
 } from "@/components/ui/popover"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import { useAtomSet } from "@effect-atom/atom-react"
+import { Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react"
 import * as Data from "effect/Data"
 import * as DateTime from "effect/DateTime"
 import { useState } from "react"
 import { addMenuToMealPlanAtom } from "./atoms"
+import { mealPlanWeekStart } from "@/Settings"
+import * as Option from "effect/Option"
 
 export type MealPlanDatePickerTarget = Data.TaggedEnum<{
   Existing: {
@@ -35,6 +37,11 @@ export function MealPlanDatePicker({
   const [open, setOpen] = useState(false)
   const commit = useCommit()
   const addMenu = useAtomSet(addMenuToMealPlanAtom)
+  const weekStart = useAtomValue(mealPlanWeekStart.atom).pipe(
+    Result.value,
+    Option.flatten,
+    Option.getOrElse(() => 0 as const),
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
@@ -55,6 +62,7 @@ export function MealPlanDatePicker({
               ? DateTime.toDateUtc(target.initialValue)
               : undefined
           }
+          weekStartsOn={weekStart}
           onSelect={(date) => {
             setOpen(false)
             if (!date) return
