@@ -12,6 +12,7 @@ declare const process: {
 // GET /api/electric - Pull events (proxied through Electric)
 async function GET(request: Request) {
   const searchParams = new URL(request.url).searchParams
+
   const { url, storeId, needsInit } = makeElectricUrl({
     sourceId: "75f6f9bc-7e5b-4ff2-abae-ae4528afed03",
     electricHost,
@@ -36,8 +37,8 @@ async function GET(request: Request) {
     const response = await fetch(url)
     if (!response.ok) {
       console.error("Electric pull request failed", {
+        url,
         status: response.status,
-        text: await response.text(),
       })
     }
     return response
