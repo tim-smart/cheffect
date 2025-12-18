@@ -27,7 +27,7 @@ export const RecipeExtractionManager = Layer.scopedDiscard(
   Effect.gen(function* () {
     const ai = yield* AiHelpers
     const store = yield* Store
-    const fiberMap = yield* FiberMap.make()
+    const fiberMap = yield* FiberMap.make<string>()
 
     const extract = Effect.fn("RecipeExtractionManager.extract")(
       function* (job: { readonly id: string; readonly url: string }) {
@@ -80,10 +80,16 @@ export const RecipeExtractionManager = Layer.scopedDiscard(
     yield* Atom.toStreamResult(extractJobs).pipe(
       Stream.runForEach(
         Effect.fnUntraced(function* (jobs) {
+          const ids = new Set()
           for (const job of jobs!) {
+            ids.add(job.id)
             yield* FiberMap.run(fiberMap, job.id, extract(job), {
               onlyIfMissing: true,
             })
+          }
+          for (const [id] of fiberMap) {
+            if (ids.has(id)) continue
+            yield* FiberMap.remove(fiberMap, id)
           }
         }),
       ),
