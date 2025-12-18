@@ -32,7 +32,18 @@ async function GET(request: Request) {
   }
 
   // Proxy pull request to Electric server for reading
-  return fetch(url)
+  try {
+    const response = await fetch(url)
+    if (!response.ok) {
+      console.error("Electric pull request failed", {
+        status: response.status,
+        text: await response.text(),
+      })
+    }
+    return response
+  } catch (error) {
+    throw error
+  }
 }
 
 // POST /api/electric - Push events (direct database write)
@@ -65,7 +76,9 @@ export default {
 
 const makeDb = (storeId: string) => {
   const tableName = toTableName(storeId)
-  const sql = postgres(process.env.DATABASE_URL!)
+  const sql = postgres(process.env.DATABASE_URL!, {
+    onnotice() {},
+  })
 
   const migrate = () =>
     sql`
