@@ -116,6 +116,22 @@ export const tables = {
       }),
     },
   }),
+  ingredientAisles: State.SQLite.table({
+    name: "ingredient_aisles",
+    columns: {
+      name: State.SQLite.text({ primaryKey: true }),
+      aisle: State.SQLite.text({
+        schema: GroceryAisle,
+        nullable: false,
+      }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+  }),
   menus: State.SQLite.table({
     name: "menus",
     columns: {
@@ -322,10 +338,45 @@ const materializers = State.SQLite.materializers(events, {
   "v1.MealPlanSetDay": ({ id, day }) =>
     tables.mealPlan.update({ day }).where({ id }),
   "v1.MealPlanRemove": ({ id }) => tables.mealPlan.delete().where({ id }),
-  "v1.GroceryItemAdded": (insert) =>
-    tables.groceryItems.insert(insert).onConflict("id", "ignore"),
-  "v1.GroceryItemUpdated": ({ id, ...update }) =>
-    tables.groceryItems.update(update).where({ id }),
+  "v1.GroceryItemAdded": (insert) => {
+    const add = tables.groceryItems.insert(insert).onConflict("id", "ignore")
+    return insert.aisle
+      ? [
+          add,
+          tables.ingredientAisles
+            .insert({
+              name: insert.name.toLowerCase().trim(),
+              aisle: insert.aisle,
+              createdAt: insert.createdAt,
+              updatedAt: insert.updatedAt,
+            })
+            .onConflict("name", "update", {
+              aisle: insert.aisle,
+              updatedAt: insert.updatedAt,
+            }),
+        ]
+      : add
+  },
+  "v1.GroceryItemUpdated": ({ id, ...update }) => {
+    const add = tables.groceryItems.update(update).where({ id })
+    const name = update.name.toLowerCase().trim()
+    return [
+      add,
+      update.aisle
+        ? tables.ingredientAisles
+            .insert({
+              name: update.name.toLowerCase().trim(),
+              aisle: update.aisle,
+              createdAt: update.updatedAt,
+              updatedAt: update.updatedAt,
+            })
+            .onConflict("name", "update", {
+              aisle: update.aisle,
+              updatedAt: update.updatedAt,
+            })
+        : tables.ingredientAisles.delete().where({ name }),
+    ]
+  },
   "v1.GroceryItemCleared": () => tables.groceryItems.delete(),
   "v1.GroceryItemClearedCompleted": () =>
     tables.groceryItems.delete().where({ completed: true }),

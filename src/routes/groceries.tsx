@@ -37,7 +37,11 @@ import {
 } from "@/lib/InatoForm"
 import * as Effect from "effect/Effect"
 import * as DateTime from "effect/DateTime"
-import { beautifyGroceriesAtom, groceryCountAtom } from "@/Groceries/atoms"
+import {
+  beautifyGroceriesAtom,
+  groceryCountAtom,
+  groceryItemAddAtom,
+} from "@/Groceries/atoms"
 import { Skeleton } from "@/components/ui/skeleton"
 import clsx from "clsx"
 import { recipeTitleAtom } from "@/livestore/queries"
@@ -249,6 +253,7 @@ function GroceryListList({
   readonly showForm?: boolean
 }) {
   const commit = useCommit()
+  const addGroceryItem = useAtomSet(groceryItemAddAtom)
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
   const cancelBeautify = () => beautifyResult(Atom.Reset)
 
@@ -289,7 +294,7 @@ function GroceryListList({
           <GroceryItemForm
             className="max-w-lg mx-auto px-2 sm:px-4"
             onSubmit={(item) => {
-              commit(events.groceryItemAdded(item))
+              addGroceryItem(item)
             }}
             compact
           />

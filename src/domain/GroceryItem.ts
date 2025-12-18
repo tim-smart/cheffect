@@ -32,7 +32,7 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   ),
   completed: Model.BooleanFromNumber,
   createdAt: Schema.DateTimeUtcFromNumber.pipe(Model.FieldExcept("update")),
-  updatedAt: Schema.DateTimeUtcFromNumber.pipe(Model.FieldExcept("update")),
+  updatedAt: Schema.DateTimeUtcFromNumber,
 }) {
   static array = Schema.Array(GroceryItem)
 
@@ -60,6 +60,10 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
     })
+  }
+
+  get nameNormalized(): string {
+    return this.name.trim().toLowerCase()
   }
 }
 

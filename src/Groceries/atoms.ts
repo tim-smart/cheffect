@@ -4,11 +4,33 @@ import {
   allGroceryItemsArrayAtom,
   allGroceryItemsAtom,
 } from "@/livestore/queries"
-import { events } from "@/livestore/schema"
+import { events, tables } from "@/livestore/schema"
 import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { Atom } from "@effect-atom/atom-react"
+import { queryDb } from "@livestore/livestore"
+import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+
+export const ingredientAisleCached$ = (name: string) =>
+  queryDb(
+    tables.ingredientAisles.select("aisle").where("name", "=", name).limit(1),
+    { map: Array.head },
+  )
+
+export const groceryItemAddAtom = Atom.fnSync<GroceryItem>()((item, get) => {
+  const store = get(Store.storeUnsafe)!
+  if (!item.aisle) {
+    const maybeAisle = store.query(ingredientAisleCached$(item.nameNormalized))
+    if (maybeAisle._tag === "Some") {
+      item = new GroceryItem({
+        ...item,
+        aisle: maybeAisle.value,
+      })
+    }
+  }
+  store.commit(events.groceryItemAdded(item))
+})
 
 export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
   const aisles: Array<{ name: string; items: GroceryItem[] }> = []

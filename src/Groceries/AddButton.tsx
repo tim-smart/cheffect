@@ -1,12 +1,14 @@
 import { Plus, Check, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Atom, useAtom } from "@effect-atom/atom-react"
-import { useCommit } from "@/livestore/atoms"
+import { Atom, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import { Store, useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import * as Effect from "effect/Effect"
 import { Recipe } from "@/domain/Recipe"
 import { GroceryItem } from "@/domain/GroceryItem"
 import * as HashSet from "effect/HashSet"
+import { ingredientAisleCached$ } from "./atoms"
+import * as Option from "effect/Option"
 
 export function AddToGroceriesButton({
   recipes,
@@ -15,6 +17,7 @@ export function AddToGroceriesButton({
   recipes: Iterable<Recipe>
   excludeIngredients?: HashSet.HashSet<string>
 }) {
+  const store = useAtomValue(Store.storeUnsafe)!
   const commit = useCommit()
   const [groceryAddResult, setGroceryAddCompleted] =
     useAtom(groceryAddCompleted)
@@ -28,11 +31,19 @@ export function AddToGroceriesButton({
           ) {
             return
           }
-          commit(
-            events.groceryItemAdded(
-              GroceryItem.fromIngredient(ingredient, recipe),
-            ),
-          )
+          let item = GroceryItem.fromIngredient(ingredient, recipe)
+          if (!item.aisle) {
+            const maybeAisle = store.query(
+              ingredientAisleCached$(item.nameNormalized),
+            )
+            if (Option.isSome(maybeAisle)) {
+              item = new GroceryItem({
+                ...item,
+                aisle: maybeAisle.value,
+              })
+            }
+          }
+          commit(events.groceryItemAdded(item))
         })
       })
     }
