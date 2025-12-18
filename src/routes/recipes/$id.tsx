@@ -178,7 +178,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                   }}
                 >
                   <Trash />
-                  Remove recipe
+                  Remove
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

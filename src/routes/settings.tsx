@@ -15,9 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
 import {
   livestoreStoreId,
+  livestoreSyncEnabled,
   mealPlanWeekStart,
   openAiApiKey,
   Setting,
@@ -123,6 +125,7 @@ function SettingsPage() {
         </SettingSection>
 
         <SettingSection title="Sync Settings">
+          <SettingCheckbox setting={livestoreSyncEnabled} />
           <SettingControl
             setting={livestoreStoreId}
             render={({ value, onChange, onBlur, onKeyDown }) => (
@@ -169,7 +172,7 @@ function SettingSection({
   return (
     <div>
       <h2 className="text-md font-semibold text-gray-900 mb-1">{title}</h2>
-      <div className="rounded-lg bg-white border border-gray-200 overflow-hidden p-4 flex flex-col gap-2">
+      <div className="rounded-lg bg-white border border-gray-200 overflow-hidden p-4 flex flex-col gap-4">
         {children}
       </div>
     </div>
@@ -247,6 +250,25 @@ function SettingSelect<S extends Schema.Literal<any>>({
             </SelectGroup>
           </SelectContent>
         </Select>
+      )}
+    />
+  )
+}
+
+function SettingCheckbox<S extends Schema.Schema.AnyNoContext>({
+  setting,
+}: {
+  setting: Setting<S>
+}) {
+  return (
+    <SettingControl
+      setting={setting}
+      render={({ value, onBlur }) => (
+        <Switch
+          id={setting.name}
+          checked={value === "true"}
+          onCheckedChange={(checked) => onBlur(checked ? "true" : "false")}
+        />
       )}
     />
   )

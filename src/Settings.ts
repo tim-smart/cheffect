@@ -1,6 +1,6 @@
 import * as Data from "effect/Data"
 import * as Schema from "effect/Schema"
-import { Store, storeIdAtom } from "./livestore/atoms"
+import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
 import { events } from "./livestore/schema"
 import { queryDb, sql } from "@livestore/livestore"
 import { flow } from "effect"
@@ -9,6 +9,8 @@ import * as Option from "effect/Option"
 import { Atom, Result } from "@effect-atom/atom-react"
 import { kvsRuntime } from "./atoms"
 import * as DateTime from "effect/DateTime"
+import * as Function from "effect/Function"
+import { makeResultOptionAtom } from "./lib/atom"
 
 const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   setting: Setting<S>,
@@ -54,6 +56,7 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
       if (Option.isSome(cached)) {
         return Result.success(cached)
       } else if (setting.initialValue !== undefined) {
+        get.set(cacheAtom, Option.some(setting.initialValue))
         return Result.success(Option.some(setting.initialValue))
       }
       return result
@@ -138,12 +141,19 @@ export const livestoreStoreId = new Setting({
   label: "LiveStore Store ID",
   schema: Schema.NonEmptyString,
   schemaInput: OptionFromString,
-  atomOverride: Atom.writable(
-    (get) => Result.success(Option.some(get(storeIdAtom))),
-    (ctx, newValue: Option.Option<string>) => {
-      if (Option.isSome(newValue)) {
-        ctx.set(storeIdAtom, newValue.value)
-      }
-    },
+  atomOverride: makeResultOptionAtom(storeIdAtom),
+})
+
+export const livestoreSyncEnabled = new Setting({
+  name: "livestoreSyncEnabled",
+  label: "Enable Sync",
+  schema: Schema.Boolean,
+  schemaInput: AsSome(
+    Schema.transform(Schema.String, Schema.Boolean, {
+      decode: (s) => s === "true",
+      encode: (b) => (b ? "true" : "false"),
+    }),
+    Function.constFalse,
   ),
+  atomOverride: makeResultOptionAtom(syncEnabledAtom),
 })
