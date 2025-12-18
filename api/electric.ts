@@ -63,11 +63,7 @@ async function POST(request: Request) {
 export default {
   async fetch(request: Request) {
     if (request.method === "HEAD") {
-      const response = await GET(request)
-      return new Response(null, {
-        status: response.status,
-        headers: response.headers,
-      })
+      return new Response(null, { status: 200 })
     }
     if (request.method === "GET") {
       return GET(request)
