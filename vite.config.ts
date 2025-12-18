@@ -31,7 +31,29 @@ export default defineConfig({
         display: "standalone",
         theme_color: "#ffffff",
         background_color: "#ffffff",
-        shortcuts: [],
+        shortcuts: [
+          {
+            name: "Grocery list",
+            short_name: "Groceries",
+            description: "View your grocery list",
+            url: "/groceries",
+            icons: [{ src: "/icons/groceries-192x192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Meal plan",
+            short_name: "Meal Plan",
+            description: "View your meal plan",
+            url: "/plan",
+            icons: [{ src: "/icons/plan-192x192.png", sizes: "192x192" }],
+          },
+          {
+            name: "Settings",
+            short_name: "Settings",
+            description: "Open settings",
+            url: "/settings",
+            icons: [{ src: "/icons/settings-192x192.png", sizes: "192x192" }],
+          },
+        ],
         launch_handler: {
           client_mode: "focus-existing",
         },
@@ -46,6 +68,15 @@ export default defineConfig({
             url: "url",
           },
         },
+        screenshots: [
+          {
+            src: "/screenshots/android.jpg",
+            type: "image/jpg",
+            platform: "android",
+            sizes: "1080x2340",
+            form_factor: "narrow",
+          },
+        ],
       },
 
       injectManifest: {
