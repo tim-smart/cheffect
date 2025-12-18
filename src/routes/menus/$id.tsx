@@ -35,6 +35,7 @@ import { Placeholder } from "@/components/placeholder"
 import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
+import { Input } from "@/components/ui/input"
 
 export const Route = createFileRoute("/menus/$id")({
   component: MenuDetailPage,
@@ -45,6 +46,17 @@ export function MenuDetailPage() {
   const commit = useCommit()
   const menu = useAtomSuspense(menuByIdAtom(id)).value
   const entries = useAtomValue(menuEntriesAtom(id))!
+
+  const setDays = (days: number) => {
+    if (days < 1 || days === menu.days) return
+    commit(
+      events.menuUpdate({
+        ...menu,
+        days,
+        updatedAt: DateTime.unsafeNow(),
+      }),
+    )
+  }
 
   return (
     <div className="pb-30">
@@ -122,20 +134,21 @@ export function MenuDetailPage() {
         </DndContext>
         <div className="flex items-center">
           <div className="flex-1" />
-          <Button
-            onClick={() => {
-              commit(
-                events.menuUpdate({
-                  ...menu,
-                  days: menu.days + 1,
-                  updatedAt: DateTime.unsafeNow(),
-                }),
-              )
-            }}
-          >
-            <Plus className="w-4 h-4" />
-            Add day
-          </Button>
+          <div className="flex items-center gap-2">
+            <span>Days:</span>
+            <Input
+              type="number"
+              min={1}
+              className="w-16 bg-white"
+              defaultValue={menu.days}
+              onBlur={(e) => setDays(Number(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  ;(e.target as HTMLInputElement).blur()
+                }
+              }}
+            />
+          </div>
         </div>
       </main>
     </div>
