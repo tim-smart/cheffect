@@ -104,7 +104,7 @@ export function MenuDetailPage() {
                   }}
                 >
                   <Trash />
-                  Remove menu
+                  Remove
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

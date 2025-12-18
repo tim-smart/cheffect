@@ -10,7 +10,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Recipe } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
-import { quantityFormatter } from "@/lib/utils"
+import { cn, quantityFormatter } from "@/lib/utils"
 import { useCommit } from "@/livestore/atoms"
 import { recipeByIdAtom } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
@@ -105,74 +105,89 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
     <div className="pb-30">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-2 py-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-2"
-              onClick={() => router.history.back()}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-lg font-semibold text-gray-900 line-clamp-1 flex-1">
-              {recipe.title}
-            </h1>
-            <div className="flex items-center gap-1">
-              <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-2">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to="/edit/$id" params={{ id: recipe.id }}>
-                      <Edit />
-                      Edit
-                    </Link>
+        <div
+          className={cn(
+            "flex items-center",
+            recipe.imageUrl ? "gap-3 md:gap-4 p-2" : "gap-2 px-2 py-4",
+          )}
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            className="p-2"
+            onClick={() => router.history.back()}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          {recipe.imageUrl && (
+            <img
+              src={recipe.imageUrl}
+              alt={recipe.title}
+              className="block size-14 md:size-18 border object-cover rounded-lg -ml-2"
+            />
+          )}
+          <h1
+            className={cn(
+              "text-lg font-semibold text-gray-900 flex-1 leading-tight",
+              recipe.imageUrl ? "line-clamp-2" : "line-clamp-1",
+            )}
+          >
+            {recipe.title}
+          </h1>
+          <div className="flex items-center gap-1">
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="p-2">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link to="/edit/$id" params={{ id: recipe.id }}>
+                    <Edit />
+                    Edit
+                  </Link>
+                </DropdownMenuItem>
+                <MealPlanDatePicker
+                  target={MealPlanDatePickerTarget.New({
+                    recipeId: recipe.id,
+                  })}
+                  onSelect={() => {
+                    setMenuOpen(false)
+                  }}
+                >
+                  <DropdownMenuItem>
+                    <Calendar />
+                    Add to meal plan
                   </DropdownMenuItem>
-                  <MealPlanDatePicker
-                    target={MealPlanDatePickerTarget.New({
-                      recipeId: recipe.id,
-                    })}
-                    onSelect={() => {
-                      setMenuOpen(false)
-                    }}
-                  >
-                    <DropdownMenuItem>
-                      <Calendar />
-                      Add to meal plan
-                    </DropdownMenuItem>
-                  </MealPlanDatePicker>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (
-                        !confirm("Are you sure you want to delete this recipe?")
-                      ) {
-                        return
-                      }
-                      commit(
-                        events.recipeDeleted({
-                          id: recipe.id,
-                          deletedAt: DateTime.unsafeNow(),
-                        }),
-                      )
-                      return router.history.back()
-                    }}
-                  >
-                    <Trash />
-                    Remove recipe
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                </MealPlanDatePicker>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (
+                      !confirm("Are you sure you want to delete this recipe?")
+                    ) {
+                      return
+                    }
+                    commit(
+                      events.recipeDeleted({
+                        id: recipe.id,
+                        deletedAt: DateTime.unsafeNow(),
+                      }),
+                    )
+                    return router.history.back()
+                  }}
+                >
+                  <Trash />
+                  Remove recipe
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
 
       {!recipe.hasNoDetails && (
-        <div className="bg-white p-4 border-b border-gray-200">
+        <div className="bg-white p-4 border-b border-gray-200 flex items-center">
           {/* Recipe Image & Basic Info */}
           <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-gray-600">
             {recipe.prepTime && (
