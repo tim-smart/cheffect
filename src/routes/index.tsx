@@ -25,7 +25,7 @@ export default function CheffectHome() {
   const recipes = useAtomValue(allRecipesAtom)
 
   return (
-    <div className="max-w-lg mx-auto p-2 sm:p-4 pb-30">
+    <div className="max-w-lg mx-auto p-2 sm:p-4 pb-30!">
       {/* Search Bar */}
       <div className="mb-4">
         <SearchInput />
