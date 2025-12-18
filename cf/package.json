@@ -1,0 +1,28 @@
+{
+	"name": "cheffect-sync",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"test": "vitest",
+		"cf-typegen": "wrangler types"
+	},
+	"dependencies": {
+		"@livestore/sync-cf": "0.0.0-snapshot-2acc099854ae2945a941ebd0bbe879b32c0fabba"
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"typescript": "^5.5.2",
+		"vitest": "~3.2.0",
+		"wrangler": "^4.55.0"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"sharp",
+			"workerd"
+		]
+	}
+}
