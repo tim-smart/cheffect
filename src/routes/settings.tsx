@@ -142,7 +142,10 @@ function SettingsPage() {
                     const url = new URL(window.location.href)
                     url.pathname = "/"
                     url.searchParams.set("invite_id", value)
-                    navigator.share({ url: url.toString() })
+                    navigator.share({
+                      title: "Cheffect recipe manager invite",
+                      url: url.toString(),
+                    })
                   }}
                 >
                   <Share2 />
