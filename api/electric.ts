@@ -3,7 +3,7 @@ import { ApiSchema, makeElectricUrl } from "@livestore/sync-electric"
 import { toTableName } from "@livestore/sync-electric"
 import postgres from "postgres"
 
-const electricHost = "https://api.electric-sql.cloud/v1/shape"
+const electricHost = "https://api.electric-sql.cloud"
 
 declare const process: {
   env: Record<string, string | undefined>
