@@ -25,7 +25,7 @@ import {
 import { useAtomSet, useAtomSuspense } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Schema } from "effect"
-import { Import, MoreVertical, Settings, Share } from "lucide-react"
+import { Import, MoreVertical, Settings, Share, Share2 } from "lucide-react"
 import { useRef, useState } from "react"
 
 export const Route = createFileRoute("/settings")({
@@ -126,13 +126,28 @@ function SettingsPage() {
           <SettingControl
             setting={livestoreStoreId}
             render={({ value, onChange, onBlur, onKeyDown }) => (
-              <Input
-                id={livestoreStoreId.name}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                onBlur={() => onBlur()}
-                onKeyDown={onKeyDown}
-              />
+              <div className="flex items-center gap-1">
+                <Input
+                  id={livestoreStoreId.name}
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  onBlur={() => onBlur()}
+                  onKeyDown={onKeyDown}
+                />
+                <Button
+                  className="size-8.5"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => {
+                    const url = new URL(window.location.href)
+                    url.pathname = "/"
+                    url.searchParams.set("invite_id", value)
+                    navigator.share({ url: url.toString() })
+                  }}
+                >
+                  <Share2 />
+                </Button>
+              </div>
             )}
           />
         </SettingSection>

@@ -297,6 +297,7 @@ export const events = {
     schema: Schema.Struct({
       id: Schema.String,
       value: Schema.Option(Schema.Unknown),
+      updatedAt: Schema.DateTimeUtc,
     }),
   }),
   searchStateSet: tables.searchState.set,
@@ -331,16 +332,8 @@ const materializers = State.SQLite.materializers(events, {
     tables.groceryItems.delete().where({ id }),
   "v1.GroceryItemToggled": ({ completed, id }) =>
     tables.groceryItems.update({ completed }).where({ id }),
-  "v1.MenuAdd": (insert) => {
-    const now = DateTime.unsafeNow()
-    return tables.menus
-      .insert({
-        ...insert,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .onConflict("id", "ignore")
-  },
+  "v1.MenuAdd": (insert) =>
+    tables.menus.insert(insert).onConflict("id", "ignore"),
   "v1.MenuUpdate": ({ id, ...update }) =>
     tables.menus.update(update).where({ id }),
   "v1.MenuDayRemove": ({ id, newDays, day, updatedAt }) => [
@@ -353,8 +346,7 @@ const materializers = State.SQLite.materializers(events, {
   "v1.MenuEntrySetDay": ({ id, ...update }) =>
     tables.menuEntries.update(update).where({ id }),
   "v1.MenuEntryRemove": ({ id }) => tables.menuEntries.delete().where({ id }),
-  "v1.SettingsSet": ({ id, value }) => {
-    const now = DateTime.unsafeNow()
+  "v1.SettingsSet": ({ id, value, updatedAt }) => {
     const encoded = value.pipe(
       Option.map((v) => JSON.stringify(v)),
       Option.getOrNull,
@@ -363,12 +355,12 @@ const materializers = State.SQLite.materializers(events, {
       .insert({
         id,
         value: encoded,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: updatedAt,
+        updatedAt,
       })
       .onConflict("id", "update", {
         value: encoded,
-        updatedAt: now,
+        updatedAt,
       })
   },
 })

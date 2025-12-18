@@ -3,10 +3,10 @@ import { Search, ArrowDownWideNarrow } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { allRecipesAtom, searchSortByAtom } from "@/livestore/queries"
-import { Result, useAtomValue } from "@effect-atom/atom-react"
+import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import { events } from "@/livestore/schema"
 import { SortBy } from "@/domain/Recipe"
-import { useCommit } from "@/livestore/atoms"
+import { storeIdAtom, useCommit } from "@/livestore/atoms"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -16,6 +16,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSearchQuery } from "@/Recipes/atoms"
 import { RecipeList } from "@/Recipes/List"
+import { useState } from "react"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -43,6 +53,8 @@ export default function CheffectHome() {
           .onSuccess((recipes) => <WrappedList recipes={recipes} />)
           .render()}
       </div>
+
+      <InviteIdChecker />
     </div>
   )
 }
@@ -133,3 +145,50 @@ function RecipeListSkeleton() {
 //     </div>
 //   )
 // }
+
+const invitesSeen = new Set<string>()
+
+function InviteIdChecker() {
+  const [open, setOpen] = useState(true)
+  const [storeId, setStoreId] = useAtom(storeIdAtom)
+
+  const inviteId = new URLSearchParams(window.location.search).get("invite_id")
+  if (!inviteId || inviteId === storeId || invitesSeen.has(inviteId))
+    return null
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) invitesSeen.add(inviteId)
+        setOpen(open)
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Accept invitation</DialogTitle>
+          <DialogDescription>
+            Someone has shared their recipe collection with you.
+            <br />
+            Once you "Accept", all data will be replaced with the shared data.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <Button
+            type="submit"
+            onClick={() => {
+              console.log("Accepting invite", inviteId)
+              setStoreId(inviteId)
+              window.location.reload()
+            }}
+          >
+            Accept
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
