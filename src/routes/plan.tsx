@@ -35,6 +35,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { Placeholder } from "@/components/placeholder"
+import { useSwipeable } from "react-swipeable"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -82,6 +83,12 @@ export function MealPlanPage() {
   const handleRemoveEntry = (id: string) => {
     commit(events.mealPlanRemove({ id }))
   }
+
+  const handlers = useSwipeable({
+    delta: 50,
+    onSwipedLeft: handleNextWeek,
+    onSwipedRight: handlePreviousWeek,
+  })
 
   return (
     <div className="pb-30">
@@ -173,7 +180,7 @@ export function MealPlanPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-2 py-3">
+      <main className="max-w-lg mx-auto px-2 py-3" {...handlers}>
         <WeekList
           today={today}
           entries={Result.getOrElse(entries, () => [])}
