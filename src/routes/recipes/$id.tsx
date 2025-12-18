@@ -6,8 +6,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Recipe } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
+import { quantityFormatter } from "@/lib/utils"
 import { useCommit } from "@/livestore/atoms"
 import { recipeByIdAtom } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
@@ -20,15 +22,18 @@ import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
+import * as BigDecimal from "effect/BigDecimal"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
 import * as HashSet from "effect/HashSet"
+import * as Option from "effect/Option"
 import {
   ArrowLeft,
   Calendar,
   Clock,
   Edit,
   MoreVertical,
+  SlidersHorizontal,
   Star,
   Trash,
   Users,
@@ -175,7 +180,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
             {recipe.servings && (
               <div className="flex items-center gap-1">
                 <Users className="w-4 h-4" />
-                <span>{recipe.servings} servings</span>
+                <span>{recipe.servingsDisplay} servings</span>
               </div>
             )}
             {recipe.rating && (
@@ -195,12 +200,20 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
             <div className="flex">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Ingredients
+                {recipe.ingredientScale !== 1 && (
+                  <span className="text-sm text-gray-500 ml-2">
+                    x{quantityFormatter.format(recipe.ingredientScale)}
+                  </span>
+                )}
               </h2>
               <div className="flex-1" />
-              <AddToGroceriesButton
-                recipes={[recipe]}
-                excludeIngredients={checkedIngredients}
-              />
+              <div>
+                <AddToGroceriesButton
+                  recipes={[recipe]}
+                  excludeIngredients={checkedIngredients}
+                />
+                <IngredientDropdown recipe={recipe} />
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -238,9 +251,11 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                             className={`flex-1 ${isChecked ? "line-through text-gray-500" : "text-gray-900"}`}
                           >
                             <span>
-                              {ingredient.quantity && (
+                              {ingredient.quantity !== null && (
                                 <>
-                                  {ingredient.quantity}
+                                  {quantityFormatter.format(
+                                    ingredient.quantity,
+                                  )}
                                   {ingredient.unit &&
                                     ` ${ingredient.unit}`}{" "}
                                 </>
@@ -321,5 +336,55 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         </div>
       </div>
     </div>
+  )
+}
+
+function IngredientDropdown({ recipe }: { recipe: Recipe }) {
+  const [open, setOpen] = useState(false)
+  const commit = useCommit()
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="p-2">
+          <MoreVertical className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <div className="flex items-center gap-2 px-1 py-1">
+          <SlidersHorizontal className="text-muted-foreground size-4" />
+          Scale
+          <Input
+            defaultValue={quantityFormatter.format(recipe.ingredientScale)}
+            className="w-16"
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return
+              const scale = Option.gen(function* () {
+                const parts = e.currentTarget.value.split("/")
+                if (parts.length > 2) {
+                  return yield* Option.none()
+                } else if (parts.length === 2) {
+                  const numerator = yield* BigDecimal.fromString(parts[0])
+                  const denominator = yield* BigDecimal.fromString(parts[1])
+                  return yield* BigDecimal.divide(numerator, denominator)
+                } else if (parts[0].trim() === "") {
+                  return yield* Option.some(BigDecimal.fromNumber(1))
+                }
+                return yield* BigDecimal.fromString(parts[0])
+              })
+              if (Option.isSome(scale)) {
+                commit(
+                  events.recipeSetIngredientScale({
+                    id: recipe.id,
+                    ingredientScale: BigDecimal.unsafeToNumber(scale.value),
+                    updatedAt: DateTime.unsafeNow(),
+                  }),
+                )
+              }
+              setOpen(false)
+            }}
+          />
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

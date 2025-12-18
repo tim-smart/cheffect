@@ -40,6 +40,7 @@ function ProductScreen() {
                 }),
               ),
             )
+            router.navigate({ to: "/recipes/$id", params: { id: recipe.id } })
           }}
         />
       </div>

@@ -5,7 +5,6 @@ import { ShadcnReactHookFormLayer } from "@/lib/InatoForm"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash, X } from "lucide-react"
 import * as Arr from "effect/Array"
-import { router } from "@/Router"
 import { Unit } from "@/domain/Recipe"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -30,7 +29,6 @@ export function RecipeForm({
         console.error("Form submission error:", error)
       }}
       onSubmit={({ decoded }) => {
-        router.navigate({ to: "/" })
         onSubmit(decoded)
       }}
     >

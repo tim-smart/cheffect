@@ -181,6 +181,10 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
     return filterZero(Duration.sum(prep, cook))
   }
 
+  get servingsDisplay(): number | null {
+    return this.servings && this.servings * this.ingredientScale
+  }
+
   get ingredientsDisplay(): ReadonlyArray<IngredientsComponent> {
     const scale = this.ingredientScale
     const ingredients = this.ingredientsConverted ?? this.ingredients

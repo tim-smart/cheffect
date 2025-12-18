@@ -105,7 +105,7 @@ function RecipeCard({
             {recipe.servings !== null && (
               <div className="flex items-center gap-0.5">
                 <Users className="w-4 h-4" />
-                <span>{recipe.servings}</span>
+                <span>{recipe.servingsDisplay}</span>
               </div>
             )}
             {recipe.rating !== null && (

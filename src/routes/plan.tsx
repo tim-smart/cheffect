@@ -284,7 +284,7 @@ function WeekList({
                               onSome: (duration) => [Duration.format(duration)],
                             }),
                             ...(recipe.servings
-                              ? [`${recipe.servings} servings`]
+                              ? [`${recipe.servingsDisplay} servings`]
                               : []),
                           ].join(" • ")}
                         </p>

@@ -326,7 +326,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
               onNone: () => [],
               onSome: (duration) => [Duration.format(duration)],
             }),
-            ...(recipe.servings ? [`${recipe.servings} servings`] : []),
+            ...(recipe.servings ? [`${recipe.servingsDisplay} servings`] : []),
           ].join(" • ")}
         </p>
       </div>

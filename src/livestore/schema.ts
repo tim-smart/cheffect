@@ -186,6 +186,14 @@ export const events = {
     name: "v1.RecipeUpdated",
     schema: Recipe.update,
   }),
+  recipeSetIngredientScale: Events.synced({
+    name: "v1.RecipeSetIngredientScale",
+    schema: Schema.Struct({
+      id: Schema.String,
+      ingredientScale: Schema.Number,
+      updatedAt: Schema.DateTimeUtcFromNumber,
+    }),
+  }),
   recipeDeleted: Events.synced({
     name: "v1.RecipeDeleted",
     schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
@@ -300,6 +308,8 @@ const materializers = State.SQLite.materializers(events, {
     tables.recipes.insert(insert).onConflict("id", "ignore"),
   "v1.RecipeUpdated": (update) =>
     tables.recipes.update(update).where({ id: update.id }),
+  "v1.RecipeSetIngredientScale": ({ id, ingredientScale, updatedAt }) =>
+    tables.recipes.update({ ingredientScale, updatedAt }).where({ id }),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
   "v1.RecipeExtractJobAdded": (insert) =>
