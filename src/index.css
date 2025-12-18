@@ -142,7 +142,8 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
   body {
-    @apply bg-gray-100 text-foreground;
+    @apply bg-white h-full text-foreground;
   }
 }
