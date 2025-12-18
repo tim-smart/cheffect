@@ -27,6 +27,9 @@ export function SelectRecipeDrawer({
 }) {
   const [open, setOpen] = useState(false)
   const registry = useContext(RegistryContext)
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
+    null,
+  )
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -46,8 +49,12 @@ export function SelectRecipeDrawer({
                 }
               }}
             />
-            <div className="h-80 overflow-y-auto border border-gray-200 rounded-lg">
+            <div
+              ref={setScrollElement}
+              className="h-80 overflow-y-auto border border-gray-200 rounded-lg"
+            >
               <SearchResults
+                getScrollElement={() => scrollElement}
                 onSelect={(recipe) => {
                   onSelect(recipe)
                   setOpen(false)
@@ -84,7 +91,13 @@ function SearchInput({ onSubmit }: { onSubmit: () => void }) {
   )
 }
 
-function SearchResults({ onSelect }: { onSelect: (recipe: Recipe) => void }) {
+function SearchResults({
+  getScrollElement,
+  onSelect,
+}: {
+  getScrollElement: () => HTMLElement | null
+  onSelect: (recipe: Recipe) => void
+}) {
   const query = useAtomValue(mealPlanRecipesQueryAtom)
   const recipes = useAtomValue(mealPlanRecipesAtom)!
   return (
@@ -93,6 +106,7 @@ function SearchResults({ onSelect }: { onSelect: (recipe: Recipe) => void }) {
       searchQuery={query}
       onSelect={onSelect}
       rounded={false}
+      getScrollElement={getScrollElement}
     />
   )
 }

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useElementScrollRestoration } from "@tanstack/react-router"
 import { Clock, Users, ChefHat, Star, ArrowRight } from "lucide-react"
 import * as Duration from "effect/Duration"
 import { Recipe } from "@/domain/Recipe"
@@ -7,18 +7,37 @@ import * as Option from "effect/Option"
 import { Button } from "@/components/ui/button"
 import clsx from "clsx"
 import { Placeholder } from "@/components/placeholder"
+import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual"
 
 export function RecipeList({
   recipes,
   searchQuery,
   onSelect,
   rounded = true,
+  getScrollElement,
 }: {
   recipes: ReadonlyArray<Recipe>
   searchQuery: string
   onSelect?: ((recipe: Recipe) => void) | undefined
   rounded?: boolean
+  getScrollElement?: () => HTMLElement | null
 }) {
+  const virtualizer = getScrollElement
+    ? useVirtualizer({
+        count: recipes.length,
+        getScrollElement,
+        estimateSize: () => 81,
+        overscan: 3,
+      })
+    : useWindowVirtualizer({
+        initialOffset: useElementScrollRestoration({
+          getElement: () => window,
+        })?.scrollY,
+        count: recipes.length,
+        estimateSize: () => 81,
+        overscan: 3,
+      })
+
   if (recipes.length === 0) {
     return <NoResults searchQuery={searchQuery} />
   }
@@ -26,12 +45,36 @@ export function RecipeList({
     <div
       className={clsx(
         rounded && `rounded-lg border`,
-        `bg-white overflow-hidden divide-y divide-gray-200 border-gray-200`,
+        `bg-white overflow-hidden divide-y divide-gray-200 border-gray-200 relative last:border-b`,
       )}
     >
-      {recipes.map((recipe) => (
-        <RecipeCard key={recipe.id} recipe={recipe} onSelect={onSelect} />
-      ))}
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const recipe = recipes[virtualRow.index]
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <RecipeCard recipe={recipe} onSelect={onSelect} />
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
