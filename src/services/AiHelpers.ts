@@ -20,20 +20,15 @@ export const isAiEnabledAtom = Atom.make((get) =>
   Result.map(get(openAiApiKey.atom), Option.isSome),
 )
 
-export const openAiClientLayer = Atom.make((get) =>
-  Layer.unwrapEffect(
-    Effect.gen(function* () {
-      const apiKeyOption = yield* get.result(openAiApiKey.atom)
-      if (apiKeyOption._tag === "None") {
-        return yield* Effect.never
-      }
-      const apiKey = apiKeyOption.value
-      return OpenAiClient.layer({ apiKey }).pipe(
-        Layer.provide(FetchHttpClient.layer),
-      )
-    }),
-  ),
-)
+export const openAiClientLayer = Atom.make((get) => {
+  const apiKeyOption = Result.value(get(openAiApiKey.atom)).pipe(Option.flatten)
+  if (Option.isNone(apiKeyOption)) {
+    return Layer.effect(OpenAiClient.OpenAiClient, Effect.never)
+  }
+  return OpenAiClient.layer({ apiKey: apiKeyOption.value }).pipe(
+    Layer.provide(FetchHttpClient.layer),
+  )
+})
 
 export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
   dependencies: [CorsProxy.Default],
