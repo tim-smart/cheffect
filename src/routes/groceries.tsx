@@ -46,6 +46,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import clsx from "clsx"
 import { recipeTitleAtom } from "@/livestore/queries"
 import { cn } from "@/lib/utils"
+import { isAiEnabledAtom } from "@/services/AiHelpers"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
@@ -460,8 +461,8 @@ function GroceryListSkeleton() {
 
 function BeautifyButton() {
   const [result, beautifyGroceries] = useAtom(beautifyGroceriesAtom)
-
-  if (result._tag === "Initial" && result.waiting) {
+  const aiEnabled = useAtomValue(isAiEnabledAtom)
+  if (!aiEnabled) {
     return null
   }
 
