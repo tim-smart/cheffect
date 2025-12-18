@@ -289,7 +289,7 @@ function WeekList({
                           ].join(" • ")}
                         </p>
                       </div>
-                      <div>
+                      <div onClick={(e) => e.stopPropagation()}>
                         <MealPlanDatePicker
                           target={MealPlanDatePickerTarget.Existing({
                             id,
