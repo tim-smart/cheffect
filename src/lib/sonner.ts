@@ -25,7 +25,9 @@ export const withToast =
         },
       })
       fiber.addObserver((exit) => {
-        if (Exit.isInterrupted(exit)) return
+        if (Exit.isInterrupted(exit)) {
+          return toast.dismiss(toastId)
+        }
         opts.onExit(exit, toastId)
       })
       return Fiber.join(fiber)
