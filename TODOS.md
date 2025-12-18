@@ -1,5 +1,3 @@
-- Sync
-- Scale recipe ingredients
 - AI metric/imperial conversions
 - AI recipe chat
   - Add tools for ai to interact with app
