@@ -45,6 +45,18 @@ export function RecipeForm({
               <Display.servings label="Servings" />
               <Display.rating label="Rating" />
             </div>
+            <div className="flex gap-2">
+              <Display.sourceName label="Source" />
+              <Display.sourceUrl label="Source URL" />
+            </div>
+          </div>
+        </FormCard>
+        <FormCard>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Display.sourceName label="Source" />
+              <Display.sourceUrl label="Source URL" />
+            </div>
           </div>
         </FormCard>
         <Display.ingredients>
@@ -82,7 +94,7 @@ export function RecipeForm({
 
 function FormCard({ children }: React.PropsWithChildren<{}>) {
   return (
-    <div className="flex flex-col gap-4 bg-white border rounded-md py-4 px-2">
+    <div className="flex flex-col gap-4 bg-white border rounded-md p-4">
       {children}
     </div>
   )

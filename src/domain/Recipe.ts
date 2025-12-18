@@ -115,18 +115,23 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
     steps: Schema.Array(Step).annotations({
       description: "A list of steps to follow in the recipe.",
     }),
+    sourceName: Schema.NullOr(Schema.String).annotations({
+      description:
+        "The name of the source where the recipe was extracted from, e.g., 'AllRecipes'. Set to null if not available.",
+    }),
   },
   {
     description: "Represents a recipe with its details.",
   },
 ) {
-  get asRecipe(): Recipe {
+  asRecipe(url: string): Recipe {
     return new Recipe({
       ...this,
+      id: crypto.randomUUID(),
       rating: null,
       ingredientsConverted: null,
       ingredientScale: 1,
-      id: crypto.randomUUID(),
+      sourceUrl: url,
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
       deletedAt: null,
@@ -154,6 +159,7 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   }),
   steps: Model.JsonFromString(Schema.Array(Step)),
   rating: Schema.NullOr(Rating),
+  sourceUrl: Schema.NullOr(Schema.String),
   createdAt: Schema.DateTimeUtcFromNumber.pipe(
     Model.FieldOnly("insert", "select", "json"),
   ),
@@ -168,6 +174,7 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
     if (this.cookingTime !== null) return false
     if (this.servings !== null) return false
     if (this.rating !== null) return false
+    if (this.sourceUrl !== null) return false
     return true
   }
 

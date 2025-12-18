@@ -10,7 +10,6 @@ import {
 } from "../domain/Recipe"
 import { Model } from "@effect/sql"
 import { Events, makeSchema, State } from "@livestore/livestore"
-import * as DateTime from "effect/DateTime"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 
@@ -40,6 +39,8 @@ export const tables = {
       }),
       ingredientScale: State.SQLite.real({ default: 1 }),
       steps: State.SQLite.json({ schema: Schema.Array(Step) }),
+      sourceName: State.SQLite.text({ nullable: true }),
+      sourceUrl: State.SQLite.text({ nullable: true }),
       createdAt: State.SQLite.integer({
         schema: Schema.DateTimeUtcFromNumber,
       }),

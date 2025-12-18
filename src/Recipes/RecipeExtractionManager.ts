@@ -49,7 +49,7 @@ export const RecipeExtractionManager = Layer.scopedDiscard(
             return Effect.void
           }),
         )
-        const recipe = extracted.asRecipe
+        const recipe = extracted.asRecipe(job.url)
         store.commit(events.recipeCreated(recipe))
         return recipe
       },

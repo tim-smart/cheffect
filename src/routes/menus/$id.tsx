@@ -265,7 +265,6 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
   })
   const style = transform
     ? {
-        borderWidth: "1px",
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
         zIndex: 999,
       }
@@ -285,7 +284,10 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
 
   return (
     <Link
-      className="flex items-center p-3 gap-3 bg-white relative rounded-lg border-gray-200"
+      className={cn(
+        "flex items-center p-3 gap-3 bg-white relative rounded-lg border border-transparent",
+        isDragging && "border-gray-200",
+      )}
       to="/recipes/$id"
       disabled={debouncedIsDragging}
       params={{ id: recipe.id }}

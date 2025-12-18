@@ -59,6 +59,8 @@ export const RecipeFormSchema = FormBody.struct({
     defaultValue: [{ text: "", tips: [] }],
   },
   rating: RatingInput.Optional,
+  sourceName: TextInputOrNull,
+  sourceUrl: TextInputOrNull,
 })
 
 const decodeFromForm = (

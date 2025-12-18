@@ -37,6 +37,7 @@ import {
   Star,
   Trash,
   Users,
+  Link as LinkIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -182,6 +183,19 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                 <Users className="w-4 h-4" />
                 <span>{recipe.servingsDisplay} servings</span>
               </div>
+            )}
+            {recipe.sourceUrl && (
+              <a
+                href={recipe.sourceUrl}
+                className="flex items-center gap-1"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <LinkIcon className="size-4" />
+                <span className="text-blue-500 border-b border-transparent hover:border-blue-500">
+                  {recipe.sourceName ?? "Source"}
+                </span>
+              </a>
             )}
             {recipe.rating && (
               <div className="flex items-center gap-1">

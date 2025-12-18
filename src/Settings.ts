@@ -8,6 +8,7 @@ import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import { Atom, Result } from "@effect-atom/atom-react"
 import { kvsRuntime } from "./atoms"
+import * as DateTime from "effect/DateTime"
 
 const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   setting: Setting<S>,
@@ -59,7 +60,14 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
     },
     (ctx, newValue: Option.Option<S["Type"]>) => {
       const value = Schema.encodeSync(optionSchema)(newValue)
-      ctx.set(Store.commit, events.settingsSet({ id: setting.name, value }))
+      ctx.set(
+        Store.commit,
+        events.settingsSet({
+          id: setting.name,
+          value,
+          updatedAt: DateTime.unsafeNow(),
+        }),
+      )
       if (cacheAtom) {
         ctx.set(cacheAtom, newValue)
       }
