@@ -8,7 +8,7 @@
   [LiveStore](https://livestore.dev) & [Cloudflare
   Workers](https://workers.cloudflare.com/))
 
-<img src="/public/screenshots/android.jpg" alt="Cheffect Screenshot" width="300" />"
+<img src="/public/screenshots/android.jpg" alt="Cheffect Screenshot" width="300" />
 
 ## License
 
