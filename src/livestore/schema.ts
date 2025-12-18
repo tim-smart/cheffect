@@ -303,14 +303,15 @@ const materializers = State.SQLite.materializers(events, {
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
   "v1.RecipeExtractJobAdded": (insert) =>
-    tables.recipeExtractJobs.insert(insert),
+    tables.recipeExtractJobs.insert(insert).onConflict("id", "ignore"),
   "v1.RecipeExtractJobCompleted": ({ id, completedAt }) =>
     tables.recipeExtractJobs.update({ completedAt }).where({ id }),
   "v1.MealPlanAdd": (insert) => tables.mealPlan.insert(insert),
   "v1.MealPlanSetDay": ({ id, day }) =>
     tables.mealPlan.update({ day }).where({ id }),
   "v1.MealPlanRemove": ({ id }) => tables.mealPlan.delete().where({ id }),
-  "v1.GroceryItemAdded": (insert) => tables.groceryItems.insert(insert),
+  "v1.GroceryItemAdded": (insert) =>
+    tables.groceryItems.insert(insert).onConflict("id", "ignore"),
   "v1.GroceryItemUpdated": ({ id, ...update }) =>
     tables.groceryItems.update(update).where({ id }),
   "v1.GroceryItemCleared": () => tables.groceryItems.delete(),
@@ -322,11 +323,13 @@ const materializers = State.SQLite.materializers(events, {
     tables.groceryItems.update({ completed }).where({ id }),
   "v1.MenuAdd": (insert) => {
     const now = DateTime.unsafeNow()
-    return tables.menus.insert({
-      ...insert,
-      createdAt: now,
-      updatedAt: now,
-    })
+    return tables.menus
+      .insert({
+        ...insert,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflict("id", "ignore")
   },
   "v1.MenuUpdate": ({ id, ...update }) =>
     tables.menus.update(update).where({ id }),
@@ -335,7 +338,8 @@ const materializers = State.SQLite.materializers(events, {
     tables.menuEntries.delete().where({ menuId: id, day }),
   ],
   "v1.MenuRemove": ({ id }) => tables.menus.delete().where({ id }),
-  "v1.MenuEntryAdd": (insert) => tables.menuEntries.insert(insert),
+  "v1.MenuEntryAdd": (insert) =>
+    tables.menuEntries.insert(insert).onConflict("id", "ignore"),
   "v1.MenuEntrySetDay": ({ id, ...update }) =>
     tables.menuEntries.update(update).where({ id }),
   "v1.MenuEntryRemove": ({ id }) => tables.menuEntries.delete().where({ id }),
