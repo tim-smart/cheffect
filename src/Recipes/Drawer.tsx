@@ -14,8 +14,8 @@ import {
   mealPlanRecipesAtom,
   mealPlanRecipesQueryAtom,
 } from "@/livestore/queries"
-import { useAtom, useAtomValue } from "@effect-atom/atom-react"
-import React, { useState } from "react"
+import { RegistryContext, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import React, { useContext, useState } from "react"
 import { RecipeList } from "./List"
 
 export function SelectRecipeDrawer({
@@ -26,6 +26,7 @@ export function SelectRecipeDrawer({
   onSelect: (recipe: Recipe) => void
 }) {
   const [open, setOpen] = useState(false)
+  const registry = useContext(RegistryContext)
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -36,7 +37,15 @@ export function SelectRecipeDrawer({
             <DrawerTitle>Select a recipe</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 flex flex-col gap-4">
-            <SearchInput />
+            <SearchInput
+              onSubmit={() => {
+                const recipe = registry.get(mealPlanRecipesAtom)![0]
+                if (recipe) {
+                  onSelect(recipe)
+                  setOpen(false)
+                }
+              }}
+            />
             <div className="h-80 overflow-y-auto border border-gray-200 rounded-lg">
               <SearchResults
                 onSelect={(recipe) => {
@@ -57,13 +66,19 @@ export function SelectRecipeDrawer({
   )
 }
 
-function SearchInput() {
+function SearchInput({ onSubmit }: { onSubmit: () => void }) {
   const [query, setQuery] = useAtom(mealPlanRecipesQueryAtom)
   return (
     <Input
       placeholder="Search for recipes"
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault()
+          onSubmit()
+        }
+      }}
       autoFocus
     />
   )

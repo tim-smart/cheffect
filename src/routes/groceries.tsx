@@ -461,6 +461,10 @@ function GroceryListSkeleton() {
 function BeautifyButton() {
   const [result, beautifyGroceries] = useAtom(beautifyGroceriesAtom)
 
+  if (result._tag === "Initial" && result.waiting) {
+    return null
+  }
+
   return (
     <Button
       onClick={() => beautifyGroceries()}
