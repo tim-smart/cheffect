@@ -1,3 +1,4 @@
+import { screenWakeLockAtom } from "@/atoms"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -20,7 +21,12 @@ import {
 import { checkedIngredientsAtom } from "@/Recipes/atoms"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
-import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import {
+  Result,
+  useAtom,
+  useAtomMount,
+  useAtomValue,
+} from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import * as BigDecimal from "effect/BigDecimal"
 import * as DateTime from "effect/DateTime"
@@ -55,6 +61,9 @@ function RouteComponent() {
 }
 
 export function RecipeDetails({ recipe }: { recipe: Recipe }) {
+  // Keep screen awake while viewing recipe
+  useAtomMount(screenWakeLockAtom)
+
   const commit = useCommit()
 
   const ingredients = useMemo(() => recipe.ingredientsDisplay, [recipe])
@@ -381,7 +390,7 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
                   const denominator = yield* BigDecimal.fromString(parts[1])
                   return yield* BigDecimal.divide(numerator, denominator)
                 } else if (parts[0].trim() === "") {
-                  return yield* Option.some(BigDecimal.fromNumber(1))
+                  return yield* Option.some(BigDecimal.unsafeFromNumber(1))
                 }
                 return yield* BigDecimal.fromString(parts[0])
               })
