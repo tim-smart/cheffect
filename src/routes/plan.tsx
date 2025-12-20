@@ -219,7 +219,7 @@ function WeekList({
           <div key={date.epochMillis} className="bg-white">
             {/* Day Header with Add Button */}
             <div
-              className={`w-full px-3 py-3 flex items-center justify-between border-b ${
+              className={`w-full p-2 flex items-center justify-between border-b ${
                 isTodayDate ? "bg-orange-50" : "bg-gray-50"
               }`}
             >
@@ -265,7 +265,7 @@ function WeekList({
                   {dayEntries.map(({ id, recipe }) => (
                     <Link
                       key={id}
-                      className="flex items-center p-3 gap-3"
+                      className="flex items-center p-2 gap-3"
                       to="/recipes/$id"
                       params={{ id: recipe.id }}
                     >

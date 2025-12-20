@@ -115,6 +115,15 @@ export function MenuDetailPage() {
       {/* Main Content */}
       <main className="max-w-lg mx-auto px-2 py-3 flex flex-col gap-4">
         <DndContext
+          onDragOver={(event) => {
+            if (!("vibrate" in navigator)) return
+            const { active, over } = event
+            const targetDay = over?.id as number | undefined
+            if (targetDay === undefined) return
+            const entry = entries.find((e) => e.id === active.id)
+            if (!entry || entry.day === targetDay) return
+            navigator.vibrate(10)
+          }}
           onDragEnd={(event) => {
             const { active, over } = event
             const targetDay = over?.id as number | undefined
@@ -196,7 +205,7 @@ function DayListItem({
     <div ref={setNodeRef} className="bg-white">
       <div
         className={cn(
-          `w-full px-3 py-3 flex items-center justify-between border-b`,
+          `w-full pr-2 pl-3 py-1 flex items-center justify-between border-b`,
 
           isOver ? "bg-orange-50 text-orange-600" : "bg-gray-50 text-gray-900",
         )}
@@ -298,7 +307,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
   return (
     <Link
       className={cn(
-        "flex items-center p-3 gap-3 bg-white relative rounded-lg border border-transparent",
+        "flex items-center p-2 -mt-2 first:mt-0 gap-3 bg-white relative rounded-lg border border-transparent",
         isDragging && "border-gray-200",
       )}
       to="/recipes/$id"
