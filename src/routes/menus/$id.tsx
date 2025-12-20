@@ -115,13 +115,8 @@ export function MenuDetailPage() {
       {/* Main Content */}
       <main className="max-w-lg mx-auto px-2 py-3 flex flex-col gap-4">
         <DndContext
-          onDragOver={(event) => {
+          onDragOver={() => {
             if (!("vibrate" in navigator)) return
-            const { active, over } = event
-            const targetDay = over?.id as number | undefined
-            if (targetDay === undefined) return
-            const entry = entries.find((e) => e.id === active.id)
-            if (!entry || entry.day === targetDay) return
             navigator.vibrate(10)
           }}
           onDragEnd={(event) => {
