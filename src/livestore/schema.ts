@@ -132,19 +132,6 @@ export const tables = {
       }),
     },
   }),
-  ingredientRenames: State.SQLite.table({
-    name: "ingredient_renames",
-    columns: {
-      name: State.SQLite.text({ nullable: false }),
-      previousName: State.SQLite.text({ primaryKey: true }),
-      createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
-      }),
-      updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
-      }),
-    },
-  }),
   menus: State.SQLite.table({
     name: "menus",
     columns: {
@@ -267,10 +254,7 @@ export const events = {
   }),
   groceryItemUpdated: Events.synced({
     name: "v1.GroceryItemUpdated",
-    schema: Schema.Struct({
-      ...GroceryItem.update.fields,
-      previousName: Schema.NullOr(Schema.String),
-    }),
+    schema: GroceryItem.update,
   }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
@@ -283,15 +267,6 @@ export const events = {
   groceryItemDeleted: Events.synced({
     name: "v1.GroceryItemDeleted",
     schema: Schema.Struct({ id: Schema.String }),
-  }),
-  groceryItemMerged: Events.synced({
-    name: "v1.GroceryItemMerged",
-    schema: Schema.Struct({
-      id: Schema.String,
-      name: Schema.String,
-      targetName: Schema.String,
-      updatedAt: Schema.DateTimeUtc,
-    }),
   }),
   groceryItemToggled: Events.synced({
     name: "v1.GroceryItemToggled",
@@ -382,13 +357,9 @@ const materializers = State.SQLite.materializers(events, {
         ]
       : add
   },
-  "v1.GroceryItemUpdated": ({ id, previousName, ...update }) => {
+  "v1.GroceryItemUpdated": ({ id, ...update }) => {
     const add = tables.groceryItems.update(update).where({ id })
     const name = update.name.toLowerCase().trim()
-    previousName = previousName?.toLowerCase().trim() ?? null
-    if (name === previousName) {
-      previousName = null
-    }
     return [
       add,
       update.aisle
@@ -404,21 +375,6 @@ const materializers = State.SQLite.materializers(events, {
               updatedAt: update.updatedAt,
             })
         : tables.ingredientAisles.delete().where({ name }),
-      ...(previousName
-        ? [
-            tables.ingredientRenames
-              .insert({
-                name,
-                previousName,
-                createdAt: update.updatedAt,
-                updatedAt: update.updatedAt,
-              })
-              .onConflict("previousName", "update", { name }),
-            tables.ingredientRenames
-              .update({ name })
-              .where({ name: previousName }),
-          ]
-        : []),
     ]
   },
   "v1.GroceryItemCleared": () => tables.groceryItems.delete(),
@@ -426,28 +382,6 @@ const materializers = State.SQLite.materializers(events, {
     tables.groceryItems.delete().where({ completed: true }),
   "v1.GroceryItemDeleted": ({ id }) =>
     tables.groceryItems.delete().where({ id }),
-  "v1.GroceryItemMerged": ({ id, name, targetName, updatedAt }) => {
-    const remove = tables.groceryItems.delete().where({ id })
-    const nameNormalized = name.toLowerCase().trim()
-    const targetNameNormalized = targetName.toLowerCase().trim()
-    if (nameNormalized === targetNameNormalized) {
-      return remove
-    }
-    return [
-      remove,
-      tables.ingredientRenames
-        .insert({
-          name: targetNameNormalized,
-          previousName: nameNormalized,
-          createdAt: updatedAt,
-          updatedAt,
-        })
-        .onConflict("previousName", "update", { name: targetNameNormalized }),
-      tables.ingredientRenames
-        .update({ name: targetNameNormalized })
-        .where({ name: nameNormalized }),
-    ]
-  },
   "v1.GroceryItemToggled": ({ completed, id }) =>
     tables.groceryItems.update({ completed }).where({ id }),
   "v1.MenuAdd": (insert) =>

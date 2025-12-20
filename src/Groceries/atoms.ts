@@ -9,7 +9,6 @@ import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { Atom } from "@effect-atom/atom-react"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
-import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
@@ -58,28 +57,12 @@ export const beautifyGroceriesAtom = runtime
         previousItems.set(item.id, item)
       }
       const ai = yield* AiHelpers
-      const { removed, updated, merges } =
-        yield* ai.beautifyGroceries(currentItems)
+      const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
       for (const item of removed) {
-        const target = previousItems.get(merges.get(item.id)!)
-        store.commit(
-          target
-            ? events.groceryItemMerged({
-                id: item.id,
-                name: item.name,
-                targetName: target.name,
-                updatedAt: DateTime.unsafeNow(),
-              })
-            : events.groceryItemDeleted({ id: item.id }),
-        )
+        store.commit(events.groceryItemDeleted({ id: item.id }))
       }
       for (const item of updated) {
-        store.commit(
-          events.groceryItemUpdated({
-            ...item,
-            previousName: previousItems.get(item.id)?.name ?? null,
-          }),
-        )
+        store.commit(events.groceryItemUpdated(item))
       }
     }),
   )
@@ -92,18 +75,6 @@ export const previousGroceryAisle$ = (name: string) => {
       query: sql`select name, aisle from ingredient_aisles where name = ?`,
       bindValues: [nameNormalized],
       schema: NameAndAisle,
-    },
-    { deps: [name], map: Array.head },
-  )
-}
-
-export const previousGroceryName$ = (name: string) => {
-  const nameNormalized = name.trim().toLowerCase()
-  return queryDb(
-    {
-      query: sql`select name from ingredient_renames where previousName = ?`,
-      bindValues: [nameNormalized],
-      schema: NameOnly,
     },
     { deps: [name], map: Array.head },
   )

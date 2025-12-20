@@ -394,12 +394,7 @@ function GroceryListItem({
           <GroceryItemForm
             initialValue={item}
             onSubmit={(updated) => {
-              commit(
-                events.groceryItemUpdated({
-                  ...updated,
-                  previousName: item.name,
-                }),
-              )
+              commit(events.groceryItemUpdated(updated))
               setEditingItem(false)
             }}
             onCancel={() => setEditingItem(false)}
