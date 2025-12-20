@@ -107,6 +107,7 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
           schema: GroceryItemList,
         })
 
+        const merges = new Map<string, string>()
         const updated: Array<GroceryItem> = []
         for (const item of response.value.items) {
           const prev = leftoverItems.get(item.id)
@@ -117,6 +118,9 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
           leftoverItems.delete(item.id)
           for (const mergedId of item.mergedIds) {
             const mergedItem = leftoverItems.get(mergedId)
+            if (mergedItem) {
+              merges.set(mergedId, item.id)
+            }
             if (!mergedItem || !mergedItem.recipeIds) continue
             mergedItem.recipeIds.forEach((id) => recipeIds.add(id))
           }
@@ -135,7 +139,7 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
 
         const removed = Array.fromIterable(leftoverItems.values())
 
-        return { updated, removed } as const
+        return { updated, removed, merges } as const
       },
       Effect.provide(groceryModel),
     )

@@ -17,7 +17,7 @@ import * as Schema from "effect/Schema"
 export const groceryItemAddAtom = Atom.fnSync<GroceryItem>()((item, get) => {
   const store = get(Store.storeUnsafe)!
   if (!item.aisle) {
-    const maybePrevItem = store.query(previousGroceryItem$(item.name))
+    const maybePrevItem = store.query(previousGroceryAisle$(item.name))
     if (maybePrevItem._tag === "Some") {
       item = new GroceryItem({
         ...item,
@@ -58,21 +58,19 @@ export const beautifyGroceriesAtom = runtime
         previousItems.set(item.id, item)
       }
       const ai = yield* AiHelpers
-      const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
+      const { removed, updated, merges } =
+        yield* ai.beautifyGroceries(currentItems)
       for (const item of removed) {
-        const previous = previousItems.get(item.id)!
+        const target = previousItems.get(merges.get(item.id)!)
         store.commit(
-          item.aisle
+          target
             ? events.groceryItemMerged({
                 id: item.id,
-                name: previous.name,
-                targetName: item.name,
-                targetAisle: item.aisle,
+                name: item.name,
+                targetName: target.name,
                 updatedAt: DateTime.unsafeNow(),
               })
-            : events.groceryItemDeleted({
-                id: item.id,
-              }),
+            : events.groceryItemDeleted({ id: item.id }),
         )
       }
       for (const item of updated) {
@@ -87,17 +85,25 @@ export const beautifyGroceriesAtom = runtime
   )
   .pipe(Atom.keepAlive)
 
-export const previousGroceryItem$ = (name: string) => {
+export const previousGroceryAisle$ = (name: string) => {
   const nameNormalized = name.trim().toLowerCase()
   return queryDb(
     {
-      query: sql`
-        select name, aisle, previousName
-        from ingredient_aisles
-        where name = ? or previousName = ?
-        order by previousName IS NULL DESC`,
-      bindValues: [nameNormalized, nameNormalized],
+      query: sql`select name, aisle from ingredient_aisles where name = ?`,
+      bindValues: [nameNormalized],
       schema: NameAndAisle,
+    },
+    { deps: [name], map: Array.head },
+  )
+}
+
+export const previousGroceryName$ = (name: string) => {
+  const nameNormalized = name.trim().toLowerCase()
+  return queryDb(
+    {
+      query: sql`select name from ingredient_renames where previousName = ?`,
+      bindValues: [nameNormalized],
+      schema: NameOnly,
     },
     { deps: [name], map: Array.head },
   )
@@ -122,7 +128,6 @@ const NameAndAisle = Schema.Array(
   Schema.Struct({
     name: Schema.String,
     aisle: GroceryAisle,
-    previousName: Schema.NullOr(Schema.String),
   }),
 )
 

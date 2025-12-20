@@ -124,7 +124,19 @@ export const tables = {
         schema: GroceryAisle,
         nullable: false,
       }),
-      previousName: State.SQLite.text({ nullable: true }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+  }),
+  ingredientRenames: State.SQLite.table({
+    name: "ingredient_renames",
+    columns: {
+      name: State.SQLite.text({ nullable: false }),
+      previousName: State.SQLite.text({ primaryKey: true }),
       createdAt: State.SQLite.integer({
         schema: Schema.DateTimeUtcFromNumber,
       }),
@@ -278,7 +290,6 @@ export const events = {
       id: Schema.String,
       name: Schema.String,
       targetName: Schema.String,
-      targetAisle: GroceryAisle,
       updatedAt: Schema.DateTimeUtc,
     }),
   }),
@@ -383,20 +394,30 @@ const materializers = State.SQLite.materializers(events, {
       update.aisle
         ? tables.ingredientAisles
             .insert({
-              name: update.name.toLowerCase().trim(),
+              name,
               aisle: update.aisle,
-              previousName,
               createdAt: update.updatedAt,
               updatedAt: update.updatedAt,
             })
             .onConflict("name", "update", {
               aisle: update.aisle,
               updatedAt: update.updatedAt,
-              ...(previousName ? { previousName } : {}),
             })
         : tables.ingredientAisles.delete().where({ name }),
-      ...(previousName && update.aisle
-        ? [tables.ingredientAisles.delete().where({ name: previousName })]
+      ...(previousName
+        ? [
+            tables.ingredientRenames
+              .insert({
+                name,
+                previousName,
+                createdAt: update.updatedAt,
+                updatedAt: update.updatedAt,
+              })
+              .onConflict("previousName", "update", { name }),
+            tables.ingredientRenames
+              .update({ name })
+              .where({ name: previousName }),
+          ]
         : []),
     ]
   },
@@ -405,28 +426,28 @@ const materializers = State.SQLite.materializers(events, {
     tables.groceryItems.delete().where({ completed: true }),
   "v1.GroceryItemDeleted": ({ id }) =>
     tables.groceryItems.delete().where({ id }),
-  "v1.GroceryItemMerged": ({
-    id,
-    name,
-    targetName,
-    targetAisle,
-    updatedAt,
-  }) => [
-    tables.groceryItems.delete().where({ id }),
-    tables.ingredientAisles
-      .insert({
-        name: targetName.toLowerCase().trim(),
-        aisle: targetAisle,
-        previousName: name.toLowerCase().trim(),
-        createdAt: updatedAt,
-        updatedAt,
-      })
-      .onConflict("name", "update", {
-        aisle: targetAisle,
-        updatedAt,
-        previousName: name.toLowerCase().trim(),
-      }),
-  ],
+  "v1.GroceryItemMerged": ({ id, name, targetName, updatedAt }) => {
+    const remove = tables.groceryItems.delete().where({ id })
+    const nameNormalized = name.toLowerCase().trim()
+    const targetNameNormalized = targetName.toLowerCase().trim()
+    if (nameNormalized === targetNameNormalized) {
+      return remove
+    }
+    return [
+      remove,
+      tables.ingredientRenames
+        .insert({
+          name: targetNameNormalized,
+          previousName: nameNormalized,
+          createdAt: updatedAt,
+          updatedAt,
+        })
+        .onConflict("previousName", "update", { name: targetNameNormalized }),
+      tables.ingredientRenames
+        .update({ name: targetNameNormalized })
+        .where({ name: nameNormalized }),
+    ]
+  },
   "v1.GroceryItemToggled": ({ completed, id }) =>
     tables.groceryItems.update({ completed }).where({ id }),
   "v1.MenuAdd": (insert) =>
