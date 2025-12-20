@@ -19,10 +19,22 @@ export const GroceryAisle = Schema.Literal(
 export type GroceryAisle = typeof GroceryAisle.Type
 
 export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
-  id: Model.GeneratedByApp(Schema.String),
-  name: Schema.String,
-  quantity: Schema.NullOr(Schema.String),
-  aisle: Schema.NullOr(GroceryAisle),
+  id: Model.GeneratedByApp(
+    Schema.String.annotations({
+      description: "The unique identifier of the grocery item.",
+    }),
+  ),
+  name: Schema.String.annotations({
+    description:
+      "The name of the grocery item. *Do not* include quantity or unit.",
+  }),
+  quantity: Schema.NullOr(Schema.String).annotations({
+    description:
+      "The quantity and optionally unit of the grocery item, e.g.  '5', 2 lbs', '1 dozen', '500 g'. Can be null if no quantity is specified.",
+  }),
+  aisle: Schema.NullOr(GroceryAisle).annotations({
+    description: "The aisle where the grocery item can be found.",
+  }),
   recipeIds: Model.fieldEvolve(
     Schema.NullOr(Schema.NonEmptyArray(Schema.String)),
     {
