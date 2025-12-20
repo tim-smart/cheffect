@@ -9,6 +9,7 @@ import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { Atom } from "@effect-atom/atom-react"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
+import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
@@ -59,7 +60,20 @@ export const beautifyGroceriesAtom = runtime
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
       for (const item of removed) {
-        store.commit(events.groceryItemDeleted({ id: item.id }))
+        const previous = previousItems.get(item.id)!
+        store.commit(
+          item.aisle
+            ? events.groceryItemMerged({
+                id: item.id,
+                name: previous.name,
+                targetName: item.name,
+                targetAisle: item.aisle,
+                updatedAt: DateTime.unsafeNow(),
+              })
+            : events.groceryItemDeleted({
+                id: item.id,
+              }),
+        )
       }
       for (const item of updated) {
         store.commit(

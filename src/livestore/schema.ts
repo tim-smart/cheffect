@@ -274,6 +274,16 @@ export const events = {
     name: "v1.GroceryItemDeleted",
     schema: Schema.Struct({ id: Schema.String }),
   }),
+  groceryItemMerged: Events.synced({
+    name: "v1.GroceryItemMerged",
+    schema: Schema.Struct({
+      id: Schema.String,
+      name: Schema.String,
+      targetName: Schema.String,
+      targetAisle: GroceryAisle,
+      updatedAt: Schema.DateTimeUtc,
+    }),
+  }),
   groceryItemToggled: Events.synced({
     name: "v1.GroceryItemToggled",
     schema: Schema.Struct({ id: Schema.String, completed: Schema.Boolean }),
@@ -397,6 +407,28 @@ const materializers = State.SQLite.materializers(events, {
     tables.groceryItems.delete().where({ completed: true }),
   "v1.GroceryItemDeleted": ({ id }) =>
     tables.groceryItems.delete().where({ id }),
+  "v1.GroceryItemMerged": ({
+    id,
+    name,
+    targetName,
+    targetAisle,
+    updatedAt,
+  }) => [
+    tables.groceryItems.delete().where({ id }),
+    tables.ingredientAisles
+      .insert({
+        name: targetName.toLowerCase().trim(),
+        aisle: targetAisle,
+        previousName: name.toLowerCase().trim(),
+        createdAt: updatedAt,
+        updatedAt,
+      })
+      .onConflict("name", "update", {
+        aisle: targetAisle,
+        updatedAt,
+        previousName: name.toLowerCase().trim(),
+      }),
+  ],
   "v1.GroceryItemToggled": ({ completed, id }) =>
     tables.groceryItems.update({ completed }).where({ id }),
   "v1.MenuAdd": (insert) =>
