@@ -1,31 +1,26 @@
-import { GroceryItem } from "@/domain/GroceryItem"
+import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { Store } from "@/livestore/atoms"
 import {
   allGroceryItemsArrayAtom,
   allGroceryItemsAtom,
 } from "@/livestore/queries"
-import { events, tables } from "@/livestore/schema"
+import { events } from "@/livestore/schema"
 import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { Atom } from "@effect-atom/atom-react"
-import { queryDb } from "@livestore/livestore"
+import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-
-export const ingredientAisleCached$ = (name: string) =>
-  queryDb(
-    tables.ingredientAisles.select("aisle").where("name", "=", name).limit(1),
-    { map: Array.head },
-  )
+import * as Schema from "effect/Schema"
 
 export const groceryItemAddAtom = Atom.fnSync<GroceryItem>()((item, get) => {
   const store = get(Store.storeUnsafe)!
   if (!item.aisle) {
-    const maybeAisle = store.query(ingredientAisleCached$(item.nameNormalized))
-    if (maybeAisle._tag === "Some") {
+    const maybePrevItem = store.query(previousGroceryItem$(item.name))
+    if (maybePrevItem._tag === "Some") {
       item = new GroceryItem({
         ...item,
-        aisle: maybeAisle.value,
+        aisle: maybePrevItem.value.aisle,
       })
     }
   }
@@ -57,14 +52,47 @@ export const beautifyGroceriesAtom = runtime
       const currentItems = yield* get.result(allGroceryItemsArrayAtom)
       yield* Effect.log("Beautifying groceries...", currentItems)
       if (currentItems.length === 0) return
+      const previousItems = new Map<string, GroceryItem>()
+      for (const item of currentItems) {
+        previousItems.set(item.id, item)
+      }
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
       for (const item of removed) {
         store.commit(events.groceryItemDeleted({ id: item.id }))
       }
       for (const item of updated) {
-        store.commit(events.groceryItemUpdated(item))
+        store.commit(
+          events.groceryItemUpdated({
+            ...item,
+            previousName: previousItems.get(item.id)?.name ?? null,
+          }),
+        )
       }
     }),
   )
   .pipe(Atom.keepAlive)
+
+export const previousGroceryItem$ = (name: string) => {
+  const nameNormalized = name.trim().toLowerCase()
+  return queryDb(
+    {
+      query: sql`
+        select name, aisle, previousName
+        from ingredient_aisles
+        where name = ? or previousName = ?
+        order by previousName IS NULL DESC`,
+      bindValues: [nameNormalized, nameNormalized],
+      schema: NameAndAisle,
+    },
+    { deps: [name], map: Array.head },
+  )
+}
+
+const NameAndAisle = Schema.Array(
+  Schema.Struct({
+    name: Schema.String,
+    aisle: GroceryAisle,
+    previousName: Schema.NullOr(Schema.String),
+  }),
+)

@@ -7,8 +7,9 @@ import * as Effect from "effect/Effect"
 import { Recipe } from "@/domain/Recipe"
 import { GroceryItem } from "@/domain/GroceryItem"
 import * as HashSet from "effect/HashSet"
-import { ingredientAisleCached$ } from "./atoms"
+import { previousGroceryItem$ } from "./atoms"
 import * as Option from "effect/Option"
+import * as String from "effect/String"
 
 export function AddToGroceriesButton({
   recipes,
@@ -33,13 +34,15 @@ export function AddToGroceriesButton({
           }
           let item = GroceryItem.fromIngredient(ingredient, recipe)
           if (!item.aisle) {
-            const maybeAisle = store.query(
-              ingredientAisleCached$(item.nameNormalized),
-            )
-            if (Option.isSome(maybeAisle)) {
+            const maybePrevItem = store.query(previousGroceryItem$(item.name))
+            if (Option.isSome(maybePrevItem)) {
+              const prevItem = maybePrevItem.value
               item = new GroceryItem({
                 ...item,
-                aisle: maybeAisle.value,
+                name: prevItem.previousName
+                  ? String.capitalize(prevItem.name)
+                  : item.name,
+                aisle: prevItem.aisle,
               })
             }
           }

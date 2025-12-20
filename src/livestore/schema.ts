@@ -124,6 +124,7 @@ export const tables = {
         schema: GroceryAisle,
         nullable: false,
       }),
+      previousName: State.SQLite.text({ nullable: true }),
       createdAt: State.SQLite.integer({
         schema: Schema.DateTimeUtcFromNumber,
       }),
@@ -254,7 +255,12 @@ export const events = {
   }),
   groceryItemUpdated: Events.synced({
     name: "v1.GroceryItemUpdated",
-    schema: GroceryItem.update,
+    schema: Schema.Struct({
+      ...GroceryItem.update.fields,
+      previousName: Schema.optionalWith(Schema.NullOr(Schema.String), {
+        default: () => null,
+      }),
+    }),
   }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
@@ -357,9 +363,13 @@ const materializers = State.SQLite.materializers(events, {
         ]
       : add
   },
-  "v1.GroceryItemUpdated": ({ id, ...update }) => {
+  "v1.GroceryItemUpdated": ({ id, previousName, ...update }) => {
     const add = tables.groceryItems.update(update).where({ id })
     const name = update.name.toLowerCase().trim()
+    previousName = previousName?.toLowerCase().trim() ?? null
+    if (name === previousName) {
+      previousName = null
+    }
     return [
       add,
       update.aisle
@@ -367,14 +377,19 @@ const materializers = State.SQLite.materializers(events, {
             .insert({
               name: update.name.toLowerCase().trim(),
               aisle: update.aisle,
+              previousName,
               createdAt: update.updatedAt,
               updatedAt: update.updatedAt,
             })
             .onConflict("name", "update", {
               aisle: update.aisle,
               updatedAt: update.updatedAt,
+              ...(previousName ? { previousName } : {}),
             })
         : tables.ingredientAisles.delete().where({ name }),
+      ...(previousName && update.aisle
+        ? [tables.ingredientAisles.delete().where({ name: previousName })]
+        : []),
     ]
   },
   "v1.GroceryItemCleared": () => tables.groceryItems.delete(),
