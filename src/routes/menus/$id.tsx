@@ -317,18 +317,18 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
       style={style}
       {...attributes}
     >
-      <div className="flex items-center -ml-3">
+      <div className="flex items-stretch -ml-3">
         <div
           ref={setActivatorNodeRef}
           className={cn(
-            "touch-none p-1",
+            "touch-none p-2 flex items-center",
             isDragging ? "cursor-grabbing" : "cursor-grab",
           )}
           {...listeners}
         >
           <GripVertical className="size-5 text-gray-400" />
         </div>
-        <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
+        <div className="relative w-12 h-12 -ml-0.5 shrink-0 rounded overflow-hidden">
           {recipe.imageUrl ? (
             <img
               src={recipe.imageUrl}
