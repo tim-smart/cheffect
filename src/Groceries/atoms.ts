@@ -126,11 +126,9 @@ export const groceryNameAutoCompleteAtom = Atom.make((get) => {
   const name = get(groceryNameAtom).trim().toLowerCase()
   if (name.length < 2) return []
   const results = store.query(groceryItemNames$(name))
-  if (results.length === 0) return []
   const out = []
   for (let i = 0; i < results.length; i++) {
     const result = results[i]
-    if (result.name === name) continue
     out.push(result.name)
     if (out.length === 10) break
   }
