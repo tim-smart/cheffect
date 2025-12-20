@@ -91,6 +91,7 @@ You will receive a list of ingredients from a recipe in XML format. Your task is
 - avoid removing useful information from names, such as "low-fat", "gluten-free", "large", "ripe", etc.
   - "superfood pick n mix" stays as "superfood pick n mix"
 - you **MUST NOT** miss any item quantities when merging
+- only include item quantities in the dedicated quantity field, not in the name
 - keep "optional" items, but add "(optional)" to the item name
 - you *MUST* categorize items into aisles
 - if multiple items are merged, only use the id of the first item
