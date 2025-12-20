@@ -257,9 +257,7 @@ export const events = {
     name: "v1.GroceryItemUpdated",
     schema: Schema.Struct({
       ...GroceryItem.update.fields,
-      previousName: Schema.optionalWith(Schema.NullOr(Schema.String), {
-        default: () => null,
-      }),
+      previousName: Schema.NullOr(Schema.String),
     }),
   }),
   groceryItemCleared: Events.synced({

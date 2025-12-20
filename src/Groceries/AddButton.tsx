@@ -9,7 +9,6 @@ import { GroceryItem } from "@/domain/GroceryItem"
 import * as HashSet from "effect/HashSet"
 import { previousGroceryItem$ } from "./atoms"
 import * as Option from "effect/Option"
-import * as String from "effect/String"
 
 export function AddToGroceriesButton({
   recipes,
