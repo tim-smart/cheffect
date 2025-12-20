@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   X,
   ShoppingCart,
@@ -41,12 +41,20 @@ import {
   beautifyGroceriesAtom,
   groceryCountAtom,
   groceryItemAddAtom,
+  groceryNameAtom,
+  groceryNameAutoCompleteAtom,
 } from "@/Groceries/atoms"
 import { Skeleton } from "@/components/ui/skeleton"
 import clsx from "clsx"
 import { recipeTitleAtom } from "@/livestore/queries"
 import { cn } from "@/lib/utils"
 import { isAiEnabledAtom } from "@/services/AiHelpers"
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
@@ -194,6 +202,7 @@ function GroceryItemForm({
         controls.reset()
       }}
     >
+      <NameAutoCompleteSync />
       <div
         className={clsx(
           className,
@@ -206,9 +215,7 @@ function GroceryItemForm({
           <h3 className="font-medium text-gray-900 mb-2">Add New Item</h3>
         )}
         <div className={compact ? "space-y-1" : "space-y-2"}>
-          <div>
-            <Display.name placeholder="Item name" />
-          </div>
+          <NameAutoComplete />
           <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
             <Display.quantity
               placeholder="Quantity (optional)"
@@ -490,4 +497,73 @@ function BeautifyButton() {
 function RecipeTitle({ id }: { readonly id: string }) {
   const title = useAtomValue(recipeTitleAtom(id))
   return <span>{title}</span>
+}
+
+function NameAutoCompleteSync() {
+  const name = Display.name.useControls().watch()
+  const setName = useAtomSet(groceryNameAtom)
+  useEffect(() => {
+    setName(name ?? "")
+  }, [name])
+  return null
+}
+
+function NameAutoComplete() {
+  const setName = Display.name.useControls().set
+  const results = useAtomValue(groceryNameAutoCompleteAtom)
+  const [focused, setFocused] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const onClick = (value: string) => {
+    setName(value)
+    inputRef.current?.focus()
+    inputRef.current?.form?.requestSubmit()
+  }
+  return (
+    <Command className="overflow-visible">
+      <Display.name
+        placeholder="Item name"
+        {...{
+          onFocus(e: React.FocusEvent) {
+            inputRef.current = e.target as HTMLInputElement
+            setFocused(true)
+          },
+          onBlur(e: React.FocusEvent) {
+            if (e.relatedTarget?.hasAttribute("cmdk-list")) return
+            setFocused(false)
+          },
+          onKeyDown(e: React.KeyboardEvent) {
+            if (e.key !== "Enter") return
+            const input = e.target as HTMLInputElement
+            setTimeout(() => {
+              input.form?.requestSubmit()
+            }, 0)
+          },
+        }}
+      />
+      <div
+        className={cn(
+          "relative z-10",
+          focused && results.length > 0 ? "block" : "hidden",
+        )}
+      >
+        <CommandList className="animate-in fade-in-0 zoom-in-95 absolute top-2 z-1 w-full rounded-xl bg-white border shadow-lg">
+          <CommandGroup>
+            <CommandItem value="-" className="hidden" />
+            {results.map((name) => (
+              <CommandItem
+                key={name}
+                onSelect={setName}
+                onPointerDown={(e) => {
+                  e.preventDefault()
+                  onClick(name)
+                }}
+              >
+                {name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </div>
+    </Command>
+  )
 }

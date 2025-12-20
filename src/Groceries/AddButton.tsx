@@ -39,9 +39,7 @@ export function AddToGroceriesButton({
               const prevItem = maybePrevItem.value
               item = new GroceryItem({
                 ...item,
-                name: prevItem.previousName
-                  ? String.capitalize(prevItem.name)
-                  : item.name,
+                name: prevItem.previousName ? prevItem.name : item.name,
                 aisle: prevItem.aisle,
               })
             }

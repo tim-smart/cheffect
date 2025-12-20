@@ -89,6 +89,21 @@ export const previousGroceryItem$ = (name: string) => {
   )
 }
 
+const groceryItemNames$ = (name: string) => {
+  const nameNormalized = name.trim().toLowerCase()
+  return queryDb(
+    {
+      query: sql`
+        select name
+        from ingredient_aisles
+        where name LIKE '%' || ? || '%'`,
+      bindValues: [nameNormalized],
+      schema: NameOnly,
+    },
+    { deps: [name] },
+  )
+}
+
 const NameAndAisle = Schema.Array(
   Schema.Struct({
     name: Schema.String,
@@ -96,3 +111,28 @@ const NameAndAisle = Schema.Array(
     previousName: Schema.NullOr(Schema.String),
   }),
 )
+
+const NameOnly = Schema.Array(
+  Schema.Struct({
+    name: Schema.String,
+  }),
+)
+
+export const groceryNameAtom = Atom.make("")
+
+export const groceryNameAutoCompleteAtom = Atom.make((get) => {
+  const store = get(Store.storeUnsafe)
+  if (!store) return []
+  const name = get(groceryNameAtom).trim().toLowerCase()
+  if (name.length < 2) return []
+  const results = store.query(groceryItemNames$(name))
+  if (results.length === 0) return []
+  const out = []
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]
+    if (result.name === name) continue
+    out.push(result.name)
+    if (out.length === 10) break
+  }
+  return out
+})
