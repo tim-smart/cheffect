@@ -117,7 +117,7 @@ export function MenuDetailPage() {
         <DndContext
           onDragOver={() => {
             if (!("vibrate" in navigator)) return
-            navigator.vibrate(10)
+            navigator.vibrate(5)
           }}
           onDragEnd={(event) => {
             const { active, over } = event

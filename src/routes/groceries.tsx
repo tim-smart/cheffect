@@ -164,12 +164,14 @@ function GroceryItemForm({
   onCancel,
   initialValue,
   compact = false,
+  autocomplete = false,
 }: {
   className?: string
   onSubmit: (item: GroceryItem) => void
   onCancel?: () => void
   initialValue?: GroceryItem | undefined
   compact?: boolean
+  autocomplete?: boolean
 }) {
   const isEditing = !!initialValue
   return (
@@ -215,7 +217,11 @@ function GroceryItemForm({
           <h3 className="font-medium text-gray-900 mb-2">Add New Item</h3>
         )}
         <div className={compact ? "space-y-1" : "space-y-2"}>
-          <NameAutoComplete />
+          {autocomplete ? (
+            <NameAutoComplete />
+          ) : (
+            <Display.name placeholder="Item name" />
+          )}
           <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
             <Display.quantity
               placeholder="Quantity (optional)"
@@ -305,6 +311,7 @@ function GroceryListList({
               addGroceryItem(item)
             }}
             compact
+            autocomplete
           />
         </div>
       )}
