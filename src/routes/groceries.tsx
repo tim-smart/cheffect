@@ -385,7 +385,7 @@ function GroceryListItem({
   return (
     <div
       className={cn(
-        `flex items-center gap-3 p-1 pl-3 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
+        `flex items-center gap-3 p-1 pl-3 min-h-14 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
         editingItem ? "" : "cursor-default",
       )}
     >
@@ -555,7 +555,7 @@ function NameAutoComplete() {
               <CommandItem
                 key={name}
                 onSelect={setName}
-                onPointerDown={(e) => {
+                onPointerUp={(e) => {
                   e.preventDefault()
                   onClick(name)
                 }}
