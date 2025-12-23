@@ -1,3 +1,4 @@
+import { AiChatModal } from "@/components/AiChat"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
@@ -47,6 +48,7 @@ export const Route = createRootRoute({
 
         <main>
           <Outlet />
+          <AiChatModal />
           <Toaster toastOptions={{ style: { bottom: "4rem" } }} />
         </main>
 
