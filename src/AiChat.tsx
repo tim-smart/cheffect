@@ -277,6 +277,7 @@ function PromptInput({ onSubmit }: { readonly onSubmit: () => void }) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
           className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-orange-500 focus:outline-none"
+          autoFocus
         />
         <Button
           type="submit"
