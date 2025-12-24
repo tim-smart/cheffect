@@ -112,7 +112,7 @@ ${MenuEntry.toXml(menuEntries)}`
         let parts = Array.empty<AiResponse.AnyPart>()
         registry.set(
           currentPromptAtom,
-          Prompt.merge(history, Prompt.fromResponseParts(parts)),
+          Prompt.make([...history.content, constEmptyAssistantMessage]),
         )
         yield* pipe(
           LanguageModel.streamText({ prompt: history }),
@@ -121,6 +121,7 @@ ${MenuEntry.toXml(menuEntries)}`
             return Chunk.of(Prompt.fromResponseParts(parts))
           }),
           Stream.runForEach((response) => {
+            if (response.content.length === 0) return Effect.void
             registry.set(currentPromptAtom, Prompt.merge(history, response))
             return Effect.void
           }),
@@ -132,6 +133,10 @@ ${MenuEntry.toXml(menuEntries)}`
     }),
   },
 ) {}
+
+const constEmptyAssistantMessage = Prompt.makeMessage("assistant", {
+  content: [],
+})
 
 const runtime = Atom.runtime((get) =>
   AiChatService.Default.pipe(Layer.provide(get(openAiClientLayer))),
@@ -150,6 +155,7 @@ const sendAtom = runtime.fn<string>()(
 
 export function AiChatModal() {
   const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -158,6 +164,7 @@ export function AiChatModal() {
       <button
         onClick={() => {
           setIsOpen(true)
+          ref.current?.classList.remove("hidden")
           inputRef.current?.focus()
         }}
         className="fixed right-4 bottom-22 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg active:scale-95 transition-transform"
@@ -168,7 +175,7 @@ export function AiChatModal() {
 
       {/* Modal - Desktop: bottom-right corner, allows page interaction. Mobile: full-screen modal */}
       {/* Mobile overlay (blocks interaction) */}
-      <div className={isOpen ? "" : "hidden"}>
+      <div ref={ref} className={isOpen ? "" : "hidden"}>
         <div
           className="fixed inset-0 z-50 bg-black/50 md:hidden"
           onClick={() => setIsOpen(false)}
