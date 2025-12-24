@@ -164,22 +164,18 @@ export function AiChatModal() {
 
       {/* Modal - Desktop: bottom-right corner, allows page interaction. Mobile: full-screen modal */}
       {/* Mobile overlay (blocks interaction) */}
-      <div
-        className="fixed inset-0 z-50 bg-black/50 md:hidden"
-        onClick={() => setIsOpen(false)}
-      />
-      <ModalContent open={isOpen} onClose={() => setIsOpen(false)} />
+      <div className={isOpen ? "" : "hidden"}>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+        <ModalContent onClose={() => setIsOpen(false)} />
+      </div>
     </>
   )
 }
 
-function ModalContent({
-  open,
-  onClose,
-}: {
-  readonly open: boolean
-  readonly onClose: () => void
-}) {
+function ModalContent({ onClose }: { readonly onClose: () => void }) {
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
     initial: "instant",
     resize: "smooth",
@@ -190,8 +186,7 @@ function ModalContent({
   return (
     <div
       className={cn(
-        open ? "flex" : "hidden",
-        "fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
+        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
       )}
       onClick={(e) => e.stopPropagation()}
     >
