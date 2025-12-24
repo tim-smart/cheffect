@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Send, MessageSquare, Loader2 } from "lucide-react"
 import { LanguageModel, Prompt } from "@effect/ai"
@@ -11,7 +11,6 @@ import {
   Registry,
   Result,
   useAtomSet,
-  useAtomSubscribe,
   useAtomValue,
 } from "@effect-atom/atom-react"
 import * as Layer from "effect/Layer"
@@ -26,6 +25,8 @@ import { router } from "./Router"
 import { recipeByIdAtom } from "./livestore/queries"
 import { menuByIdAtom, menuEntriesAtom } from "./Menus/atoms"
 import { MenuEntry } from "./domain/MenuEntry"
+import { useStickToBottom } from "use-stick-to-bottom"
+import { cn } from "./lib/utils"
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
@@ -34,7 +35,9 @@ class AiChatService extends Effect.Service<AiChatService>()(
       const model = yield* OpenAiLanguageModel.model("gpt-5-chat-latest")
       const registry = yield* Registry.AtomRegistry
 
-      const baseSystemPrompt = `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.`
+      const baseSystemPrompt = `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.
+
+You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary.`
 
       const currentSystemPrompt = Effect.gen(function* () {
         const location = router.state.location
@@ -160,47 +163,36 @@ export function AiChatModal() {
       </button>
 
       {/* Modal - Desktop: bottom-right corner, allows page interaction. Mobile: full-screen modal */}
-      {isOpen && (
-        <>
-          {/* Mobile overlay (blocks interaction) */}
-          <div
-            className="fixed inset-0 z-50 bg-black/50 md:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-          <ModalContent onClose={() => setIsOpen(false)} />
-        </>
-      )}
+      {/* Mobile overlay (blocks interaction) */}
+      <div
+        className="fixed inset-0 z-50 bg-black/50 md:hidden"
+        onClick={() => setIsOpen(false)}
+      />
+      <ModalContent open={isOpen} onClose={() => setIsOpen(false)} />
     </>
   )
 }
 
-function ModalContent({ onClose }: { readonly onClose: () => void }) {
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const isInitialLoadRef = useRef(true)
+function ModalContent({
+  open,
+  onClose,
+}: {
+  readonly open: boolean
+  readonly onClose: () => void
+}) {
+  const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
+    initial: "instant",
+    resize: "smooth",
+  })
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
 
-  useEffect(() => {
-    setTimeout(() => {
-      if (isInitialLoadRef.current) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "auto" })
-        isInitialLoadRef.current = false
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-      }
-    }, 20)
-  }, [currentPrompt])
-
-  useAtomSubscribe(sendAtom, () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  })
-
   return (
     <div
-      className="fixed z-50 bg-white shadow-2xl
-                       inset-x-0 bottom-0 h-[85vh] rounded-t-2xl
-                       md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl
-                       flex flex-col"
+      className={cn(
+        open ? "flex" : "hidden",
+        "fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
+      )}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -218,7 +210,7 @@ function ModalContent({ onClose }: { readonly onClose: () => void }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="flex h-full items-center justify-center text-gray-400 mb-0">
             <div className="text-center">
@@ -227,44 +219,45 @@ function ModalContent({ onClose }: { readonly onClose: () => void }) {
             </div>
           </div>
         )}
-        {messages
-          .filter((m) => m.role !== "system")
-          .map((message, i) => (
-            <div
-              key={i}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+        <div ref={contentRef} className="space-y-4">
+          {messages
+            .filter((m) => m.role !== "system")
+            .map((message, i) => (
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                  message.role === "user"
-                    ? "bg-orange-500 text-white"
-                    : "bg-gray-100 text-gray-900"
-                }`}
+                key={i}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                {message.content.length === 0 ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-                ) : (
-                  message.content
-                    .filter((_) => _.type === "text")
-                    .map((part, idx) => (
-                      <Streamdown key={idx}>
-                        {part.type === "text" ? part.text : ""}
-                      </Streamdown>
-                    ))
-                )}
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                    message.role === "user"
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-100 text-gray-900"
+                  }`}
+                >
+                  {message.content.length === 0 ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                  ) : (
+                    message.content
+                      .filter((_) => _.type === "text")
+                      .map((part, idx) => (
+                        <Streamdown key={idx}>
+                          {part.type === "text" ? part.text : ""}
+                        </Streamdown>
+                      ))
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        <div ref={messagesEndRef} />
+            ))}
+        </div>
       </div>
 
       {/* Input */}
-      <PromptInput />
+      <PromptInput onSubmit={scrollToBottom} />
     </div>
   )
 }
 
-function PromptInput() {
+function PromptInput({ onSubmit }: { readonly onSubmit: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [input, setInput] = useState("")
   const sendMessage = useAtomSet(sendAtom)
@@ -275,6 +268,7 @@ function PromptInput() {
 
     setInput("")
     sendMessage(message)
+    onSubmit()
   }
 
   const isLoading = useAtomValue(sendAtom, Result.isWaiting)
