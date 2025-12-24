@@ -150,12 +150,16 @@ const sendAtom = runtime.fn<string>()(
 
 export function AiChatModal() {
   const [isOpen, setIsOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   return (
     <>
       {/* Floating Action Button */}
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true)
+          inputRef.current?.focus()
+        }}
         className="fixed right-4 bottom-22 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg active:scale-95 transition-transform"
         aria-label="Open AI Chat"
       >
@@ -169,13 +173,19 @@ export function AiChatModal() {
           className="fixed inset-0 z-50 bg-black/50 md:hidden"
           onClick={() => setIsOpen(false)}
         />
-        <ModalContent onClose={() => setIsOpen(false)} />
+        <ModalContent inputRef={inputRef} onClose={() => setIsOpen(false)} />
       </div>
     </>
   )
 }
 
-function ModalContent({ onClose }: { readonly onClose: () => void }) {
+function ModalContent({
+  inputRef,
+  onClose,
+}: {
+  readonly inputRef: React.RefObject<HTMLInputElement | null>
+  readonly onClose: () => void
+}) {
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
     initial: "instant",
     resize: "smooth",
@@ -247,13 +257,18 @@ function ModalContent({ onClose }: { readonly onClose: () => void }) {
       </div>
 
       {/* Input */}
-      <PromptInput onSubmit={scrollToBottom} />
+      <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
     </div>
   )
 }
 
-function PromptInput({ onSubmit }: { readonly onSubmit: () => void }) {
-  const inputRef = useRef<HTMLInputElement>(null)
+function PromptInput({
+  inputRef,
+  onSubmit,
+}: {
+  readonly onSubmit: () => void
+  readonly inputRef: React.RefObject<HTMLInputElement | null>
+}) {
   const [input, setInput] = useState("")
   const sendMessage = useAtomSet(sendAtom)
   const handleSubmit = (e: React.FormEvent) => {
