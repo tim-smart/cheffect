@@ -2,6 +2,7 @@ import { Model } from "@effect/sql"
 import * as Schema from "effect/Schema"
 import { Recipe } from "./Recipe"
 import * as DateTime from "effect/DateTime"
+import { UnknownToXml } from "./Xml"
 
 export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
   id: Model.GeneratedByApp(Schema.String),
@@ -19,6 +20,18 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
   updatedAt: Schema.DateTimeUtcFromNumber,
 }) {
   static array = Schema.Array(MenuEntry)
+  static xml = UnknownToXml.pipe(
+    Schema.compose(
+      Schema.Array(
+        Schema.Struct({
+          menuEntry: Schema.Struct({
+            ...MenuEntry.json.fields,
+            recipe: Recipe.json,
+          }),
+        }),
+      ),
+    ),
+  )
 
   static fromForm(
     input: Pick<typeof MenuEntry.insert.Type, "menuId" | "recipeId" | "day">,
@@ -31,5 +44,11 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
     })
+  }
+
+  static toXml(entries: ReadonlyArray<MenuEntry>) {
+    return Schema.encodeSync(MenuEntry.xml)(
+      entries.map((entry) => ({ menuEntry: entry })),
+    )
   }
 }

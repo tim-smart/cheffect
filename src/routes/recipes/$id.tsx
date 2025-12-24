@@ -77,6 +77,8 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
         return
+      } else if (e.target instanceof HTMLInputElement) {
+        return
       }
       e.preventDefault()
       const nextIndex =

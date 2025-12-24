@@ -5,6 +5,7 @@ import { Rating } from "./Rating"
 import * as Schema from "effect/Schema"
 import { DurationFromMinutes } from "./Duration"
 import * as Predicate from "effect/Predicate"
+import { UnknownToXml } from "./Xml"
 
 export const Unit = Schema.Literal(
   "g",
@@ -168,6 +169,13 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
 }) {
   static array = Schema.Array(Recipe)
   static arrayJson = Schema.Array(Recipe.json)
+  static xml = UnknownToXml.pipe(
+    Schema.compose(
+      Schema.Struct({
+        recipe: Recipe.json,
+      }),
+    ),
+  )
 
   get hasNoDetails(): boolean {
     if (this.prepTime !== null) return false
@@ -213,6 +221,10 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
         ingredients: scaledIngredients,
       })
     })
+  }
+
+  toXml(): string {
+    return Schema.encodeSync(Recipe.xml)({ recipe: this })
   }
 }
 

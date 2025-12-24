@@ -1,4 +1,4 @@
-import { AiChatModal } from "@/components/AiChat"
+import { AiChatModal } from "@/AiChat"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"

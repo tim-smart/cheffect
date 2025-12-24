@@ -20,8 +20,12 @@ import { pipe } from "effect"
 import * as Array from "effect/Array"
 import * as AiResponse from "@effect/ai/Response"
 import * as Ref from "effect/Ref"
-import * as Function from "effect/Function"
 import { Streamdown } from "streamdown"
+import * as Chunk from "effect/Chunk"
+import { router } from "./Router"
+import { recipeByIdAtom } from "./livestore/queries"
+import { menuByIdAtom, menuEntriesAtom } from "./Menus/atoms"
+import { MenuEntry } from "./domain/MenuEntry"
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
@@ -30,49 +34,96 @@ class AiChatService extends Effect.Service<AiChatService>()(
       const model = yield* OpenAiLanguageModel.model("gpt-5-chat-latest")
       const registry = yield* Registry.AtomRegistry
 
-      const chat = yield* AiChat.fromPrompt(
-        Prompt.empty.pipe(
-          Prompt.setSystem(
-            `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.`,
-          ),
-        ),
-      )
+      const baseSystemPrompt = `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.`
 
-      const send = (message: string) =>
-        pipe(
-          Effect.gen(function* () {
-            const history = (yield* Ref.get(chat.history)).pipe(
-              Prompt.merge(message),
-            )
-            registry.set(currentPromptAtom, history)
-            let parts = Array.empty<AiResponse.AnyPart>()
-            // @effect-diagnostics-next-line unnecessaryEffectGen:off
-            return LanguageModel.streamText({
-              prompt: history,
-            }).pipe(
-              Stream.tap((part) => {
-                parts.push(part)
-                return Effect.void
-              }),
-              Stream.ensuring(
-                Effect.gen(function* () {
-                  yield* Ref.update(
-                    chat.history,
-                    Function.flow(
-                      Prompt.merge(message),
-                      Prompt.merge(Prompt.fromResponseParts(parts)),
-                    ),
-                  )
-                }),
-              ),
-            )
-          }),
-          Stream.unwrap,
-          Stream.filter((part) => part.type === "text-delta"),
-          Stream.scan("", (acc, part) => acc + part.delta),
-          Stream.filter((s) => s.length > 0),
-          Stream.provideSomeLayer(model),
+      const currentSystemPrompt = Effect.gen(function* () {
+        const location = router.state.location
+        const currentTime = `The current date and time is: ${new Date().toLocaleString()}.`
+
+        if (location.pathname === "/") {
+          return `${baseSystemPrompt}
+
+The user is currently browsing the homepage of the recipe website, which contains a list of their recipes.
+
+${currentTime}`
+        } else if (location.pathname.startsWith("/recipes/")) {
+          const id = location.pathname.split("/")[2]
+          const recipe = yield* Atom.getResult(recipeByIdAtom(id))
+
+          return `${baseSystemPrompt}
+
+${currentTime}
+
+The user is currently viewing the recipe titled "${recipe.title}".
+
+Here are the details of the recipe:
+
+${recipe.toXml()}`
+        } else if (location.pathname === "/groceries") {
+          return `${baseSystemPrompt}
+
+The user is currently viewing their grocery list.
+
+${currentTime}`
+        } else if (location.pathname === "/plan") {
+          return `${baseSystemPrompt}
+
+The user is currently viewing their meal plan for the week.
+
+${currentTime}`
+        } else if (location.pathname === "/menus") {
+          return `${baseSystemPrompt}
+
+The user is currently browsing their list of menus.
+
+${currentTime}`
+        } else if (location.pathname.startsWith("/menus/")) {
+          const id = location.pathname.split("/")[2]
+          const menu = yield* Atom.getResult(menuByIdAtom(id))
+          const menuEntries = (yield* Atom.get(menuEntriesAtom(id)))!
+
+          return `${baseSystemPrompt}
+
+${currentTime}
+
+The user is currently viewing the menu titled "${menu.name}".
+
+Here are the details of the menu and its entries:
+
+${menu.toXml()}
+
+${MenuEntry.toXml(menuEntries)}`
+        }
+
+        return baseSystemPrompt + "\n\n" + currentTime
+      })
+
+      const chat = yield* AiChat.fromPrompt(Prompt.empty)
+
+      const send = Effect.fnUntraced(function* (message: string) {
+        const history = (yield* Ref.get(chat.history)).pipe(
+          Prompt.merge(message),
+          Prompt.setSystem(yield* currentSystemPrompt),
         )
+        registry.set(currentPromptAtom, history)
+        let parts = Array.empty<AiResponse.AnyPart>()
+        registry.set(
+          currentPromptAtom,
+          Prompt.merge(history, Prompt.fromResponseParts(parts)),
+        )
+        yield* pipe(
+          LanguageModel.streamText({ prompt: history }),
+          Stream.mapChunks((chunk) => {
+            parts.push(...chunk)
+            return Chunk.of(Prompt.fromResponseParts(parts))
+          }),
+          Stream.runForEach((response) => {
+            registry.set(currentPromptAtom, Prompt.merge(history, response))
+            return Effect.void
+          }),
+        )
+        yield* Ref.set(chat.history, registry.get(currentPromptAtom))
+      }, Effect.provide(model))
 
       return { send } as const
     }),
@@ -90,8 +141,8 @@ const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
 const sendAtom = runtime.fn<string>()(
   Effect.fnUntraced(function* (message) {
     const ai = yield* AiChatService
-    return ai.send(message)
-  }, Stream.unwrap),
+    return yield* ai.send(message)
+  }),
 )
 
 export function AiChatModal() {
@@ -137,7 +188,7 @@ function ModalContent({ onClose }: { readonly onClose: () => void }) {
       } else {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
       }
-    }, 10)
+    }, 20)
   }, [currentPrompt])
 
   useAtomSubscribe(sendAtom, () => {
@@ -180,7 +231,7 @@ function ModalContent({ onClose }: { readonly onClose: () => void }) {
           .filter((m) => m.role !== "system")
           .map((message, i) => (
             <div
-              key={(message.options.id as any) ?? i}
+              key={i}
               className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
@@ -190,49 +241,26 @@ function ModalContent({ onClose }: { readonly onClose: () => void }) {
                     : "bg-gray-100 text-gray-900"
                 }`}
               >
-                {message.content
-                  .filter((_) => _.type === "text")
-                  .map((part, idx) => (
-                    <Streamdown key={idx}>
-                      {part.type === "text" ? part.text : ""}
-                    </Streamdown>
-                  ))}
+                {message.content.length === 0 ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                ) : (
+                  message.content
+                    .filter((_) => _.type === "text")
+                    .map((part, idx) => (
+                      <Streamdown key={idx}>
+                        {part.type === "text" ? part.text : ""}
+                      </Streamdown>
+                    ))
+                )}
               </div>
             </div>
           ))}
-        <LatestMessage />
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
       <PromptInput />
     </div>
-  )
-}
-
-function LatestMessage() {
-  const result = useAtomValue(sendAtom)
-  return (
-    <>
-      {Result.builder(result)
-        .onSuccess((message) => (
-          <div className={`flex justify-start`}>
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 bg-gray-100 text-gray-900 text-sm`}
-            >
-              <Streamdown>{message}</Streamdown>
-            </div>
-          </div>
-        ))
-        .onWaiting(() => (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-2xl px-4 py-2">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
-            </div>
-          </div>
-        ))
-        .render()}
-    </>
   )
 }
 
