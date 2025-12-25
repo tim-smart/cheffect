@@ -22,12 +22,18 @@ import * as Ref from "effect/Ref"
 import { Streamdown } from "streamdown"
 import * as Chunk from "effect/Chunk"
 import { router } from "./Router"
-import { recipeByIdAtom } from "./livestore/queries"
+import {
+  allGroceryItemsArrayAtom,
+  mealPlanEntriesAtom,
+  recipeByIdAtom,
+} from "./livestore/queries"
 import { menuByIdAtom, menuEntriesAtom } from "./Menus/atoms"
 import { MenuEntry } from "./domain/MenuEntry"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
 import { viewportObstructedAtom } from "./atoms"
+import { GroceryItem } from "./domain/GroceryItem"
+import { MealPlanEntry } from "./domain/MealPlanEntry"
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
@@ -47,7 +53,7 @@ You should be concise and informative in your responses, sacrificing some gramma
         if (location.pathname === "/") {
           return `${baseSystemPrompt}
 
-The user is currently browsing the homepage of the recipe website, which contains a list of their recipes.
+The user is currently browsing the a list of their recipes.
 
 ${currentTime}`
         } else if (location.pathname.startsWith("/recipes/")) {
@@ -64,17 +70,23 @@ Here are the details of the recipe:
 
 ${recipe.toXml()}`
         } else if (location.pathname === "/groceries") {
+          const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
           return `${baseSystemPrompt}
 
-The user is currently viewing their grocery list.
+${currentTime}
 
-${currentTime}`
+The user is currently viewing their grocery list. Here are the items on their grocery list:
+
+${GroceryItem.toXml(items)}`
         } else if (location.pathname === "/plan") {
+          const entries = yield* Atom.getResult(mealPlanEntriesAtom)
           return `${baseSystemPrompt}
 
-The user is currently viewing their meal plan for the week.
+${currentTime}
 
-${currentTime}`
+The user is currently viewing their meal plan for the week. Here are the entries in their meal plan:
+
+${MealPlanEntry.toXml(entries)}`
         } else if (location.pathname === "/menus") {
           return `${baseSystemPrompt}
 

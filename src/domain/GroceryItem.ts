@@ -37,6 +37,15 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   updatedAt: Schema.DateTimeUtcFromNumber,
 }) {
   static array = Schema.Array(GroceryItem)
+  static xml = UnknownToXml.pipe(
+    Schema.compose(
+      Schema.Array(
+        Schema.Struct({
+          groceryItem: GroceryItem.json,
+        }),
+      ),
+    ),
+  )
 
   static fromForm(input: Pick<GroceryItem, "name" | "quantity" | "aisle">) {
     return new GroceryItem({
@@ -62,6 +71,12 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
     })
+  }
+
+  static toXml(items: Iterable<GroceryItem>) {
+    return Schema.encodeSync(GroceryItem.xml)(
+      Array.from(items, (item) => ({ groceryItem: item })),
+    )
   }
 
   get nameNormalized(): string {
@@ -99,6 +114,7 @@ const GroceryItemListXml = UnknownToXml.pipe(
     }),
   ),
 )
+
 export const encodeGroceryItemListXml = (list: Iterable<GroceryItem>) =>
   Schema.encodeSync(GroceryItemListXml)({
     groceryItems: Array.from(list, (item) => ({ groceryItem: item })),
