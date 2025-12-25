@@ -3,7 +3,7 @@ import { ChefHat } from "lucide-react"
 
 export function Placeholder({ className }: { className?: string }) {
   return (
-    <div className={cn("bg-gray-200 w-full h-full p-[15%]", className)}>
+    <div className={cn("bg-border w-full h-full p-[15%]", className)}>
       <ChefHat className="w-full h-full opacity-20" />
     </div>
   )

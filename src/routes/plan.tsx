@@ -93,12 +93,12 @@ export function MealPlanPage() {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-border sticky top-0 z-10">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-orange-600" />
-              <h1 className="text-lg font-bold text-gray-900">Meal Plan</h1>
+              <Calendar className="w-5 h-5 text-primary" />
+              <h1 className="text-lg font-bold">Meal Plan</h1>
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
@@ -150,7 +150,7 @@ export function MealPlanPage() {
             <div className="text-center flex-1">
               <Button
                 variant="ghost"
-                className="text-sm font-medium text-gray-900"
+                className="text-sm font-medium "
                 onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
               >
                 {DateTime.formatUtc(weekStart, {
@@ -207,7 +207,7 @@ function WeekList({
   const isToday = (date: DateTime.Utc) => DateTime.Equivalence(date, today)
 
   return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-200">
+    <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
       {weekDays.map((date) => {
         const dateParts = DateTime.toPartsUtc(date)
         const isTodayDate = isToday(date)
@@ -220,18 +220,18 @@ function WeekList({
             {/* Day Header with Add Button */}
             <div
               className={`w-full p-2 flex items-center justify-between border-b ${
-                isTodayDate ? "bg-orange-50" : "bg-gray-50"
+                isTodayDate ? "bg-orange-50" : "bg-muted"
               }`}
             >
               <div className="flex items-center gap-3 flex-1">
                 <div>
                   <p
-                    className={`font-semibold text-sm ${isTodayDate ? "text-orange-600" : "text-gray-900"}`}
+                    className={`font-semibold text-sm ${isTodayDate ? "text-primary" : ""}`}
                   >
                     {dayNames[dateParts.weekDay]}
                   </p>
                   <p
-                    className={`text-xs ${isTodayDate ? "text-orange-500" : "text-gray-500"}`}
+                    className={`text-xs ${isTodayDate ? "text-orange-500" : "text-muted-foreground"}`}
                   >
                     {DateTime.formatUtc(date, {
                       month: "short",
@@ -261,7 +261,7 @@ function WeekList({
             {/* Day Content - Always Visible */}
             <div>
               {dayEntries.length > 0 && (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-border">
                   {dayEntries.map(({ id, recipe }) => (
                     <Link
                       key={id}
@@ -281,10 +281,10 @@ function WeekList({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
+                        <h4 className="font-medium text-sm  line-clamp-1">
                           {recipe.title}
                         </h4>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {[
                             ...Option.match(recipe.totalTime, {
                               onNone: () => [],
@@ -330,7 +330,7 @@ function WeekList({
 
               {dayEntries.length === 0 && (
                 <div className="p-3 text-center">
-                  <p className="text-sm text-gray-500">No meals planned</p>
+                  <p className="text-sm text-muted-foreground">No meals planned</p>
                 </div>
               )}
             </div>
@@ -346,7 +346,7 @@ function SelectRecipeButton(props: {}) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-8 p-0 text-orange-600 hover:bg-orange-100"
+      className="h-8 w-8 p-0 text-primary hover:bg-orange-100"
       {...props}
     >
       <Plus className="w-4 h-4" />

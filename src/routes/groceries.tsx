@@ -78,16 +78,16 @@ function GroceryList() {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-border sticky top-0 z-10">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <ShoppingCart className="w-6 h-6 text-orange-600" />
+              <ShoppingCart className="w-6 h-6 text-primary" />
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">
+                <h1 className="text-lg font-semibold ">
                   Grocery List
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {completed} of {total} items
                 </p>
               </div>
@@ -116,9 +116,9 @@ function GroceryList() {
 
           {/* Progress Bar */}
           <div className="mt-3">
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-border rounded-full h-2">
               <div
-                className="bg-orange-600 h-2 rounded-full transition-all duration-300"
+                className="bg-primary h-2 rounded-full transition-all duration-300"
                 style={{
                   width: total > 0 ? `${(completed / total) * 100}%` : "0%",
                 }}
@@ -210,11 +210,11 @@ function GroceryItemForm({
           className,
           compact
             ? "bg-white p-3"
-            : "bg-white rounded-lg border border-gray-200 p-3",
+            : "bg-white rounded-lg border border-border p-3",
         )}
       >
         {!compact && !isEditing && (
-          <h3 className="font-medium text-gray-900 mb-2">Add New Item</h3>
+          <h3 className="font-medium  mb-2">Add New Item</h3>
         )}
         <div className={compact ? "space-y-1" : "space-y-2"}>
           {autocomplete ? (
@@ -237,7 +237,7 @@ function GroceryItemForm({
           <div className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}>
             <Button
               type="submit"
-              className="flex-1 bg-orange-600 hover:bg-orange-700"
+              className="flex-1 bg-primary hover:bg-orange-700"
             >
               {isEditing ? "Save" : "Add Item"}
             </Button>
@@ -304,7 +304,7 @@ function GroceryListList({
   return (
     <>
       {showForm && (
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-white border-b border-border">
           <GroceryItemForm
             className="max-w-lg mx-auto px-2 sm:px-4"
             onSubmit={(item) => {
@@ -317,7 +317,7 @@ function GroceryListList({
       )}
       <div className="space-y-4 max-w-lg mx-auto p-2 sm:p-4">
         {showCompleted && (
-          <h2 className="text-lg font-semibold text-gray-900">Completed</h2>
+          <h2 className="text-lg font-semibold ">Completed</h2>
         )}
         {/* Grocery List by Aisle */}
         {aisles
@@ -338,10 +338,10 @@ function GroceryListList({
           .map(({ name, items }) => (
             <div key={name}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-gray-900">{name}</h2>
+                <h2 className="font-semibold ">{name}</h2>
               </div>
 
-              <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
+              <div className="bg-white rounded-lg overflow-hidden divide-y divide-border border border-border">
                 {items.map((item) => (
                   <GroceryListItem
                     key={item.id}
@@ -358,10 +358,10 @@ function GroceryListList({
         {total === 0 && (
           <div className="text-center py-16">
             <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium  mb-2">
               Your grocery list is empty
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-muted-foreground mb-6">
               Add items to start building your shopping list
             </p>
           </div>
@@ -417,7 +417,7 @@ function GroceryListItem({
             <div
               className={cn(
                 "flex flex-col leading-tight",
-                `${item.completed ? "line-through text-gray-500" : "text-gray-900"}`,
+                `${item.completed ? "line-through text-muted-foreground" : ""}`,
               )}
             >
               <div>

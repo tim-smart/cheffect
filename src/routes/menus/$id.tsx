@@ -61,7 +61,7 @@ export function MenuDetailPage() {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-border sticky top-0 z-10">
         <div className="pl-2 pr-4 py-4">
           <div className="flex items-center gap-3">
             <Button
@@ -72,7 +72,7 @@ export function MenuDetailPage() {
             >
               <ArrowLeft />
             </Button>
-            <h1 className="text-lg font-semibold text-gray-900 line-clamp-1 flex-1">
+            <h1 className="text-lg font-semibold  line-clamp-1 flex-1">
               {menu.name}
             </h1>
             <MealPlanDatePicker
@@ -167,7 +167,7 @@ function DayList({
   entries: ReadonlyArray<MenuEntry>
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 divide-y divide-gray-200 overflow-hidden">
+    <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
       {Array.range(1, menu.days).map((day) => {
         const dayEntries = entries.filter((entry) => entry.day === day)
         return (
@@ -202,7 +202,7 @@ function DayListItem({
         className={cn(
           `w-full pr-2 pl-3 py-1 flex items-center justify-between border-b`,
 
-          isOver ? "bg-orange-50 text-orange-600" : "bg-gray-50 text-gray-900",
+          isOver ? "bg-orange-50 text-primary" : "bg-gray-50 ",
         )}
       >
         <div className="flex items-center gap-3 flex-1">
@@ -249,7 +249,7 @@ function DayListItem({
       {/* Day Content - Always Visible */}
       <div>
         {dayEntries.length > 0 && (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-border">
             {dayEntries.map((entry) => (
               <DayEntryItem key={entry.id} entry={entry} />
             ))}
@@ -258,7 +258,7 @@ function DayListItem({
 
         {dayEntries.length === 0 && (
           <div className="p-3 text-center">
-            <p className="text-sm text-gray-500">No recipes added yet</p>
+            <p className="text-sm text-muted-foreground">No recipes added yet</p>
           </div>
         )}
       </div>
@@ -303,7 +303,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
     <Link
       className={cn(
         "flex items-center p-2 -mt-2 first:mt-0 gap-3 bg-white relative rounded-lg border border-transparent",
-        isDragging && "border-gray-200",
+        isDragging && "border-border",
       )}
       to="/recipes/$id"
       disabled={debouncedIsDragging}
@@ -336,10 +336,10 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm text-gray-900 line-clamp-1">
+        <h4 className="font-medium text-sm  line-clamp-1">
           {recipe.title}
         </h4>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           {[
             ...Option.match(recipe.totalTime, {
               onNone: () => [],
@@ -371,7 +371,7 @@ function SelectRecipeButton(props: {}) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-8 p-0 text-orange-600 hover:bg-orange-100"
+      className="h-8 w-8 p-0 text-primary hover:bg-orange-100"
       {...props}
     >
       <Plus className="w-4 h-4" />

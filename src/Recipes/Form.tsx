@@ -282,7 +282,7 @@ function TipFields() {
   }
   return (
     <div className="flex flex-1 items-center gap-2">
-      <span className="text-gray-500">💡</span>
+      <span className="text-muted-foreground">💡</span>
       <Display.steps.Element.tips.Element className="flex-1" />
       <Button
         type="button"

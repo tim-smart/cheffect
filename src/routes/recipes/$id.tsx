@@ -106,7 +106,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-border sticky top-0 z-10">
         <div
           className={cn(
             "flex items-center",
@@ -130,7 +130,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
           )}
           <h1
             className={cn(
-              "text-lg font-semibold text-gray-900 flex-1 leading-tight",
+              "text-lg font-semibold  flex-1 leading-tight",
               recipe.imageUrl ? "line-clamp-2" : "line-clamp-1",
             )}
           >
@@ -189,7 +189,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
       </header>
 
       {!recipe.hasNoDetails && (
-        <div className="bg-white p-4 border-b border-gray-200 flex items-center">
+        <div className="bg-white p-4 border-b border-border flex items-center">
           {/* Recipe Image & Basic Info */}
           <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-gray-600">
             {recipe.prepTime && (
@@ -238,10 +238,10 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         <div className="bg-white flex-1 md:rounded-lg">
           <div className="p-4">
             <div className="flex">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              <h2 className="text-lg font-semibold  mb-4">
                 Ingredients
                 {recipe.ingredientScale !== 1 && (
-                  <span className="text-sm text-gray-500 ml-2">
+                  <span className="text-sm text-muted-foreground ml-2">
                     x{quantityFormatter.format(recipe.ingredientScale)}
                   </span>
                 )}
@@ -260,12 +260,12 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
               {ingredients.map((group, groupIndex) => (
                 <div key={groupIndex}>
                   {ingredients.length > 1 && (
-                    <h3 className="font-medium text-gray-900 mb-3 text-base">
+                    <h3 className="font-medium  mb-3 text-base">
                       {group.name}
                     </h3>
                   )}
 
-                  <div className="bg-white rounded-lg overflow-hidden divide-y divide-gray-200 border border-gray-200">
+                  <div className="bg-white rounded-lg overflow-hidden divide-y divide-border border border-border">
                     {group.ingredients.map((ingredient, ingredientIndex) => {
                       const ingredientId = ingredient.id(
                         groupIndex,
@@ -288,7 +288,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                             className="mt-[0.25em]"
                           />
                           <div
-                            className={`flex-1 ${isChecked ? "line-through text-gray-500" : "text-gray-900"}`}
+                            className={`flex-1 ${isChecked ? "line-through text-muted-foreground" : ""}`}
                           >
                             <span>
                               {ingredient.quantity !== null && (
@@ -316,7 +316,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         {/* Instructions */}
         <div className="bg-white flex-2 lg:rounded-lg">
           <div className="p-4">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-xl font-semibold  mb-4">
               Instructions
             </h2>
 
@@ -330,7 +330,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                   className={`border rounded-lg p-4 transition-all ${
                     currentStep === stepIndex
                       ? "border-orange-500 bg-orange-50"
-                      : "border-gray-200 bg-white"
+                      : "border-border bg-white"
                   }`}
                   onClick={() => setCurrentStep(stepIndex)}
                 >
@@ -338,15 +338,15 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                     <div
                       className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
                         currentStep === stepIndex
-                          ? "bg-orange-600 text-white"
-                          : "bg-gray-200 text-gray-700"
+                          ? "bg-primary text-white"
+                          : "bg-border text-gray-700"
                       }`}
                     >
                       {stepIndex + 1}
                     </div>
 
                     <div className="flex-1">
-                      <p className="text-gray-900 leading-relaxed mb-3">
+                      <p className=" leading-relaxed mb-3">
                         {step.text}
                       </p>
 
@@ -357,7 +357,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                               key={tipIndex}
                               className="flex items-start gap-2"
                             >
-                              <span className="text-orange-600 text-sm mt-0.5">
+                              <span className="text-primary text-sm mt-0.5">
                                 💡
                               </span>
                               <p className="text-sm text-gray-600 italic">

@@ -46,12 +46,12 @@ export function MenusPage() {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-border sticky top-0 z-10">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-orange-600" />
-              <h1 className="text-lg font-bold text-gray-900">Menus</h1>
+              <BookOpen className="w-5 h-5 text-primary" />
+              <h1 className="text-lg font-bold ">Menus</h1>
             </div>
             <div className="flex-1" />
             <div>
@@ -96,7 +96,7 @@ function MenuList() {
   }
   return (
     <div
-      className={`rounded-lg border bg-white overflow-hidden divide-y divide-gray-200 border-gray-200`}
+      className={`rounded-lg border bg-white overflow-hidden divide-y divide-border border-border`}
     >
       {menus.map((menu) => (
         <MenuCard key={menu.id} menu={menu} />
@@ -109,8 +109,8 @@ function NoResults() {
   return (
     <div className="text-center py-16">
       <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-gray-900 mb-2">No menus found</h3>
-      <p className="text-gray-500 mb-6 px-4">Start by adding your first menu</p>
+      <h3 className="text-lg font-medium  mb-2">No menus found</h3>
+      <p className="text-muted-foreground mb-6 px-4">Start by adding your first menu</p>
       <AddMenuButton />
     </div>
   )
@@ -130,7 +130,7 @@ function MenuCard({ menu }: { menu: Menu }) {
         disabled={editing}
       >
         <div className="flex flex-row items-center gap-2">
-          <BookOpen className="w-5 h-5 text-orange-600" />
+          <BookOpen className="w-5 h-5 text-primary" />
           <h3 className={cn(editing ? "" : "line-clamp-1", "font-medium")}>
             {editing ? (
               <MenuForm
@@ -217,7 +217,7 @@ function AddMenuButton({ small = false }: { small?: boolean }) {
   }
   return (
     <Button
-      className="bg-orange-600 hover:bg-orange-700 h-12 px-6"
+      className="bg-primary hover:bg-orange-700 h-12 px-6"
       onClick={() => setShowAddMenu(true)}
     >
       <Plus />
@@ -283,11 +283,11 @@ function MenuForm({
         <div
           className={cn(
             className,
-            "bg-white rounded-lg border border-gray-200 p-3",
+            "bg-white rounded-lg border border-border p-3",
           )}
         >
           {!isEditing && (
-            <h3 className="font-medium text-gray-900 mb-2">Add new menu</h3>
+            <h3 className="font-medium  mb-2">Add new menu</h3>
           )}
           <div className={"space-y-2"}>
             <div>
@@ -296,7 +296,7 @@ function MenuForm({
             <div className={`flex gap-2`}>
               <Button
                 type="submit"
-                className="flex-1 bg-orange-600 hover:bg-orange-700"
+                className="flex-1 bg-primary hover:bg-orange-700"
               >
                 {isEditing ? "Save" : "Add menu"}
               </Button>

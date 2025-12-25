@@ -51,7 +51,7 @@ export function SelectRecipeDrawer({
             />
             <div
               ref={setScrollElement}
-              className="h-80 overflow-y-auto border border-gray-200 rounded-lg"
+              className="h-80 overflow-y-auto border border-border rounded-lg"
             >
               <SearchResults
                 getScrollElement={() => scrollElement}

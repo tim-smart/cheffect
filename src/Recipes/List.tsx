@@ -45,7 +45,7 @@ export function RecipeList({
     <div
       className={clsx(
         rounded && `rounded-lg border`,
-        `bg-white overflow-hidden divide-y divide-gray-200 border-gray-200 relative last:border-b`,
+        `bg-white overflow-hidden divide-y divide-border border-border relative last:border-b`,
       )}
     >
       <div
@@ -84,10 +84,10 @@ function NoResults({ searchQuery }: { readonly searchQuery: string }) {
   return (
     <div className="text-center py-16">
       <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-medium text-gray-900 mb-2">
+      <h3 className="text-lg font-medium  mb-2">
         No recipes found
       </h3>
-      <p className="text-gray-500 mb-6 px-4">
+      <p className="text-muted-foreground mb-6 px-4">
         {searchQuery
           ? "Try adjusting your search terms"
           : "Start by adding your first recipe"}
@@ -136,7 +136,7 @@ function RecipeCard({
         <div className="flex-1 flex-col p-3">
           <h3 className="mb-1 line-clamp-1 pr-1">{recipe.title}</h3>
 
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {recipe.totalTime.pipe(
               Option.map((d) => (
                 <div className="flex items-center gap-0.5">

@@ -228,7 +228,7 @@ function ModalContent({
       style={{ maxHeight: viewportHeight }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 p-4">
+      <div className="flex items-center justify-between border-b border-border p-4">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">AI Assistant</h2>
@@ -263,11 +263,11 @@ function ModalContent({
                   className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
                     message.role === "user"
                       ? "bg-primary text-white"
-                      : "bg-gray-100 text-gray-900"
+                      : "bg-gray-100 "
                   }`}
                 >
                   {message.content.length === 0 ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   ) : (
                     message.content
                       .filter((_) => _.type === "text")
@@ -311,7 +311,7 @@ function PromptInput({
   const isLoading = useAtomValue(sendAtom, Result.isWaiting)
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-gray-200 p-4">
+    <form onSubmit={handleSubmit} className="border-t border-border p-4">
       <div className="flex gap-2">
         <input
           ref={inputRef}

@@ -55,12 +55,12 @@ function SettingsPage() {
   return (
     <div className="pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-border sticky top-0 z-10">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-orange-600" />
-              <h1 className="text-lg font-bold text-gray-900">Settings</h1>
+              <Settings className="w-5 h-5 text-primary" />
+              <h1 className="text-lg font-bold ">Settings</h1>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -171,8 +171,8 @@ function SettingSection({
 }) {
   return (
     <div>
-      <h2 className="text-md font-semibold text-gray-900 mb-1">{title}</h2>
-      <div className="rounded-lg bg-white border border-gray-200 overflow-hidden p-4 flex flex-col gap-4">
+      <h2 className="text-md font-semibold  mb-1">{title}</h2>
+      <div className="rounded-lg bg-white border border-border overflow-hidden p-4 flex flex-col gap-4">
         {children}
       </div>
     </div>
