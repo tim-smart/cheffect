@@ -203,6 +203,7 @@ function ModalContent({
   useEffect(() => {
     setTimeout(() => {
       inputRef.current?.scrollIntoView({ behavior: "instant" })
+      scrollToBottom()
     }, 0)
   }, [viewportObstructed > 0])
 
