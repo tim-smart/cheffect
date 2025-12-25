@@ -39,7 +39,7 @@ class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
   {
     scoped: Effect.gen(function* () {
-      const model = yield* OpenAiLanguageModel.model("gpt-5-chat-latest")
+      const model = yield* OpenAiLanguageModel.model("gpt-5.2-chat-latest")
       const registry = yield* Registry.AtomRegistry
 
       const baseSystemPrompt = `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.
