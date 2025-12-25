@@ -8,5 +8,5 @@ export function cn(...inputs: ClassValue[]) {
 export const quantityFormatter = new Intl.NumberFormat("en-US", {
   style: "decimal",
   minimumFractionDigits: 0,
-  maximumFractionDigits: 1,
+  maximumFractionDigits: 2,
 })
