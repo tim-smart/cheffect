@@ -67,6 +67,7 @@
     "react-day-picker": "^9.13.0",
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.69.0",
+    "react-markdown": "^10.1.0",
     "react-swipeable": "^7.0.2",
     "shiki": "^3.20.0",
     "sonner": "^2.0.7",

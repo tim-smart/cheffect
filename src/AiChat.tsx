@@ -18,7 +18,7 @@ import { pipe } from "effect"
 import * as Array from "effect/Array"
 import * as AiResponse from "@effect/ai/Response"
 import * as Ref from "effect/Ref"
-import { Streamdown } from "streamdown"
+import Markdown from "react-markdown"
 import * as Chunk from "effect/Chunk"
 import { router } from "./Router"
 import {
@@ -277,7 +277,7 @@ function ModalContent({
                 className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-2 prose prose-sm ${
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-foreground"
@@ -289,9 +289,9 @@ function ModalContent({
                     message.content
                       .filter((_) => _.type === "text")
                       .map((part, idx) => (
-                        <Streamdown key={idx}>
+                        <Markdown key={idx}>
                           {part.type === "text" ? part.text : ""}
-                        </Streamdown>
+                        </Markdown>
                       ))
                   )}
                 </div>
