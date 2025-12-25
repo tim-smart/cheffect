@@ -11,6 +11,7 @@ import {
   Registry,
   Result,
   useAtomSet,
+  useAtomSubscribe,
   useAtomValue,
 } from "@effect-atom/atom-react"
 import * as Layer from "effect/Layer"
@@ -194,21 +195,36 @@ function ModalContent({
   readonly inputRef: React.RefObject<HTMLInputElement | null>
   readonly onClose: () => void
 }) {
-  const viewportHeight = useAtomValue(viewportHeightAtom)
+  const containerRef = useRef<HTMLDivElement>(null)
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
     initial: "instant",
     resize: "smooth",
   })
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useAtomSubscribe(
+    viewportHeightAtom,
+    (viewportHeight) => {
+      containerRef.current?.style.setProperty(
+        "max-height",
+        `${viewportHeight}px`,
+      )
+      setIsFullscreen(viewportHeight === containerRef.current?.clientHeight)
+    },
+    { immediate: true },
+  )
+
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
 
   return (
     <div
+      ref={containerRef}
       className={cn(
-        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
+        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col",
+        isFullscreen ? "" : "rounded-t-2xl md:rounded-2xl",
       )}
       onClick={(e) => e.stopPropagation()}
-      style={{ maxHeight: viewportHeight }}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 p-4">

@@ -55,4 +55,4 @@ export const viewportHeightAtom = Atom.make((get) => {
     self.removeEventListener("resize", updateHeight)
   })
   return self.innerHeight
-}).pipe(Atom.debounce(100))
+})
