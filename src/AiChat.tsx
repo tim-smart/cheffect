@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Send, MessageSquare, Loader2 } from "lucide-react"
 import { LanguageModel, Prompt } from "@effect/ai"
@@ -11,7 +11,6 @@ import {
   Registry,
   Result,
   useAtomSet,
-  useAtomSubscribe,
   useAtomValue,
 } from "@effect-atom/atom-react"
 import * as Layer from "effect/Layer"
@@ -200,15 +199,12 @@ function ModalContent({
     initial: "instant",
     resize: "smooth",
   })
-  const [isFullscreen, setIsFullscreen] = useState(false)
-
-  useAtomSubscribe(viewportHeightAtom, (viewportHeight) => {
-    containerRef.current?.style.setProperty("max-height", `${viewportHeight}px`)
-    setIsFullscreen(
-      Math.round(viewportHeight) === containerRef.current?.scrollHeight,
-    )
+  const viewportHeight = useAtomValue(viewportHeightAtom)
+  const isFullscreen =
+    Math.round(viewportHeight) === containerRef.current?.scrollHeight
+  useEffect(() => {
     scrollToBottom()
-  })
+  }, [isFullscreen])
 
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
@@ -221,6 +217,7 @@ function ModalContent({
         isFullscreen ? "" : "rounded-t-2xl md:rounded-2xl",
       )}
       onClick={(e) => e.stopPropagation()}
+      style={{ maxHeight: viewportHeight }}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 p-4">
