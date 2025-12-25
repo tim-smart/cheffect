@@ -26,6 +26,7 @@
         "name": "@effect/language-service",
         "namespaceImportPackages": [
           "effect",
+          "@effect/ai",
           "@effect/platform",
           "@effect/platform-browser",
           "@effect/rpc",

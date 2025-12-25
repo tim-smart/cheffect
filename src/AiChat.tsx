@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Send, MessageSquare, Loader2 } from "lucide-react"
-import { LanguageModel, Prompt } from "@effect/ai"
 import * as Effect from "effect/Effect"
 import * as AiChat from "@effect/ai/Chat"
 import * as Stream from "effect/Stream"
@@ -34,6 +33,10 @@ import { cn } from "./lib/utils"
 import { viewportObstructedAtom } from "./atoms"
 import { GroceryItem } from "./domain/GroceryItem"
 import { MealPlanEntry } from "./domain/MealPlanEntry"
+import * as Prompt from "@effect/ai/Prompt"
+import * as LanguageModel from "@effect/ai/LanguageModel"
+
+// const toolkit = Toolkit.make(OpenAiTool.WebSearch({}))
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
@@ -129,7 +132,6 @@ ${MenuEntry.toXml(menuEntries)}`
         )
         yield* pipe(
           LanguageModel.streamText({
-            // toolkit,
             prompt: history,
           }),
           Stream.mapChunks((chunk) => {
