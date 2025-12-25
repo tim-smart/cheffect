@@ -209,7 +209,9 @@ function ModalContent({
         "max-height",
         `${viewportHeight}px`,
       )
-      setIsFullscreen(viewportHeight === containerRef.current?.clientHeight)
+      setIsFullscreen(
+        Math.round(viewportHeight) === containerRef.current?.scrollHeight,
+      )
       scrollToBottom()
     },
     { immediate: true },
