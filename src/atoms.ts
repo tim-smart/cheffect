@@ -32,3 +32,27 @@ export const screenWakeLockAtom = Atom.make(
     (lock) => Effect.promise(() => lock.release()),
   ),
 )
+
+export const viewportHeightAtom = Atom.make((get) => {
+  const self: typeof globalThis = window as any
+
+  if ("visualViewport" in window) {
+    const updateHeight = () => {
+      get.setSelf(window.visualViewport!.height)
+    }
+    window.visualViewport!.addEventListener("resize", updateHeight)
+    get.addFinalizer(() => {
+      window.visualViewport!.removeEventListener("resize", updateHeight)
+    })
+    return window.visualViewport!.height
+  }
+
+  const updateHeight = () => {
+    get.setSelf(self.innerHeight)
+  }
+  self.addEventListener("resize", updateHeight)
+  get.addFinalizer(() => {
+    self.removeEventListener("resize", updateHeight)
+  })
+  return self.innerHeight
+}).pipe(Atom.debounce(100))

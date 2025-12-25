@@ -27,6 +27,7 @@ import { menuByIdAtom, menuEntriesAtom } from "./Menus/atoms"
 import { MenuEntry } from "./domain/MenuEntry"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
+import { viewportHeightAtom } from "./atoms"
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
@@ -193,6 +194,7 @@ function ModalContent({
   readonly inputRef: React.RefObject<HTMLInputElement | null>
   readonly onClose: () => void
 }) {
+  const viewportHeight = useAtomValue(viewportHeightAtom)
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
     initial: "instant",
     resize: "smooth",
@@ -203,9 +205,10 @@ function ModalContent({
   return (
     <div
       className={cn(
-        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] max-h-dvh rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
+        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
       )}
       onClick={(e) => e.stopPropagation()}
+      style={{ maxHeight: viewportHeight }}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 p-4">
