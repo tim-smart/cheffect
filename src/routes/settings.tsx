@@ -172,7 +172,7 @@ function SettingSection({
   return (
     <div>
       <h2 className="text-md font-semibold  mb-1">{title}</h2>
-      <div className="rounded-lg bg-background border border-border overflow-hidden p-4 flex flex-col gap-4">
+      <div className="rounded-lg bg-card border border-border overflow-hidden p-4 flex flex-col gap-4">
         {children}
       </div>
     </div>
