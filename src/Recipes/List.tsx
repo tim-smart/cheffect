@@ -45,7 +45,7 @@ export function RecipeList({
     <div
       className={clsx(
         rounded && `rounded-lg border`,
-        `bg-background overflow-hidden divide-y divide-border border-border relative last:border-b`,
+        `overflow-hidden divide-y divide-border border-border relative last:border-b`,
       )}
     >
       <div
@@ -84,9 +84,7 @@ function NoResults({ searchQuery }: { readonly searchQuery: string }) {
   return (
     <div className="text-center py-16">
       <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <h3 className="text-lg font-medium  mb-2">
-        No recipes found
-      </h3>
+      <h3 className="text-lg font-medium  mb-2">No recipes found</h3>
       <p className="text-muted-foreground mb-6 px-4">
         {searchQuery
           ? "Try adjusting your search terms"
@@ -108,7 +106,7 @@ function RecipeCard({
     <Link
       to="/recipes/$id"
       params={{ id: recipe.id }}
-      className="block active:bg-gray-50 transition-colors"
+      className="block bg-card active:bg-card/50 transition-colors"
       onClick={
         onSelect
           ? (e) => {

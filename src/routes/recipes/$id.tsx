@@ -265,7 +265,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                     </h3>
                   )}
 
-                  <div className="bg-background rounded-lg overflow-hidden divide-y divide-border border border-border">
+                  <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
                     {group.ingredients.map((ingredient, ingredientIndex) => {
                       const ingredientId = ingredient.id(
                         groupIndex,
@@ -279,7 +279,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                       return (
                         <div
                           key={ingredientIndex}
-                          className="flex items-start gap-3 p-3 active:bg-muted transition-colors cursor-default"
+                          className="flex items-start gap-3 p-3 bg-card active:bg-muted dark:active:bg-card/50 transition-colors cursor-default"
                           onClick={() => toggleIngredient(ingredientId)}
                         >
                           <Checkbox
@@ -328,7 +328,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                   className={`border rounded-lg p-4 transition-all ${
                     currentStep === stepIndex
                       ? "border-primary bg-primary/10"
-                      : "border-border bg-background"
+                      : "border-border bg-card"
                   }`}
                   onClick={() => setCurrentStep(stepIndex)}
                 >

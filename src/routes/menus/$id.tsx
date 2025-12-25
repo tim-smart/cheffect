@@ -197,14 +197,13 @@ function DayListItem({
     id: day,
   })
   return (
-    <div ref={setNodeRef} className="bg-background">
+    <div ref={setNodeRef} className="bg-card">
       <div
         className={cn(
           `w-full pr-2 pl-3 py-1 flex items-center justify-between border-b`,
-
           isOver
             ? "bg-primary/10 text-primary"
-            : "bg-muted text-muted-foreground",
+            : "bg-muted dark:bg-background text-muted-foreground dark:text-muted-foreground",
         )}
       >
         <div className="flex items-center gap-3 flex-1">
@@ -306,7 +305,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
   return (
     <Link
       className={cn(
-        "flex items-center p-2 -mt-2 first:mt-0 gap-3 bg-background relative rounded-lg border border-transparent",
+        "flex items-center p-2 -mt-2 first:mt-0 gap-3 bg-card relative rounded-lg border border-transparent",
         isDragging && "border-border",
       )}
       to="/recipes/$id"

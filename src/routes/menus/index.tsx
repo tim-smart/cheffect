@@ -96,7 +96,7 @@ function MenuList() {
   }
   return (
     <div
-      className={`rounded-lg border bg-background overflow-hidden divide-y divide-border border-border`}
+      className={`rounded-lg border bg-card overflow-hidden divide-y divide-border border-border`}
     >
       {menus.map((menu) => (
         <MenuCard key={menu.id} menu={menu} />

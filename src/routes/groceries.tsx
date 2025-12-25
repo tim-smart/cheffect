@@ -206,9 +206,7 @@ function GroceryItemForm({
       <div
         className={clsx(
           className,
-          compact
-            ? "bg-background p-3"
-            : "bg-background rounded-lg border border-border p-3",
+          compact ? "p-3" : "rounded-lg border border-border p-3",
         )}
       >
         {!compact && !isEditing && (
@@ -381,7 +379,7 @@ function GroceryListItem({
   return (
     <div
       className={cn(
-        `flex items-center gap-3 p-1 pl-3 min-h-14 transition-colors bg-background ${item.completed ? "bg-muted" : "active:bg-background/50"}`,
+        `flex items-center gap-3 p-1 pl-3 min-h-14 transition-colors bg-card ${item.completed ? "bg-muted" : "active:bg-muted dark:active:bg-card/50"}`,
         editingItem ? "" : "cursor-default",
       )}
     >

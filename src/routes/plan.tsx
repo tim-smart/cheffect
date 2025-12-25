@@ -216,11 +216,11 @@ function WeekList({
         )
 
         return (
-          <div key={date.epochMillis} className="bg-background">
+          <div key={date.epochMillis} className="bg-card">
             {/* Day Header with Add Button */}
             <div
-              className={`w-full p-2 flex items-center justify-between border-b ${
-                isTodayDate ? "bg-primary/10" : "bg-muted"
+              className={`w-full p-2 flex items-center justify-between border-b text-card-foreground ${
+                isTodayDate ? "bg-primary/10" : "bg-muted dark:bg-background"
               }`}
             >
               <div className="flex items-center gap-3 flex-1">
@@ -348,7 +348,7 @@ function SelectRecipeButton(props: {}) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-8 p-0 text-primary hover:bg-primary"
+      className="h-8 w-8 p-0 text-primary hover:bg-primary hover:text-primary-foreground"
       {...props}
     >
       <Plus className="w-4 h-4" />
