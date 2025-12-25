@@ -168,7 +168,7 @@ export function AiChatModal() {
           ref.current?.classList.remove("hidden")
           inputRef.current?.focus()
         }}
-        className="fixed right-4 bottom-22 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg active:scale-95 transition-transform"
+        className="fixed right-4 bottom-22 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg active:scale-95 transition-transform"
         aria-label="Open AI Chat"
       >
         <MessageSquare className="h-6 w-6" />
@@ -230,7 +230,7 @@ function ModalContent({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 p-4">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-orange-500" />
+          <MessageSquare className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">AI Assistant</h2>
         </div>
         <button
@@ -262,7 +262,7 @@ function ModalContent({
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
                     message.role === "user"
-                      ? "bg-orange-500 text-white"
+                      ? "bg-primary text-white"
                       : "bg-gray-100 text-gray-900"
                   }`}
                 >
@@ -318,13 +318,13 @@ function PromptInput({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-orange-500 focus:outline-none"
+          className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-primary focus:outline-none"
           autoFocus
         />
         <Button
           type="submit"
           size="icon"
-          className="h-10 w-10 rounded-full bg-orange-500 hover:bg-orange-600"
+          className="h-10 w-10 rounded-full bg-primary hover:bg-orange-700"
           disabled={isLoading || !input.trim()}
         >
           <Send />
