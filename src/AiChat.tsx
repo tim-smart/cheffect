@@ -5,7 +5,7 @@ import { LanguageModel, Prompt, Toolkit } from "@effect/ai"
 import * as Effect from "effect/Effect"
 import * as AiChat from "@effect/ai/Chat"
 import * as Stream from "effect/Stream"
-import { OpenAiLanguageModel, OpenAiTool } from "@effect/ai-openai"
+import { OpenAiLanguageModel } from "@effect/ai-openai"
 import {
   Atom,
   Registry,
@@ -35,7 +35,7 @@ import { viewportObstructedAtom } from "./atoms"
 import { GroceryItem } from "./domain/GroceryItem"
 import { MealPlanEntry } from "./domain/MealPlanEntry"
 
-const toolkit = Toolkit.make(OpenAiTool.WebSearch({}))
+const toolkit = Toolkit.make()
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
@@ -131,7 +131,7 @@ ${MenuEntry.toXml(menuEntries)}`
         )
         yield* pipe(
           LanguageModel.streamText({
-            toolkit,
+            // toolkit,
             prompt: history,
           }),
           Stream.mapChunks((chunk) => {
