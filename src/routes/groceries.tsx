@@ -411,7 +411,7 @@ function GroceryListItem({
             <div
               className={cn(
                 "flex flex-col leading-tight",
-                `${item.completed ? "line-through text-muted-foreground" : ""}`,
+                `${item.completed ? "text-muted-foreground" : ""}`,
               )}
             >
               <div>

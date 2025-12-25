@@ -288,7 +288,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
                             className="mt-[0.25em]"
                           />
                           <div
-                            className={`flex-1 ${isChecked ? "line-through text-muted-foreground" : ""}`}
+                            className={`flex-1 ${isChecked ? "text-muted-foreground" : ""}`}
                           >
                             <span>
                               {ingredient.quantity !== null && (
