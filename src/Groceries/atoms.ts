@@ -36,6 +36,13 @@ export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
     completed += items.filter((item) => item.completed).length
     aisles.push({ name: aisle, items })
   })
+  aisles.sort(({ name: a }, { name: b }) => {
+    const aIndex =
+      a === "Other" ? 1000 : GroceryAisle.literals.indexOf(a as any)
+    const bIndex =
+      b === "Other" ? 1000 : GroceryAisle.literals.indexOf(b as any)
+    return aIndex - bIndex
+  })
   return { total, completed, aisles }
 })
 
