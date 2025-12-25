@@ -203,7 +203,7 @@ function ModalContent({
   return (
     <div
       className={cn(
-        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[65vh] rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
+        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] max-h-dvh rounded-t-2xl md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 md:rounded-2xl flex-col",
       )}
       onClick={(e) => e.stopPropagation()}
     >
