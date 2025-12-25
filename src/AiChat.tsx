@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Send, MessageSquare, Loader2 } from "lucide-react"
-import { LanguageModel, Prompt, Toolkit } from "@effect/ai"
+import { LanguageModel, Prompt } from "@effect/ai"
 import * as Effect from "effect/Effect"
 import * as AiChat from "@effect/ai/Chat"
 import * as Stream from "effect/Stream"
@@ -35,13 +35,11 @@ import { viewportObstructedAtom } from "./atoms"
 import { GroceryItem } from "./domain/GroceryItem"
 import { MealPlanEntry } from "./domain/MealPlanEntry"
 
-const toolkit = Toolkit.make()
-
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
   {
     scoped: Effect.gen(function* () {
-      const model = yield* OpenAiLanguageModel.model("gpt-5.2-latest")
+      const model = yield* OpenAiLanguageModel.model("gpt-5.2")
       const registry = yield* Registry.AtomRegistry
 
       const baseSystemPrompt = `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.
