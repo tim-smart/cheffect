@@ -306,7 +306,7 @@ function WeekList({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-gray-400"
+                            className="h-8 w-8 p-0 text-muted-foreground"
                           >
                             <Calendar className="w-4 h-4" />
                           </Button>
@@ -318,7 +318,7 @@ function WeekList({
                             e.preventDefault()
                             return handleRemoveEntry(id)
                           }}
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
                         >
                           <X className="w-4 h-4" />
                         </Button>
