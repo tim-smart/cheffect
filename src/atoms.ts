@@ -38,21 +38,32 @@ export const viewportHeightAtom = Atom.make((get) => {
 
   if ("visualViewport" in window) {
     const updateHeight = () => {
-      get.setSelf(window.visualViewport!.height)
+      get.setSelf({
+        height: window.visualViewport!.height,
+        obstructed: self.innerHeight > window.visualViewport!.height,
+      })
     }
     window.visualViewport!.addEventListener("resize", updateHeight)
     get.addFinalizer(() => {
       window.visualViewport!.removeEventListener("resize", updateHeight)
     })
-    return window.visualViewport!.height
+    return {
+      height: window.visualViewport!.height,
+      obstructed: self.innerHeight > window.visualViewport!.height,
+    }
   }
 
   const updateHeight = () => {
-    get.setSelf(self.innerHeight)
+    get.setSelf({
+      height: self.innerHeight,
+    })
   }
   self.addEventListener("resize", updateHeight)
   get.addFinalizer(() => {
     self.removeEventListener("resize", updateHeight)
   })
-  return self.innerHeight
+  return {
+    height: self.innerHeight,
+    obstructed: false,
+  }
 })
