@@ -208,7 +208,7 @@ function ModalContent({
       setIsFullscreen((prev) => {
         if (prev === fullscreen) return prev
         scrollToBottom()
-        inputRef.current?.scrollIntoView({ behavior: "smooth" })
+        inputRef.current?.scrollIntoView({ behavior: "instant" })
         return fullscreen
       })
     }, 0)
