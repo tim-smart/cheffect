@@ -324,7 +324,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
           )}
           {...listeners}
         >
-          <GripVertical className="size-5 text-gray-400" />
+          <GripVertical className="size-5 text-muted-foreground" />
         </div>
         <div className="relative w-12 h-12 -ml-0.5 shrink-0 rounded overflow-hidden">
           {recipe.imageUrl ? (
