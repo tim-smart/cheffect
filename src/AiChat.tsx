@@ -176,14 +176,11 @@ export function AiChatModal() {
 
       {/* Modal - Desktop: bottom-right corner, allows page interaction. Mobile: full-screen modal */}
       {/* Mobile overlay (blocks interaction) */}
-      <div
-        ref={ref}
-        className={cn(
-          "flex fixed md:relative top-0 h-screen w-full z-50 flex-col bg-black/50 md:bg-transparent md:h-auto md:w-auto md:top-auto",
-          isOpen ? "" : "hidden",
-        )}
-      >
-        <div className="flex-1 md:hidden" onClick={() => setIsOpen(false)} />
+      <div ref={ref} className={isOpen ? "" : "hidden"}>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
         <ModalContent inputRef={inputRef} onClose={() => setIsOpen(false)} />
       </div>
     </>
@@ -223,7 +220,7 @@ function ModalContent({
     <div
       ref={containerRef}
       className={cn(
-        "flex relative md:fixed z-50 bg-white shadow-2xl inset-x-0 h-[85vh] md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col",
+        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col",
         isFullscreen ? "" : "rounded-t-2xl md:rounded-2xl",
       )}
       onClick={(e) => e.stopPropagation()}
