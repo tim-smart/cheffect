@@ -202,20 +202,13 @@ function ModalContent({
   })
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  useAtomSubscribe(
-    viewportHeightAtom,
-    (viewportHeight) => {
-      containerRef.current?.style.setProperty(
-        "max-height",
-        `${viewportHeight}px`,
-      )
-      setIsFullscreen(
-        Math.round(viewportHeight) === containerRef.current?.scrollHeight,
-      )
-      scrollToBottom()
-    },
-    { immediate: true },
-  )
+  useAtomSubscribe(viewportHeightAtom, (viewportHeight) => {
+    containerRef.current?.style.setProperty("max-height", `${viewportHeight}px`)
+    setIsFullscreen(
+      Math.round(viewportHeight) === containerRef.current?.scrollHeight,
+    )
+    scrollToBottom()
+  })
 
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
