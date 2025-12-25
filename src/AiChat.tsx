@@ -27,7 +27,7 @@ import { menuByIdAtom, menuEntriesAtom } from "./Menus/atoms"
 import { MenuEntry } from "./domain/MenuEntry"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
-import { viewportHeightAtom } from "./atoms"
+import { viewportObstructedAtom } from "./atoms"
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
@@ -199,12 +199,12 @@ function ModalContent({
     initial: "instant",
     resize: "smooth",
   })
-  const viewportHeight = useAtomValue(viewportHeightAtom)
+  const viewportObstructed = useAtomValue(viewportObstructedAtom)
   useEffect(() => {
     setTimeout(() => {
       inputRef.current?.scrollIntoView({ behavior: "instant" })
     }, 0)
-  }, [viewportHeight.obstructed])
+  }, [viewportObstructed > 0])
 
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
@@ -213,11 +213,13 @@ function ModalContent({
     <div
       ref={containerRef}
       className={cn(
-        "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 h-[85vh] md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col",
-        viewportHeight.obstructed ? "" : "rounded-t-2xl md:rounded-2xl",
+        "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col transition-all md:top-auto!",
+        viewportObstructed > 0
+          ? ""
+          : "top-[15vh]! rounded-t-2xl md:rounded-2xl",
       )}
       onClick={(e) => e.stopPropagation()}
-      style={{ maxHeight: viewportHeight.height }}
+      style={{ top: viewportObstructed }}
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-4">
