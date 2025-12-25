@@ -59,9 +59,9 @@ export function MenuDetailPage() {
   }
 
   return (
-    <div className="pb-30">
+    <div className="pb-40">
       {/* Header */}
-      <header className="bg-white border-b border-border sticky top-0 z-10">
+      <header className="bg-background border-b border-border sticky top-0 z-10">
         <div className="pl-2 pr-4 py-4">
           <div className="flex items-center gap-3">
             <Button
@@ -143,7 +143,7 @@ export function MenuDetailPage() {
             <Input
               type="number"
               min={1}
-              className="w-16 bg-white"
+              className="w-16 bg-background"
               defaultValue={menu.days}
               onBlur={(e) => setDays(Number(e.target.value))}
               onKeyDown={(e) => {
@@ -197,12 +197,14 @@ function DayListItem({
     id: day,
   })
   return (
-    <div ref={setNodeRef} className="bg-white">
+    <div ref={setNodeRef} className="bg-background">
       <div
         className={cn(
           `w-full pr-2 pl-3 py-1 flex items-center justify-between border-b`,
 
-          isOver ? "bg-orange-50 text-primary" : "bg-gray-50 ",
+          isOver
+            ? "bg-primary/10 text-primary"
+            : "bg-muted text-muted-foreground",
         )}
       >
         <div className="flex items-center gap-3 flex-1">
@@ -213,7 +215,7 @@ function DayListItem({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+              className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-muted-foreground hover:bg-foreground/10"
               onClick={() => {
                 commit(
                   events.menuDayRemove({
@@ -258,7 +260,9 @@ function DayListItem({
 
         {dayEntries.length === 0 && (
           <div className="p-3 text-center">
-            <p className="text-sm text-muted-foreground">No recipes added yet</p>
+            <p className="text-sm text-muted-foreground">
+              No recipes added yet
+            </p>
           </div>
         )}
       </div>
@@ -302,7 +306,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
   return (
     <Link
       className={cn(
-        "flex items-center p-2 -mt-2 first:mt-0 gap-3 bg-white relative rounded-lg border border-transparent",
+        "flex items-center p-2 -mt-2 first:mt-0 gap-3 bg-background relative rounded-lg border border-transparent",
         isDragging && "border-border",
       )}
       to="/recipes/$id"
@@ -336,9 +340,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm  line-clamp-1">
-          {recipe.title}
-        </h4>
+        <h4 className="font-medium text-sm  line-clamp-1">{recipe.title}</h4>
         <p className="text-xs text-muted-foreground">
           {[
             ...Option.match(recipe.totalTime, {
@@ -357,7 +359,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
             e.preventDefault()
             commit(events.menuEntryRemove({ id }))
           }}
-          className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+          className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600"
         >
           <X className="w-4 h-4" />
         </Button>
@@ -371,7 +373,7 @@ function SelectRecipeButton(props: {}) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-8 p-0 text-primary hover:bg-orange-100"
+      className="h-8 w-8 p-0 text-primary hover:bg-primary"
       {...props}
     >
       <Plus className="w-4 h-4" />

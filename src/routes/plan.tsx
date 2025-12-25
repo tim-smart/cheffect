@@ -93,7 +93,7 @@ export function MealPlanPage() {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-border sticky top-0 z-10">
+      <header className="bg-background border-b border-border sticky top-0 z-10">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -216,11 +216,11 @@ function WeekList({
         )
 
         return (
-          <div key={date.epochMillis} className="bg-white">
+          <div key={date.epochMillis} className="bg-background">
             {/* Day Header with Add Button */}
             <div
               className={`w-full p-2 flex items-center justify-between border-b ${
-                isTodayDate ? "bg-orange-50" : "bg-muted"
+                isTodayDate ? "bg-primary/10" : "bg-muted"
               }`}
             >
               <div className="flex items-center gap-3 flex-1">
@@ -231,7 +231,7 @@ function WeekList({
                     {dayNames[dateParts.weekDay]}
                   </p>
                   <p
-                    className={`text-xs ${isTodayDate ? "text-orange-500" : "text-muted-foreground"}`}
+                    className={`text-xs ${isTodayDate ? "text-primary/70" : "text-muted-foreground"}`}
                   >
                     {DateTime.formatUtc(date, {
                       month: "short",
@@ -330,7 +330,9 @@ function WeekList({
 
               {dayEntries.length === 0 && (
                 <div className="p-3 text-center">
-                  <p className="text-sm text-muted-foreground">No meals planned</p>
+                  <p className="text-sm text-muted-foreground">
+                    No meals planned
+                  </p>
                 </div>
               )}
             </div>
@@ -346,7 +348,7 @@ function SelectRecipeButton(props: {}) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-8 p-0 text-primary hover:bg-orange-100"
+      className="h-8 w-8 p-0 text-primary hover:bg-primary"
       {...props}
     >
       <Plus className="w-4 h-4" />

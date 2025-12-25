@@ -78,15 +78,13 @@ function GroceryList() {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-border sticky top-0 z-10">
+      <header className="bg-background border-b border-border sticky top-0 z-10">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ShoppingCart className="w-6 h-6 text-primary" />
               <div>
-                <h1 className="text-lg font-semibold ">
-                  Grocery List
-                </h1>
+                <h1 className="text-lg font-semibold ">Grocery List</h1>
                 <p className="text-sm text-muted-foreground">
                   {completed} of {total} items
                 </p>
@@ -209,8 +207,8 @@ function GroceryItemForm({
         className={clsx(
           className,
           compact
-            ? "bg-white p-3"
-            : "bg-white rounded-lg border border-border p-3",
+            ? "bg-background p-3"
+            : "bg-background rounded-lg border border-border p-3",
         )}
       >
         {!compact && !isEditing && (
@@ -304,7 +302,7 @@ function GroceryListList({
   return (
     <>
       {showForm && (
-        <div className="bg-white border-b border-border">
+        <div className="bg-background border-b border-border">
           <GroceryItemForm
             className="max-w-lg mx-auto px-2 sm:px-4"
             onSubmit={(item) => {
@@ -316,9 +314,7 @@ function GroceryListList({
         </div>
       )}
       <div className="space-y-4 max-w-lg mx-auto p-2 sm:p-4">
-        {showCompleted && (
-          <h2 className="text-lg font-semibold ">Completed</h2>
-        )}
+        {showCompleted && <h2 className="text-lg font-semibold ">Completed</h2>}
         {/* Grocery List by Aisle */}
         {aisles
           .flatMap((aisle) => {
@@ -341,7 +337,7 @@ function GroceryListList({
                 <h2 className="font-semibold ">{name}</h2>
               </div>
 
-              <div className="bg-white rounded-lg overflow-hidden divide-y divide-border border border-border">
+              <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
                 {items.map((item) => (
                   <GroceryListItem
                     key={item.id}
@@ -358,7 +354,7 @@ function GroceryListList({
         {total === 0 && (
           <div className="text-center py-16">
             <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium  mb-2">
+            <h3 className="text-lg font-medium mb-2">
               Your grocery list is empty
             </h3>
             <p className="text-muted-foreground mb-6">
@@ -385,7 +381,7 @@ function GroceryListItem({
   return (
     <div
       className={cn(
-        `flex items-center gap-3 p-1 pl-3 min-h-14 transition-colors ${item.completed ? "bg-gray-50" : "active:bg-gray-50"}`,
+        `flex items-center gap-3 p-1 pl-3 min-h-14 transition-colors bg-background ${item.completed ? "bg-muted" : "active:bg-background/50"}`,
         editingItem ? "" : "cursor-default",
       )}
     >
@@ -423,13 +419,13 @@ function GroceryListItem({
               <div>
                 <span>{item.name}</span>
                 {item.quantity && (
-                  <span className="text-sm text-gray-600 ml-2">
+                  <span className="text-sm text-muted-foreground ml-2">
                     ({item.quantity})
                   </span>
                 )}
               </div>
               {item.recipeIds && (
-                <div className="text-xs text-gray-400 [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
+                <div className="text-xs text-muted-foreground [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
                   {item.recipeIds.map((id) => (
                     <RecipeTitle key={id} id={id} />
                   ))}
@@ -442,7 +438,7 @@ function GroceryListItem({
               onClick={() => setEditingItem(true)}
               variant="ghost"
               size="sm"
-              className="p-2! text-gray-400 hover:text-orange-500 shrink-0 -mr-2"
+              className="p-2! text-muted-foreground hover:text-orange-500 shrink-0 -mr-2"
             >
               <Edit />
             </Button>
@@ -450,7 +446,7 @@ function GroceryListItem({
               onClick={() => removeItem(item)}
               variant="ghost"
               size="sm"
-              className="p-2! text-gray-400 hover:text-red-500 shrink-0"
+              className="p-2! text-muted-foreground hover:text-red-500 shrink-0"
             >
               <X />
             </Button>
@@ -521,7 +517,7 @@ function NameAutoComplete() {
     inputRef.current?.form?.requestSubmit()
   }
   return (
-    <Command className="overflow-visible">
+    <Command className="overflow-visible bg-transparent!">
       <Display.name
         placeholder="Item name"
         {...{
@@ -548,7 +544,7 @@ function NameAutoComplete() {
           focused && results.length > 0 ? "block" : "hidden",
         )}
       >
-        <CommandList className="animate-in fade-in-0 zoom-in-95 absolute top-2 z-1 w-full rounded-xl bg-white border shadow-lg">
+        <CommandList className="animate-in fade-in-0 zoom-in-95 absolute top-2 z-1 w-full rounded-xl bg-background border shadow-lg">
           <CommandGroup>
             <CommandItem value="-" className="hidden" />
             {results.map((name) => (

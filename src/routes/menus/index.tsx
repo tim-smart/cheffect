@@ -46,7 +46,7 @@ export function MenusPage() {
   return (
     <div className="pb-30">
       {/* Header */}
-      <header className="bg-white border-b border-border sticky top-0 z-10">
+      <header className="bg-background border-b border-border sticky top-0 z-10">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ function MenuList() {
   }
   return (
     <div
-      className={`rounded-lg border bg-white overflow-hidden divide-y divide-border border-border`}
+      className={`rounded-lg border bg-background overflow-hidden divide-y divide-border border-border`}
     >
       {menus.map((menu) => (
         <MenuCard key={menu.id} menu={menu} />
@@ -108,9 +108,11 @@ function MenuList() {
 function NoResults() {
   return (
     <div className="text-center py-16">
-      <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+      <ChefHat className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
       <h3 className="text-lg font-medium  mb-2">No menus found</h3>
-      <p className="text-muted-foreground mb-6 px-4">Start by adding your first menu</p>
+      <p className="text-muted-foreground mb-6 px-4">
+        Start by adding your first menu
+      </p>
       <AddMenuButton />
     </div>
   )
@@ -122,7 +124,7 @@ function MenuCard({ menu }: { menu: Menu }) {
   const [editing, setEditing] = useState(false)
   const recipeCount = useAtomValue(menuRecipeCountAtom(menu.id))
   return (
-    <div className="flex items-center h-20 pl-4 pr-2 active:bg-gray-50 transition-colors">
+    <div className="flex items-center h-20 pl-4 pr-2 active:bg-muted transition-colors">
       <Link
         to="/menus/$id"
         params={{ id: menu.id }}
@@ -148,7 +150,7 @@ function MenuCard({ menu }: { menu: Menu }) {
           </h3>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-0.5">{menu.days} days</div>
           &bull;
           <div className="flex items-center gap-0.5">{recipeCount} recipes</div>
@@ -283,12 +285,10 @@ function MenuForm({
         <div
           className={cn(
             className,
-            "bg-white rounded-lg border border-border p-3",
+            "bg-background rounded-lg border border-border p-3",
           )}
         >
-          {!isEditing && (
-            <h3 className="font-medium  mb-2">Add new menu</h3>
-          )}
+          {!isEditing && <h3 className="font-medium  mb-2">Add new menu</h3>}
           <div className={"space-y-2"}>
             <div>
               <Display.name placeholder="Menu name" {...{ autoFocus: true }} />

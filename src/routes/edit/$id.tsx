@@ -58,7 +58,7 @@ function Header({
   }
 }) {
   return (
-    <header className="bg-white border-b border-border sticky top-0 z-10">
+    <header className="bg-background border-b border-border sticky top-0 z-10">
       <div className="px-2 py-4">
         <div className="flex items-center gap-3">
           <Button

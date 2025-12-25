@@ -221,7 +221,7 @@ function ModalContent({
     <div
       ref={containerRef}
       className={cn(
-        "flex fixed z-50 bg-white shadow-2xl inset-x-0 bottom-0 h-[85vh] md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col",
+        "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 h-[85vh] md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col transition-all",
         isFullscreen ? "" : "rounded-t-2xl md:rounded-2xl",
       )}
       onClick={(e) => e.stopPropagation()}
@@ -233,18 +233,20 @@ function ModalContent({
           <MessageSquare className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">AI Assistant</h2>
         </div>
-        <button
+        <Button
           onClick={() => onClose()}
-          className="rounded-full p-2 hover:bg-gray-100 active:scale-95"
+          className="rounded-full"
+          size="icon"
+          variant="ghost"
         >
           <X className="h-5 w-5" />
-        </button>
+        </Button>
       </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
-          <div className="flex h-full items-center justify-center text-gray-400 mb-0">
+          <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
             <div className="text-center">
               <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>Ask me anything about recipes or meal planning!</p>
@@ -262,8 +264,8 @@ function ModalContent({
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
                     message.role === "user"
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 "
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-foreground"
                   }`}
                 >
                   {message.content.length === 0 ? (
@@ -318,7 +320,7 @@ function PromptInput({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-primary focus:outline-none"
+          className="flex-1 rounded-full border border-border px-4 py-2 text-sm focus:border-primary focus:outline-none"
           autoFocus
         />
         <Button

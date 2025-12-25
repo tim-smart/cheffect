@@ -90,7 +90,7 @@ export function RecipeForm({
 
 function FormCard({ children }: React.PropsWithChildren<{}>) {
   return (
-    <div className="flex flex-col gap-4 bg-white border rounded-md p-4">
+    <div className="flex flex-col gap-4 bg-background border rounded-md p-4">
       {children}
     </div>
   )

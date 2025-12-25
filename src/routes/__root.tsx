@@ -17,7 +17,7 @@ export const Route = createRootRoute({
     return (
       <div>
         {/* Mobile Header */}
-        <header className="bg-white border-b border-border sticky top-0 z-10">
+        <header className="bg-background border-b border-border sticky top-0 z-10">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <button
@@ -53,12 +53,12 @@ export const Route = createRootRoute({
         </main>
 
         {/* Bottom Navigation - Mobile First */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-border px-4 py-2 nav-pb">
+        <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-2 nav-pb">
           <div className="flex justify-around">
             <Link
               to="/"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-orange-50" }}
+              activeProps={{ className: "text-primary bg-primary/10" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}
@@ -70,7 +70,7 @@ export const Route = createRootRoute({
             <Link
               to="/groceries"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-orange-50" }}
+              activeProps={{ className: "text-primary bg-primary/10" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}
@@ -82,7 +82,7 @@ export const Route = createRootRoute({
             <Link
               to="/plan"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-orange-50" }}
+              activeProps={{ className: "text-primary bg-primary/10" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}
@@ -94,7 +94,7 @@ export const Route = createRootRoute({
             <Link
               to="/menus"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-orange-50" }}
+              activeProps={{ className: "text-primary bg-primary/10" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}

@@ -4,6 +4,7 @@ import { router } from "./Router"
 import { useAtomMount } from "@effect-atom/atom-react"
 import { Store } from "./livestore/atoms"
 import { installPromptAtom } from "./atoms"
+import { useLayoutEffect } from "react"
 
 export default function App() {
   useAtomMount(Store.runtime)
@@ -13,5 +14,40 @@ export default function App() {
     immediate: true,
   })
 
-  return <RouterProvider router={router} />
+  return (
+    <>
+      <RouterProvider router={router} />
+      <SystemTheme />
+    </>
+  )
+}
+
+function isDarkMode() {
+  return (
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  )
+}
+
+function SystemTheme() {
+  useLayoutEffect(() => {
+    const listener = () => {
+      if (isDarkMode()) {
+        document.documentElement.classList.add("dark")
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute("content", "#0a0a0a")
+      } else {
+        document.documentElement.classList.remove("dark")
+        document
+          .querySelector('meta[name="theme-color"]')
+          ?.setAttribute("content", "#ffffff")
+      }
+    }
+    const matcher = window.matchMedia("(prefers-color-scheme: dark)")
+    matcher.addEventListener("change", listener)
+    listener()
+    return () => matcher.removeEventListener("change", listener)
+  }, [])
+  return null
 }

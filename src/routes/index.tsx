@@ -84,7 +84,7 @@ function SearchInput() {
             const target = e.target as HTMLInputElement
             target.blur()
           }}
-          className="pl-10 h-11 bg-white"
+          className="pl-10 h-11 bg-background!"
         />
       </div>
       <SortButton />
@@ -100,7 +100,7 @@ function SortButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-11 px-3 bg-white">
+        <Button variant="outline" size="sm" className="h-11 px-3 bg-background">
           <ArrowDownWideNarrow className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>

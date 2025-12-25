@@ -45,7 +45,7 @@ export function RecipeList({
     <div
       className={clsx(
         rounded && `rounded-lg border`,
-        `bg-white overflow-hidden divide-y divide-border border-border relative last:border-b`,
+        `bg-background overflow-hidden divide-y divide-border border-border relative last:border-b`,
       )}
     >
       <div
