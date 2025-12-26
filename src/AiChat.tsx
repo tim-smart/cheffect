@@ -1,24 +1,11 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import {
-  X,
-  Send,
-  MessageSquare,
-  Loader2,
-  Eraser,
-  MoreVertical,
-} from "lucide-react"
+import { X, Send, MessageSquare, Loader2, Eraser } from "lucide-react"
 import { Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react"
 import Markdown from "react-markdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
 import { viewportObstructedAtom } from "./atoms"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./components/ui/dropdown-menu"
 import {
   clearAtom,
   currentPromptAtom,
