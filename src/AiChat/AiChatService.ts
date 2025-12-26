@@ -172,6 +172,19 @@ const ToolkitLayer = toolkit.toLayer(
           value: entries,
         }
       }),
+      ImportRecipeFromUrl: Effect.fnUntraced(function* ({ url }) {
+        const jobId = crypto.randomUUID()
+        store.commit(
+          events.recipeExtractJobAdded({
+            id: jobId,
+            url,
+          }),
+        )
+        return {
+          _tag: "Transient",
+          value: { jobId },
+        }
+      }),
     })
   }),
 )
