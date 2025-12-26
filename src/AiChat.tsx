@@ -217,9 +217,7 @@ function PromptInput({
             const inputFocused = document.activeElement === inputRef.current
             clear()
             if (inputFocused) {
-              setTimeout(() => {
-                inputRef.current?.focus()
-              }, 0)
+              inputRef.current?.focus()
             }
           }}
           size="icon"
