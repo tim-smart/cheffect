@@ -255,7 +255,7 @@ const ToolkitLayer = toolkit.toLayer(
           }),
         )
         return {
-          _tag: "Transient",
+          _tag: "Terminal",
           value: { jobId },
         }
       }),
