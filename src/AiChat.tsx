@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Send, MessageSquare, Loader2 } from "lucide-react"
+import {
+  X,
+  Send,
+  MessageSquare,
+  Loader2,
+  Eraser,
+  MoreVertical,
+} from "lucide-react"
 import * as Effect from "effect/Effect"
 import * as AiChat from "@effect/ai/Chat"
 import * as Stream from "effect/Stream"
@@ -39,6 +46,12 @@ import * as Persistence from "@effect/experimental/Persistence"
 import { layerKvsLivestore } from "./lib/kvs"
 import { Store } from "./livestore/atoms"
 import { events } from "./livestore/schema"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./components/ui/dropdown-menu"
 
 // const toolkit = Toolkit.make(OpenAiTool.WebSearch({}))
 
@@ -346,9 +359,24 @@ function PromptInput({
 
   const isLoading = useAtomValue(sendAtom, Result.isWaiting)
 
+  const clear = useAtomSet(clearAtom)
+
   return (
     <form onSubmit={handleSubmit} className="border-t border-border p-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="p-1">
+              <MoreVertical />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => clear()}>
+              <Eraser />
+              Clear
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <input
           ref={inputRef}
           value={input}
@@ -369,3 +397,11 @@ function PromptInput({
     </form>
   )
 }
+
+const clearAtom = runtime.fn<void>()(
+  Effect.fnUntraced(function* (_, get) {
+    const ai = yield* AiChatService
+    yield* ai.clear
+    get.set(currentPromptAtom, Prompt.empty)
+  }),
+)
