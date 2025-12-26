@@ -61,15 +61,7 @@ const ToolkitLayer = toolkit.toLayer(
         return { _tag: "Transient", value: Option.getOrNull(recipe) } as const
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
-        const newRecipe = new Recipe({
-          ...recipe,
-          id: crypto.randomUUID(),
-          ingredientScale: 1,
-          rating: null,
-          createdAt: DateTime.unsafeNow(),
-          updatedAt: DateTime.unsafeNow(),
-          deletedAt: null,
-        })
+        const newRecipe = recipe.asRecipe()
         store.commit(events.recipeCreated(newRecipe))
         return {
           _tag: "Transient",
@@ -153,6 +145,7 @@ const ToolkitLayer = toolkit.toLayer(
               recipeId: recipe.value.id,
               day: menuEntry.day,
               createdAt: DateTime.unsafeNow(),
+              updatedAt: DateTime.unsafeNow(),
             }),
           )
           return id
@@ -338,6 +331,9 @@ ${MenuEntry.toXml(menuEntries)}`
               registry.set(currentPromptAtom, Prompt.merge(history, response))
               return Effect.void
             }),
+            OpenAiLanguageModel.withConfigOverride({
+              reasoning: { effort: "medium" },
+            }),
           )
           history = Prompt.merge(history, Prompt.fromResponseParts(parts))
           registry.set(currentPromptAtom, history)
@@ -346,7 +342,11 @@ ${MenuEntry.toXml(menuEntries)}`
           >(parts as any)
           parts = []
           const toolResult = response.toolResults[0]
-          if (toolResult && toolResult.result._tag === "Transient") {
+          if (
+            toolResult &&
+            "_tag" in toolResult.result &&
+            toolResult.result._tag === "Transient"
+          ) {
             continue
           }
           break

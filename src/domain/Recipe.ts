@@ -125,13 +125,13 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
     description: "Represents a recipe with its details.",
   },
 ) {
-  asRecipe(url: string): Recipe {
+  asRecipe(url?: string): Recipe {
     return new Recipe({
       ...this,
       id: crypto.randomUUID(),
       rating: null,
       ingredientScale: 1,
-      sourceUrl: url,
+      sourceUrl: url ?? null,
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
       deletedAt: null,

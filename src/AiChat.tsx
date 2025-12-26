@@ -26,7 +26,6 @@ import {
   sendAtom,
 } from "./AiChat/AiChatService"
 import { router } from "./Router"
-import { ToolkitSuccess } from "./domain/Toolkits"
 
 export function AiChatModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -136,13 +135,13 @@ function ModalContent({
             message.role === "tool" ? (
               <div
                 key={i}
-                className="flex justify-start text-sm text-muted-foreground"
+                className="flex flex-col justify-start text-sm text-muted-foreground"
               >
-                {message.content.map((part) => {
-                  const result = part.result as ToolkitSuccess
-                  console.log(result, part)
-                  return <span key={part.id}>Tool call "{part.name}"</span>
-                })}
+                {message.content.map((part) => (
+                  <span key={part.id} className="block">
+                    Tool call "{part.name}"
+                  </span>
+                ))}
               </div>
             ) : (
               <div

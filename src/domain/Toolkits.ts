@@ -1,7 +1,7 @@
 import * as Tool from "@effect/ai/Tool"
 import * as Toolkit from "@effect/ai/Toolkit"
 import * as Schema from "effect/Schema"
-import { Recipe } from "./Recipe"
+import { ExtractedRecipe, Recipe } from "./Recipe"
 import { GroceryItem } from "./GroceryItem"
 import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
@@ -72,7 +72,7 @@ export class toolkit extends Toolkit.make(
     description:
       "Create a new recipe from the provided information. Returns the new recipe ID.",
     parameters: {
-      recipe: Recipe.jsonCreate.pipe(Schema.omit("rating")),
+      recipe: ExtractedRecipe,
     },
     success: TransientResponse(Schema.Struct({ recipeId: Schema.String })),
   }),

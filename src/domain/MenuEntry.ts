@@ -22,7 +22,7 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
     Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
   ),
   updatedAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("insert", "jsonCreate", "jsonUpdate"),
+    Model.FieldExcept("jsonCreate", "jsonUpdate"),
   ),
 }) {
   static array = Schema.Array(MenuEntry)
