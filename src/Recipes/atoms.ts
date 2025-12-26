@@ -13,8 +13,9 @@ import { RecipeExtractionManager } from "./RecipeExtractionManager"
 import { openAiClientLayer } from "@/services/AiHelpers"
 import { events } from "@/livestore/schema"
 import * as HashSet from "effect/HashSet"
-import { Recipe } from "@/domain/Recipe"
+import { ExtractedRecipe, Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
+import { router } from "@/Router"
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
@@ -51,9 +52,7 @@ export const recipeFormByIdAtom = Atom.family((id: string) =>
 export const showOriginalRecipeAtom = Atom.make(HashSet.empty<string>())
 
 export const modifiedRecipeByIdAtom = Atom.family((_id: string) =>
-  Atom.make<typeof Recipe.jsonUpdate.Type | undefined>(undefined).pipe(
-    Atom.keepAlive,
-  ),
+  Atom.make<ExtractedRecipe | undefined>(undefined).pipe(Atom.keepAlive),
 )
 
 export const recipeForDisplayAtom = Atom.family((id: string) =>
@@ -97,6 +96,26 @@ export const saveModifiedRecipeAtom = Atom.fn<string>()(
     store.commit(events.recipeUpdated(newRecipe))
     get.set(modifiedRecipeByIdAtom(id), undefined)
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
+  }),
+)
+
+export const newModifiedRecipeAtom = Atom.fn<string>()(
+  Effect.fnUntraced(function* (id, get) {
+    const recipe = yield* get.result(recipeByIdAtom(id))
+    const modified = get(modifiedRecipeByIdAtom(id))
+    if (!modified) return
+    const store = get(Store.storeUnsafe)!
+    const newRecipe = new Recipe({
+      ...recipe,
+      ...modified,
+      id: crypto.randomUUID(),
+      createdAt: DateTime.unsafeNow(),
+      updatedAt: DateTime.unsafeNow(),
+    })
+    store.commit(events.recipeCreated(newRecipe))
+    get.set(modifiedRecipeByIdAtom(id), undefined)
+    get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
+    router.navigate({ to: "/recipes/$id", params: { id: newRecipe.id } })
   }),
 )
 

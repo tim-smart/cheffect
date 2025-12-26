@@ -21,6 +21,7 @@ import {
 import {
   checkedIngredientsAtom,
   discardModifiedRecipeAtom,
+  newModifiedRecipeAtom,
   recipeForDisplayAtom,
   recipeSelectedStep,
   saveModifiedRecipeAtom,
@@ -53,6 +54,7 @@ import {
   Users,
   Link as LinkIcon,
   Save,
+  Plus,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -449,6 +451,7 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
   const showOriginal = HashSet.has(originals, recipe.id)
   const discard = useAtomSet(discardModifiedRecipeAtom)
   const save = useAtomSet(saveModifiedRecipeAtom)
+  const create = useAtomSet(newModifiedRecipeAtom)
   return (
     <div className="bg-yellow-50 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-50 px-4 py-2 text-sm border-b border-yellow-200 dark:border-yellow-700 flex items-center gap-2">
       <div>You are viewing a modified version of this recipe.</div>
@@ -459,14 +462,31 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
           variant="outline"
           onClick={() => setOriginals(HashSet.toggle(recipe.id))}
         >
-          {showOriginal ? "Show Modified" : "Show Original"}
+          {showOriginal ? "Show modified" : "Show original"}
         </Button>
-        <Button size="sm" variant="outline" onClick={() => discard(recipe.id)}>
-          Discard
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => discard(recipe.id)}
+          title="Discard changes"
+        >
+          <Trash />
         </Button>
-        <Button size="sm" variant="outline" onClick={() => save(recipe.id)}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => save(recipe.id)}
+          title="Save changes"
+        >
           <Save />
-          Save
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => create(recipe.id)}
+          title="Create new recipe from modified version"
+        >
+          <Plus />
         </Button>
       </ButtonGroup>
     </div>
