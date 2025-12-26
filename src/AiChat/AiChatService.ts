@@ -103,23 +103,17 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       UpdateGroceryItem: Effect.fnUntraced(function* ({
-        id,
-        name,
-        quantity,
-        aisle,
+        groceryItem,
+        groceryItemId,
       }) {
-        const existing = store.query(groceryItemById$(id))
+        const existing = store.query(groceryItemById$(groceryItemId))
         if (Option.isNone(existing)) {
           return { _tag: "Transient", value: null }
         }
         store.commit(
           events.groceryItemUpdated({
-            id,
-            name: name ?? existing.value.name,
-            quantity: quantity !== undefined ? quantity : existing.value.quantity,
-            aisle: aisle !== undefined ? aisle : existing.value.aisle,
-            recipeIds: existing.value.recipeIds,
-            completed: existing.value.completed,
+            ...existing.value,
+            ...groceryItem,
             updatedAt: DateTime.unsafeNow(),
           }),
         )

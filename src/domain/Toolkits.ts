@@ -2,7 +2,7 @@ import * as Tool from "@effect/ai/Tool"
 import * as Toolkit from "@effect/ai/Toolkit"
 import * as Schema from "effect/Schema"
 import { ExtractedRecipe, Recipe } from "./Recipe"
-import { GroceryAisle, GroceryItem } from "./GroceryItem"
+import { GroceryItem } from "./GroceryItem"
 import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
 import { MealPlanEntry } from "./MealPlanEntry"
@@ -82,9 +82,7 @@ export class toolkit extends Toolkit.make(
     description: "Add items to the user's grocery list",
     parameters: {
       groceryItems: Schema.Array(
-        GroceryItem.jsonCreate.pipe(
-          Schema.omit("completed", "createdAt", "updatedAt"),
-        ),
+        GroceryItem.jsonCreate.pipe(Schema.omit("completed")),
       ),
     },
     success: TransientResponse(Schema.Null),
@@ -92,10 +90,8 @@ export class toolkit extends Toolkit.make(
   Tool.make("UpdateGroceryItem", {
     description: "Update an existing grocery item's name, quantity, or aisle",
     parameters: {
-      id: Schema.String,
-      name: Schema.optional(Schema.String),
-      quantity: Schema.optional(Schema.NullOr(Schema.String)),
-      aisle: Schema.optional(Schema.NullOr(GroceryAisle)),
+      groceryItemId: Schema.String,
+      groceryItem: GroceryItem.jsonUpdate,
     },
     success: TransientResponse(Schema.Null),
   }),
@@ -105,8 +101,8 @@ export class toolkit extends Toolkit.make(
     parameters: {
       targetId: Schema.String,
       sourceIds: Schema.Array(Schema.String),
-      mergedName: Schema.optional(Schema.String),
-      mergedQuantity: Schema.optional(Schema.String),
+      mergedName: Schema.NullOr(Schema.String),
+      mergedQuantity: Schema.NullOr(Schema.String),
     },
     success: TransientResponse(Schema.Null),
   }),

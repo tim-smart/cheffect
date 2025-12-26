@@ -33,8 +33,12 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
     },
   ),
   completed: Model.BooleanFromNumber,
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(Model.FieldExcept("update")),
-  updatedAt: Schema.DateTimeUtcFromNumber,
+  createdAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
+  ),
+  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldExcept("jsonCreate", "jsonUpdate"),
+  ),
 }) {
   static array = Schema.Array(GroceryItem)
   static xml = UnknownToXml.pipe(
