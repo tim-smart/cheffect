@@ -151,6 +151,13 @@ const ToolkitLayer = toolkit.toLayer(
           value: null,
         }
       }),
+      RemoveMenuEntry: Effect.fnUntraced(function* ({ id }) {
+        store.commit(events.menuEntryRemove({ id }))
+        return {
+          _tag: "Transient",
+          value: null,
+        }
+      }),
       GetCurrentMealPlan: Effect.fnUntraced(function* () {
         const today = new Date().getDay()
         const thisWeek = DateTime.unsafeNow().pipe(

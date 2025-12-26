@@ -115,6 +115,13 @@ export class toolkit extends Toolkit.make(
     },
     success: TransientResponse(Schema.Array(MenuEntry.json)),
   }),
+  Tool.make("RemoveMenuEntry", {
+    description: "Remove a recipe entry from a menu",
+    parameters: {
+      id: Schema.String,
+    },
+    success: TransientResponse(Schema.Null),
+  }),
   Tool.make("GetCurrentMealPlan", {
     description:
       "Get the user's current meal plan entries for the current week",
