@@ -423,10 +423,12 @@ ${MenuEntry.toXml(menuEntries)}`
             >(parts as any)
             parts = []
             const toolResult = response.toolResults[0]
+            // Continue loop if tool result is Transient or has no _tag (like WebSearch)
+            // Break only when no tool results or Terminal
             if (
               toolResult &&
-              "_tag" in toolResult.result &&
-              toolResult.result._tag === "Transient"
+              (!("_tag" in toolResult.result) ||
+                toolResult.result._tag === "Transient")
             ) {
               continue
             }
