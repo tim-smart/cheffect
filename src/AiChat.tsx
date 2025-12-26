@@ -112,7 +112,7 @@ function ModalContent({
           onClose()
         }}
       >
-        <MessagesList ref={contentRef} />
+        <MessagesList ref={contentRef} onNewMessage={scrollToBottom} />
       </div>
       {/* Input */}
       <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
@@ -122,11 +122,18 @@ function ModalContent({
 
 function MessagesList({
   ref,
+  onNewMessage,
 }: {
   readonly ref: (instance: HTMLDivElement | null) => void
+  readonly onNewMessage: () => void
 }) {
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
+
+  useEffect(() => {
+    onNewMessage()
+  }, [messages.length])
+
   if (messages.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
