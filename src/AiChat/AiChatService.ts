@@ -423,7 +423,7 @@ ${MenuEntry.toXml(menuEntries)}`
             const hasTerminalResult = response.toolResults.some(
               (toolResult) =>
                 "_tag" in toolResult.result &&
-                toolResult.result._tag === "Terminal"
+                toolResult.result._tag === "Terminal",
             )
 
             // Only continue if there are no text parts AND no terminal results
