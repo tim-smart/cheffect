@@ -102,6 +102,76 @@ const ToolkitLayer = toolkit.toLayer(
           value: null,
         }
       }),
+      UpdateGroceryItem: Effect.fnUntraced(function* ({
+        id,
+        name,
+        quantity,
+        aisle,
+      }) {
+        const existing = store.query(groceryItemById$(id))
+        if (Option.isNone(existing)) {
+          return { _tag: "Transient", value: null }
+        }
+        store.commit(
+          events.groceryItemUpdated({
+            id,
+            name: name ?? existing.value.name,
+            quantity: quantity !== undefined ? quantity : existing.value.quantity,
+            aisle: aisle !== undefined ? aisle : existing.value.aisle,
+            recipeIds: existing.value.recipeIds,
+            completed: existing.value.completed,
+            updatedAt: DateTime.unsafeNow(),
+          }),
+        )
+        return { _tag: "Transient", value: null }
+      }),
+      MergeGroceryItems: Effect.fnUntraced(function* ({
+        targetId,
+        sourceIds,
+        mergedName,
+        mergedQuantity,
+      }) {
+        const target = store.query(groceryItemById$(targetId))
+        if (Option.isNone(target)) {
+          return { _tag: "Transient", value: null }
+        }
+
+        // Collect all recipeIds from merged items
+        const allRecipeIds = new Set<string>()
+        if (target.value.recipeIds) {
+          target.value.recipeIds.forEach((id) => allRecipeIds.add(id))
+        }
+
+        // Delete source items and collect their recipeIds
+        for (const sourceId of sourceIds) {
+          const source = store.query(groceryItemById$(sourceId))
+          if (Option.isSome(source)) {
+            if (source.value.recipeIds) {
+              source.value.recipeIds.forEach((id) => allRecipeIds.add(id))
+            }
+            store.commit(events.groceryItemDeleted({ id: sourceId }))
+          }
+        }
+
+        // Update target with merged info
+        const recipeIdsArray = Array.from(allRecipeIds)
+        store.commit(
+          events.groceryItemUpdated({
+            id: targetId,
+            name: mergedName ?? target.value.name,
+            quantity: mergedQuantity ?? target.value.quantity,
+            aisle: target.value.aisle,
+            recipeIds: recipeIdsArray.length > 0 ? recipeIdsArray : null,
+            completed: target.value.completed,
+            updatedAt: DateTime.unsafeNow(),
+          }),
+        )
+        return { _tag: "Transient", value: null }
+      }),
+      DeleteGroceryItem: Effect.fnUntraced(function* ({ id }) {
+        store.commit(events.groceryItemDeleted({ id }))
+        return { _tag: "Transient", value: null }
+      }),
       GetMenus: Effect.fnUntraced(function* () {
         const menus = store.query(allMenus$)
         return {
@@ -411,6 +481,20 @@ const recipeById$ = (id: string) =>
     },
     {
       label: "AiChatService.recipeById",
+      deps: [id],
+      map: Array.head,
+    },
+  )
+
+const groceryItemById$ = (id: string) =>
+  queryDb(
+    {
+      query: sql`SELECT * FROM grocery_items WHERE id = ?`,
+      schema: GroceryItem.array,
+      bindValues: [id],
+    },
+    {
+      label: "AiChatService.groceryItemById",
       deps: [id],
       map: Array.head,
     },
