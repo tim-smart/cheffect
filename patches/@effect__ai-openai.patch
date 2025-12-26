@@ -1,0 +1,40 @@
+diff --git a/dist/esm/Generated.js b/dist/esm/Generated.js
+index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..189f7d6d26a591730c561e8b8a764270c18041c1 100644
+--- a/dist/esm/Generated.js
++++ b/dist/esm/Generated.js
+@@ -1565,7 +1565,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+      */"status":WebSearchToolCallStatus,/**
+      * An object describing the specific action taken in this web search call.
+      * Includes details on how the model used the web (search, open_page, find).
+-     */"action":/*#__PURE__*/S.Record({key:S.String,value:S.Unknown})}){}/**
++     */"action":/*#__PURE__*/S.optionalWith(S.Record({key:S.String,value:S.Unknown}), { default: () => ({}) })}){}/**
+  * The type of the image generation call. Always `image_generation_call`.
+  */export class ImageGenToolCallType extends/*#__PURE__*/S.Literal("image_generation_call"){}/**
+  * The status of the image generation call.
+diff --git a/dist/esm/OpenAiLanguageModel.js b/dist/esm/OpenAiLanguageModel.js
+index 63b19f1035baef958a366b02bb2af99f74b848ed..5ae4d8a01e5d1c1b1d0fa4b282f2590b6d2bf1e7 100644
+--- a/dist/esm/OpenAiLanguageModel.js
++++ b/dist/esm/OpenAiLanguageModel.js
+@@ -268,15 +268,13 @@ const prepareMessages = /*#__PURE__*/Effect.fnUntraced(function* (options, confi
+                 }
+               case "tool-call":
+                 {
+-                  if (!part.providerExecuted) {
+-                    messages.push({
+-                      id: getItemId(part),
+-                      type: "function_call",
+-                      call_id: part.id,
+-                      name: part.name,
+-                      arguments: JSON.stringify(part.params)
+-                    });
+-                  }
++                  messages.push({
++                    id: getItemId(part),
++                    type: "function_call",
++                    call_id: part.id,
++                    name: part.name,
++                    arguments: JSON.stringify(part.params)
++                  });
+                   break;
+                 }
+             }

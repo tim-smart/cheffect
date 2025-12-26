@@ -6,6 +6,7 @@ import { GroceryItem } from "./GroceryItem"
 import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
 import { MealPlanEntry } from "./MealPlanEntry"
+import { OpenAiTool } from "@effect/ai-openai"
 
 export const TerminalResponse = <S extends Schema.Schema.Any>(
   schema: S,
@@ -42,6 +43,7 @@ export const TransientResponse = <S extends Schema.Schema.Any>(
   )
 
 export class toolkit extends Toolkit.make(
+  OpenAiTool.WebSearch({}),
   Tool.make("SearchRecipes", {
     description: "Search the users recipe database by title",
     parameters: {

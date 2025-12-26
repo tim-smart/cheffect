@@ -9,6 +9,9 @@ overrides:
   effect: ^3.17.1
 
 patchedDependencies:
+  '@effect/ai-openai':
+    hash: dbcbbd75113ee7349d667502520d77320a8986b8b2a47a036ab0188c674e6292
+    path: patches/@effect__ai-openai.patch
   '@inato-form/react-hook-form':
     hash: 9a0115cbf6a74aa8945480d2e1623a091a5342a7f8555c9ae1aa2fc44c94bd0f
     path: patches/@inato-form__react-hook-form.patch
@@ -31,7 +34,7 @@ importers:
         version: 0.33.0(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(@effect/rpc@0.73.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(effect@3.19.13)
       '@effect/ai-openai':
         specifier: ^0.37.0
-        version: 0.37.0(@effect/ai@0.33.0(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(@effect/rpc@0.73.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(effect@3.19.13))(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13)
+        version: 0.37.0(patch_hash=dbcbbd75113ee7349d667502520d77320a8986b8b2a47a036ab0188c674e6292)(@effect/ai@0.33.0(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(@effect/rpc@0.73.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(effect@3.19.13))(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13)
       '@effect/experimental':
         specifier: ^0.58.0
         version: 0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13)
@@ -6359,7 +6362,7 @@ snapshots:
       '@effect/rpc': 0.73.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13)
       effect: 3.19.13
 
-  '@effect/ai-openai@0.37.0(@effect/ai@0.33.0(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(@effect/rpc@0.73.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(effect@3.19.13))(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13)':
+  '@effect/ai-openai@0.37.0(patch_hash=dbcbbd75113ee7349d667502520d77320a8986b8b2a47a036ab0188c674e6292)(@effect/ai@0.33.0(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(@effect/rpc@0.73.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(effect@3.19.13))(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13)':
     dependencies:
       '@effect/ai': 0.33.0(@effect/experimental@0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(@effect/platform@0.94.0(effect@3.19.13))(@effect/rpc@0.73.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13))(effect@3.19.13)
       '@effect/experimental': 0.58.0(@effect/platform@0.94.0(effect@3.19.13))(effect@3.19.13)

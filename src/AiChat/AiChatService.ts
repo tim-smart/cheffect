@@ -299,51 +299,55 @@ ${MenuEntry.toXml(menuEntries)}`
 
       const tools = yield* toolkit
 
-      const send = Effect.fnUntraced(function* (message: string) {
-        let history = (yield* Ref.get(chat.history)).pipe(
-          Prompt.merge(message),
-          Prompt.setSystem(yield* currentSystemPrompt),
-        )
-        registry.set(currentPromptAtom, history)
-        let parts = Array.empty<AiResponse.AnyPart>()
-        registry.set(currentPromptAtom, history)
-        while (true) {
-          yield* pipe(
-            LanguageModel.streamText({
-              prompt: history,
-              toolkit: tools,
-              toolChoice: "auto",
-            }),
-            Stream.mapChunks((chunk) => {
-              parts.push(...chunk)
-              return Chunk.of(Prompt.fromResponseParts(parts))
-            }),
-            Stream.runForEach((response) => {
-              registry.set(currentPromptAtom, Prompt.merge(history, response))
-              return Effect.void
-            }),
-            OpenAiLanguageModel.withConfigOverride({
-              reasoning: { effort: "medium" },
-            }),
+      const send = Effect.fnUntraced(
+        function* (message: string) {
+          let history = (yield* Ref.get(chat.history)).pipe(
+            Prompt.merge(message),
+            Prompt.setSystem(yield* currentSystemPrompt),
           )
-          history = registry.get(currentPromptAtom)
-          const response = new LanguageModel.GenerateTextResponse<
-            typeof toolkit.tools
-          >(parts as any)
-          parts = []
-          const toolResult = response.toolResults[0]
-          if (
-            toolResult &&
-            "_tag" in toolResult.result &&
-            toolResult.result._tag === "Transient"
-          ) {
-            continue
+          registry.set(currentPromptAtom, history)
+          let parts = Array.empty<AiResponse.AnyPart>()
+          registry.set(currentPromptAtom, history)
+          while (true) {
+            yield* pipe(
+              LanguageModel.streamText({
+                prompt: history,
+                toolkit: tools,
+                toolChoice: "auto",
+              }),
+              Stream.mapChunks((chunk) => {
+                parts.push(...chunk)
+                return Chunk.of(Prompt.fromResponseParts(parts))
+              }),
+              Stream.runForEach((response) => {
+                registry.set(currentPromptAtom, Prompt.merge(history, response))
+                return Effect.void
+              }),
+              OpenAiLanguageModel.withConfigOverride({
+                reasoning: { effort: "medium" },
+              }),
+            )
+            history = registry.get(currentPromptAtom)
+            const response = new LanguageModel.GenerateTextResponse<
+              typeof toolkit.tools
+            >(parts as any)
+            parts = []
+            const toolResult = response.toolResults[0]
+            if (
+              toolResult &&
+              "_tag" in toolResult.result &&
+              toolResult.result._tag === "Transient"
+            ) {
+              continue
+            }
+            break
           }
-          break
-        }
-        yield* Ref.set(chat.history, history)
-        yield* store.set("ai-history", history)
-      }, Effect.provide(model))
+          yield* Ref.set(chat.history, history)
+          yield* store.set("ai-history", history)
+        },
+        Effect.provide(model),
+        Effect.catchAllCause(Effect.logError),
+      )
 
       const clear = Ref.set(chat.history, Prompt.empty).pipe(
         Effect.zipRight(store.remove("ai-history")),
