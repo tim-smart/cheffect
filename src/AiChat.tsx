@@ -80,9 +80,6 @@ function ModalContent({
     }, 0)
   }, [viewportObstructed > 0])
 
-  const currentPrompt = useAtomValue(currentPromptAtom)
-  const messages = currentPrompt.content
-
   return (
     <div
       ref={containerRef}
@@ -122,57 +119,66 @@ function ModalContent({
           onClose()
         }}
       >
-        {messages.length === 0 && (
-          <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
-            <div className="text-center">
-              <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Ask me anything about recipes or meal planning!</p>
-            </div>
-          </div>
-        )}
-        <div ref={contentRef} className="space-y-4">
-          {messages.filter(isVisualMessage).map((message, i) =>
-            message.role === "tool" ? (
-              <div
-                key={i}
-                className="flex flex-col justify-start text-sm text-muted-foreground"
-              >
-                {message.content.map((part) => (
-                  <span key={part.id} className="block">
-                    Tool call "{part.name}"
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div
-                key={i}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 prose dark:prose-invert prose-sm leading-tight ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
-                  }`}
-                >
-                  {message.content
-                    .filter((_) => _.type === "text")
-                    .map((part, idx) => (
-                      <Markdown key={idx}>
-                        {part.type === "text" ? part.text : ""}
-                      </Markdown>
-                    ))}
-                </div>
-              </div>
-            ),
-          )}
-          <div className="flex justify-start">
-            <LoadingSpinner />
-          </div>
-        </div>
+        <MessagesList ref={contentRef} />
       </div>
       {/* Input */}
       <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
+    </div>
+  )
+}
+
+function MessagesList({
+  ref,
+}: {
+  readonly ref: (instance: HTMLDivElement | null) => void
+}) {
+  const currentPrompt = useAtomValue(currentPromptAtom)
+  const messages = currentPrompt.content
+  return (
+    <div ref={ref} className="space-y-4">
+      {messages.length === 0 && (
+        <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
+          <div className="text-center">
+            <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+            <p>Ask me anything about recipes or meal planning!</p>
+          </div>
+        </div>
+      )}
+      {messages.filter(isVisualMessage).map((message, i) =>
+        message.role === "tool" ? (
+          <div
+            key={i}
+            className="flex flex-col justify-start text-sm text-muted-foreground"
+          >
+            {message.content.map((part) => (
+              <span key={part.id} className="block">
+                Tool call "{part.name}"
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div
+            key={i}
+            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[80%] rounded-2xl px-4 py-2 prose dark:prose-invert prose-sm leading-tight ${
+                message.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-foreground"
+              }`}
+            >
+              {message.content
+                .filter((_) => _.type === "text")
+                .map((part, idx) => (
+                  <Markdown key={idx}>
+                    {part.type === "text" ? part.text : ""}
+                  </Markdown>
+                ))}
+            </div>
+          </div>
+        ),
+      )}
     </div>
   )
 }
@@ -230,21 +236,13 @@ function PromptInput({
           className="h-10 w-10 rounded-full bg-primary hover:bg-orange-700"
           disabled={isLoading || !input.trim()}
         >
-          <Send />
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin text-white" />
+          ) : (
+            <Send className="h-5 w-5 text-white" />
+          )}
         </Button>
       </div>
     </form>
-  )
-}
-
-function LoadingSpinner() {
-  const isLoading = useAtomValue(sendAtom, Result.isWaiting)
-  return (
-    <Loader2
-      className={cn(
-        "h-4 w-4 animate-spin text-muted-foreground",
-        isLoading ? "visible" : "invisible",
-      )}
-    />
   )
 }
