@@ -4,7 +4,7 @@ import * as Stream from "effect/Stream"
 import { OpenAiLanguageModel } from "@effect/ai-openai"
 import { Atom, Registry, Result } from "@effect-atom/atom-react"
 import * as Layer from "effect/Layer"
-import { openAiClientLayer } from "@/services/AiHelpers"
+import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { pipe } from "effect"
 import * as Array from "effect/Array"
 import * as AiResponse from "@effect/ai/Response"
@@ -47,6 +47,7 @@ const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
     const store = yield* Store
     const registry = yield* Registry.AtomRegistry
+    const aiHelpers = yield* AiHelpers
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
         const recipes = store.query(searchRecipes$(query))
@@ -58,6 +59,17 @@ const ToolkitLayer = toolkit.toLayer(
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
         const newRecipe = recipe.asRecipe()
+        store.commit(events.recipeCreated(newRecipe))
+        return {
+          _tag: "Transient",
+          value: { recipeId: newRecipe.id },
+        }
+      }),
+      ImportRecipeFromUrl: Effect.fnUntraced(function* ({ url }) {
+        const extractedRecipe = yield* aiHelpers.recipeFromUrl(url).pipe(
+          Effect.orDie,
+        )
+        const newRecipe = extractedRecipe.asRecipe(url)
         store.commit(events.recipeCreated(newRecipe))
         return {
           _tag: "Transient",
@@ -174,7 +186,7 @@ const ToolkitLayer = toolkit.toLayer(
       }),
     })
   }),
-)
+).pipe(Layer.provide(AiHelpers.Default))
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",

@@ -66,6 +66,14 @@ export class toolkit extends Toolkit.make(
     },
     success: TransientResponse(Schema.Struct({ recipeId: Schema.String })),
   }),
+  Tool.make("ImportRecipeFromUrl", {
+    description:
+      "Import a recipe from a URL. Fetches the webpage and extracts recipe information.",
+    parameters: {
+      url: Schema.String,
+    },
+    success: TransientResponse(Schema.Struct({ recipeId: Schema.String })),
+  }),
   Tool.make("SuggestRecipeEdit", {
     description: "Suggest edits to an existing recipe",
     parameters: {
