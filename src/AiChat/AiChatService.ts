@@ -278,12 +278,16 @@ class AiChatService extends Effect.Service<AiChatService>()(
 
 You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary.
 
-You have access to some tools that can be used to look up information about the user's recipes, grocery lists, and meal plans. Use these tools whenever relevant information is needed to answer the user's questions accurately.
-
 - Recipes can be linked to using \`[name](/recipes/$id)\`
 - The grocery list can be linked to using \`[groceries](/groceries)\`
 - The meal plan can be linked to using \`[meal plan](/plan)\`
-- The menu list can be linked to using \`[menus](/menus)\``
+- The menu list can be linked to using \`[menus](/menus)\`
+
+You have access to some tools that can be used to look up information about the user's recipes, grocery lists, and meal plans.
+Prefer using tools to show information rather than providing it directly.
+
+Always try to create recipes with images.
+`
 
       const currentSystemPrompt = Effect.gen(function* () {
         const location = router.state.location
