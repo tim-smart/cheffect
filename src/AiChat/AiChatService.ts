@@ -425,8 +425,8 @@ ${MenuEntry.toXml(menuEntries)}`
             const toolResult = response.toolResults[0]
             if (
               toolResult &&
-              "_tag" in toolResult.result &&
-              toolResult.result._tag === "Transient"
+              (!("_tag" in toolResult.result) ||
+                toolResult.result._tag === "Transient")
             ) {
               continue
             }
