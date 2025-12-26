@@ -122,7 +122,7 @@ export class toolkit extends Toolkit.make(
   }),
   Tool.make("ImportRecipeFromUrl", {
     description:
-      "Import a recipe from a URL. Queues a background job to fetch the webpage and extract recipe information.",
+      "Import a recipe from a URL. Queues a background job to fetch the webpage and extract recipe information. Returns a jobId for tracking the extraction progress.",
     parameters: {
       url: Schema.String,
     },
