@@ -155,21 +155,20 @@ function ModalContent({
                       : "bg-muted text-foreground"
                   }`}
                 >
-                  {message.content.length === 0 ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : (
-                    message.content
-                      .filter((_) => _.type === "text")
-                      .map((part, idx) => (
-                        <Markdown key={idx}>
-                          {part.type === "text" ? part.text : ""}
-                        </Markdown>
-                      ))
-                  )}
+                  {message.content
+                    .filter((_) => _.type === "text")
+                    .map((part, idx) => (
+                      <Markdown key={idx}>
+                        {part.type === "text" ? part.text : ""}
+                      </Markdown>
+                    ))}
                 </div>
               </div>
             ),
           )}
+          <div className="flex justify-start">
+            <LoadingSpinner />
+          </div>
         </div>
       </div>
       {/* Input */}
@@ -236,4 +235,10 @@ function PromptInput({
       </div>
     </form>
   )
+}
+
+function LoadingSpinner() {
+  const isLoading = useAtomValue(sendAtom, Result.isWaiting)
+  if (!isLoading) return null
+  return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
 }

@@ -310,10 +310,7 @@ ${MenuEntry.toXml(menuEntries)}`
         )
         registry.set(currentPromptAtom, history)
         let parts = Array.empty<AiResponse.AnyPart>()
-        registry.set(
-          currentPromptAtom,
-          Prompt.make([...history.content, constEmptyAssistantMessage]),
-        )
+        registry.set(currentPromptAtom, history)
         while (true) {
           yield* pipe(
             LanguageModel.streamText({
@@ -326,8 +323,6 @@ ${MenuEntry.toXml(menuEntries)}`
               return Chunk.of(Prompt.fromResponseParts(parts))
             }),
             Stream.runForEach((response) => {
-              const isVisual = parts.some(isVisualPart as any)
-              if (!isVisual) return Effect.void
               registry.set(currentPromptAtom, Prompt.merge(history, response))
               return Effect.void
             }),
@@ -335,8 +330,7 @@ ${MenuEntry.toXml(menuEntries)}`
               reasoning: { effort: "medium" },
             }),
           )
-          history = Prompt.merge(history, Prompt.fromResponseParts(parts))
-          registry.set(currentPromptAtom, history)
+          history = registry.get(currentPromptAtom)
           const response = new LanguageModel.GenerateTextResponse<
             typeof toolkit.tools
           >(parts as any)
@@ -363,10 +357,6 @@ ${MenuEntry.toXml(menuEntries)}`
     }),
   },
 ) {}
-
-const constEmptyAssistantMessage = Prompt.makeMessage("assistant", {
-  content: [],
-})
 
 const runtime = Atom.runtime((get) =>
   AiChatService.Default.pipe(
@@ -430,8 +420,6 @@ export const isVisualMessage = (
   message: Prompt.Message,
 ): message is Prompt.UserMessage | Prompt.UserMessage | Prompt.ToolMessage => {
   if (message.role === "system") return false
-  // loading case
-  if (message.content.length === 0) return true
   return message.content.some(isVisualPart)
 }
 
