@@ -157,7 +157,7 @@ export class toolkit extends Toolkit.make(
     parameters: {
       url: Schema.String,
     },
-    success: TransientResponse(Schema.Struct({ jobId: Schema.String })),
+    success: TerminalResponse(Schema.Struct({ jobId: Schema.String })),
   }),
 ) {}
 
