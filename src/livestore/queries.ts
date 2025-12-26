@@ -131,14 +131,13 @@ export const allGroceryItemsAtom = Store.makeQuery(
   ),
 )
 
-export const allGroceryItemsArrayAtom = Store.makeQuery(
-  queryDb({
-    query: sql`SELECT * FROM grocery_items ORDER BY name ASC`,
-    schema: GroceryItem.array,
-  }),
-)
+export const allGroceryItems$ = queryDb({
+  query: sql`SELECT * FROM grocery_items ORDER BY name ASC`,
+  schema: GroceryItem.array,
+})
+export const allGroceryItemsArrayAtom = Store.makeQuery(allGroceryItems$)
 
-const mealPlanEntries$ = (startDay: DateTime.Utc) => {
+export const mealPlanEntries$ = (startDay: DateTime.Utc) => {
   const weekDays = Array.of(DateTime.formatIsoDate(startDay))
   for (let i = 1; i < 7; i++) {
     weekDays.push(

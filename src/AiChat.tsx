@@ -8,200 +8,25 @@ import {
   Eraser,
   MoreVertical,
 } from "lucide-react"
-import * as Effect from "effect/Effect"
-import * as AiChat from "@effect/ai/Chat"
-import * as Stream from "effect/Stream"
-import { OpenAiLanguageModel } from "@effect/ai-openai"
-import {
-  Atom,
-  Registry,
-  Result,
-  useAtomSet,
-  useAtomValue,
-} from "@effect-atom/atom-react"
-import * as Layer from "effect/Layer"
-import { openAiClientLayer } from "@/services/AiHelpers"
-import { pipe } from "effect"
-import * as Array from "effect/Array"
-import * as AiResponse from "@effect/ai/Response"
-import * as Ref from "effect/Ref"
+import { Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react"
 import Markdown from "react-markdown"
-import * as Chunk from "effect/Chunk"
-import { router } from "./Router"
-import {
-  allGroceryItemsArrayAtom,
-  mealPlanEntriesAtom,
-  recipeByIdAtom,
-} from "./livestore/queries"
-import { menuByIdAtom, menuEntriesAtom } from "./Menus/atoms"
-import { MenuEntry } from "./domain/MenuEntry"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
 import { viewportObstructedAtom } from "./atoms"
-import { GroceryItem } from "./domain/GroceryItem"
-import { MealPlanEntry } from "./domain/MealPlanEntry"
-import * as Prompt from "@effect/ai/Prompt"
-import * as LanguageModel from "@effect/ai/LanguageModel"
-import * as Persistence from "@effect/experimental/Persistence"
-import { layerKvsLivestore } from "./lib/kvs"
-import { Store } from "./livestore/atoms"
-import { events } from "./livestore/schema"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./components/ui/dropdown-menu"
-
-// const toolkit = Toolkit.make(OpenAiTool.WebSearch({}))
-
-class AiChatService extends Effect.Service<AiChatService>()(
-  "cheffect/AiChat/AiChatService",
-  {
-    dependencies: [
-      Persistence.layerKeyValueStore.pipe(Layer.provide(layerKvsLivestore)),
-    ],
-    scoped: Effect.gen(function* () {
-      const model = yield* OpenAiLanguageModel.model("gpt-5.2")
-      const registry = yield* Registry.AtomRegistry
-      const store = yield* Store
-
-      const baseSystemPrompt = `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.
-
-You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary.`
-
-      const currentSystemPrompt = Effect.gen(function* () {
-        const location = router.state.location
-        const currentTime = `The current date and time is: ${new Date().toLocaleString()}.`
-
-        if (location.pathname === "/") {
-          return `${baseSystemPrompt}
-
-The user is currently browsing the a list of their recipes.
-
-${currentTime}`
-        } else if (location.pathname.startsWith("/recipes/")) {
-          const id = location.pathname.split("/")[2]
-          const recipe = yield* Atom.getResult(recipeByIdAtom(id))
-
-          return `${baseSystemPrompt}
-
-${currentTime}
-
-The user is currently viewing the recipe titled "${recipe.title}".
-
-Here are the details of the recipe:
-
-${recipe.toXml()}`
-        } else if (location.pathname === "/groceries") {
-          const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
-          return `${baseSystemPrompt}
-
-${currentTime}
-
-The user is currently viewing their grocery list. Here are the items on their grocery list:
-
-${GroceryItem.toXml(items)}`
-        } else if (location.pathname === "/plan") {
-          const entries = yield* Atom.getResult(mealPlanEntriesAtom)
-          return `${baseSystemPrompt}
-
-${currentTime}
-
-The user is currently viewing their meal plan for the week. Here are the entries in their meal plan:
-
-${MealPlanEntry.toXml(entries)}`
-        } else if (location.pathname === "/menus") {
-          return `${baseSystemPrompt}
-
-The user is currently browsing their list of menus.
-
-${currentTime}`
-        } else if (location.pathname.startsWith("/menus/")) {
-          const id = location.pathname.split("/")[2]
-          const menu = yield* Atom.getResult(menuByIdAtom(id))
-          const menuEntries = (yield* Atom.get(menuEntriesAtom(id)))!
-
-          return `${baseSystemPrompt}
-
-${currentTime}
-
-The user is currently viewing the menu titled "${menu.name}".
-
-Here are the details of the menu and its entries:
-
-${menu.toXml()}
-
-${MenuEntry.toXml(menuEntries)}`
-        }
-
-        return baseSystemPrompt + "\n\n" + currentTime
-      })
-
-      const persisted = yield* AiChat.makePersisted({
-        storeId: "ai",
-      })
-      const chat = yield* persisted.getOrCreate("default")
-      registry.set(currentPromptAtom, yield* chat.history)
-
-      const send = Effect.fnUntraced(function* (message: string) {
-        const history = (yield* Ref.get(chat.history)).pipe(
-          Prompt.merge(message),
-          Prompt.setSystem(yield* currentSystemPrompt),
-        )
-        registry.set(currentPromptAtom, history)
-        let parts = Array.empty<AiResponse.AnyPart>()
-        registry.set(
-          currentPromptAtom,
-          Prompt.make([...history.content, constEmptyAssistantMessage]),
-        )
-        yield* pipe(
-          LanguageModel.streamText({
-            prompt: history,
-          }),
-          Stream.mapChunks((chunk) => {
-            parts.push(...chunk)
-            return Chunk.of(Prompt.fromResponseParts(parts))
-          }),
-          Stream.runForEach((response) => {
-            if (response.content.length === 0) return Effect.void
-            registry.set(currentPromptAtom, Prompt.merge(history, response))
-            return Effect.void
-          }),
-        )
-        yield* Ref.set(chat.history, registry.get(currentPromptAtom))
-        yield* chat.save
-      }, Effect.provide(model))
-
-      const clear = Effect.gen(function* () {
-        store.commit(events.keyValueClear())
-      })
-
-      return { send, clear } as const
-    }),
-  },
-) {}
-
-const constEmptyAssistantMessage = Prompt.makeMessage("assistant", {
-  content: [],
-})
-
-const runtime = Atom.runtime((get) =>
-  AiChatService.Default.pipe(
-    Layer.provide([get(openAiClientLayer), get(Store.layer)]),
-  ),
-).pipe(Atom.keepAlive)
-
-const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
-  Atom.keepAlive,
-)
-
-const sendAtom = runtime.fn<string>()(
-  Effect.fnUntraced(function* (message) {
-    const ai = yield* AiChatService
-    return yield* ai.send(message)
-  }),
-)
+import {
+  clearAtom,
+  currentPromptAtom,
+  isVisualMessage,
+  sendAtom,
+} from "./AiChat/AiChatService"
+import { router } from "./Router"
+import { ToolkitSuccess } from "./domain/Toolkits"
 
 export function AiChatModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -286,11 +111,17 @@ function ModalContent({
           <X className="h-5 w-5" />
         </Button>
       </div>
-
       {/* Messages */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-card"
+        onClick={(e) => {
+          if (!(e.target instanceof HTMLAnchorElement)) return
+          e.preventDefault()
+          const url = new URL(e.target.href)
+          router.navigate({ to: url.pathname })
+          onClose()
+        }}
       >
         {messages.length === 0 && (
           <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
@@ -301,15 +132,25 @@ function ModalContent({
           </div>
         )}
         <div ref={contentRef} className="space-y-4">
-          {messages
-            .filter((m) => m.role !== "system")
-            .map((message, i) => (
+          {messages.filter(isVisualMessage).map((message, i) =>
+            message.role === "tool" ? (
+              <div
+                key={i}
+                className="flex justify-start text-sm text-muted-foreground"
+              >
+                {message.content.map((part) => {
+                  const result = part.result as ToolkitSuccess
+                  console.log(result, part)
+                  return <span key={part.id}>Tool call "{part.name}"</span>
+                })}
+              </div>
+            ) : (
               <div
                 key={i}
                 className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 prose prose-sm ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-2 prose dark:prose-invert prose-sm ${
                     message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-foreground"
@@ -328,10 +169,10 @@ function ModalContent({
                   )}
                 </div>
               </div>
-            ))}
+            ),
+          )}
         </div>
       </div>
-
       {/* Input */}
       <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
     </div>
@@ -362,7 +203,7 @@ function PromptInput({
   const clear = useAtomSet(clearAtom)
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-border p-4">
+    <form onSubmit={handleSubmit} className="border-t border-border p-3 pl-2">
       <div className="flex gap-2 items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -397,11 +238,3 @@ function PromptInput({
     </form>
   )
 }
-
-const clearAtom = runtime.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const ai = yield* AiChatService
-    yield* ai.clear
-    get.set(currentPromptAtom, Prompt.empty)
-  }),
-)

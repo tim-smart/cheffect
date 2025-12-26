@@ -14,6 +14,7 @@ import { openAiClientLayer } from "@/services/AiHelpers"
 import { events } from "@/livestore/schema"
 import * as HashSet from "effect/HashSet"
 import { Recipe } from "@/domain/Recipe"
+import * as DateTime from "effect/DateTime"
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
@@ -45,6 +46,58 @@ export const recipeFormByIdAtom = Atom.family((id: string) =>
       return [yield* Schema.encode(RecipeCreate)(recipe), recipe] as const
     }),
   ),
+)
+
+export const showOriginalRecipeAtom = Atom.make(HashSet.empty<string>())
+
+export const modifiedRecipeByIdAtom = Atom.family((_id: string) =>
+  Atom.make<typeof Recipe.jsonUpdate.Type | undefined>(undefined).pipe(
+    Atom.keepAlive,
+  ),
+)
+
+export const recipeForDisplayAtom = Atom.family((id: string) =>
+  Atom.make((get) => {
+    const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
+    const modified = get(modifiedRecipeByIdAtom(id))
+    return get(recipeByIdAtom(id)).pipe(
+      Result.map((original) => {
+        const resolved =
+          showOriginal || !modified
+            ? original
+            : new Recipe({
+                ...original,
+                ...modified,
+              })
+
+        return { original, resolved, isModified: !!modified } as const
+      }),
+    )
+  }),
+)
+
+export const discardModifiedRecipeAtom = Atom.fn<string>()(
+  Effect.fnUntraced(function* (id, get) {
+    get.set(modifiedRecipeByIdAtom(id), undefined)
+    get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
+  }),
+)
+
+export const saveModifiedRecipeAtom = Atom.fn<string>()(
+  Effect.fnUntraced(function* (id, get) {
+    const recipe = yield* get.result(recipeByIdAtom(id))
+    const modified = get(modifiedRecipeByIdAtom(id))
+    if (!modified) return
+    const store = get(Store.storeUnsafe)!
+    const newRecipe = new Recipe({
+      ...recipe,
+      ...modified,
+      updatedAt: DateTime.unsafeNow(),
+    })
+    store.commit(events.recipeUpdated(newRecipe))
+    get.set(modifiedRecipeByIdAtom(id), undefined)
+    get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
+  }),
 )
 
 export const useSearchQuery = () =>
@@ -84,7 +137,6 @@ export const importAtom = Store.runtime.fn<File>()(
     for (const r of decoded) {
       const recipe = new Recipe({
         ...r,
-        ingredientsConverted: null,
         ingredientScale: 1,
       })
       store.commit(events.recipeCreated(recipe))

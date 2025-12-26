@@ -130,7 +130,6 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
       ...this,
       id: crypto.randomUUID(),
       rating: null,
-      ingredientsConverted: null,
       ingredientScale: 1,
       sourceUrl: url,
       createdAt: DateTime.unsafeNow(),
@@ -150,10 +149,6 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   cookingTime: Schema.NullOr(Schema.DurationFromMillis),
   prepTime: Schema.NullOr(Schema.DurationFromMillis),
   ingredients: Model.JsonFromString(IngredientsComponent.array),
-  ingredientsConverted: Model.Field({
-    select: Schema.NullOr(IngredientsComponent.arrayJson),
-    update: Schema.NullOr(IngredientsComponent.array),
-  }),
   ingredientScale: Model.Field({
     select: Schema.Number,
     update: Schema.Number,
@@ -164,7 +159,9 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   createdAt: Schema.DateTimeUtcFromNumber.pipe(
     Model.FieldOnly("insert", "select", "json"),
   ),
-  updatedAt: Schema.DateTimeUtcFromNumber,
+  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldOnly("insert", "update", "select", "json"),
+  ),
   deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromNumber)),
 }) {
   static array = Schema.Array(Recipe)
@@ -202,7 +199,7 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
 
   get ingredientsDisplay(): ReadonlyArray<IngredientsComponent> {
     const scale = this.ingredientScale
-    const ingredients = this.ingredientsConverted ?? this.ingredients
+    const ingredients = this.ingredients
     if (scale === 1) {
       return ingredients
     }

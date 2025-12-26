@@ -75,7 +75,6 @@ const decodeFromForm = (
         ingredients: c.ingredients.map((i) => new Ingredient(i)),
       }),
   ),
-  ingredientsConverted: null,
   ingredientScale: 1,
   steps: input.steps.map((s) => new Step(s)),
   deletedAt: null,

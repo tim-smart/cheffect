@@ -1,5 +1,6 @@
 import { screenWakeLockAtom } from "@/atoms"
 import { Button } from "@/components/ui/button"
+import { ButtonGroup } from "@/components/ui/button-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -12,19 +13,25 @@ import { Recipe } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useCommit } from "@/livestore/atoms"
-import { recipeByIdAtom } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
 import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
-import { checkedIngredientsAtom } from "@/Recipes/atoms"
+import {
+  checkedIngredientsAtom,
+  discardModifiedRecipeAtom,
+  recipeForDisplayAtom,
+  saveModifiedRecipeAtom,
+  showOriginalRecipeAtom,
+} from "@/Recipes/atoms"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import {
   Result,
   useAtom,
   useAtomMount,
+  useAtomSet,
   useAtomValue,
 } from "@effect-atom/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
@@ -44,6 +51,7 @@ import {
   Trash,
   Users,
   Link as LinkIcon,
+  Save,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -53,14 +61,22 @@ export const Route = createFileRoute("/recipes/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams()
-  const result = useAtomValue(recipeByIdAtom(id))
+  const result = useAtomValue(recipeForDisplayAtom(id))
   return Result.builder(result)
-    .onSuccess((recipe) => <RecipeDetails recipe={recipe} />)
+    .onSuccess(({ resolved, isModified }) => (
+      <RecipeDetails recipe={resolved} modified={isModified} />
+    ))
     .onErrorTag("NoSuchElementException", () => <NoRecipeFound />)
     .render()
 }
 
-export function RecipeDetails({ recipe }: { recipe: Recipe }) {
+export function RecipeDetails({
+  recipe,
+  modified,
+}: {
+  recipe: Recipe
+  modified: boolean
+}) {
   // Keep screen awake while viewing recipe
   useAtomMount(screenWakeLockAtom)
 
@@ -233,6 +249,8 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         </div>
       )}
 
+      {modified && <ModifiedBanner recipe={recipe} />}
+
       <div className="flex flex-col md:items-start gap-4 mt-4 md:flex-row max-w-7xl md:px-4 mx-auto">
         {/* Ingredients */}
         <div className="bg-background flex-1 md:rounded-lg">
@@ -314,7 +332,7 @@ export function RecipeDetails({ recipe }: { recipe: Recipe }) {
         </div>
 
         {/* Instructions */}
-        <div className="bg-background flex-2 lg:rounded-lg">
+        <div className="bg-background flex-2 md:rounded-lg">
           <div className="p-4">
             <h2 className="text-xl font-semibold  mb-4">Instructions</h2>
 
@@ -422,5 +440,34 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+function ModifiedBanner({ recipe }: { recipe: Recipe }) {
+  const [originals, setOriginals] = useAtom(showOriginalRecipeAtom)
+  const showOriginal = HashSet.has(originals, recipe.id)
+  const discard = useAtomSet(discardModifiedRecipeAtom)
+  const save = useAtomSet(saveModifiedRecipeAtom)
+  return (
+    <div className="bg-yellow-50 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-50 px-4 py-2 text-sm border-b border-yellow-200 dark:border-yellow-700 flex items-center gap-2">
+      <div>You are viewing a modified version of this recipe.</div>
+      <div className="flex-1" />
+      <ButtonGroup>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setOriginals(HashSet.toggle(recipe.id))}
+        >
+          {showOriginal ? "Show Modified" : "Show Original"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => discard(recipe.id)}>
+          Discard
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => save(recipe.id)}>
+          <Save />
+          Save
+        </Button>
+      </ButtonGroup>
+    </div>
   )
 }

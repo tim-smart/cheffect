@@ -33,10 +33,6 @@ export const tables = {
       ingredients: State.SQLite.json({
         schema: Schema.Array(IngredientsComponent),
       }),
-      ingredientsConverted: State.SQLite.json({
-        nullable: true,
-        schema: Schema.Array(IngredientsComponent),
-      }),
       ingredientScale: State.SQLite.real({ default: 1 }),
       steps: State.SQLite.json({ schema: Schema.Array(Step) }),
       sourceName: State.SQLite.text({ nullable: true }),

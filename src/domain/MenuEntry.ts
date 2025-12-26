@@ -11,6 +11,7 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
   }),
   recipe: Model.Field({
     select: Schema.parseJson(Recipe),
+    json: Recipe,
   }),
   recipeId: Model.Field({
     insert: Schema.String,
