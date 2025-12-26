@@ -120,6 +120,14 @@ export class toolkit extends Toolkit.make(
       "Get the user's current meal plan entries for the current week",
     success: TransientResponse(Schema.Array(MealPlanEntry.json)),
   }),
+  Tool.make("ImportRecipeFromUrl", {
+    description:
+      "Import a recipe from a URL. Queues a background job to fetch the webpage and extract recipe information. Returns a jobId for tracking the extraction progress.",
+    parameters: {
+      url: Schema.String,
+    },
+    success: TransientResponse(Schema.Struct({ jobId: Schema.String })),
+  }),
 ) {}
 
 export type ToolkitSuccess = Tool.Success<
