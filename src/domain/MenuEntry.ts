@@ -15,10 +15,15 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
   }),
   recipeId: Model.Field({
     insert: Schema.String,
+    jsonCreate: Schema.String,
   }),
   day: Schema.Number,
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(Model.FieldExcept("update")),
-  updatedAt: Schema.DateTimeUtcFromNumber,
+  createdAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
+  ),
+  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldExcept("insert", "jsonCreate", "jsonUpdate"),
+  ),
 }) {
   static array = Schema.Array(MenuEntry)
   static xml = UnknownToXml.pipe(

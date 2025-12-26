@@ -143,3 +143,5 @@ export const importAtom = Store.runtime.fn<File>()(
     }
   }),
 )
+
+export const recipeSelectedStep = Atom.make(0)

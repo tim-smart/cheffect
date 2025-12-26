@@ -7,16 +7,16 @@ import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
 import { MealPlanEntry } from "./MealPlanEntry"
 
-export class RecipeCreated extends Schema.TaggedClass<RecipeCreated>(
-  "RecipeCreated",
-)("RecipeCreated", {
-  recipe: Recipe.json,
-}) {}
-
 export class GroceryItemsCreated extends Schema.TaggedClass<GroceryItemsCreated>(
   "GroceryItemsCreated",
 )("GroceryItemsCreated", {
   groceryItems: Schema.Array(GroceryItem.json),
+}) {}
+
+export class MenuEntriesAdded extends Schema.TaggedClass<MenuEntriesAdded>(
+  "MenuEntriesAdded",
+)("MenuEntriesAdded", {
+  menuEntryIds: Schema.Array(Schema.String),
 }) {}
 
 export const TerminalResponse = <S extends Schema.Schema.Any>(
@@ -69,11 +69,12 @@ export class toolkit extends Toolkit.make(
     success: TransientResponse(Schema.NullOr(Recipe.json)),
   }),
   Tool.make("CreateRecipe", {
-    description: "Create a new recipe from extracted recipe data",
+    description:
+      "Create a new recipe from the provided information. Returns the new recipe ID.",
     parameters: {
       recipe: Recipe.jsonCreate.pipe(Schema.omit("rating")),
     },
-    success: TerminalResponse(RecipeCreated),
+    success: TransientResponse(Schema.Struct({ recipeId: Schema.String })),
   }),
   Tool.make("SuggestRecipeEdit", {
     description: "Suggest edits to an existing recipe",
@@ -101,6 +102,21 @@ export class toolkit extends Toolkit.make(
   Tool.make("GetMenus", {
     description: "Get the user's menus - collections of recipes",
     success: TransientResponse(Schema.Array(Menu.json)),
+  }),
+  Tool.make("CreateMenu", {
+    description: "Create a new recipe from extracted recipe data",
+    parameters: {
+      menu: Menu.jsonCreate.pipe(Schema.omit("createdAt", "updatedAt")),
+    },
+    success: TransientResponse(Menu.json),
+  }),
+  Tool.make("AddMenuEntries", {
+    description: "Add recipes to a specific menu",
+    parameters: {
+      menuId: Schema.String,
+      menuEntries: Schema.Array(MenuEntry.jsonCreate),
+    },
+    success: TerminalResponse(MenuEntriesAdded),
   }),
   Tool.make("GetMenuEntries", {
     description: "Get the recipes added to a specific menu",

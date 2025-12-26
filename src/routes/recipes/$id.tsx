@@ -22,6 +22,7 @@ import {
   checkedIngredientsAtom,
   discardModifiedRecipeAtom,
   recipeForDisplayAtom,
+  recipeSelectedStep,
   saveModifiedRecipeAtom,
   showOriginalRecipeAtom,
 } from "@/Recipes/atoms"
@@ -87,7 +88,7 @@ export function RecipeDetails({
     checkedIngredientsAtom(recipe.id),
   )
   const stepElements: Array<HTMLDivElement> = []
-  const [currentStep, setCurrentStep] = useState(0)
+  const [currentStep, setCurrentStep] = useAtom(recipeSelectedStep)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

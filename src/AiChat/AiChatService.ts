@@ -36,11 +36,16 @@ import { queryDb, sql } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as KeyValueStore from "@effect/platform/KeyValueStore"
 import * as Schema from "effect/Schema"
-import { GroceryItemsCreated, RecipeCreated, toolkit } from "@/domain/Toolkits"
+import {
+  GroceryItemsCreated,
+  MenuEntriesAdded,
+  toolkit,
+} from "@/domain/Toolkits"
 import { Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
 import { mealPlanWeekStart } from "@/Settings"
-import { modifiedRecipeByIdAtom } from "@/Recipes/atoms"
+import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
+import { Menu } from "@/domain/Menu"
 
 const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
@@ -67,8 +72,8 @@ const ToolkitLayer = toolkit.toLayer(
         })
         store.commit(events.recipeCreated(newRecipe))
         return {
-          _tag: "Terminal",
-          value: new RecipeCreated({ recipe: newRecipe }),
+          _tag: "Transient",
+          value: { recipeId: newRecipe.id },
         }
       }),
       SuggestRecipeEdit: Effect.fnUntraced(function* ({ recipe, recipeId }) {
@@ -121,6 +126,40 @@ const ToolkitLayer = toolkit.toLayer(
         return {
           _tag: "Transient",
           value: entries,
+        }
+      }),
+      CreateMenu: Effect.fnUntraced(function* ({ menu }) {
+        const newMenu = new Menu({
+          ...menu,
+          id: crypto.randomUUID(),
+          createdAt: DateTime.unsafeNow(),
+          updatedAt: DateTime.unsafeNow(),
+        })
+        store.commit(events.menuAdd(newMenu))
+        return {
+          _tag: "Transient",
+          value: newMenu,
+        }
+      }),
+      AddMenuEntries: Effect.fnUntraced(function* ({ menuId, menuEntries }) {
+        const ids = menuEntries.flatMap((menuEntry) => {
+          const recipe = store.query(recipeById$(menuEntry.recipeId))
+          if (Option.isNone(recipe)) return []
+          const id = crypto.randomUUID()
+          store.commit(
+            events.menuEntryAdd({
+              id,
+              menuId,
+              recipeId: recipe.value.id,
+              day: menuEntry.day,
+              createdAt: DateTime.unsafeNow(),
+            }),
+          )
+          return id
+        })
+        return {
+          _tag: "Terminal",
+          value: new MenuEntriesAdded({ menuEntryIds: ids }),
         }
       }),
       GetCurrentMealPlan: Effect.fnUntraced(function* () {
@@ -183,18 +222,23 @@ ${currentTime}`
         } else if (location.pathname.startsWith("/recipes/")) {
           const id = location.pathname.split("/")[2]
           const recipe = yield* Atom.getResult(recipeByIdAtom(id))
+          const selectedStep = registry.get(recipeSelectedStep)
 
           return `${baseSystemPrompt}
 
 ${currentTime}
 
 The user is currently viewing the recipe titled "${recipe.title}".
-
-When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes or to demonstrate alternative ingredient lists or instructions.
+They are currently focused on step ${selectedStep + 1} of the recipe (starts at 1).
 
 Here are the details of the recipe:
 
-${recipe.toXml()}`
+${recipe.toXml()}
+
+**Important:**
+
+When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes.
+`
         } else if (location.pathname === "/groceries") {
           const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
           return `${baseSystemPrompt}
