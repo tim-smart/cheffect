@@ -239,6 +239,12 @@ function PromptInput({
 
 function LoadingSpinner() {
   const isLoading = useAtomValue(sendAtom, Result.isWaiting)
-  if (!isLoading) return null
-  return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+  return (
+    <Loader2
+      className={cn(
+        "h-4 w-4 animate-spin text-muted-foreground",
+        isLoading ? "visible" : "invisible",
+      )}
+    />
+  )
 }
