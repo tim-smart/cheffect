@@ -213,7 +213,15 @@ function PromptInput({
       <div className="flex gap-2 items-center">
         <Button
           type="button"
-          onClick={() => clear()}
+          onClick={() => {
+            const inputFocused = document.activeElement === inputRef.current
+            clear()
+            if (inputFocused) {
+              setTimeout(() => {
+                inputRef.current?.focus()
+              }, 0)
+            }
+          }}
           size="icon"
           variant="ghost"
           className="size-8 -mr-1"
