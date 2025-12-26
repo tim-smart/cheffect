@@ -2,7 +2,7 @@ import * as Tool from "@effect/ai/Tool"
 import * as Toolkit from "@effect/ai/Toolkit"
 import * as Schema from "effect/Schema"
 import { ExtractedRecipe, Recipe } from "./Recipe"
-import { GroceryItem } from "./GroceryItem"
+import { GroceryAisle, GroceryItem } from "./GroceryItem"
 import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
 import { MealPlanEntry } from "./MealPlanEntry"
@@ -86,6 +86,34 @@ export class toolkit extends Toolkit.make(
           Schema.omit("completed", "createdAt", "updatedAt"),
         ),
       ),
+    },
+    success: TransientResponse(Schema.Null),
+  }),
+  Tool.make("UpdateGroceryItem", {
+    description: "Update an existing grocery item's name, quantity, or aisle",
+    parameters: {
+      id: Schema.String,
+      name: Schema.optional(Schema.String),
+      quantity: Schema.optional(Schema.NullOr(Schema.String)),
+      aisle: Schema.optional(Schema.NullOr(GroceryAisle)),
+    },
+    success: TransientResponse(Schema.Null),
+  }),
+  Tool.make("MergeGroceryItems", {
+    description:
+      "Merge multiple grocery items into one. Combines quantities and keeps the first item, deleting the others.",
+    parameters: {
+      targetId: Schema.String,
+      sourceIds: Schema.Array(Schema.String),
+      mergedName: Schema.optional(Schema.String),
+      mergedQuantity: Schema.optional(Schema.String),
+    },
+    success: TransientResponse(Schema.Null),
+  }),
+  Tool.make("DeleteGroceryItem", {
+    description: "Delete a grocery item from the list",
+    parameters: {
+      id: Schema.String,
     },
     success: TransientResponse(Schema.Null),
   }),
