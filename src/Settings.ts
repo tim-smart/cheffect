@@ -123,6 +123,13 @@ export const openAiApiKey = new Setting({
   ),
 })
 
+export const aiCountry = new Setting({
+  name: "aiCountry",
+  label: "Country",
+  schema: Schema.NonEmptyString,
+  schemaInput: OptionFromString,
+})
+
 const WeekDays = Schema.Literal(0, 1, 2, 3, 4, 5, 6)
 
 export const mealPlanWeekStart = new Setting({

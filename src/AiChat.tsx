@@ -212,6 +212,7 @@ function PromptInput({
     <form onSubmit={handleSubmit} className="border-t border-border p-3 pl-2">
       <div className="flex gap-2 items-center">
         <Button
+          type="button"
           onClick={() => clear()}
           size="icon"
           variant="ghost"

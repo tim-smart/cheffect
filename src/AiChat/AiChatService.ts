@@ -39,7 +39,7 @@ import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
 import { Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
-import { mealPlanWeekStart } from "@/Settings"
+import { aiCountry, mealPlanWeekStart } from "@/Settings"
 import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
 import { Menu } from "@/domain/Menu"
 
@@ -291,14 +291,18 @@ Always try to create recipes with images.
 
       const currentSystemPrompt = Effect.gen(function* () {
         const location = router.state.location
-        const currentTime = `The current date and time is: ${new Date().toLocaleString()}.`
+        let currentTimeAndCountry = `The current date and time is: ${new Date().toLocaleString()}.`
+        const country = yield* Atom.getResult(aiCountry.atom)
+        if (Option.isSome(country)) {
+          currentTimeAndCountry += ` The user is located in ${country.value}. All ingredient units should be provided in the measurement system commonly used in that country.`
+        }
 
         if (location.pathname === "/") {
           return `${baseSystemPrompt}
 
 The user is currently browsing the a list of their recipes.
 
-${currentTime}`
+${currentTimeAndCountry}`
         } else if (location.pathname.startsWith("/recipes/")) {
           const id = location.pathname.split("/")[2]
           const recipe = yield* Atom.getResult(recipeByIdAtom(id))
@@ -306,7 +310,7 @@ ${currentTime}`
 
           return `${baseSystemPrompt}
 
-${currentTime}
+${currentTimeAndCountry}
 
 The user is currently viewing the recipe titled "${recipe.title}".
 They are currently focused on step ${selectedStep + 1} of the recipe (starts at 1).
@@ -318,12 +322,19 @@ ${recipe.toXml()}
 **Important:**
 
 When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes.
+
+When converting ingredient units, no not change the following kinds:
+
+- tsp / tbsp
+- cups (but convert from US to metric if needed)
+- pieces (e.g., 1 piece of chicken)
+- whole (e.g., 1 whole onion)
 `
         } else if (location.pathname === "/groceries") {
           const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
           return `${baseSystemPrompt}
 
-${currentTime}
+${currentTimeAndCountry}
 
 The user is currently viewing their grocery list. Here are the items on their grocery list:
 
@@ -332,7 +343,7 @@ ${GroceryItem.toXml(items)}`
           const entries = yield* Atom.getResult(mealPlanEntriesAtom)
           return `${baseSystemPrompt}
 
-${currentTime}
+${currentTimeAndCountry}
 
 The user is currently viewing their meal plan for the week. Here are the entries in their meal plan:
 
@@ -342,7 +353,7 @@ ${MealPlanEntry.toXml(entries)}`
 
 The user is currently browsing their list of menus.
 
-${currentTime}`
+${currentTimeAndCountry}`
         } else if (location.pathname.startsWith("/menus/")) {
           const id = location.pathname.split("/")[2]
           const menu = yield* Atom.getResult(menuByIdAtom(id))
@@ -350,7 +361,7 @@ ${currentTime}`
 
           return `${baseSystemPrompt}
 
-${currentTime}
+${currentTimeAndCountry}
 
 The user is currently viewing the menu titled "${menu.name}".
 
@@ -361,7 +372,7 @@ ${menu.toXml()}
 ${MenuEntry.toXml(menuEntries)}`
         }
 
-        return baseSystemPrompt + "\n\n" + currentTime
+        return baseSystemPrompt + "\n\n" + currentTimeAndCountry
       })
 
       const chat = yield* store.get("ai-history").pipe(
@@ -422,7 +433,6 @@ ${MenuEntry.toXml(menuEntries)}`
             const response = new LanguageModel.GenerateTextResponse<
               typeof toolkit.tools
             >(parts as any)
-            parts = []
             const hasTextParts = parts.some(
               (part) => part.type === "text" || part.type === "text-delta",
             )
@@ -431,6 +441,7 @@ ${MenuEntry.toXml(menuEntries)}`
                 "_tag" in toolResult.result &&
                 toolResult.result._tag === "Terminal",
             )
+            parts = []
 
             // Only continue if there are no text parts AND no terminal results
             if (!hasTextParts && !hasTerminalResult) {
@@ -438,8 +449,9 @@ ${MenuEntry.toXml(menuEntries)}`
             }
             break
           }
-          yield* Ref.set(chat.history, history)
-          yield* store.set("ai-history", history)
+          const toPersist = Prompt.setSystem(history, "")
+          yield* Ref.set(chat.history, toPersist)
+          yield* store.set("ai-history", toPersist)
         },
         Effect.provide(model),
         Effect.catchAllCause(Effect.logError),

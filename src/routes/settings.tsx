@@ -8,6 +8,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -18,6 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
 import {
+  aiCountry,
   livestoreStoreId,
   livestoreSyncEnabled,
   mealPlanWeekStart,
@@ -26,9 +32,27 @@ import {
 } from "@/Settings"
 import { useAtomSet, useAtomSuspense } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
+import {
+  CommandList,
+  CommandInput,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  Command,
+} from "@/components/ui/command"
 import { Schema } from "effect"
-import { Import, MoreVertical, Settings, Share, Share2 } from "lucide-react"
+import {
+  CheckIcon,
+  ChevronsUpDownIcon,
+  Import,
+  MoreVertical,
+  Settings,
+  Share,
+  Share2,
+} from "lucide-react"
 import { useRef, useState } from "react"
+import { cn } from "@/lib/utils"
+import { countries } from "country-data-list"
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -118,6 +142,7 @@ function SettingsPage() {
               />
             )}
           />
+          <SettingCombobox setting={aiCountry} options={countryOptions} />
         </SettingSection>
 
         <SettingSection title="Meal Plan">
@@ -273,3 +298,79 @@ function SettingCheckbox<S extends Schema.Schema.AnyNoContext>({
     />
   )
 }
+
+function SettingCombobox<S extends Schema.Schema.AnyNoContext>({
+  setting,
+  options,
+}: {
+  setting: Setting<S>
+  options: { label: string; value: string }[]
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <SettingControl
+      setting={setting}
+      render={({ value, onBlur }) => {
+        const selected = options.find((opt) => opt.value === value)
+        return (
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between"
+              >
+                {selected ? selected.label : `Select ${setting.label}...`}
+                <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              className="p-0 min-w-[--radix-popper-anchor-width]"
+              align="start"
+            >
+              <Command>
+                <CommandInput placeholder="Search framework..." />
+                <CommandList>
+                  <CommandEmpty>None found.</CommandEmpty>
+                  <CommandGroup>
+                    {options.map((framework) => (
+                      <CommandItem
+                        key={framework.value}
+                        value={framework.value}
+                        onSelect={(currentValue) => {
+                          onBlur(currentValue === value ? "" : currentValue)
+                          setOpen(false)
+                        }}
+                      >
+                        <CheckIcon
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value === framework.value
+                              ? "opacity-100"
+                              : "opacity-0",
+                          )}
+                        />
+                        {framework.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        )
+      }}
+    />
+  )
+}
+
+const countryOptions = countries.all
+  .filter(
+    (country) =>
+      country.emoji && country.status !== "deleted" && country.ioc !== "PRK",
+  )
+  .map((country) => ({
+    label: `${country.emoji} ${country.name}`,
+    value: country.name,
+  }))
