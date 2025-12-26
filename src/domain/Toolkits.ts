@@ -70,7 +70,7 @@ export class toolkit extends Toolkit.make(
     description: "Suggest edits to an existing recipe",
     parameters: {
       recipeId: Schema.String,
-      recipe: Recipe.jsonUpdate,
+      recipe: ExtractedRecipe,
     },
     success: TransientResponse(Schema.Null),
   }),
