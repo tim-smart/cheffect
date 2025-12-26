@@ -297,8 +297,10 @@ ${MenuEntry.toXml(menuEntries)}`
       yield* Registry.toStream(registry, persistenceUpdatesAtom).pipe(
         Stream.runForEach(
           Effect.fnUntraced(function* (json) {
-            if (!json || Option.isNone(json)) return
-            const history = yield* Schema.decode(Prompt.FromJson)(json.value)
+            if (!json) return
+            const history = Option.isNone(json)
+              ? Prompt.empty
+              : yield* Schema.decode(Prompt.FromJson)(json.value)
             yield* Ref.set(chat.history, history)
             registry.set(currentPromptAtom, history)
           }),
