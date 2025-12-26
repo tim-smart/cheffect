@@ -284,9 +284,9 @@ You should be concise and informative in your responses, sacrificing some gramma
 - The menu list can be linked to using \`[menus](/menus)\`
 
 You have access to some tools that can be used to look up information about the user's recipes, grocery lists, and meal plans.
-Prefer using tools to show information rather than providing it directly.
 
-Always try to create recipes with images.
+- Prefer using tools to show information rather than providing it directly.
+- Always try to create recipes with images.
 `
 
       const currentSystemPrompt = Effect.gen(function* () {
@@ -323,12 +323,11 @@ ${recipe.toXml()}
 
 When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes.
 
-When converting ingredient units, no not change the following kinds:
+When converting ingredient units, **do not** change the following units:
 
-- tsp / tbsp
-- cups (but convert from US to metric if needed)
-- pieces (e.g., 1 piece of chicken)
-- whole (e.g., 1 whole onion)
+- tsp
+- tbsp
+- cups
 `
         } else if (location.pathname === "/groceries") {
           const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
