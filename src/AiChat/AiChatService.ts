@@ -154,14 +154,17 @@ const ToolkitLayer = toolkit.toLayer(
         }
 
         // Update target with merged info
-        const recipeIdsArray = Array.from(allRecipeIds)
+        const recipeIdsArray = globalThis.Array.from(allRecipeIds)
         store.commit(
           events.groceryItemUpdated({
             id: targetId,
             name: mergedName ?? target.value.name,
             quantity: mergedQuantity ?? target.value.quantity,
             aisle: target.value.aisle,
-            recipeIds: recipeIdsArray.length > 0 ? recipeIdsArray : null,
+            recipeIds:
+              recipeIdsArray.length > 0
+                ? (recipeIdsArray as [string, ...string[]])
+                : null,
             completed: target.value.completed,
             updatedAt: DateTime.unsafeNow(),
           }),
