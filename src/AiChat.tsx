@@ -134,16 +134,18 @@ function MessagesList({
 }) {
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
+  if (messages.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
+        <div className="text-center">
+          <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+          <p>Ask me anything about recipes or meal planning!</p>
+        </div>
+      </div>
+    )
+  }
   return (
     <div ref={ref} className="space-y-4">
-      {messages.length === 0 && (
-        <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
-          <div className="text-center">
-            <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>Ask me anything about recipes or meal planning!</p>
-          </div>
-        </div>
-      )}
       {messages.filter(isVisualMessage).map((message, i) =>
         message.role === "tool" ? (
           <div
