@@ -419,14 +419,15 @@ ${MenuEntry.toXml(menuEntries)}`
               typeof toolkit.tools
             >(parts as any)
             parts = []
-            const toolResult = response.toolResults[0]
-            // Continue loop if tool result is Transient or has no _tag (like WebSearch)
-            // Break only when no tool results or Terminal
-            if (
-              toolResult &&
-              (!("_tag" in toolResult.result) ||
-                toolResult.result._tag === "Transient")
-            ) {
+            const hasTextParts = response.text.length > 0
+            const hasTerminalResult = response.toolResults.some(
+              (toolResult) =>
+                "_tag" in toolResult.result &&
+                toolResult.result._tag === "Terminal"
+            )
+
+            // Only continue if there are no text parts AND no terminal results
+            if (!hasTextParts && !hasTerminalResult) {
               continue
             }
             break
