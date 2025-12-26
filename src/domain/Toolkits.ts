@@ -7,18 +7,6 @@ import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
 import { MealPlanEntry } from "./MealPlanEntry"
 
-export class GroceryItemsCreated extends Schema.TaggedClass<GroceryItemsCreated>(
-  "GroceryItemsCreated",
-)("GroceryItemsCreated", {
-  groceryItems: Schema.Array(GroceryItem.json),
-}) {}
-
-export class MenuEntriesAdded extends Schema.TaggedClass<MenuEntriesAdded>(
-  "MenuEntriesAdded",
-)("MenuEntriesAdded", {
-  menuEntryIds: Schema.Array(Schema.String),
-}) {}
-
 export const TerminalResponse = <S extends Schema.Schema.Any>(
   schema: S,
 ): Schema.transform<
@@ -97,7 +85,7 @@ export class toolkit extends Toolkit.make(
         ),
       ),
     },
-    success: TerminalResponse(GroceryItemsCreated),
+    success: TransientResponse(Schema.Null),
   }),
   Tool.make("GetMenus", {
     description: "Get the user's menus - collections of recipes",
@@ -116,7 +104,7 @@ export class toolkit extends Toolkit.make(
       menuId: Schema.String,
       menuEntries: Schema.Array(MenuEntry.jsonCreate),
     },
-    success: TerminalResponse(MenuEntriesAdded),
+    success: TransientResponse(Schema.Null),
   }),
   Tool.make("GetMenuEntries", {
     description: "Get the recipes added to a specific menu",

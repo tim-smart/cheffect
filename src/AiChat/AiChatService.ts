@@ -36,11 +36,7 @@ import { queryDb, sql } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as KeyValueStore from "@effect/platform/KeyValueStore"
 import * as Schema from "effect/Schema"
-import {
-  GroceryItemsCreated,
-  MenuEntriesAdded,
-  toolkit,
-} from "@/domain/Toolkits"
+import { toolkit } from "@/domain/Toolkits"
 import { Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
 import { mealPlanWeekStart } from "@/Settings"
@@ -90,7 +86,7 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       AddGroceryItems: Effect.fnUntraced(function* ({ groceryItems }) {
-        const newItems = groceryItems.map((groceryItem) => {
+        groceryItems.map((groceryItem) => {
           const newItem = new GroceryItem({
             ...groceryItem,
             id: crypto.randomUUID(),
@@ -102,8 +98,8 @@ const ToolkitLayer = toolkit.toLayer(
           return newItem
         })
         return {
-          _tag: "Terminal",
-          value: new GroceryItemsCreated({ groceryItems: newItems }),
+          _tag: "Transient",
+          value: null,
         }
       }),
       GetMenus: Effect.fnUntraced(function* () {
@@ -134,7 +130,7 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       AddMenuEntries: Effect.fnUntraced(function* ({ menuId, menuEntries }) {
-        const ids = menuEntries.flatMap((menuEntry) => {
+        menuEntries.flatMap((menuEntry) => {
           const recipe = store.query(recipeById$(menuEntry.recipeId))
           if (Option.isNone(recipe)) return []
           const id = crypto.randomUUID()
@@ -151,8 +147,8 @@ const ToolkitLayer = toolkit.toLayer(
           return id
         })
         return {
-          _tag: "Terminal",
-          value: new MenuEntriesAdded({ menuEntryIds: ids }),
+          _tag: "Transient",
+          value: null,
         }
       }),
       GetCurrentMealPlan: Effect.fnUntraced(function* () {
