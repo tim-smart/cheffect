@@ -182,6 +182,13 @@ export const tables = {
       }),
     },
   }),
+  keyValues: State.SQLite.table({
+    name: "key_values",
+    columns: {
+      key: State.SQLite.text({ primaryKey: true }),
+      value: State.SQLite.text({ nullable: false }),
+    },
+  }),
   // Client documents can be used for local-only state (e.g. form inputs)
   searchState: State.SQLite.clientDocument({
     name: "searchState",
@@ -318,6 +325,23 @@ export const events = {
     }),
   }),
   searchStateSet: tables.searchState.set,
+  keyValueSet: Events.synced({
+    name: "v1.KeyValueSet",
+    schema: Schema.Struct({
+      key: Schema.String,
+      value: Schema.String,
+    }),
+  }),
+  keyValueRemove: Events.synced({
+    name: "v1.KeyValueRemove",
+    schema: Schema.Struct({
+      key: Schema.String,
+    }),
+  }),
+  keyValueClear: Events.synced({
+    name: "v1.KeyValueClear",
+    schema: Schema.Void,
+  }),
 }
 
 // Materializers are used to map events to state (https://docs.livestore.dev/reference/state/materializers)
@@ -415,6 +439,12 @@ const materializers = State.SQLite.materializers(events, {
         updatedAt,
       })
   },
+  "v1.KeyValueSet": ({ key, value }) =>
+    tables.keyValues
+      .insert({ key, value })
+      .onConflict("key", "update", { value }),
+  "v1.KeyValueRemove": ({ key }) => tables.keyValues.delete().where({ key }),
+  "v1.KeyValueClear": () => tables.keyValues.delete(),
 })
 
 const state = State.SQLite.makeState({ tables, materializers })

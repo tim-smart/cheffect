@@ -35,15 +35,23 @@ import { GroceryItem } from "./domain/GroceryItem"
 import { MealPlanEntry } from "./domain/MealPlanEntry"
 import * as Prompt from "@effect/ai/Prompt"
 import * as LanguageModel from "@effect/ai/LanguageModel"
+import * as Persistence from "@effect/experimental/Persistence"
+import { layerKvsLivestore } from "./lib/kvs"
+import { Store } from "./livestore/atoms"
+import { events } from "./livestore/schema"
 
 // const toolkit = Toolkit.make(OpenAiTool.WebSearch({}))
 
 class AiChatService extends Effect.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
   {
+    dependencies: [
+      Persistence.layerKeyValueStore.pipe(Layer.provide(layerKvsLivestore)),
+    ],
     scoped: Effect.gen(function* () {
       const model = yield* OpenAiLanguageModel.model("gpt-5.2")
       const registry = yield* Registry.AtomRegistry
+      const store = yield* Store
 
       const baseSystemPrompt = `You are a helpful AI assistant specialized in providing information about recipes, meal planning, and cooking tips. Your goal is to assist users in finding recipes, suggesting meal plans, and answering any cooking-related questions they may have.
 
@@ -117,7 +125,11 @@ ${MenuEntry.toXml(menuEntries)}`
         return baseSystemPrompt + "\n\n" + currentTime
       })
 
-      const chat = yield* AiChat.fromPrompt(Prompt.empty)
+      const persisted = yield* AiChat.makePersisted({
+        storeId: "ai",
+      })
+      const chat = yield* persisted.getOrCreate("default")
+      registry.set(currentPromptAtom, yield* chat.history)
 
       const send = Effect.fnUntraced(function* (message: string) {
         const history = (yield* Ref.get(chat.history)).pipe(
@@ -145,9 +157,14 @@ ${MenuEntry.toXml(menuEntries)}`
           }),
         )
         yield* Ref.set(chat.history, registry.get(currentPromptAtom))
+        yield* chat.save
       }, Effect.provide(model))
 
-      return { send } as const
+      const clear = Effect.gen(function* () {
+        store.commit(events.keyValueClear())
+      })
+
+      return { send, clear } as const
     }),
   },
 ) {}
@@ -157,7 +174,9 @@ const constEmptyAssistantMessage = Prompt.makeMessage("assistant", {
 })
 
 const runtime = Atom.runtime((get) =>
-  AiChatService.Default.pipe(Layer.provide(get(openAiClientLayer))),
+  AiChatService.Default.pipe(
+    Layer.provide([get(openAiClientLayer), get(Store.layer)]),
+  ),
 ).pipe(Atom.keepAlive)
 
 const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
