@@ -423,7 +423,9 @@ ${MenuEntry.toXml(menuEntries)}`
               typeof toolkit.tools
             >(parts as any)
             parts = []
-            const hasTextParts = response.text.length > 0
+            const hasTextParts = parts.some(
+              (part) => part.type === "text" || part.type === "text-delta",
+            )
             const hasTerminalResult = response.toolResults.some(
               (toolResult) =>
                 "_tag" in toolResult.result &&
