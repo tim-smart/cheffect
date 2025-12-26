@@ -15,6 +15,8 @@ import { Atom, Result } from "@effect-atom/atom-react"
 import { openAiApiKey } from "@/Settings"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
+import * as HttpClient from "@effect/platform/HttpClient"
+import * as Schedule from "effect/Schedule"
 
 export const isAiEnabledAtom = Atom.make((get) =>
   Result.map(get(openAiApiKey.atom), Option.isSome),
@@ -25,9 +27,14 @@ export const openAiClientLayer = Atom.make((get) => {
   if (Option.isNone(apiKeyOption)) {
     return Layer.effect(OpenAiClient.OpenAiClient, Effect.never)
   }
-  return OpenAiClient.layer({ apiKey: apiKeyOption.value }).pipe(
-    Layer.provide(FetchHttpClient.layer),
-  )
+  return OpenAiClient.layer({
+    apiKey: apiKeyOption.value,
+    transformClient: HttpClient.retryTransient({
+      schedule: Schedule.exponential(500, 1.5).pipe(
+        Schedule.union(Schedule.spaced(10_000)),
+      ),
+    }),
+  }).pipe(Layer.provide(FetchHttpClient.layer))
 })
 
 export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
