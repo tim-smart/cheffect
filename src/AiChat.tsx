@@ -54,7 +54,11 @@ export function AiChatModal() {
           className="fixed inset-0 z-50 bg-black/50 md:hidden"
           onClick={() => setIsOpen(false)}
         />
-        <ModalContent inputRef={inputRef} onClose={() => setIsOpen(false)} />
+        <ModalContent
+          inputRef={inputRef}
+          onClose={() => setIsOpen(false)}
+          open={isOpen}
+        />
       </div>
     </>
   )
@@ -63,9 +67,11 @@ export function AiChatModal() {
 function ModalContent({
   inputRef,
   onClose,
+  open,
 }: {
   readonly inputRef: React.RefObject<HTMLInputElement | null>
   readonly onClose: () => void
+  readonly open: boolean
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
@@ -78,7 +84,7 @@ function ModalContent({
       inputRef.current?.scrollIntoView({ behavior: "instant" })
       scrollToBottom()
     }, 0)
-  }, [viewportObstructed > 0])
+  }, [viewportObstructed > 0, open])
 
   return (
     <div
