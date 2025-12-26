@@ -217,19 +217,15 @@ function PromptInput({
   return (
     <form onSubmit={handleSubmit} className="border-t border-border p-3 pl-2">
       <div className="flex gap-2 items-center">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="p-1">
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => clear()}>
-              <Eraser />
-              Clear
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+          onClick={() => clear()}
+          size="icon"
+          variant="ghost"
+          className="size-8 -mr-1"
+          title="Clear chat"
+        >
+          <Eraser />
+        </Button>
         <input
           ref={inputRef}
           value={input}
