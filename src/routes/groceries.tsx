@@ -134,7 +134,9 @@ function GroceryList() {
           </>
         ))
         .orElse(() => (
-          <GroceryListSkeleton />
+          <div className="max-w-lg mx-auto">
+            <GroceryListSkeleton />
+          </div>
         ))}
     </div>
   )

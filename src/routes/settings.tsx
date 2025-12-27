@@ -319,7 +319,7 @@ function SettingCombobox<S extends Schema.Schema.AnyNoContext>({
                 variant="outline"
                 role="combobox"
                 aria-expanded={open}
-                className="w-full justify-between"
+                className="w-full justify-between dark:bg-input/30"
               >
                 {selected ? selected.label : `Select ${setting.label}...`}
                 <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
