@@ -213,12 +213,10 @@ function PromptInput({
       <div className="flex gap-2 items-center">
         <Button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
-            const inputFocused = document.activeElement === inputRef.current
             clear()
-            if (inputFocused) {
-              inputRef.current?.focus()
-            }
+            inputRef.current?.focus()
           }}
           size="icon"
           variant="ghost"
