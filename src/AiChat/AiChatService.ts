@@ -72,7 +72,7 @@ const ToolkitLayer = toolkit.toLayer(
             value: null,
           }
         }
-        registry.set(modifiedRecipeByIdAtom(recipeId), recipe)
+        registry.set(modifiedRecipeByIdAtom(recipeId), Option.some(recipe))
         return {
           _tag: "Transient",
           value: null,

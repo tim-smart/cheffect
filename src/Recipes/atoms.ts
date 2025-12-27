@@ -13,9 +13,12 @@ import { RecipeExtractionManager } from "./RecipeExtractionManager"
 import { openAiClientLayer } from "@/services/AiHelpers"
 import { events } from "@/livestore/schema"
 import * as HashSet from "effect/HashSet"
-import { ExtractedRecipe, Recipe } from "@/domain/Recipe"
+import { ExtractedRecipe, Recipe, RecipeEdit } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
 import { router } from "@/Router"
+import { queryDb, sql } from "@livestore/livestore"
+import * as Array from "effect/Array"
+import * as Option from "effect/Option"
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
@@ -51,8 +54,39 @@ export const recipeFormByIdAtom = Atom.family((id: string) =>
 
 export const showOriginalRecipeAtom = Atom.make(HashSet.empty<string>())
 
-export const modifiedRecipeByIdAtom = Atom.family((_id: string) =>
-  Atom.make<ExtractedRecipe | undefined>(undefined).pipe(Atom.keepAlive),
+const recipeEditById$ = (id: string) =>
+  queryDb(
+    {
+      query: sql`select * from recipe_edits where id = ?`,
+      bindValues: [id],
+      schema: Schema.Array(RecipeEdit),
+    },
+    {
+      deps: [id],
+      map: Array.head,
+    },
+  )
+
+export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
+  Atom.writable(
+    Store.makeQueryUnsafe(recipeEditById$(id)).read,
+    (ctx, modified: Option.Option<ExtractedRecipe>) => {
+      Option.match(modified, {
+        onNone() {
+          ctx.set(Store.commit, events.recipeEditRemove({ id }))
+        },
+        onSome(modified) {
+          ctx.set(
+            Store.commit,
+            events.recipeEditSet({
+              ...modified,
+              id,
+            }),
+          )
+        },
+      })
+    },
+  ),
 )
 
 export const recipeForDisplayAtom = Atom.family((id: string) =>
@@ -77,7 +111,7 @@ export const recipeForDisplayAtom = Atom.family((id: string) =>
 
 export const discardModifiedRecipeAtom = Atom.fn<string>()(
   Effect.fnUntraced(function* (id, get) {
-    get.set(modifiedRecipeByIdAtom(id), undefined)
+    get.set(modifiedRecipeByIdAtom(id), Option.none())
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
   }),
 )
@@ -94,7 +128,7 @@ export const saveModifiedRecipeAtom = Atom.fn<string>()(
       updatedAt: DateTime.unsafeNow(),
     })
     store.commit(events.recipeUpdated(newRecipe))
-    get.set(modifiedRecipeByIdAtom(id), undefined)
+    get.set(modifiedRecipeByIdAtom(id), Option.none())
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
   }),
 )
@@ -113,7 +147,7 @@ export const newModifiedRecipeAtom = Atom.fn<string>()(
       updatedAt: DateTime.unsafeNow(),
     })
     store.commit(events.recipeCreated(newRecipe))
-    get.set(modifiedRecipeByIdAtom(id), undefined)
+    get.set(modifiedRecipeByIdAtom(id), Option.none())
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
     router.navigate({ to: "/recipes/$id", params: { id: newRecipe.id } })
   }),
@@ -163,4 +197,4 @@ export const importAtom = Store.runtime.fn<File>()(
   }),
 )
 
-export const recipeSelectedStep = Atom.make(0)
+export const recipeSelectedStep = Atom.make(0).pipe(Atom.setIdleTTL(0))

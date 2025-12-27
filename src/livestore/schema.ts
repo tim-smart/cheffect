@@ -5,6 +5,7 @@ import { Rating } from "../domain/Rating"
 import {
   IngredientsComponent,
   Recipe,
+  RecipeEdit,
   SortByValue,
   Step,
 } from "../domain/Recipe"
@@ -13,30 +14,34 @@ import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 
+const recipeColumns = {
+  id: State.SQLite.text({ primaryKey: true }),
+  title: State.SQLite.text({ default: "" }),
+  imageUrl: State.SQLite.text({ nullable: true }),
+  prepTime: State.SQLite.real({
+    nullable: true,
+    schema: Schema.DurationFromMillis,
+  }),
+  cookingTime: State.SQLite.real({
+    nullable: true,
+    schema: Schema.DurationFromMillis,
+  }),
+  rating: State.SQLite.real({ nullable: true }),
+  servings: State.SQLite.real({ nullable: true }),
+  ingredients: State.SQLite.json({
+    schema: Schema.Array(IngredientsComponent),
+  }),
+  steps: State.SQLite.json({ schema: Schema.Array(Step) }),
+  sourceName: State.SQLite.text({ nullable: true }),
+  sourceUrl: State.SQLite.text({ nullable: true }),
+} as const
+
 export const tables = {
   recipes: State.SQLite.table({
     name: "recipes",
     columns: {
-      id: State.SQLite.text({ primaryKey: true }),
-      title: State.SQLite.text({ default: "" }),
-      imageUrl: State.SQLite.text({ nullable: true }),
-      prepTime: State.SQLite.real({
-        nullable: true,
-        schema: Schema.DurationFromMillis,
-      }),
-      cookingTime: State.SQLite.real({
-        nullable: true,
-        schema: Schema.DurationFromMillis,
-      }),
-      rating: State.SQLite.real({ nullable: true }),
-      servings: State.SQLite.real({ nullable: true }),
-      ingredients: State.SQLite.json({
-        schema: Schema.Array(IngredientsComponent),
-      }),
+      ...recipeColumns,
       ingredientScale: State.SQLite.real({ default: 1 }),
-      steps: State.SQLite.json({ schema: Schema.Array(Step) }),
-      sourceName: State.SQLite.text({ nullable: true }),
-      sourceUrl: State.SQLite.text({ nullable: true }),
       createdAt: State.SQLite.integer({
         schema: Schema.DateTimeUtcFromNumber,
       }),
@@ -48,6 +53,10 @@ export const tables = {
         schema: Schema.DateTimeUtcFromNumber,
       }),
     },
+  }),
+  recipeEdits: State.SQLite.table({
+    name: "recipe_edits",
+    columns: recipeColumns,
   }),
   recipeTags: State.SQLite.table({
     name: "recipe_tags",
@@ -232,6 +241,14 @@ export const events = {
       completedAt: Schema.DateTimeUtc,
     }),
   }),
+  recipeEditSet: Events.synced({
+    name: "v1.RecipeEditSet",
+    schema: RecipeEdit,
+  }),
+  recipeEditRemove: Events.synced({
+    name: "v1.RecipeEditRemove",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
   mealPlanAdd: Events.synced({
     name: "v1.MealPlanAdd",
     schema: Schema.Struct({
@@ -350,6 +367,9 @@ const materializers = State.SQLite.materializers(events, {
     tables.recipes.update({ ingredientScale, updatedAt }).where({ id }),
   "v1.RecipeDeleted": ({ id, deletedAt }) =>
     tables.recipes.update({ deletedAt }).where({ id }),
+  "v1.RecipeEditSet": (insert) =>
+    tables.recipeEdits.insert(insert).onConflict("id", "update", insert),
+  "v1.RecipeEditRemove": ({ id }) => tables.recipeEdits.delete().where({ id }),
   "v1.RecipeExtractJobAdded": (insert) =>
     tables.recipeExtractJobs.insert(insert).onConflict("id", "ignore"),
   "v1.RecipeExtractJobCompleted": ({ id, completedAt }) =>

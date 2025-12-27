@@ -6,6 +6,7 @@ import * as Schema from "effect/Schema"
 import { DurationFromMinutes } from "./Duration"
 import * as Predicate from "effect/Predicate"
 import { UnknownToXml } from "./Xml"
+import * as Struct from "effect/Struct"
 
 export const Unit = Schema.Literal(
   "g",
@@ -247,6 +248,18 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
     return Schema.encodeSync(Recipe.xml)({ recipe: this })
   }
 }
+
+export const RecipeEdit = Schema.Struct(
+  Struct.omit(
+    Recipe.fields,
+    "sourceUrl",
+    "rating",
+    "ingredientScale",
+    "createdAt",
+    "updatedAt",
+    "deletedAt",
+  ),
+)
 
 const filterZero = Option.liftPredicate(Predicate.not(Duration.isZero))
 
