@@ -92,9 +92,9 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
 export const recipeForDisplayAtom = Atom.family((id: string) =>
   Atom.make((get) => {
     const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
-    const modified = get(modifiedRecipeByIdAtom(id))
     return get(recipeByIdAtom(id)).pipe(
       Result.map((original) => {
+        const modified = Option.getOrUndefined(get(modifiedRecipeByIdAtom(id))!)
         const resolved =
           showOriginal || !modified
             ? original
