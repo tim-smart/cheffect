@@ -1,17 +1,19 @@
 diff --git a/dist/esm/Generated.js b/dist/esm/Generated.js
-index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..6c69132027c37396fb545e16fec3fb3231661150 100644
+index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..cf515a5709df64c5ca64fe5ed6407f7864374752 100644
 --- a/dist/esm/Generated.js
 +++ b/dist/esm/Generated.js
-@@ -1528,8 +1528,6 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+@@ -1527,9 +1527,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+  * Action type "search" - Performs a web search query.
   */export class WebSearchActionSearch extends/*#__PURE__*/S.Class("WebSearchActionSearch")({/**
       * The action type.
-      */"type":WebSearchActionSearchType,/**
+-     */"type":WebSearchActionSearchType,/**
 -     * The search query.
 -     */"query":S.String,/**
++     */"type":S.String,/**
       * The sources used in the search.
       */"sources":/*#__PURE__*/S.optionalWith(/*#__PURE__*/S.Array(/*#__PURE__*/S.Struct({/**
           * The type of source. Always `url`.
-@@ -1543,7 +1541,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+@@ -1543,17 +1541,17 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
       * The action type.
       */"type":WebSearchActionOpenPageType,/**
       * The URL opened by the model.
@@ -20,9 +22,10 @@ index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..6c69132027c37396fb545e16fec3fb32
   * The action type.
   */export class WebSearchActionFindType extends/*#__PURE__*/S.Literal("find"){}/**
   * Action type "find": Searches for a pattern within a loaded page.
-@@ -1551,9 +1549,9 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+  */export class WebSearchActionFind extends/*#__PURE__*/S.Class("WebSearchActionFind")({/**
       * The action type.
-      */"type":WebSearchActionFindType,/**
+-     */"type":WebSearchActionFindType,/**
++     */"type":S.String,/**
       * The URL of the page searched for the pattern.
 -     */"url":S.String,/**
 +     */"url":S.optional(S.String),/**
