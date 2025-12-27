@@ -139,6 +139,21 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
   }
 }
 
+const DurationFromMinuteOrNull = Schema.NullOr(DurationFromMinutes).annotations(
+  {
+    description: "A duration represented in minutes. Can be null if not set.",
+  },
+)
+
+const DurationField = Model.Field({
+  select: Schema.NullOr(Schema.DurationFromMillis),
+  insert: Schema.NullOr(Schema.DurationFromMillis),
+  update: Schema.NullOr(Schema.DurationFromMillis),
+  json: DurationFromMinuteOrNull,
+  jsonCreate: DurationFromMinuteOrNull,
+  jsonUpdate: DurationFromMinuteOrNull,
+})
+
 export class Recipe extends Model.Class<Recipe>("Recipe")({
   ...ExtractedRecipe.fields,
   id: Model.GeneratedByApp(
@@ -146,8 +161,8 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
       description: "A unique identifier for the recipe.",
     }),
   ),
-  cookingTime: Schema.NullOr(Schema.DurationFromMillis),
-  prepTime: Schema.NullOr(Schema.DurationFromMillis),
+  cookingTime: DurationField,
+  prepTime: DurationField,
   ingredients: Model.JsonFromString(IngredientsComponent.array),
   ingredientScale: Model.Field({
     select: Schema.Number,

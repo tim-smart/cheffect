@@ -124,11 +124,11 @@ function MenuCard({ menu }: { menu: Menu }) {
   const [editing, setEditing] = useState(false)
   const recipeCount = useAtomValue(menuRecipeCountAtom(menu.id))
   return (
-    <div className="flex items-center h-20 pl-4 pr-2 active:bg-muted transition-colors">
+    <div className="flex items-center pr-2 active:bg-muted transition-colors">
       <Link
         to="/menus/$id"
         params={{ id: menu.id }}
-        className="flex-1 flex flex-col gap-1"
+        className="flex-1 flex flex-col gap-1 h-20 justify-center pl-4"
         disabled={editing}
       >
         <div className="flex flex-row items-center gap-2">
