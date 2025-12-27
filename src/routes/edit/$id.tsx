@@ -36,6 +36,7 @@ function ProductScreen() {
                 Recipe.update.make({
                   ...formRecipe,
                   id: recipe.id,
+                  ingredientScale: recipe.ingredientScale,
                   updatedAt: DateTime.unsafeNow(),
                 }),
               ),
