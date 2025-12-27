@@ -1,9 +1,3 @@
 - AI metric/imperial conversions
 - AI recipe chat
-  - Add tools for ai to interact with app
-    - Add to meal plan
-    - Add to menu
-    - List menus
-    - Modify ingredients
-    - Add to grocery list
-- Dark mode
+  - Interruption
