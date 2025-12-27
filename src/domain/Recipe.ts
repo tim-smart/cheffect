@@ -28,6 +28,14 @@ export const Unit = Schema.Literal(
 })
 export type Unit = typeof Unit.Type
 
+export const unitNeedsSpace: ReadonlySet<Unit> = new Set([
+  "tsp",
+  "tbsp",
+  "cup",
+  "inch",
+  "fl oz",
+])
+
 export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
   {
     name: Schema.String.annotations({

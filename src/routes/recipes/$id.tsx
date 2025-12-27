@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Recipe } from "@/domain/Recipe"
+import { Recipe, unitNeedsSpace } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useCommit } from "@/livestore/atoms"
@@ -318,7 +318,7 @@ export function RecipeDetails({
                                     ingredient.quantity,
                                   )}
                                   {ingredient.unit &&
-                                    ` ${ingredient.unit}`}{" "}
+                                    `${unitNeedsSpace.has(ingredient.unit) ? " " : ""}${ingredient.unit}`}{" "}
                                 </>
                               )}
                               {ingredient.name}

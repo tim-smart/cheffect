@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Send, MessageSquare, Loader2, Eraser } from "lucide-react"
-import { Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react"
+import { X, Send, MessageSquare, Eraser, Square } from "lucide-react"
+import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react"
 import Markdown from "react-markdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
@@ -193,6 +193,7 @@ function PromptInput({
   readonly inputRef: React.RefObject<HTMLInputElement | null>
 }) {
   const [input, setInput] = useState("")
+  const inputTrim = input.trim()
   const sendMessage = useAtomSet(sendAtom)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -237,12 +238,18 @@ function PromptInput({
           type="submit"
           size="icon"
           className="h-10 w-10 rounded-full bg-primary hover:bg-orange-700"
-          disabled={isLoading || !input.trim()}
+          disabled={!isLoading && !inputTrim}
+          onClick={() => {
+            if (!(isLoading && !inputTrim)) return
+            sendMessage(Atom.Interrupt)
+          }}
         >
           {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-white" />
+            <Square className="animate-pulse text-white" />
           ) : (
-            <Send className="h-5 w-5 text-white" />
+            <Send
+              className={cn("text-white", isLoading ? "animate-pulse" : "")}
+            />
           )}
         </Button>
       </div>

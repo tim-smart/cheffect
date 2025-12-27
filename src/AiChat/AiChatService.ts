@@ -448,10 +448,17 @@ ${MenuEntry.toXml(menuEntries)}`
             }
             break
           }
-          const toPersist = Prompt.setSystem(history, "")
-          yield* Ref.set(chat.history, toPersist)
-          yield* store.set("ai-history", toPersist)
         },
+        Effect.ensuring(
+          Effect.gen(function* () {
+            const toPersist = Prompt.setSystem(
+              registry.get(currentPromptAtom),
+              "",
+            )
+            yield* Ref.set(chat.history, toPersist)
+            yield* Effect.orDie(store.set("ai-history", toPersist))
+          }),
+        ),
         Effect.provide(model),
         Effect.catchAllCause(Effect.logError),
       )
