@@ -1,8 +1,17 @@
 diff --git a/dist/esm/Generated.js b/dist/esm/Generated.js
-index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..189f7d6d26a591730c561e8b8a764270c18041c1 100644
+index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..6c6452912ab888a902fe3c0a181997ffc4c06cf0 100644
 --- a/dist/esm/Generated.js
 +++ b/dist/esm/Generated.js
-@@ -1565,7 +1565,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+@@ -1528,8 +1528,6 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+  */export class WebSearchActionSearch extends/*#__PURE__*/S.Class("WebSearchActionSearch")({/**
+      * The action type.
+      */"type":WebSearchActionSearchType,/**
+-     * The search query.
+-     */"query":S.String,/**
+      * The sources used in the search.
+      */"sources":/*#__PURE__*/S.optionalWith(/*#__PURE__*/S.Array(/*#__PURE__*/S.Struct({/**
+          * The type of source. Always `url`.
+@@ -1565,7 +1563,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
       */"status":WebSearchToolCallStatus,/**
       * An object describing the specific action taken in this web search call.
       * Includes details on how the model used the web (search, open_page, find).
