@@ -1,3 +1,4 @@
 - AI metric/imperial conversions
 - AI recipe chat
   - Interruption
+  - Tool for adding "learnings"
