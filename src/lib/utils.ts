@@ -6,10 +6,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+const FRACTION_SIMPLIFICATION_TOLERANCE = 0.01
+
 export const quantityFormatter = {
   format(value: number): string {
-    // Create a fraction with 0.01 simplification tolerance
-    const fraction = new Fraction(value).simplify(0.01)
+    // Create a fraction with simplification tolerance
+    const fraction = new Fraction(value).simplify(FRACTION_SIMPLIFICATION_TOLERANCE)
     
     // Convert BigInt to number for comparisons
     const numerator = Number(fraction.n)
@@ -22,8 +24,8 @@ export const quantityFormatter = {
     
     // If we have a mixed number (numerator >= denominator)
     if (Math.abs(numerator) >= denominator) {
-      const whole = Math.floor(Math.abs(numerator) / denominator) * Math.sign(numerator)
-      const remainder = Math.abs(numerator) % denominator
+      const whole = Math.trunc(numerator / denominator)
+      const remainder = Math.abs(numerator % denominator)
       
       if (remainder === 0) {
         return whole.toString()
