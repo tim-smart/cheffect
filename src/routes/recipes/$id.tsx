@@ -257,9 +257,9 @@ export function RecipeDetails({
 
       {modified && <ModifiedBanner recipe={recipe} />}
 
-      <div className="flex flex-col md:items-start gap-4 mt-4 md:flex-row max-w-7xl md:px-4 mx-auto">
+      <div className="flex flex-col md:items-start gap-4 mt-4 md:flex-row max-w-7xl mx-auto">
         {/* Ingredients */}
-        <div className="bg-background flex-1 md:rounded-lg">
+        <div className="flex-1 md:rounded-lg">
           <div className="p-4">
             <div className="flex">
               <h2 className="text-lg font-semibold  mb-4">
@@ -339,7 +339,7 @@ export function RecipeDetails({
         </div>
 
         {/* Instructions */}
-        <div className="bg-background flex-2 md:rounded-lg">
+        <div className="flex-2 md:rounded-lg">
           <div className="p-4">
             <h2 className="text-xl font-semibold  mb-4">Instructions</h2>
 
@@ -414,7 +414,7 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <div className="flex items-center gap-2 px-1 py-1">
+        <div className="flex items-center gap-2 px-2 py-1">
           <SlidersHorizontal className="text-muted-foreground size-4" />
           Scale
           <Input
