@@ -20,7 +20,8 @@ export const quantityFormatter = {
     switch (unit) {
       case "cup":
       case "tsp":
-      case "tbsp": {
+      case "tbsp":
+      case null: {
         return new Fraction(value)
           .simplify(FRACTION_SIMPLIFICATION_TOLERANCE)
           .toFraction(true)
