@@ -31,7 +31,7 @@ export function AddToGroceriesButton({
           ) {
             return
           }
-          let item = GroceryItem.fromIngredient(ingredient, recipe)
+          let item = GroceryItem.fromIngredient(null, ingredient, recipe)
           const maybePrevAisle = store.query(previousGroceryAisle$(item.name))
           item = new GroceryItem({
             ...item,
