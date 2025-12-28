@@ -14,10 +14,10 @@ import * as Schema from "effect/Schema"
 import { ArrowLeft } from "lucide-react"
 
 export const Route = createFileRoute("/edit/$id")({
-  component: ProductScreen,
+  component: EditRecipeScreen,
 })
 
-function ProductScreen() {
+function EditRecipeScreen() {
   const { id } = Route.useParams()
   const result = useAtomValue(recipeFormByIdAtom(id))
   const commit = useCommit()
@@ -41,7 +41,13 @@ function ProductScreen() {
                 }),
               ),
             )
-            router.navigate({ to: "/recipes/$id", params: { id: recipe.id } })
+            if (router.history.length > 1) {
+              return router.history.back()
+            }
+            router.navigate({
+              to: "/recipes/$id",
+              params: { id: recipe.id },
+            })
           }}
         />
       </div>
