@@ -74,6 +74,18 @@ export class toolkit extends Toolkit.make(
     },
     success: TransientResponse(Schema.Null),
   }),
+  Tool.make("ScaleRecipe", {
+    description:
+      "Scale the ingredients of an existing recipe by a given factor",
+    parameters: {
+      recipeId: Schema.String,
+      scale: Schema.Number.annotations({
+        description:
+          "The factor by which to scale the recipe (e.g., 2.0 to double, 0.5 to halve).",
+      }),
+    },
+    success: TransientResponse(Schema.Null),
+  }),
   Tool.make("GetGroceryList", {
     description: "Get the user's full grocery list",
     success: TransientResponse(Schema.Array(GroceryItem.json)),

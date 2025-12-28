@@ -79,6 +79,24 @@ const ToolkitLayer = toolkit.toLayer(
           value: null,
         }
       }),
+      ScaleRecipe: Effect.fnUntraced(function* ({ scale, recipeId }) {
+        const original = store.query(recipeById$(recipeId))
+        if (Option.isNone(original)) {
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+        const recipe = new Recipe({
+          ...original.value,
+          ingredientScale: scale,
+        })
+        store.commit(events.recipeUpdated(recipe))
+        return {
+          _tag: "Transient",
+          value: null,
+        }
+      }),
       GetGroceryList: Effect.fnUntraced(function* () {
         const items = store.query(allGroceryItems$)
         return {
