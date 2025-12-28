@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { Search, ArrowDownWideNarrow } from "lucide-react"
+import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { allRecipesAtom, searchSortByAtom } from "@/livestore/queries"
@@ -84,8 +84,17 @@ function SearchInput() {
             const target = e.target as HTMLInputElement
             target.blur()
           }}
-          className="pl-10 h-11 bg-card!"
+          className={`pl-10 h-11 bg-card! ${searchQuery ? "pr-9" : ""}`}
         />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => commit(events.searchStateSet({ query: "" }))}
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
       <SortButton />
     </div>

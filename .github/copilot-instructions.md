@@ -1,4 +1,4 @@
-# Copilot Instructions
+# AI Instructions
 
 ## Project Setup
 
