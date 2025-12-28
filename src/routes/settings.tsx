@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
 import {
   aiCountry,
+  clearAiMemoryAtom,
   livestoreStoreId,
   livestoreSyncEnabled,
   mealPlanWeekStart,
@@ -75,6 +76,7 @@ const weekDayOptions = days.map((day, index) => ({
 function SettingsPage() {
   const exportRecipes = useAtomSet(exportAtom)
   const importRecipes = useAtomSet(importAtom)
+  const clearMemory = useAtomSet(clearAiMemoryAtom)
   const importRef = useRef<HTMLInputElement>(null)
   return (
     <div className="pb-20">
@@ -143,6 +145,14 @@ function SettingsPage() {
             )}
           />
           <SettingCombobox setting={aiCountry} options={countryOptions} />
+          <Button
+            type="button"
+            variant="secondary"
+            className="mr-auto"
+            onClick={() => clearMemory()}
+          >
+            Reset memory
+          </Button>
         </SettingSection>
 
         <SettingSection title="Meal Plan">

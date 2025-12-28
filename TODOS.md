@@ -1,2 +1,1 @@
-- AI recipe chat
-  - Tool for adding "learnings"
+- Multiple grocery lists

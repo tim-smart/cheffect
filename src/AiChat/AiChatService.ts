@@ -42,6 +42,7 @@ import * as DateTime from "effect/DateTime"
 import { aiCountry, mealPlanWeekStart } from "@/Settings"
 import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
 import { Menu } from "@/domain/Menu"
+import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 
 const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
@@ -259,6 +260,25 @@ const ToolkitLayer = toolkit.toLayer(
           value: { jobId },
         }
       }),
+      SaveLearning: Effect.fnUntraced(function* ({ content }) {
+        const newEntry = new AiMemoryEntry({
+          id: crypto.randomUUID(),
+          content,
+          createdAt: DateTime.unsafeNow(),
+        })
+        store.commit(events.aiMemoryEntryAdded(newEntry))
+        return {
+          _tag: "Transient",
+          value: null,
+        }
+      }),
+      RemoveLearning: Effect.fnUntraced(function* ({ id }) {
+        store.commit(events.aiMemoryEntryRemove({ id }))
+        return {
+          _tag: "Transient",
+          value: null,
+        }
+      }),
     })
   }),
 )
@@ -273,7 +293,7 @@ class AiChatService extends Effect.Service<AiChatService>()(
       const store = (yield* KeyValueStore.KeyValueStore).forSchema(
         Prompt.Prompt,
       )
-
+      const livestore = yield* Store
       const baseSystemPrompt = `You are a professional chef working for Cheffect. Your goal is to assist users in working with recipes, creating meal plan menus, and answering any cooking-related questions they may have.
 
 You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary.
@@ -286,6 +306,7 @@ You have access to some tools that can be used to look up information about the 
 - Always try to create recipes with images.
 - When creating plans, use the menus feature to create lists.
 - Avoid adding grocery items directly unless directly asked to do so.
+- Use \`SaveLearning\` to save any important information that may help in future interactions. Try to consolidate multiple pieces of information into a single learning entry where possible.
 
 ## Links
 
@@ -294,10 +315,21 @@ You have access to some tools that can be used to look up information about the 
 - The meal plan can be linked to using \`[meal plan](/plan)\`
 - The menu list can be linked to using \`[menus](/menus)\`
 
-## Current context
 `
 
       const currentSystemPrompt = Effect.gen(function* () {
+        const memoryEntries = livestore.query(aiMemoryEntries$)
+        const memoryPrompt =
+          memoryEntries.length > 0
+            ? `## Learning notes
+
+The following are notes from previous interactions with the user. They must be considered when responding.
+
+- ${memoryEntries.map((entry) => `(ID: ${entry.id}) ${entry.content}`).join("\n- ")}
+
+## Current context`
+            : `## Current context`
+
         const location = router.state.location
         let currentTimeAndCountry = `The current date and time is: ${new Date().toLocaleString()}.`
         const country = yield* Atom.getResult(aiCountry.atom)
@@ -306,7 +338,7 @@ You have access to some tools that can be used to look up information about the 
         }
 
         if (location.pathname === "/") {
-          return `${baseSystemPrompt}
+          return `${baseSystemPrompt}${memoryPrompt}
 
 The user is currently browsing the a list of their recipes.
 
@@ -316,7 +348,7 @@ ${currentTimeAndCountry}`
           const recipe = yield* Atom.getResult(recipeByIdAtom(id))
           const selectedStep = registry.get(recipeSelectedStep)
 
-          return `${baseSystemPrompt}
+          return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
 
@@ -339,7 +371,7 @@ When converting ingredient units, **do not** change the following units:
 `
         } else if (location.pathname === "/groceries") {
           const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
-          return `${baseSystemPrompt}
+          return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
 
@@ -348,7 +380,7 @@ The user is currently viewing their grocery list. Here are the items on their gr
 ${GroceryItem.toXml(items)}`
         } else if (location.pathname === "/plan") {
           const entries = yield* Atom.getResult(mealPlanEntriesAtom)
-          return `${baseSystemPrompt}
+          return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
 
@@ -356,7 +388,7 @@ The user is currently viewing their meal plan for the week. Here are the entries
 
 ${MealPlanEntry.toXml(entries)}`
         } else if (location.pathname === "/menus") {
-          return `${baseSystemPrompt}
+          return `${baseSystemPrompt}${memoryPrompt}
 
 The user is currently browsing their list of menus.
 
@@ -366,7 +398,7 @@ ${currentTimeAndCountry}`
           const menu = yield* Atom.getResult(menuByIdAtom(id))
           const menuEntries = (yield* Atom.get(menuEntriesAtom(id)))!
 
-          return `${baseSystemPrompt}
+          return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
 
@@ -379,7 +411,7 @@ ${menu.toXml()}
 ${MenuEntry.toXml(menuEntries)}`
         }
 
-        return baseSystemPrompt + "\n\n" + currentTimeAndCountry
+        return baseSystemPrompt + memoryPrompt + "\n\n" + currentTimeAndCountry
       })
 
       const chat = yield* store.get("ai-history").pipe(
@@ -551,6 +583,11 @@ const groceryItemById$ = (id: string) =>
       map: Array.head,
     },
   )
+
+const aiMemoryEntries$ = queryDb({
+  query: sql`SELECT * FROM ai_memory_entries ORDER BY createdAt DESC`,
+  schema: AiMemoryEntry.array,
+})
 
 export const isVisualMessage = (
   message: Prompt.Message,

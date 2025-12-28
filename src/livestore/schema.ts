@@ -1,3 +1,4 @@
+import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 import { GroceryAisle, GroceryItem } from "../domain/GroceryItem"
 import { Menu } from "../domain/Menu"
 import { MenuEntry } from "../domain/MenuEntry"
@@ -194,6 +195,16 @@ export const tables = {
       value: State.SQLite.text({ nullable: false }),
     },
   }),
+  aiMemoryEntries: State.SQLite.table({
+    name: "ai_memory_entries",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      content: State.SQLite.text({ nullable: false }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+  }),
   // Client documents can be used for local-only state (e.g. form inputs)
   searchState: State.SQLite.clientDocument({
     name: "searchState",
@@ -355,6 +366,18 @@ export const events = {
     name: "v1.KeyValueClear",
     schema: Schema.Void,
   }),
+  aiMemoryEntryAdded: Events.synced({
+    name: "v1.AIMemoryEntryAdded",
+    schema: AiMemoryEntry.insert,
+  }),
+  aiMemoryEntryRemove: Events.synced({
+    name: "v1.AIMemoryEntryRemove",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
+  aiMemoryClear: Events.synced({
+    name: "v1.AIMemoryClear",
+    schema: Schema.Void,
+  }),
 }
 
 // Materializers are used to map events to state (https://docs.livestore.dev/reference/state/materializers)
@@ -461,6 +484,10 @@ const materializers = State.SQLite.materializers(events, {
       .onConflict("key", "update", { value }),
   "v1.KeyValueRemove": ({ key }) => tables.keyValues.delete().where({ key }),
   "v1.KeyValueClear": () => tables.keyValues.delete(),
+  "v1.AIMemoryEntryAdded": (insert) => tables.aiMemoryEntries.insert(insert),
+  "v1.AIMemoryEntryRemove": ({ id }) =>
+    tables.aiMemoryEntries.delete().where({ id }),
+  "v1.AIMemoryClear": () => tables.aiMemoryEntries.delete(),
 })
 
 const state = State.SQLite.makeState({ tables, materializers })

@@ -159,6 +159,25 @@ export class toolkit extends Toolkit.make(
     },
     success: TerminalResponse(Schema.Struct({ jobId: Schema.String })),
   }),
+  Tool.make("SaveLearning", {
+    description:
+      "Save learning notes or user preferences to improve future interactions. Keep them concise to prevent exceeding token limits.",
+    parameters: {
+      content: Schema.String.annotations({
+        description: "The note in markdown format.",
+      }),
+    },
+    success: TransientResponse(Schema.Null),
+  }),
+  Tool.make("RemoveLearning", {
+    description: "Forget previously saved learning note.",
+    parameters: {
+      id: Schema.String.annotations({
+        description: "The ID of the learning note to remove.",
+      }),
+    },
+    success: TransientResponse(Schema.Null),
+  }),
 ) {}
 
 export type ToolkitSuccess = Tool.Success<

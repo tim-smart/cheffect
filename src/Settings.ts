@@ -11,6 +11,7 @@ import { kvsRuntime } from "./atoms"
 import * as DateTime from "effect/DateTime"
 import * as Function from "effect/Function"
 import { makeResultOptionAtom } from "./lib/atom"
+import * as Effect from "effect/Effect"
 
 const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   setting: Setting<S>,
@@ -168,3 +169,10 @@ export const livestoreSyncEnabled = new Setting({
   ),
   atomOverride: makeResultOptionAtom(syncEnabledAtom),
 })
+
+export const clearAiMemoryAtom = Atom.fn<void>()(
+  Effect.fnUntraced(function* (_, get) {
+    const store = get(Store.storeUnsafe)!
+    store.commit(events.aiMemoryClear())
+  }),
+)
