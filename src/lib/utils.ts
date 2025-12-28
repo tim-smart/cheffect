@@ -11,6 +11,8 @@ const FRACTION_SIMPLIFICATION_TOLERANCE = 0.01
 export const quantityFormatter = {
   format(value: number): string {
     // Create a fraction with simplification tolerance and convert to mixed fraction
-    return new Fraction(value).simplify(FRACTION_SIMPLIFICATION_TOLERANCE).toFraction(true)
-  }
+    return new Fraction(value)
+      .simplify(FRACTION_SIMPLIFICATION_TOLERANCE)
+      .toFraction(true)
+  },
 }
