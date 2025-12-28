@@ -144,6 +144,14 @@ function SettingsPage() {
               />
             )}
           />
+          <a
+            href="https://youtu.be/SzPE_AE0eEo?si=tQa7w-lHTP5BlVuG"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-muted-foreground hover:underline -mt-2"
+          >
+            Learn how to generate an OpenAI API key
+          </a>
           <SettingCombobox setting={aiCountry} options={countryOptions} />
           <Button
             type="button"
