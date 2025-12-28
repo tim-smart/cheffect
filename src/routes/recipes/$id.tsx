@@ -347,7 +347,7 @@ export function RecipeDetails({
                 ref={(el) => {
                   stepElements[stepIndex] = el!
                 }}
-                className={`border rounded-lg p-4 transition-all ${
+                className={`border-2 rounded-lg p-4 transition-all ${
                   currentStep === stepIndex
                     ? "border-primary bg-primary-muted"
                     : "border-border bg-card"
