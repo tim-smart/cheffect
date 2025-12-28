@@ -17,7 +17,7 @@ import { router } from "./Router"
 export function AiChatModal() {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   return (
     <>
@@ -56,7 +56,7 @@ function ModalContent({
   onClose,
   open,
 }: {
-  readonly inputRef: React.RefObject<HTMLInputElement | null>
+  readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
   readonly onClose: () => void
   readonly open: boolean
 }) {
@@ -190,13 +190,14 @@ function PromptInput({
   onSubmit,
 }: {
   readonly onSubmit: () => void
-  readonly inputRef: React.RefObject<HTMLInputElement | null>
+  readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
   const [input, setInput] = useState("")
   const inputTrim = input.trim()
   const sendMessage = useAtomSet(sendAtom)
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
     const message = input.trim()
     if (!message) return
 
@@ -226,12 +227,17 @@ function PromptInput({
         >
           <Eraser />
         </Button>
-        <input
+        <textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" || e.shiftKey) return
+            e.preventDefault()
+            handleSubmit(e)
+          }}
           placeholder="Type your message..."
-          className="flex-1 rounded-full border-2 border-border bg-card px-4 py-2 text-sm focus:border-primary focus:outline-none"
+          className="flex-1 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm focus:border-primary focus:outline-none field-sizing-content resize-none"
           autoFocus
         />
         <Button
