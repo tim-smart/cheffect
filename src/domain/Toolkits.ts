@@ -45,7 +45,7 @@ export const TransientResponse = <S extends Schema.Schema.Any>(
 export class toolkit extends Toolkit.make(
   OpenAiTool.WebSearch({}),
   Tool.make("SearchRecipes", {
-    description: "Search the users recipe database by title",
+    description: "Search the users recipe database by title and ingredients",
     parameters: {
       query: Schema.String,
     },
