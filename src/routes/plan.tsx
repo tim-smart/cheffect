@@ -220,7 +220,7 @@ function WeekList({
             {/* Day Header with Add Button */}
             <div
               className={`w-full p-2 flex items-center justify-between border-b text-card-foreground ${
-                isTodayDate ? "bg-primary/10" : "bg-muted dark:bg-background"
+                isTodayDate ? "bg-primary-muted" : "bg-muted dark:bg-background"
               }`}
             >
               <div className="flex items-center gap-3 flex-1">

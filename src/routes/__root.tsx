@@ -58,7 +58,7 @@ export const Route = createRootRoute({
             <Link
               to="/"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary/10" }}
+              activeProps={{ className: "text-primary bg-primary-muted" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}
@@ -70,7 +70,7 @@ export const Route = createRootRoute({
             <Link
               to="/groceries"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary/10" }}
+              activeProps={{ className: "text-primary bg-primary-muted" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}
@@ -82,7 +82,7 @@ export const Route = createRootRoute({
             <Link
               to="/plan"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary/10" }}
+              activeProps={{ className: "text-primary bg-primary-muted" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}
@@ -94,7 +94,7 @@ export const Route = createRootRoute({
             <Link
               to="/menus"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary/10" }}
+              activeProps={{ className: "text-primary bg-primary-muted" }}
               inactiveProps={{
                 className: "text-muted-foreground active:bg-muted",
               }}

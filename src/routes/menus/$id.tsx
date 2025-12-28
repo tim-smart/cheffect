@@ -202,7 +202,7 @@ function DayListItem({
         className={cn(
           `w-full pr-2 pl-3 py-1 flex items-center justify-between border-b`,
           isOver
-            ? "bg-primary/10 text-primary"
+            ? "bg-primary-muted text-primary"
             : "bg-muted dark:bg-background text-muted-foreground dark:text-muted-foreground",
         )}
       >
