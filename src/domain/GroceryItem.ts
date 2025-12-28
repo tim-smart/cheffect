@@ -22,6 +22,7 @@ export type GroceryAisle = typeof GroceryAisle.Type
 
 export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   id: Model.GeneratedByApp(Schema.String),
+  list: Schema.NullOr(Schema.String),
   name: Schema.String,
   quantity: Schema.NullOr(Schema.String),
   aisle: Schema.NullOr(GroceryAisle),
@@ -51,9 +52,13 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
     ),
   )
 
-  static fromForm(input: Pick<GroceryItem, "name" | "quantity" | "aisle">) {
+  static fromForm(
+    input: Pick<GroceryItem, "name" | "quantity" | "aisle">,
+    list: string | null,
+  ) {
     return new GroceryItem({
       id: crypto.randomUUID(),
+      list,
       name: input.name,
       quantity: input.quantity ?? null,
       aisle: input.aisle ?? null,
@@ -64,9 +69,14 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
     })
   }
 
-  static fromIngredient(ingredient: Ingredient, recipe?: Recipe): GroceryItem {
+  static fromIngredient(
+    list: string | null,
+    ingredient: Ingredient,
+    recipe?: Recipe,
+  ): GroceryItem {
     return new GroceryItem({
       id: crypto.randomUUID(),
+      list,
       name: ingredient.name,
       quantity: ingredient.quantityWithUnit,
       completed: false,

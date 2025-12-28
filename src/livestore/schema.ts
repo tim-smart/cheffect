@@ -103,6 +103,7 @@ export const tables = {
     name: "grocery_items",
     columns: {
       id: State.SQLite.text({ primaryKey: true }),
+      list: State.SQLite.text({ nullable: true }),
       name: State.SQLite.text({ default: "" }),
       quantity: State.SQLite.text({ nullable: true }),
       aisle: State.SQLite.text({
