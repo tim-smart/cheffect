@@ -263,7 +263,7 @@ export function RecipeDetails({
                 Ingredients
                 {recipe.ingredientScale !== 1 && (
                   <span className="text-sm text-muted-foreground ml-2">
-                    x{quantityFormatter.format(recipe.ingredientScale)}
+                    x{quantityFormatter.format(recipe.ingredientScale, "cup")}
                   </span>
                 )}
               </h2>
@@ -316,6 +316,7 @@ export function RecipeDetails({
                                 <>
                                   {quantityFormatter.format(
                                     ingredient.quantity,
+                                    ingredient.unit,
                                   )}
                                   {ingredient.unit &&
                                     `${unitNeedsSpace.has(ingredient.unit) ? " " : ""}${ingredient.unit}`}{" "}
@@ -411,7 +412,10 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
           <SlidersHorizontal className="text-muted-foreground size-4" />
           Scale
           <Input
-            defaultValue={quantityFormatter.format(recipe.ingredientScale)}
+            defaultValue={quantityFormatter.format(
+              recipe.ingredientScale,
+              "cup",
+            )}
             className="w-16"
             onKeyDown={(e) => {
               if (e.key !== "Enter") return
