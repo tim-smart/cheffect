@@ -314,6 +314,7 @@ You have access to some tools that can be used to look up information about the 
 - The grocery list can be linked to using \`[groceries](/groceries)\`
 - The meal plan can be linked to using \`[meal plan](/plan)\`
 - The menu list can be linked to using \`[menus](/menus)\`
+- Individual menus can be linked to using \`[name](/menus/$id)\`
 
 `
 
