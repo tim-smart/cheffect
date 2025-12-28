@@ -149,7 +149,16 @@ function SettingsPage() {
             type="button"
             variant="secondary"
             className="mr-auto"
-            onClick={() => clearMemory()}
+            onClick={() => {
+              if (
+                !confirm(
+                  "Are you sure you want to clear AI memory? It will forget all previous learnings like allergies and preferences.",
+                )
+              ) {
+                return
+              }
+              clearMemory()
+            }}
           >
             Reset memory
           </Button>
