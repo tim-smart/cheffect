@@ -325,7 +325,13 @@ You have access to some tools that can be used to look up information about the 
 
 The following are notes from previous interactions with the user. They must be considered when responding.
 
-- ${memoryEntries.map((entry) => `(ID: ${entry.id}) ${entry.content}`).join("\n- ")}
+${memoryEntries
+  .map(
+    (entry) => `#### Learning ID: ${entry.id}
+
+${entry.content}`,
+  )
+  .join("\n\n")}
 
 ## Current context`
             : `## Current context`
