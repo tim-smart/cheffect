@@ -19,7 +19,9 @@ import {
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
 import {
+  canConvertIngredientsAtom,
   checkedIngredientsAtom,
+  convertIngredientsAtom,
   discardModifiedRecipeAtom,
   newModifiedRecipeAtom,
   recipeForDisplayAtom,
@@ -55,6 +57,7 @@ import {
   Link as LinkIcon,
   Save,
   Plus,
+  ArrowLeftRight,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -400,6 +403,9 @@ export function RecipeDetails({
 function IngredientDropdown({ recipe }: { recipe: Recipe }) {
   const [open, setOpen] = useState(false)
   const commit = useCommit()
+  const canConvert = useAtomValue(canConvertIngredientsAtom)
+  const convert = useAtomSet(convertIngredientsAtom)
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
@@ -445,6 +451,12 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
             }}
           />
         </div>
+        {canConvert && (
+          <DropdownMenuItem onClick={() => convert(recipe)}>
+            <ArrowLeftRight />
+            Convert
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

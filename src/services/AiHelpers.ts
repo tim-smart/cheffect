@@ -1,4 +1,4 @@
-import { ExtractedRecipe } from "@/domain/Recipe"
+import { ExtractedRecipe, Recipe } from "@/domain/Recipe"
 import { LanguageModel } from "@effect/ai"
 import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai"
 import * as FetchHttpClient from "@effect/platform/FetchHttpClient"
@@ -40,7 +40,11 @@ export const openAiClientLayer = Atom.make((get) => {
 export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
   dependencies: [CorsProxy.Default],
   scoped: Effect.gen(function* () {
-    const model = yield* OpenAiLanguageModel.model("gpt-5-mini")
+    const model = yield* OpenAiLanguageModel.model("gpt-5-mini", {
+      reasoning: {
+        effort: "medium",
+      },
+    })
     const groceryModel = yield* OpenAiLanguageModel.model("o4-mini", {
       reasoning: {
         effort: "low",
@@ -67,6 +71,26 @@ export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
       yield* Effect.log(response.value)
       return response.value
     }, Effect.provide(model))
+
+    const convertIngredients = Effect.fn("AiHelpers.convertIngredients")(
+      function* (recipe: Recipe, country: string) {
+        const llm = yield* LanguageModel.LanguageModel
+        const response = yield* llm.generateObject({
+          prompt: [
+            {
+              role: "system",
+              content:
+                "You will be provided a recipe in XML format. Convert any quantities and units to be appropriate for the following country: " +
+                country,
+            },
+            { role: "user", content: [{ type: "text", text: recipe.toXml() }] },
+          ],
+          schema: ExtractedRecipe,
+        })
+        return response.value
+      },
+      Effect.provide(model),
+    )
 
     const beautifyGroceries = Effect.fn("AiHelpers.beautifyGroceries")(
       function* (groceries: ReadonlyArray<GroceryItem>) {
@@ -151,6 +175,10 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
       Effect.provide(groceryModel),
     )
 
-    return { recipeFromUrl, beautifyGroceries } as const
+    return { recipeFromUrl, beautifyGroceries, convertIngredients } as const
   }),
-}) {}
+}) {
+  static runtime = Atom.runtime((get) =>
+    AiHelpers.Default.pipe(Layer.provideMerge(get(openAiClientLayer))),
+  )
+}

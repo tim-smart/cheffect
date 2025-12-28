@@ -10,7 +10,11 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import { RecipeExtractionManager } from "./RecipeExtractionManager"
-import { openAiClientLayer } from "@/services/AiHelpers"
+import {
+  AiHelpers,
+  isAiEnabledAtom,
+  openAiClientLayer,
+} from "@/services/AiHelpers"
 import { events } from "@/livestore/schema"
 import * as HashSet from "effect/HashSet"
 import { ExtractedRecipe, Recipe, RecipeEdit } from "@/domain/Recipe"
@@ -19,10 +23,14 @@ import { router } from "@/Router"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
+import { aiCountry } from "@/Settings"
+import { withToast } from "@/lib/sonner"
+import * as Exit from "effect/Exit"
+import { toast } from "sonner"
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
-    Layer.provide(get(openAiClientLayer)),
+    Layer.provideMerge(get(openAiClientLayer)),
     Layer.provideMerge(get(Store.layer)),
   ),
 ).pipe(Atom.keepAlive)
@@ -30,7 +38,6 @@ export const extractRuntime = Atom.runtime((get) =>
 export const createRecipeAtom = extractRuntime
   .fn<string>()(
     Effect.fn(function* (url) {
-      console.log("Created recipe from URL:", url)
       const store = yield* Store
       store.commit(
         events.recipeExtractJobAdded({
@@ -198,3 +205,44 @@ export const importAtom = Store.runtime.fn<File>()(
 )
 
 export const recipeSelectedStep = Atom.make(0).pipe(Atom.setIdleTTL(0))
+
+export const convertIngredientsAtom = AiHelpers.runtime.fn<Recipe>()(
+  Effect.fnUntraced(function* (recipe, get) {
+    const ocountry = yield* get.result(aiCountry.atom)
+    if (Option.isNone(ocountry)) return
+    const country = ocountry.value
+    const ai = yield* AiHelpers
+    const converted = yield* ai.convertIngredients(recipe, country).pipe(
+      withToast(() => ({
+        loading: `Converting ingredients for ${recipe.title}`,
+        onExit(exit, toastId) {
+          if (Exit.isFailure(exit)) {
+            return toast.error("Failed to convert ingredients", { id: toastId })
+          }
+          toast.success("Ingredients converted!", {
+            id: toastId,
+            cancel: undefined,
+            action: {
+              label: "View",
+              onClick() {
+                router.navigate({
+                  to: `/recipes/$id`,
+                  params: { id: recipe.id },
+                })
+              },
+            },
+          })
+        },
+      })),
+    )
+    get.set(modifiedRecipeByIdAtom(recipe.id), Option.some(converted))
+  }),
+)
+
+export const canConvertIngredientsAtom = Atom.make((get) => {
+  const aiEnabled = get(isAiEnabledAtom).pipe(Result.getOrElse(() => false))
+  if (!aiEnabled) return false
+  const ocountry = get(aiCountry.atom).pipe(Result.value, Option.flatten)
+  if (Option.isNone(ocountry)) return false
+  return true
+})
