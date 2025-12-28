@@ -259,140 +259,136 @@ export function RecipeDetails({
 
       <div className="flex flex-col md:items-start gap-4 mt-4 md:flex-row max-w-7xl mx-auto">
         {/* Ingredients */}
-        <div className="flex-1 md:rounded-lg">
-          <div className="p-4">
-            <div className="flex">
-              <h2 className="text-lg font-semibold  mb-4">
-                Ingredients
-                {recipe.ingredientScale !== 1 && (
-                  <span className="text-sm text-muted-foreground ml-2">
-                    x{quantityFormatter.format(recipe.ingredientScale, "cup")}
-                  </span>
+        <div className="flex-1 md:rounded-lg p-4">
+          <div className="flex">
+            <h2 className="text-lg font-semibold  mb-4">
+              Ingredients
+              {recipe.ingredientScale !== 1 && (
+                <span className="text-sm text-muted-foreground ml-2">
+                  x{quantityFormatter.format(recipe.ingredientScale, "cup")}
+                </span>
+              )}
+            </h2>
+            <div className="flex-1" />
+            <div>
+              <AddToGroceriesButton
+                recipes={[recipe]}
+                excludeIngredients={checkedIngredients}
+              />
+              <IngredientDropdown recipe={recipe} />
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {ingredients.map((group, groupIndex) => (
+              <div key={groupIndex}>
+                {ingredients.length > 1 && (
+                  <h3 className="font-medium  mb-3 text-base">{group.name}</h3>
                 )}
-              </h2>
-              <div className="flex-1" />
-              <div>
-                <AddToGroceriesButton
-                  recipes={[recipe]}
-                  excludeIngredients={checkedIngredients}
-                />
-                <IngredientDropdown recipe={recipe} />
-              </div>
-            </div>
 
-            <div className="space-y-6">
-              {ingredients.map((group, groupIndex) => (
-                <div key={groupIndex}>
-                  {ingredients.length > 1 && (
-                    <h3 className="font-medium  mb-3 text-base">
-                      {group.name}
-                    </h3>
-                  )}
+                <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
+                  {group.ingredients.map((ingredient, ingredientIndex) => {
+                    const ingredientId = ingredient.id(
+                      groupIndex,
+                      ingredientIndex,
+                    )
+                    const isChecked = HashSet.has(
+                      checkedIngredients,
+                      ingredientId,
+                    )
 
-                  <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
-                    {group.ingredients.map((ingredient, ingredientIndex) => {
-                      const ingredientId = ingredient.id(
-                        groupIndex,
-                        ingredientIndex,
-                      )
-                      const isChecked = HashSet.has(
-                        checkedIngredients,
-                        ingredientId,
-                      )
-
-                      return (
+                    return (
+                      <div
+                        key={ingredientIndex}
+                        className="flex items-start gap-3 p-3 bg-card active:bg-muted dark:active:bg-card/50 transition-colors cursor-default"
+                        onClick={() => toggleIngredient(ingredientId)}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onChange={() => toggleIngredient(ingredientId)}
+                          className="mt-[0.25em]"
+                        />
                         <div
-                          key={ingredientIndex}
-                          className="flex items-start gap-3 p-3 bg-card active:bg-muted dark:active:bg-card/50 transition-colors cursor-default"
-                          onClick={() => toggleIngredient(ingredientId)}
+                          className={`flex-1 ${isChecked ? "text-muted-foreground" : ""}`}
                         >
-                          <Checkbox
-                            checked={isChecked}
-                            onChange={() => toggleIngredient(ingredientId)}
-                            className="mt-[0.25em]"
-                          />
-                          <div
-                            className={`flex-1 ${isChecked ? "text-muted-foreground" : ""}`}
-                          >
-                            <span>
-                              {ingredient.quantity !== null && (
-                                <>
-                                  {quantityFormatter.format(
-                                    ingredient.quantity,
-                                    ingredient.unit,
-                                  )}
-                                  {ingredient.unit &&
-                                    `${unitNeedsSpace.has(ingredient.unit) ? " " : ""}${ingredient.unit}`}{" "}
-                                </>
-                              )}
-                              {ingredient.name}
-                            </span>
-                          </div>
+                          <span>
+                            {ingredient.quantity !== null && (
+                              <>
+                                {quantityFormatter.format(
+                                  ingredient.quantity,
+                                  ingredient.unit,
+                                )}
+                                {ingredient.unit &&
+                                  `${unitNeedsSpace.has(ingredient.unit) ? " " : ""}${ingredient.unit}`}{" "}
+                              </>
+                            )}
+                            {ingredient.name}
+                          </span>
                         </div>
-                      )
-                    })}
-                  </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Instructions */}
-        <div className="flex-2 md:rounded-lg">
-          <div className="p-4">
+        <div className="flex-2 p-4">
+          {recipe.steps.length > 0 && (
             <h2 className="text-xl font-semibold  mb-4">Instructions</h2>
+          )}
 
-            <div className="space-y-4">
-              {recipe.steps.map((step, stepIndex) => (
-                <div
-                  key={stepIndex}
-                  ref={(el) => {
-                    stepElements[stepIndex] = el!
-                  }}
-                  className={`border rounded-lg p-4 transition-all ${
-                    currentStep === stepIndex
-                      ? "border-primary bg-primary/10"
-                      : "border-border bg-card"
-                  }`}
-                  onClick={() => setCurrentStep(stepIndex)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                        currentStep === stepIndex
-                          ? "bg-primary text-white"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {stepIndex + 1}
-                    </div>
+          <div className="space-y-4">
+            {recipe.steps.map((step, stepIndex) => (
+              <div
+                key={stepIndex}
+                ref={(el) => {
+                  stepElements[stepIndex] = el!
+                }}
+                className={`border rounded-lg p-4 transition-all ${
+                  currentStep === stepIndex
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-card"
+                }`}
+                onClick={() => setCurrentStep(stepIndex)}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      currentStep === stepIndex
+                        ? "bg-primary text-white"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {stepIndex + 1}
+                  </div>
 
-                    <div className="flex-1">
-                      <p className=" leading-relaxed mb-3">{step.text}</p>
+                  <div className="flex-1">
+                    <p className=" leading-relaxed mb-3">{step.text}</p>
 
-                      {step.tips.length > 0 && (
-                        <div className="space-y-2">
-                          {step.tips.map((tip, tipIndex) => (
-                            <div
-                              key={tipIndex}
-                              className="flex items-start gap-2"
-                            >
-                              <span className="text-primary text-sm mt-0.5">
-                                💡
-                              </span>
-                              <p className="text-sm text-muted-foreground italic">
-                                {tip}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    {step.tips.length > 0 && (
+                      <div className="space-y-2">
+                        {step.tips.map((tip, tipIndex) => (
+                          <div
+                            key={tipIndex}
+                            className="flex items-start gap-2"
+                          >
+                            <span className="text-primary text-sm mt-0.5">
+                              💡
+                            </span>
+                            <p className="text-sm text-muted-foreground italic">
+                              {tip}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -409,8 +405,12 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="p-2">
-          <MoreVertical className="w-4 h-4" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="p-2 hover:bg-border active:bg-border"
+        >
+          <MoreVertical />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>

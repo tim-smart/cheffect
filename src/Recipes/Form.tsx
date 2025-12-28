@@ -240,17 +240,15 @@ function StepCard() {
             <div className="flex">
               <AddTip />
               <div className="flex-1" />
-              {steps.length > 1 && (
-                <Button
-                  type="button"
-                  onClick={() => remove()}
-                  variant="ghost"
-                  size="icon"
-                  className="h-4"
-                >
-                  <Trash />
-                </Button>
-              )}
+              <Button
+                type="button"
+                onClick={() => remove()}
+                variant="ghost"
+                size="icon"
+                className="h-4"
+              >
+                <Trash />
+              </Button>
             </div>
           </div>
         </div>
