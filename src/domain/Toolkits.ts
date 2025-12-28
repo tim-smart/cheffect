@@ -86,12 +86,24 @@ export class toolkit extends Toolkit.make(
     },
     success: TransientResponse(Schema.Null),
   }),
+  Tool.make("GroceryListNames", {
+    description:
+      "Get the names of all grocery lists the user has items added to",
+    success: TransientResponse(Schema.Array(Schema.NullOr(Schema.String))),
+  }),
   Tool.make("GetGroceryList", {
     description: "Get the user's full grocery list",
+    parameters: {
+      list: Schema.NullOr(Schema.String).annotations({
+        description:
+          "The name of the grocery list to retrieve. If null, retrieves the default list.",
+      }),
+    },
     success: TransientResponse(Schema.Array(GroceryItem.json)),
   }),
   Tool.make("AddGroceryItems", {
-    description: "Add items to the user's grocery list",
+    description:
+      "Add items to a grocery list. If the list is `null`, adds to the default list.",
     parameters: {
       groceryItems: Schema.Array(
         GroceryItem.jsonCreate.pipe(Schema.omit("completed")),

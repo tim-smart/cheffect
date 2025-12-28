@@ -122,6 +122,12 @@ export const tables = {
         schema: Schema.DateTimeUtcFromNumber,
       }),
     },
+    indexes: [
+      {
+        name: "grocery_items_list_idx",
+        columns: ["list"],
+      },
+    ],
   }),
   ingredientAisles: State.SQLite.table({
     name: "ingredient_aisles",
@@ -215,6 +221,13 @@ export const tables = {
     }),
     default: { id: "~/searchState", value: { query: "", sortBy: "title" } },
   }),
+  groceryListState: State.SQLite.clientDocument({
+    name: "groceryListState",
+    schema: Schema.Struct({
+      currentList: Schema.NullOr(Schema.String),
+    }),
+    default: { id: "~/groceryListState", value: { currentList: null } },
+  }),
 }
 
 // Events describe data changes (https://docs.livestore.dev/reference/events)
@@ -290,11 +303,21 @@ export const events = {
   }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
-    schema: Schema.Void,
+    schema: Schema.Union(
+      Schema.Void,
+      Schema.Struct({
+        list: Schema.NullOr(Schema.String),
+      }),
+    ),
   }),
   groceryItemClearedCompleted: Events.synced({
     name: "v1.GroceryItemClearedCompleted",
-    schema: Schema.Void,
+    schema: Schema.Union(
+      Schema.Void,
+      Schema.Struct({
+        list: Schema.NullOr(Schema.String),
+      }),
+    ),
   }),
   groceryItemDeleted: Events.synced({
     name: "v1.GroceryItemDeleted",
@@ -441,9 +464,14 @@ const materializers = State.SQLite.materializers(events, {
         : tables.ingredientAisles.delete().where({ name }),
     ]
   },
-  "v1.GroceryItemCleared": () => tables.groceryItems.delete(),
-  "v1.GroceryItemClearedCompleted": () =>
-    tables.groceryItems.delete().where({ completed: true }),
+  "v1.GroceryItemCleared": (input) => {
+    const list = input ? input.list : null
+    return tables.groceryItems.delete().where({ list })
+  },
+  "v1.GroceryItemClearedCompleted": (input) => {
+    const list = input ? input.list : null
+    return tables.groceryItems.delete().where({ completed: true, list })
+  },
   "v1.GroceryItemDeleted": ({ id }) =>
     tables.groceryItems.delete().where({ id }),
   "v1.GroceryItemToggled": ({ completed, id }) =>

@@ -11,6 +11,7 @@ import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { mealPlanWeekStart } from "@/Settings"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import { flow } from "effect"
 
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
@@ -109,13 +110,31 @@ const TitleStruct = Schema.Array(
   }),
 )
 
+export const groceryListState$ = queryDb(tables.groceryListState.get())
+export const groceryListStateAtom = Atom.writable(
+  Store.makeQuery(groceryListState$).read,
+  (
+    ctx,
+    newValue: {
+      currentList: null | string
+    },
+  ) => {
+    ctx.get(Store.storeUnsafe!)?.commit(tables.groceryListState.set(newValue))
+  },
+)
+
 export const allGroceryItemsAtom = Store.makeQuery(
   queryDb(
-    {
-      query: sql`SELECT * FROM grocery_items ORDER BY aisle, name ASC`,
-      schema: GroceryItem.array,
+    (get) => {
+      const state = get(groceryListState$)
+      return {
+        query: sql`SELECT * FROM grocery_items WHERE ${state.currentList ? "list = ?" : "list IS NULL"} ORDER BY aisle, name ASC`,
+        schema: GroceryItem.array,
+        bindValues: state.currentList ? [state.currentList] : [],
+      }
     },
     {
+      label: `allGroceryItems`,
       map: (items) => {
         const aisles = new Map<string, Array.NonEmptyArray<GroceryItem>>()
         for (const item of items) {
@@ -138,11 +157,48 @@ export const allGroceryItemsAtom = Store.makeQuery(
   ),
 )
 
-export const allGroceryItems$ = queryDb({
-  query: sql`SELECT * FROM grocery_items ORDER BY name ASC`,
-  schema: GroceryItem.array,
-})
-export const allGroceryItemsArrayAtom = Store.makeQuery(allGroceryItems$)
+export const allGroceryItems$ = (list: null | string) =>
+  queryDb(
+    {
+      query: sql`SELECT * FROM grocery_items WHERE ${list ? "list = ?" : "list IS NULL"} ORDER BY name ASC`,
+      schema: GroceryItem.array,
+      bindValues: list ? [list] : [],
+    },
+    {
+      deps: [list ?? "null"],
+      label: `allGroceryItemsArray`,
+    },
+  )
+
+export const allGroceryItemsCurrent$ = queryDb(
+  (get) => {
+    const state = get(groceryListState$)
+    return {
+      query: sql`SELECT * FROM grocery_items WHERE ${state.currentList ? "list = ?" : "list IS NULL"} ORDER BY name ASC`,
+      schema: GroceryItem.array,
+      bindValues: state.currentList ? [state.currentList] : [],
+    }
+  },
+  {
+    label: `allGroceryItemsArrayCurrent`,
+  },
+)
+export const allGroceryItemsArrayAtom = Store.makeQuery(allGroceryItemsCurrent$)
+
+export const groceryListNames$ = queryDb(
+  {
+    query: sql`SELECT DISTINCT list FROM grocery_items WHERE list IS NOT NULL ORDER BY list ASC`,
+    schema: Schema.Array(Schema.Struct({ list: Schema.String })),
+  },
+  {
+    label: "groceryListNames",
+    map: flow(
+      Array.map((r) => r.list),
+      Array.prepend(null),
+    ),
+  },
+)
+export const groceryListNamesAtom = Store.makeQuery(groceryListNames$)
 
 export const mealPlanEntries$ = (startDay: DateTime.Utc) => {
   const weekDays = Array.of(DateTime.formatIsoDate(startDay))

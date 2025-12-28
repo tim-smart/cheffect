@@ -9,6 +9,8 @@ import {
   Trash,
   WandSparkles,
   LoaderCircle,
+  CheckIcon,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -46,30 +48,45 @@ import {
 } from "@/Groceries/atoms"
 import { Skeleton } from "@/components/ui/skeleton"
 import clsx from "clsx"
-import { recipeTitleAtom } from "@/livestore/queries"
+import {
+  groceryListNamesAtom,
+  groceryListStateAtom,
+  recipeTitleAtom,
+} from "@/livestore/queries"
 import { cn } from "@/lib/utils"
 import { isAiEnabledAtom } from "@/services/AiHelpers"
 import {
   Command,
   CommandGroup,
+  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import * as Function from "effect/Function"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
 })
 
 function GroceryList() {
+  const currentList = useAtomValue(groceryListStateAtom).pipe(
+    Result.map((state) => state.currentList),
+    Result.getOrElse(Function.constNull),
+  )
   const result = useAtomValue(groceryCountAtom)
 
   const commit = useCommit()
   const clearCompleted = () => {
-    commit(events.groceryItemClearedCompleted())
+    commit(events.groceryItemClearedCompleted({ list: currentList }))
   }
 
   const clearAll = () => {
-    commit(events.groceryItemCleared())
+    commit(events.groceryItemCleared({ list: currentList }))
   }
 
   const total = result._tag === "Success" ? result.value.total : 0
@@ -84,7 +101,12 @@ function GroceryList() {
             <div className="flex items-center gap-3">
               <ShoppingCart className="w-6 h-6 text-primary" />
               <div>
-                <h1 className="text-lg font-semibold ">Grocery List</h1>
+                <ListCombobox>
+                  <h1 className="text-lg font-semibold ">
+                    {currentList ?? "Grocery list"}
+                    <ChevronDown className="inline-block size-5 ml-1" />
+                  </h1>
+                </ListCombobox>
                 <p className="text-sm text-muted-foreground">
                   {completed} of {total} items
                 </p>
@@ -129,8 +151,12 @@ function GroceryList() {
       {Result.builder(result)
         .onSuccess((state) => (
           <>
-            <GroceryListList {...state} showForm />
-            <GroceryListList {...state} showCompleted />
+            <GroceryListList {...state} currentList={currentList} showForm />
+            <GroceryListList
+              {...state}
+              currentList={currentList}
+              showCompleted
+            />
           </>
         ))
         .orElse(() => (
@@ -160,12 +186,14 @@ const aisleOptions = GroceryAisle.literals.map((value) => ({
 
 function GroceryItemForm({
   className,
+  currentList,
   onSubmit,
   onCancel,
   initialValue,
   compact = false,
   autocomplete = false,
 }: {
+  currentList: string | null
   className?: string
   onSubmit: (item: GroceryItem) => void
   onCancel?: () => void
@@ -199,7 +227,7 @@ function GroceryItemForm({
               ...decoded,
               updatedAt: DateTime.unsafeNow(),
             })
-          : GroceryItem.fromForm(decoded)
+          : GroceryItem.fromForm(decoded, currentList)
         onSubmit(item)
         controls.reset()
       }}
@@ -258,11 +286,13 @@ function GroceryItemForm({
 function GroceryListList({
   total,
   aisles,
+  currentList,
   showCompleted = false,
   showForm = false,
 }: Atom.Success<typeof groceryCountAtom> & {
   readonly showCompleted?: boolean
   readonly showForm?: boolean
+  readonly currentList: string | null
 }) {
   const commit = useCommit()
   const addGroceryItem = useAtomSet(groceryItemAddAtom)
@@ -304,6 +334,7 @@ function GroceryListList({
       {showForm && (
         <div className="bg-background border-b border-border">
           <GroceryItemForm
+            currentList={currentList}
             className="max-w-lg mx-auto px-2 sm:px-4"
             onSubmit={(item) => {
               addGroceryItem(item)
@@ -396,6 +427,7 @@ function GroceryListItem({
         <div className="flex-1">
           <GroceryItemForm
             initialValue={item}
+            currentList={item.list}
             onSubmit={(updated) => {
               commit(events.groceryItemUpdated(updated))
               setEditingItem(false)
@@ -563,5 +595,87 @@ function NameAutoComplete() {
         </CommandList>
       </div>
     </Command>
+  )
+}
+
+function ListCombobox({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const [state, setState] = useAtom(groceryListStateAtom)
+  const currentList = state.pipe(
+    Result.map((s) => s.currentList),
+    Result.getOrElse(() => null),
+  )
+  const listNames = useAtomValue(
+    groceryListNamesAtom,
+    Result.getOrElse(() => [null]),
+  )
+  const [inputValue, setInputValue] = useState("")
+  const inputTrimmed = inputValue.trim()
+
+  const hasCurrentList = listNames.includes(currentList as any)
+  const hasInputList = listNames.includes(inputTrimmed as any)
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger onClick={() => setOpen(true)}>{children}</PopoverTrigger>
+      <PopoverContent
+        className="p-0 min-w-[--radix-popper-anchor-width]"
+        align="start"
+      >
+        <Command value={currentList ?? ""}>
+          <CommandInput
+            placeholder="Search or create list..."
+            value={inputValue}
+            onValueChange={setInputValue}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (inputTrimmed.length === 0) return
+                setState({ currentList: inputTrimmed })
+                setOpen(false)
+                setInputValue("")
+              }
+            }}
+          />
+          <CommandList>
+            <CommandGroup>
+              {inputTrimmed &&
+                currentList !== inputTrimmed &&
+                !hasInputList && (
+                  <CommandItem
+                    onPointerUp={() => {
+                      setState({ currentList: inputTrimmed })
+                      setOpen(false)
+                      setInputValue("")
+                    }}
+                  >
+                    Create "{inputTrimmed}"
+                  </CommandItem>
+                )}
+              {listNames.map((list) => (
+                <CommandItem
+                  key={list ?? "default"}
+                  onPointerUp={() => {
+                    setState({ currentList: list })
+                    setOpen(false)
+                  }}
+                >
+                  <CheckIcon
+                    className={
+                      list === currentList ? "opacity-100" : "opacity-0"
+                    }
+                  />
+                  {list ?? "Grocery list"}
+                </CommandItem>
+              ))}
+              {!hasCurrentList && currentList && (
+                <CommandItem>
+                  <CheckIcon />
+                  {currentList}
+                </CommandItem>
+              )}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }

@@ -14,6 +14,7 @@ import { router } from "@/Router"
 import {
   allGroceryItems$,
   allGroceryItemsArrayAtom,
+  groceryListNames$,
   mealPlanEntries$,
   mealPlanEntriesAtom,
   recipeByIdAtom,
@@ -97,8 +98,12 @@ const ToolkitLayer = toolkit.toLayer(
           value: null,
         }
       }),
-      GetGroceryList: Effect.fnUntraced(function* () {
-        const items = store.query(allGroceryItems$)
+      GroceryListNames: Effect.fnUntraced(function* () {
+        const names = store.query(groceryListNames$)
+        return { _tag: "Transient", value: names }
+      }),
+      GetGroceryList: Effect.fnUntraced(function* ({ list }) {
+        const items = store.query(allGroceryItems$(list))
         return {
           _tag: "Transient",
           value: items,

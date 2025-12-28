@@ -22,7 +22,17 @@ export type GroceryAisle = typeof GroceryAisle.Type
 
 export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   id: Model.GeneratedByApp(Schema.String),
-  list: Schema.NullOr(Schema.String),
+  list: Schema.NullOr(Schema.String)
+    .annotations({
+      description:
+        "The name of the grocery list to add this item to. Null for the default list. If it does not exist, it will be created.",
+    })
+    .pipe(
+      Model.FieldExcept("update", "jsonUpdate"),
+      Model.fieldEvolve({
+        insert: (s) => Schema.optional(s),
+      }),
+    ),
   name: Schema.String,
   quantity: Schema.NullOr(Schema.String),
   aisle: Schema.NullOr(GroceryAisle),
