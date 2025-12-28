@@ -54,10 +54,17 @@ export const allRecipesAtom = Store.makeQuery(
           schema: Recipe.array,
         }
       }
+      const searchTerm = `%${trimmedQuery}%`
       return {
-        query: sql`SELECT * FROM recipes WHERE title LIKE ? AND deletedAt IS NULL ORDER BY ${sort}`,
+        query: sql`
+          SELECT *,
+            IF(title LIKE ?, 20, 0) +
+            IF(ingredients LIKE ?, 10, 0) AS weight
+          FROM recipes
+          WHERE (title LIKE ? OR ingredients LIKE ?) AND deletedAt IS NULL
+          ORDER BY weight DESC, ${sort}`,
         schema: Recipe.array,
-        bindValues: [`%${trimmedQuery}%`],
+        bindValues: [searchTerm, searchTerm, searchTerm, searchTerm],
       }
     },
     { label: "allRecipes" },
