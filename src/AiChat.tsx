@@ -1,7 +1,13 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Send, MessageSquare, Eraser, Square } from "lucide-react"
-import { Atom, Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react"
+import {
+  Atom,
+  Result,
+  useAtom,
+  useAtomSet,
+  useAtomValue,
+} from "@effect-atom/atom-react"
 import Markdown from "react-markdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
@@ -112,7 +118,11 @@ function ModalContent({
           onClose()
         }}
       >
-        <MessagesList ref={contentRef} onNewMessage={scrollToBottom} />
+        <MessagesList
+          ref={contentRef}
+          inputRef={inputRef}
+          onNewMessage={scrollToBottom}
+        />
       </div>
       {/* Input */}
       <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
@@ -122,13 +132,16 @@ function ModalContent({
 
 function MessagesList({
   ref,
+  inputRef,
   onNewMessage,
 }: {
   readonly ref: (instance: HTMLDivElement | null) => void
+  readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
   readonly onNewMessage: () => void
 }) {
   const currentPrompt = useAtomValue(currentPromptAtom)
   const messages = currentPrompt.content
+  const setInput = useAtomSet(inputAtom)
 
   useEffect(() => {
     onNewMessage()
@@ -136,10 +149,25 @@ function MessagesList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-muted-foreground mb-0">
-        <div className="text-center">
-          <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-          <p>Ask me anything about recipes or meal planning!</p>
+      <div className="flex flex-col gap-2 text-center h-full items-center justify-center text-muted-foreground mb-0">
+        <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+        <p>Ask me anything about recipes or meal planning!</p>
+        <div className="flex flex-wrap justify-center mt-2 gap-2">
+          {tips.map((tip, i) => (
+            <Button
+              key={i}
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setInput(tip.prompt)
+                inputRef.current?.focus()
+              }}
+            >
+              {tip.title}
+            </Button>
+          ))}
         </div>
       </div>
     )
@@ -185,6 +213,35 @@ function MessagesList({
   )
 }
 
+const tips = [
+  {
+    title: "Create a recipe",
+    prompt: "Create a recipe for ",
+  },
+  {
+    title: "What's for dinner?",
+    prompt: "What's for dinner?",
+  },
+  {
+    title: "Remember allergies",
+    prompt: "Remember someone is allergic to ",
+  },
+  {
+    title: "Adjust this recipe",
+    prompt: "I would like to change this recipe to ",
+  },
+  {
+    title: "Create meal plan",
+    prompt: "Create a meal plan for ",
+  },
+  {
+    title: "Grocery list",
+    prompt: "Add these items to my grocery list: ",
+  },
+]
+
+const inputAtom = Atom.make("").pipe(Atom.setIdleTTL(0))
+
 function PromptInput({
   inputRef,
   onSubmit,
@@ -192,7 +249,7 @@ function PromptInput({
   readonly onSubmit: () => void
   readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
-  const [input, setInput] = useState("")
+  const [input, setInput] = useAtom(inputAtom)
   const inputTrim = input.trim()
   const sendMessage = useAtomSet(sendAtom)
   const handleSubmit = (e: React.FormEvent) => {
