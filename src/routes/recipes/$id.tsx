@@ -99,7 +99,10 @@ export function RecipeDetails({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
         return
-      } else if (e.target instanceof HTMLInputElement) {
+      } else if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return
       }
       e.preventDefault()
