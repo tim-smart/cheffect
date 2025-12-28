@@ -49,7 +49,11 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   return Atom.writable(
     (get) => {
       const result = get(read)
-      if (Result.isSuccess(result) || !cacheAtom) {
+      const isSuccess = Result.isSuccess(result)
+      if (isSuccess || !cacheAtom) {
+        if (cacheAtom && isSuccess) {
+          get.set(cacheAtom, result.value)
+        }
         return result
       }
       const cached = get(cacheAtom)
