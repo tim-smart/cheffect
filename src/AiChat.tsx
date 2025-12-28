@@ -244,7 +244,7 @@ function PromptInput({
             sendMessage(Atom.Interrupt)
           }}
         >
-          {isLoading ? (
+          {isLoading && !inputTrim ? (
             <Square className="animate-pulse text-white" />
           ) : (
             <Send

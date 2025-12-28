@@ -119,12 +119,12 @@ export const discardModifiedRecipeAtom = Atom.fn<string>()(
 export const saveModifiedRecipeAtom = Atom.fn<string>()(
   Effect.fnUntraced(function* (id, get) {
     const recipe = yield* get.result(recipeByIdAtom(id))
-    const modified = get(modifiedRecipeByIdAtom(id))
-    if (!modified) return
+    const modified = get(modifiedRecipeByIdAtom(id))!
+    if (Option.isNone(modified)) return
     const store = get(Store.storeUnsafe)!
     const newRecipe = new Recipe({
       ...recipe,
-      ...modified,
+      ...modified.value,
       updatedAt: DateTime.unsafeNow(),
     })
     store.commit(events.recipeUpdated(newRecipe))
@@ -136,12 +136,12 @@ export const saveModifiedRecipeAtom = Atom.fn<string>()(
 export const newModifiedRecipeAtom = Atom.fn<string>()(
   Effect.fnUntraced(function* (id, get) {
     const recipe = yield* get.result(recipeByIdAtom(id))
-    const modified = get(modifiedRecipeByIdAtom(id))
-    if (!modified) return
+    const modified = get(modifiedRecipeByIdAtom(id))!
+    if (Option.isNone(modified)) return
     const store = get(Store.storeUnsafe)!
     const newRecipe = new Recipe({
       ...recipe,
-      ...modified,
+      ...modified.value,
       id: crypto.randomUUID(),
       createdAt: DateTime.unsafeNow(),
       updatedAt: DateTime.unsafeNow(),
