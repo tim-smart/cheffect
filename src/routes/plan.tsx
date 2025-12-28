@@ -91,7 +91,7 @@ export function MealPlanPage() {
   })
 
   return (
-    <div className="pb-30">
+    <div className="pb-40">
       {/* Header */}
       <header className="bg-background border-b border-border sticky top-0 z-10">
         <div className="px-4 py-3">

@@ -18,7 +18,7 @@ function AddRecipe() {
     router.navigate({ to: "/recipes/$id", params: { id: dataDecoded.id } })
   }
   return (
-    <div className="pb-30">
+    <div className="pb-40">
       <RecipeForm onSubmit={onSubmit} />
     </div>
   )
