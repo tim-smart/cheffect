@@ -52,11 +52,7 @@ export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
         effort: "medium",
       },
     })
-    const groceryModel = yield* OpenAiLanguageModel.model("o4-mini", {
-      reasoning: {
-        effort: "low",
-      },
-    })
+    const groceryModel = yield* OpenAiLanguageModel.model("gpt-4.1")
     const proxy = yield* CorsProxy
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
