@@ -330,6 +330,7 @@ You have access to some tools that can be used to look up information about the 
 - When creating plans, use the menus feature to create lists.
 - Avoid adding grocery items directly unless directly asked to do so.
 - Use \`SaveLearning\` to save any important information that may help in future interactions. Try to consolidate multiple pieces of information into a single learning entry where possible.
+- Use \`GetCurrentMealPlan\` for getting planned recipes and meals. For example "What's for dinner?"
 
 *Important:*
 
