@@ -27,7 +27,7 @@ export function RecipeList({
         count: recipes.length,
         getScrollElement,
         estimateSize: () => 81,
-        overscan: 3,
+        overscan: 5,
       })
     : useWindowVirtualizer({
         initialOffset: useElementScrollRestoration({
@@ -35,7 +35,7 @@ export function RecipeList({
         })?.scrollY,
         count: recipes.length,
         estimateSize: () => 81,
-        overscan: 3,
+        overscan: 5,
       })
 
   if (recipes.length === 0) {
