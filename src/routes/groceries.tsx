@@ -102,9 +102,9 @@ function GroceryList() {
               <ShoppingCart className="w-6 h-6 text-primary" />
               <div>
                 <ListCombobox>
-                  <h1 className="text-lg font-semibold ">
+                  <h1 className="text-lg font-semibold flex items-center gap-1">
                     {currentList ?? "Grocery list"}
-                    <ChevronDown className="inline-block size-5 ml-1" />
+                    <ChevronDown className="block size-5" />
                   </h1>
                 </ListCombobox>
                 <p className="text-sm text-muted-foreground">
