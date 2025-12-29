@@ -311,7 +311,7 @@ class AiChatService extends Effect.Service<AiChatService>()(
   {
     dependencies: [layerKvsLivestore, ToolkitLayer],
     scoped: Effect.gen(function* () {
-      const model = yield* OpenAiLanguageModel.model("gpt-5.2")
+      const model = yield* OpenAiLanguageModel.model("gpt-5.2-chat-latest")
       const registry = yield* Registry.AtomRegistry
       const store = (yield* KeyValueStore.KeyValueStore).forSchema(
         Prompt.Prompt,
@@ -369,7 +369,7 @@ ${entry.content}`,
             : `## Current context`
 
         const location = router.state.location
-        let currentTimeAndCountry = `The current date and time is: ${new Date().toLocaleString()}.`
+        let currentTimeAndCountry = `The users local time is: ${new Date().toLocaleString()}.`
         const country = yield* Atom.getResult(aiCountry.atom)
         if (Option.isSome(country)) {
           currentTimeAndCountry += ` The user is located in ${country.value}. All ingredient units should be provided in the measurement system commonly used in that country.`
