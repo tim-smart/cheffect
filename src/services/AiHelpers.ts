@@ -17,9 +17,16 @@ import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as HttpClient from "@effect/platform/HttpClient"
 import * as Schedule from "effect/Schedule"
+import { constTrue } from "effect/Function"
 
-export const isAiEnabledAtom = Atom.make((get) =>
+export const isAiEnabledResultAtom = Atom.make((get) =>
   Result.map(get(openAiApiKey.atom), Option.isSome),
+)
+export const isAiEnabledAtom = Atom.make((get) =>
+  get(openAiApiKey.atom).pipe(
+    Result.map(Option.isSome),
+    Result.getOrElse(constTrue),
+  ),
 )
 
 export const openAiClientLayer = Atom.make((get) => {

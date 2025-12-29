@@ -1,6 +1,6 @@
 import { createRecipeAtom } from "@/Recipes/atoms"
 import { router } from "@/Router"
-import { isAiEnabledAtom } from "@/services/AiHelpers"
+import { isAiEnabledResultAtom } from "@/services/AiHelpers"
 import { Atom, useAtomSet } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import * as Effect from "effect/Effect"
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/import")({
 
 const createAndRedirect = Atom.fn<string>()(
   Effect.fnUntraced(function* (url, get) {
-    const aiEnabled = yield* get.result(isAiEnabledAtom)
+    const aiEnabled = yield* get.result(isAiEnabledResultAtom)
     if (!aiEnabled) {
       router.navigate({ to: "/" })
       return

@@ -19,8 +19,10 @@ import {
   sendAtom,
 } from "./AiChat/AiChatService"
 import { router } from "./Router"
+import { isAiEnabledAtom } from "./services/AiHelpers"
 
 export function AiChatModal() {
+  const aiEnabled = useAtomValue(isAiEnabledAtom)
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -30,6 +32,9 @@ export function AiChatModal() {
       {/* Floating Action Button */}
       <button
         onClick={() => {
+          if (!aiEnabled) {
+            return router.navigate({ to: "/settings" })
+          }
           setIsOpen(true)
           ref.current?.classList.remove("hidden")
           inputRef.current?.focus()

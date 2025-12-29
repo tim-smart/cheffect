@@ -240,7 +240,7 @@ export const convertIngredientsAtom = AiHelpers.runtime.fn<Recipe>()(
 )
 
 export const canConvertIngredientsAtom = Atom.make((get) => {
-  const aiEnabled = get(isAiEnabledAtom).pipe(Result.getOrElse(() => false))
+  const aiEnabled = get(isAiEnabledAtom)
   if (!aiEnabled) return false
   const ocountry = get(aiCountry.atom).pipe(Result.value, Option.flatten)
   if (Option.isNone(ocountry)) return false
