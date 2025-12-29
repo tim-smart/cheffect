@@ -393,7 +393,13 @@ ${currentTimeAndCountry}
 The user is currently viewing the recipe titled "${recipe.title}".
 They are currently focused on step ${selectedStep + 1} of the recipe (starts at 1).
 
-Here are the details of the recipe:
+${
+  recipe.ingredientScale !== 1
+    ? `The user is viewing a scaled version of the recipe. The scale factor is: ${recipe.ingredientScale}
+
+`
+    : ""
+}Here are the details of the recipe (original scale shown):
 
 ${recipe.toXml()}
 
