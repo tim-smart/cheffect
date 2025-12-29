@@ -95,7 +95,7 @@ function ModalContent({
       <div className="flex items-center justify-between border-b border-border p-4">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">AI Assistant</h2>
+          <h2 className="text-lg font-semibold">AI Sous-chef</h2>
         </div>
         <Button
           onClick={() => onClose()}
