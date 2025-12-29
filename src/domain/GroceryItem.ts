@@ -11,6 +11,7 @@ export const GroceryAisle = Schema.Literal(
   "Meat & Seafood",
   "Dairy & Eggs",
   "Pantry",
+  "Canned & Jar Goods",
   "Frozen Foods",
   "Bakery",
   "Breakfast",
