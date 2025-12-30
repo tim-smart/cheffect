@@ -1,9 +1,9 @@
 import { RouterProvider } from "@tanstack/react-router"
 import { useRegisterSW } from "virtual:pwa-register/react"
 import { router } from "./Router"
-import { useAtomMount } from "@effect-atom/atom-react"
+import { useAtomMount, useAtomValue } from "@effect-atom/atom-react"
 import { Store } from "./livestore/atoms"
-import { installPromptAtom } from "./atoms"
+import { aiChatOpenAtom, installPromptAtom } from "./atoms"
 import { useLayoutEffect } from "react"
 
 export default function App() {
@@ -17,6 +17,7 @@ export default function App() {
   return (
     <>
       <RouterProvider router={router} />
+      <DisableScroll />
       <SystemTheme />
     </>
   )
@@ -49,5 +50,17 @@ function SystemTheme() {
     listener()
     return () => matcher.removeEventListener("change", listener)
   }, [])
+  return null
+}
+
+function DisableScroll() {
+  const aiChatOpen = useAtomValue(aiChatOpenAtom)
+  useLayoutEffect(() => {
+    if (aiChatOpen) {
+      document.body.classList.add("overflow-hidden", "md:overflow-auto")
+    } else {
+      document.body.classList.remove("overflow-hidden", "md:overflow-auto")
+    }
+  }, [aiChatOpen])
   return null
 }

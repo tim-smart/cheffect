@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Send, MessageSquare, Eraser, Square } from "lucide-react"
 import {
@@ -11,7 +11,7 @@ import {
 import Markdown from "react-markdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
-import { viewportObstructedAtom } from "./atoms"
+import { aiChatOpenAtom, viewportObstructedAtom } from "./atoms"
 import {
   clearAtom,
   currentPromptAtom,
@@ -23,7 +23,7 @@ import { isAiEnabledAtom } from "./services/AiHelpers"
 
 export function AiChatModal() {
   const aiEnabled = useAtomValue(isAiEnabledAtom)
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useAtom(aiChatOpenAtom)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pushedHistoryRef = useRef(false)
@@ -57,20 +57,6 @@ export function AiChatModal() {
 
     return () => {
       window.removeEventListener("popstate", handlePopState)
-    }
-  }, [isOpen])
-
-  // Prevent background scrolling when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = ""
     }
   }, [isOpen])
 

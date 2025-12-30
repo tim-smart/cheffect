@@ -26,6 +26,8 @@ export const installPromptAtom = Atom.make((get) => {
   })
 })
 
+export const aiChatOpenAtom = Atom.make(false)
+
 export const screenWakeLockAtom = Atom.make(
   Effect.acquireRelease(
     Effect.promise(() => navigator.wakeLock.request("screen")),
