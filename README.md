@@ -53,7 +53,7 @@ If not specified, it defaults to `wss://cheffect-sync.timsmart.workers.dev`.
 ### Docker Compose Example
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   cheffect:
