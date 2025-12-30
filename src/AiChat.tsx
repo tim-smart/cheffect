@@ -26,6 +26,39 @@ export function AiChatModal() {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const pushedHistoryRef = useRef(false)
+
+  // Handle history state when modal opens/closes
+  useEffect(() => {
+    if (isOpen && !pushedHistoryRef.current) {
+      // Push history state when modal opens
+      history.pushState({ aiChatOpen: true }, "")
+      pushedHistoryRef.current = true
+    } else if (!isOpen && pushedHistoryRef.current) {
+      // Modal was closed via X button or overlay, clean up history state
+      // Use replaceState to avoid triggering popstate event
+      history.replaceState(null, "")
+      pushedHistoryRef.current = false
+    }
+  }, [isOpen])
+
+  // Handle back button
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handlePopState = () => {
+      if (pushedHistoryRef.current) {
+        pushedHistoryRef.current = false
+        setIsOpen(false)
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState)
+    }
+  }, [isOpen])
 
   // Prevent background scrolling when modal is open
   useEffect(() => {
