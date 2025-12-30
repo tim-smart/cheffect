@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useContext } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Send, MessageSquare, Eraser, Square } from "lucide-react"
 import {
@@ -7,6 +7,7 @@ import {
   useAtom,
   useAtomSet,
   useAtomValue,
+  RegistryContext,
 } from "@effect-atom/atom-react"
 import Markdown from "react-markdown"
 import { useStickToBottom } from "use-stick-to-bottom"
@@ -27,13 +28,7 @@ export function AiChatModal() {
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pushedHistoryRef = useRef(false)
-  const viewportObstructedRef = useRef(0)
-  const viewportObstructed = useAtomValue(viewportObstructedAtom)
-
-  // Update ref when viewportObstructed changes
-  useEffect(() => {
-    viewportObstructedRef.current = viewportObstructed
-  }, [viewportObstructed])
+  const registry = useContext(RegistryContext)
 
   // Handle history state when modal opens/closes
   useEffect(() => {
@@ -55,8 +50,9 @@ export function AiChatModal() {
 
     const handlePopState = () => {
       if (pushedHistoryRef.current) {
-        // Check if keyboard is open using ref to avoid re-registering listener
-        if (viewportObstructedRef.current > 0) {
+        // Check if keyboard is open using registry.get to avoid subscribing
+        const viewportObstructed = registry.get(viewportObstructedAtom)
+        if (viewportObstructed > 0) {
           // Keyboard is open, blur active element to close it
           if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur()
@@ -76,7 +72,7 @@ export function AiChatModal() {
     return () => {
       window.removeEventListener("popstate", handlePopState)
     }
-  }, [isOpen])
+  }, [isOpen, registry])
 
   return (
     <>
