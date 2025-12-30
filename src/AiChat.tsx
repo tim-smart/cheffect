@@ -26,6 +26,50 @@ export function AiChatModal() {
   const [isOpen, setIsOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const pushedHistoryRef = useRef(false)
+  const viewportObstructed = useAtomValue(viewportObstructedAtom)
+
+  // Handle history state when modal opens/closes
+  useEffect(() => {
+    if (isOpen && !pushedHistoryRef.current) {
+      // Push history state when modal opens
+      history.pushState({ aiChatOpen: true }, "")
+      pushedHistoryRef.current = true
+    } else if (!isOpen && pushedHistoryRef.current) {
+      // Modal was closed via X button or overlay, clean up history state
+      history.back()
+      pushedHistoryRef.current = false
+    }
+  }, [isOpen])
+
+  // Handle back button
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handlePopState = () => {
+      if (pushedHistoryRef.current) {
+        // Check if keyboard is open
+        if (viewportObstructed > 0) {
+          // Keyboard is open, blur active element to close it
+          if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur()
+          }
+          // Push state back so next back press can close the modal
+          history.pushState({ aiChatOpen: true }, "")
+        } else {
+          // Keyboard is closed, close the modal
+          pushedHistoryRef.current = false
+          setIsOpen(false)
+        }
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState)
+    }
+  }, [isOpen, viewportObstructed])
 
   return (
     <>
