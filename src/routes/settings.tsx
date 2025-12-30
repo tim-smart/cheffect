@@ -184,6 +184,7 @@ function SettingsPage() {
               <div className="flex items-center gap-1">
                 <Input
                   id={livestoreStoreId.name}
+                  type="password"
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
                   onBlur={() => onBlur()}
