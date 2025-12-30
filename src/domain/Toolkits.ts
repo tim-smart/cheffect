@@ -185,7 +185,7 @@ export class toolkit extends Toolkit.make(
   }),
   Tool.make("SaveLearning", {
     description:
-      "Save learning notes or user preferences to improve future interactions. Keep them concise to prevent exceeding token limits.",
+      "Save absolutely any information discovered during the conversation that could benefit future interactions. This includes user preferences, dietary restrictions, allergies, cooking skill level, household size, favorite cuisines, ingredient dislikes, kitchen equipment available, and any other relevant details. Keep notes concise to prevent exceeding token limits. Consolidate related information into single entries when possible.",
     parameters: {
       content: Schema.String.annotations({
         description: "The note in markdown format.",
