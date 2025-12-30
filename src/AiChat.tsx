@@ -97,7 +97,7 @@ function ModalContent({
       style={{ top: viewportObstructed }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">AI Sous-chef</h2>
