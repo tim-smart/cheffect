@@ -1,0 +1,6 @@
+[submodule ".agents/effect"]
+	path = .agents/effect
+	url = https://github.com/effect-ts/effect.git
+[submodule ".agents/effect-atom"]
+	path = .agents/effect-atom
+	url = https://github.com/tim-smart/effect-atom.git
