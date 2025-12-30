@@ -58,6 +58,7 @@ import {
   Save,
   Plus,
   ArrowLeftRight,
+  MoreHorizontal,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -480,30 +481,27 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
         >
           {showOriginal ? "Show modified" : "Show original"}
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => discard(recipe.id)}
-          title="Discard changes"
-        >
-          <Trash />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => save(recipe.id)}
-          title="Save changes"
-        >
-          <Save />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => create(recipe.id)}
-          title="Create new recipe from modified version"
-        >
-          <Plus />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => discard(recipe.id)}>
+              <Trash />
+              Discard
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => save(recipe.id)}>
+              <Save />
+              Save
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => create(recipe.id)}>
+              <Plus />
+              Create new
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </ButtonGroup>
     </div>
   )
