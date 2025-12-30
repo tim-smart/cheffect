@@ -72,7 +72,6 @@ export function AiChatModal() {
     return () => {
       window.removeEventListener("popstate", handlePopState)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
 
   return (
