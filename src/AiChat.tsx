@@ -27,6 +27,20 @@ export function AiChatModal() {
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [isOpen])
+
   return (
     <>
       {/* Floating Action Button */}
