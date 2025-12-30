@@ -4,6 +4,10 @@
 - Make meal plans for the week
 - Create menus for quickly scheduling multiple meals
 - Build grocery lists from your recipes & meal plans
+- Extract recipes from URLs using AI
+- Convert ingredient quantities for different countries using AI
+- Smart grocery list organization and merging with AI
+- AI chat assistant for cooking help
 - Optionally sync your data across devices (powered by
   [LiveStore](https://livestore.dev) & [Cloudflare
   Workers](https://workers.cloudflare.com/))
