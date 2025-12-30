@@ -1,8 +1,8 @@
 # Stage 1: Build the application
 FROM node:20-alpine AS builder
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
+# Enable corepack for pnpm support
+RUN corepack enable
 
 # Set working directory
 WORKDIR /app
