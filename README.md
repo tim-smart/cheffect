@@ -16,7 +16,7 @@ You can self-host Cheffect using Docker. The Docker image serves the static web 
 
 ### Building the Docker Image
 
-Build the image with the default sync server:
+Build the image with the default sync server (`wss://cheffect-sync.timsmart.workers.dev`):
 
 ```bash
 docker build -t cheffect .
@@ -37,18 +37,6 @@ docker run -d -p 8080:80 --name cheffect cheffect
 ```
 
 The application will be available at http://localhost:8080
-
-### Configuration
-
-The sync server URL can be configured at build time using the `VITE_SYNC_SERVER_URL` build argument:
-
-```bash
-docker build \
-  --build-arg VITE_SYNC_SERVER_URL=wss://your-sync-server.example.com \
-  -t cheffect .
-```
-
-If not specified, it defaults to `wss://cheffect-sync.timsmart.workers.dev`.
 
 ### Docker Compose Example
 
