@@ -513,6 +513,20 @@ ${MenuEntry.toXml(menuEntries)}`
               }),
             )
             history = registry.get(currentPromptAtom)
+            const errorPart = parts.findLast((part) => part.type === "error")
+            if (errorPart) {
+              history = Prompt.merge(history, [
+                Prompt.makeMessage("assistant", {
+                  content: [
+                    Prompt.textPart({
+                      text: "I'm sorry, there was an error chef. Do you have enough OpenAI credit?",
+                    }),
+                  ],
+                }),
+              ])
+              registry.set(currentPromptAtom, history)
+              break
+            }
             const response = new LanguageModel.GenerateTextResponse<
               typeof toolkit.tools
             >(parts as any)
@@ -527,7 +541,7 @@ ${MenuEntry.toXml(menuEntries)}`
             parts = []
 
             // Only continue if there are no text parts AND no terminal results
-            if (!hasTextParts && !hasTerminalResult) {
+            if (!errorPart && !hasTextParts && !hasTerminalResult) {
               continue
             }
             break
