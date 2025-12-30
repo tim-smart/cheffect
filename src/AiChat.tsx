@@ -27,7 +27,13 @@ export function AiChatModal() {
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pushedHistoryRef = useRef(false)
+  const viewportObstructedRef = useRef(0)
   const viewportObstructed = useAtomValue(viewportObstructedAtom)
+
+  // Update ref when viewportObstructed changes
+  useEffect(() => {
+    viewportObstructedRef.current = viewportObstructed
+  }, [viewportObstructed])
 
   // Handle history state when modal opens/closes
   useEffect(() => {
@@ -37,7 +43,8 @@ export function AiChatModal() {
       pushedHistoryRef.current = true
     } else if (!isOpen && pushedHistoryRef.current) {
       // Modal was closed via X button or overlay, clean up history state
-      history.back()
+      // Use replaceState to avoid triggering popstate event
+      history.replaceState(null, "")
       pushedHistoryRef.current = false
     }
   }, [isOpen])
@@ -48,8 +55,8 @@ export function AiChatModal() {
 
     const handlePopState = () => {
       if (pushedHistoryRef.current) {
-        // Check if keyboard is open
-        if (viewportObstructed > 0) {
+        // Check if keyboard is open using ref to avoid re-registering listener
+        if (viewportObstructedRef.current > 0) {
           // Keyboard is open, blur active element to close it
           if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur()
@@ -69,7 +76,7 @@ export function AiChatModal() {
     return () => {
       window.removeEventListener("popstate", handlePopState)
     }
-  }, [isOpen, viewportObstructed])
+  }, [isOpen])
 
   return (
     <>
