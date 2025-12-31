@@ -369,17 +369,17 @@ export function RecipeDetails({
                     {stepIndex + 1}
                   </div>
 
-                  <div className="flex-1">
-                    <p className=" leading-relaxed mb-3">{step.text}</p>
+                  <div className="flex-1 flex flex-col gap-2">
+                    <p className=" leading-relaxed">{step.text}</p>
 
                     {step.tips.length > 0 && (
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         {step.tips.map((tip, tipIndex) => (
                           <div
                             key={tipIndex}
                             className="flex items-start gap-2"
                           >
-                            <span className="text-primary text-sm mt-0.5">
+                            <span className="text-primary text-sm">
                               💡
                             </span>
                             <p className="text-sm text-muted-foreground italic">
