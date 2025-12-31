@@ -707,6 +707,7 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
     }
 
     let textPart: Prompt.TextPart | null = null
+    let hasFiles = false
     const parts = Array.empty<Prompt.AssistantMessagePart>()
     for (let i = 0; i < message.content.length; i++) {
       const part = message.content[i]
@@ -714,11 +715,11 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
         textPart = part
         continue
       } else if (part.type === "file") {
+        hasFiles = true
         continue
       }
       parts.push(part)
     }
-    let hasFiles = message.content.length !== parts.length
     const updated = hasFiles
       ? Prompt.makeMessage(message.role, {
           content:
