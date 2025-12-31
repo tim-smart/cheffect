@@ -123,7 +123,7 @@ function ModalContent({
       <div
         ref={containerRef}
         className={cn(
-          "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:floating-b md:w-96 md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
+          "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:floating-b md:w-100 md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
           viewportObstructed > 0
             ? "md:rounded-2xl"
             : "top-[15vh]! rounded-t-2xl md:rounded-2xl",
@@ -219,7 +219,7 @@ function MessagesList({
         message.role === "tool" ? (
           <div
             key={i}
-            className="flex flex-col justify-start text-muted-foreground"
+            className="flex flex-col justify-start text-muted-foreground text-sm"
           >
             {message.content.map((part) => (
               <span key={part.id} className="block">
@@ -233,10 +233,10 @@ function MessagesList({
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto ${
+              className={`max-w-[90%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto ${
                 message.role === "user"
                   ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
+                  : "bg-muted dark:bg-border text-foreground"
               }`}
             >
               {message.content
