@@ -16,10 +16,6 @@
     padding-bottom: calc(env(safe-area-inset-bottom) + var(--spacing) * 2);
   }
 
-  .pb-content {
-    padding-bottom: calc(env(safe-area-inset-bottom) + var(--spacing) * 40);
-  }
-
   .line-clamp-1 {
     overflow: hidden;
     display: -webkit-box;
@@ -157,4 +153,8 @@
 
 @utility floating-b {
   bottom: calc(env(safe-area-inset-bottom) + var(--spacing) * 22);
+}
+
+@utility pb-content {
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--spacing) * 40);
 }
