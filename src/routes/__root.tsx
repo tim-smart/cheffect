@@ -2,7 +2,9 @@ import { AiChatModal } from "@/AiChat"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
+import { recipeFromImagesAtom } from "@/Recipes/atoms"
 import { router } from "@/Router"
+import { useAtomSet } from "@effect-atom/atom-react"
 import { createRootRoute, Link, Outlet } from "@tanstack/react-router"
 import {
   BookOpen,
@@ -16,7 +18,6 @@ export const Route = createRootRoute({
   component: () => {
     return (
       <div>
-        {/* Mobile Header */}
         <header className="bg-background border-b border-border sticky top-0 z-10">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">

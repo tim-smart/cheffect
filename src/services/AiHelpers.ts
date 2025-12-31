@@ -18,6 +18,8 @@ import * as Option from "effect/Option"
 import * as HttpClient from "@effect/platform/HttpClient"
 import * as Schedule from "effect/Schedule"
 import { constTrue } from "effect/Function"
+import * as Prompt from "@effect/ai/Prompt"
+import * as Schema from "effect/Schema"
 
 export const isAiEnabledResultAtom = Atom.make((get) =>
   Result.map(get(openAiApiKey.atom), Option.isSome),
@@ -74,6 +76,41 @@ export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
       yield* Effect.log(response.value)
       return response.value
     }, Effect.provide(model))
+
+    const recipesFromImages = Effect.fn("AiHelpers.recipeFromImages")(
+      function* (fileList: FileList) {
+        const llm = yield* LanguageModel.LanguageModel
+        const parts = yield* Effect.forEach(
+          fileList,
+          Effect.fnUntraced(function* (file) {
+            const data = yield* Effect.promise(() => file.arrayBuffer())
+            return Prompt.filePart({
+              mediaType: file.type,
+              fileName: file.name,
+              data: new Uint8Array(data),
+            })
+          }),
+        )
+        const response = yield* llm.generateObject({
+          prompt: [
+            {
+              role: "system",
+              content: "Extract any recipes from the provided images.",
+            },
+            {
+              role: "user",
+              content: parts,
+            },
+          ],
+          schema: Schema.Struct({
+            recipes: Schema.Array(ExtractedRecipe),
+          }),
+        })
+        yield* Effect.log(response.value)
+        return response.value.recipes
+      },
+      Effect.provide(model),
+    )
 
     const convertIngredients = Effect.fn("AiHelpers.convertIngredients")(
       function* (recipe: Recipe, country: string) {
@@ -178,7 +215,12 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
       Effect.provide(groceryModel),
     )
 
-    return { recipeFromUrl, beautifyGroceries, convertIngredients } as const
+    return {
+      recipeFromUrl,
+      recipesFromImages,
+      beautifyGroceries,
+      convertIngredients,
+    } as const
   }),
 }) {
   static runtime = Atom.runtime((get) =>

@@ -30,6 +30,7 @@ import { toast } from "sonner"
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
+    Layer.provideMerge(AiHelpers.Default),
     Layer.provideMerge(get(openAiClientLayer)),
     Layer.provideMerge(get(Store.layer)),
   ),
@@ -49,6 +50,49 @@ export const createRecipeAtom = extractRuntime
     { concurrent: true },
   )
   .pipe(Atom.setIdleTTL("20 seconds"))
+
+export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
+  Effect.fnUntraced(
+    function* (files) {
+      const helpers = yield* AiHelpers
+      const extracted = yield* helpers.recipesFromImages(files)
+      const store = yield* Store
+      const recipes = Array.map(extracted, (r) => {
+        const recipe = r.asRecipe()
+        store.commit(events.recipeCreated(recipe))
+        return recipe
+      })
+      return recipes
+    },
+    withToast((_) => ({
+      loading: `Extracting recipe from images`,
+      onExit(exit, toastId) {
+        if (Exit.isFailure(exit)) {
+          return toast.error("Failed to extract recipe", { id: toastId })
+        }
+        toast.success(
+          `${exit.value.length > 1 ? "Recipes" : "Recipe"} extracted!`,
+          {
+            id: toastId,
+            cancel: undefined,
+            action: Array.isNonEmptyReadonlyArray(exit.value)
+              ? {
+                  label: "View",
+                  onClick() {
+                    const recipeId = exit.value[0]!.id
+                    router.navigate({
+                      to: `/recipes/$id`,
+                      params: { id: recipeId },
+                    })
+                  },
+                }
+              : undefined,
+          },
+        )
+      },
+    })),
+  ),
+)
 
 export const recipeFormByIdAtom = Atom.family((id: string) =>
   Atom.make(
