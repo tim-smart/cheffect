@@ -44,7 +44,7 @@ export const Route = createFileRoute("/menus/")({
 
 export function MenusPage() {
   return (
-    <div className="pb-40">
+    <div className="pb-content">
       {/* Header */}
       <header className="bg-background border-b border-border sticky top-0 z-10">
         <div className="px-4 py-3">

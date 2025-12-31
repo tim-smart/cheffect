@@ -24,7 +24,7 @@ function EditRecipeScreen() {
   return Result.builder(result)
     .onWaiting(() => <RecipeFormSkeleton />)
     .onSuccess(([initialValue, recipe]) => (
-      <div className="pb-40">
+      <div className="pb-content">
         <Header recipe={recipe} />
         <RecipeForm
           initialValue={initialValue}

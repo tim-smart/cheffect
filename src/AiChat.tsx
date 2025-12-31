@@ -72,7 +72,7 @@ export function AiChatModal() {
           ref.current?.classList.remove("hidden")
           inputRef.current?.focus()
         }}
-        className="fixed right-4 bottom-22 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg active:scale-95 transition-transform"
+        className="fixed right-4 floating-b z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg active:scale-95 transition-transform"
         aria-label="Open AI Chat"
       >
         <MessageSquare className="h-6 w-6" />
@@ -313,10 +313,15 @@ function PromptInput({
 
   const clear = useAtomSet(clearAtom)
 
+  const viewportObstructed = useAtomValue(viewportObstructedAtom, (n) => n > 0)
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-border p-3 pl-1 z-10"
+      className={cn(
+        "border-t border-border p-3 pl-1 z-10",
+        viewportObstructed ? "" : "nav-pb",
+      )}
     >
       <div className="flex gap-2 pl-15">
         {(files ? Array.from(files) : []).map((file) => (
@@ -418,7 +423,7 @@ function PromptInput({
             handleSubmit(e)
           }}
           placeholder="Type your message..."
-          className="flex-1 rounded-lg border-2 border-border bg-card px-4 py-2 text-sm focus:border-primary focus:outline-none field-sizing-content resize-none"
+          className="flex-1 rounded-lg border-2 border-border bg-card px-3 py-2 text-base focus:border-primary focus:outline-none field-sizing-content resize-none"
           autoFocus
         />
         <Button
