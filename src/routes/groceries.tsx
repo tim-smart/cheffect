@@ -384,7 +384,7 @@ function GroceryListList({
         {/* Empty State */}
         {total === 0 && (
           <div className="text-center py-16">
-            <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <ShoppingCart className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">
               Your grocery list is empty
             </h3>
