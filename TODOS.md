@@ -1,1 +1,1 @@
-- Multiple grocery lists
+- notes for menus and meal plans
