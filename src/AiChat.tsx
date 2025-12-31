@@ -38,7 +38,7 @@ export function AiChatModal() {
     } else if (!isOpen && pushedHistoryRef.current) {
       // Modal was closed via X button or overlay, clean up history state
       // Use replaceState to avoid triggering popstate event
-      history.replaceState(null, "")
+      history.back()
       pushedHistoryRef.current = false
     }
   }, [isOpen])
