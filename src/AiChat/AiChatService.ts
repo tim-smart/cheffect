@@ -311,7 +311,9 @@ class AiChatService extends Effect.Service<AiChatService>()(
   {
     dependencies: [layerKvsLivestore, ToolkitLayer],
     scoped: Effect.gen(function* () {
-      const model = yield* OpenAiLanguageModel.model("gpt-5.2-chat-latest")
+      const model = yield* OpenAiLanguageModel.model("gpt-5.2-chat-latest", {
+        reasoning: { effort: "medium" },
+      })
       const registry = yield* Registry.AtomRegistry
       const store = (yield* KeyValueStore.KeyValueStore).forSchema(
         Prompt.Prompt,
@@ -465,6 +467,7 @@ ${MenuEntry.toXml(menuEntries)}`
             onSome: AiChat.fromPrompt,
           }),
         ),
+        Effect.orElse(() => AiChat.empty),
       )
       registry.set(currentPromptAtom, yield* Ref.get(chat.history))
 
@@ -485,14 +488,18 @@ ${MenuEntry.toXml(menuEntries)}`
       const tools = yield* toolkit
 
       const send = Effect.fnUntraced(
-        function* (message: string) {
+        function* (options: {
+          readonly text: string
+          readonly files: FileList | null
+        }) {
+          const message = yield* makeMessage(options)
           let history = (yield* Ref.get(chat.history)).pipe(
-            Prompt.merge(message),
+            Prompt.merge([message]),
             Prompt.setSystem(yield* currentSystemPrompt),
           )
-          registry.set(currentPromptAtom, history)
+          let historyNoFiles = filterFileParts(history)
+          registry.set(currentPromptAtom, historyNoFiles)
           let parts = Array.empty<AiResponse.AnyPart>()
-          registry.set(currentPromptAtom, history)
           while (true) {
             yield* pipe(
               LanguageModel.streamText({
@@ -505,17 +512,19 @@ ${MenuEntry.toXml(menuEntries)}`
                 return Chunk.of(Prompt.fromResponseParts(parts))
               }),
               Stream.runForEach((response) => {
-                registry.set(currentPromptAtom, Prompt.merge(history, response))
+                registry.set(
+                  currentPromptAtom,
+                  Prompt.merge(historyNoFiles, response),
+                )
                 return Effect.void
               }),
-              OpenAiLanguageModel.withConfigOverride({
-                reasoning: { effort: "medium" },
-              }),
             )
-            history = registry.get(currentPromptAtom)
+            history = Prompt.merge(history, Prompt.fromResponseParts(parts))
+            historyNoFiles = filterFileParts(history)
+            registry.set(currentPromptAtom, historyNoFiles)
             const errorPart = parts.findLast((part) => part.type === "error")
             if (errorPart) {
-              history = Prompt.merge(history, [
+              historyNoFiles = Prompt.merge(historyNoFiles, [
                 Prompt.makeMessage("assistant", {
                   content: [
                     Prompt.textPart({
@@ -524,7 +533,7 @@ ${MenuEntry.toXml(menuEntries)}`
                   ],
                 }),
               ])
-              registry.set(currentPromptAtom, history)
+              registry.set(currentPromptAtom, historyNoFiles)
               break
             }
             const response = new LanguageModel.GenerateTextResponse<
@@ -549,10 +558,7 @@ ${MenuEntry.toXml(menuEntries)}`
         },
         Effect.ensuring(
           Effect.gen(function* () {
-            const toPersist = Prompt.setSystem(
-              registry.get(currentPromptAtom),
-              "",
-            )
+            const toPersist = registry.get(currentPromptAtom)
             yield* Ref.set(chat.history, toPersist)
             yield* Effect.orDie(store.set("ai-history", toPersist))
           }),
@@ -586,7 +592,10 @@ const persistenceUpdatesAtom = Store.makeQueryUnsafe(
   }),
 )
 
-export const sendAtom = runtime.fn<string>()(
+export const sendAtom = runtime.fn<{
+  readonly text: string
+  readonly files: FileList | null
+}>()(
   Effect.fnUntraced(function* (message) {
     const ai = yield* AiChatService
     return yield* ai.send(message)
@@ -660,3 +669,74 @@ export const isVisualPart = (
     | Prompt.AssistantMessagePart
     | Prompt.ToolMessagePart,
 ): boolean => part.type === "text" || part.type === "tool-result"
+
+const makeMessage = Effect.fnUntraced(function* (options: {
+  readonly text: string
+  readonly files: FileList | null
+}) {
+  const content: Array<Prompt.UserMessagePart> = []
+  if (options.files) {
+    for (let i = 0; i < options.files.length; i++) {
+      const file = options.files[i]
+      const data = new Uint8Array(
+        yield* Effect.promise(() => file.arrayBuffer()),
+      )
+      content.push(
+        Prompt.filePart({
+          mediaType: file.type,
+          fileName: file.name,
+          data,
+        }),
+      )
+    }
+  }
+  content.push(Prompt.textPart({ text: options.text }))
+  return Prompt.makeMessage("user", {
+    content,
+  })
+})
+
+const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
+  const content = Array.empty<Prompt.Message>()
+  for (const message of prompt.content) {
+    if (message.role === "system") {
+      continue
+    } else if (message.role === "tool") {
+      content.push(message)
+      continue
+    }
+
+    let textPart: Prompt.TextPart | null = null
+    const parts = Array.empty<Prompt.AssistantMessagePart>()
+    for (let i = 0; i < message.content.length; i++) {
+      const part = message.content[i]
+      if (!textPart && part.type === "text") {
+        textPart = part
+        continue
+      } else if (part.type === "file") {
+        continue
+      }
+      parts.push(part)
+    }
+    let hasFiles = message.content.length !== parts.length
+    const updated = hasFiles
+      ? Prompt.makeMessage(message.role, {
+          content:
+            message.role === "user"
+              ? [
+                  Prompt.textPart({
+                    text: textPart
+                      ? `${textPart.text}\n\n[file attachment]`
+                      : "[file attachment]",
+                  }),
+                  ...parts,
+                ]
+              : textPart
+                ? [textPart, ...parts]
+                : parts,
+        })
+      : message
+    content.push(updated)
+  }
+  return Prompt.make(content)
+}

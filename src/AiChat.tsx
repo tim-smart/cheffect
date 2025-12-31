@@ -1,6 +1,6 @@
-import { useRef, useEffect } from "react"
+import { useRef, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { X, Send, MessageSquare, Eraser, Square } from "lucide-react"
+import { X, Send, MessageSquare, Eraser, Square, Plus } from "lucide-react"
 import {
   Atom,
   Result,
@@ -295,33 +295,119 @@ function PromptInput({
 
     const message = input.trim()
     if (!message) return
+    const options = {
+      text: message,
+      files,
+    }
 
     setInput("")
-    sendMessage(message)
+    setFiles(null)
+    sendMessage(options)
     onSubmit()
   }
+
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [files, setFiles] = useState<FileList | null>(null)
 
   const isLoading = useAtomValue(sendAtom, Result.isWaiting)
 
   const clear = useAtomSet(clearAtom)
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-border p-3 pl-2">
+    <form
+      onSubmit={handleSubmit}
+      className="border-t border-border p-3 pl-1 z-10"
+    >
+      <div className="flex gap-2 pl-15">
+        {(files ? Array.from(files) : []).map((file) => (
+          <div key={file.name} className="relative">
+            <img
+              src={URL.createObjectURL(file)}
+              alt={file.name}
+              className="size-16 rounded-md object-cover border border-border mb-2"
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="absolute -top-2 -right-2 size-6 rounded-full"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                if (!files) return
+                const newFiles = Array.from(files).filter(
+                  (f) => f.name !== file.name,
+                )
+                if (newFiles.length === 0) {
+                  setFiles(null)
+                } else {
+                  const dataTransfer = new DataTransfer()
+                  newFiles.forEach((f) => dataTransfer.items.add(f))
+                  setFiles(dataTransfer.files)
+                }
+              }}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
       <div className="flex gap-2 items-center">
-        <Button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            clear()
-            inputRef.current?.focus()
-          }}
-          size="icon"
-          variant="ghost"
-          className="size-8 -mr-1"
-          title="Clear chat"
-        >
-          <Eraser />
-        </Button>
+        <div className="flex">
+          <Button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              clear()
+              inputRef.current?.focus()
+            }}
+            size="icon"
+            variant="ghost"
+            className="size-8"
+            title="Clear chat"
+          >
+            <Eraser />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 -mx-1.5"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => fileRef.current?.click()}
+          >
+            <Plus />
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              const selectedFiles = e.target.files
+              if (!selectedFiles || selectedFiles.length === 0) return
+              setFiles((prevFiles) => {
+                const dataTransfer = new DataTransfer()
+                const names = new Set<string>()
+                if (prevFiles) {
+                  Array.from(prevFiles).forEach((f) => {
+                    names.add(f.name)
+                    return dataTransfer.items.add(f)
+                  })
+                }
+                Array.from(selectedFiles).forEach((f) => {
+                  if (names.has(f.name)) return
+                  return dataTransfer.items.add(f)
+                })
+                return dataTransfer.files
+              })
+              // Reset the input value to allow selecting the same file again
+              setTimeout(() => {
+                e.target.value = ""
+              }, 0)
+            }}
+          />
+        </div>
         <textarea
           ref={inputRef}
           value={input}
