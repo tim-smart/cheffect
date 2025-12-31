@@ -407,7 +407,7 @@ ${recipe.toXml()}
 
 **Important:**
 
-When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes.
+When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes. **Important:** You must include ALL fields from the original recipe in your edit, not just the fields you are changing. Copy all existing values and only modify the specific fields that need to change.
 
 When converting ingredient units, **do not** change the following units:
 
