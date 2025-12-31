@@ -92,6 +92,7 @@ export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
       },
     })),
   ),
+  { concurrent: true },
 )
 
 export const recipeFormByIdAtom = Atom.family((id: string) =>
