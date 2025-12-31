@@ -379,9 +379,7 @@ export function RecipeDetails({
                             key={tipIndex}
                             className="flex items-start gap-2"
                           >
-                            <span className="text-primary text-sm">
-                              💡
-                            </span>
+                            <span className="text-primary text-sm">💡</span>
                             <p className="text-sm text-muted-foreground italic">
                               {tip}
                             </p>
