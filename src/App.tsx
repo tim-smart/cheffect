@@ -62,5 +62,5 @@ function DisableScroll() {
       document.body.classList.remove("overflow-hidden", "md:overflow-auto")
     }
   }, [aiChatOpen])
-  return null
+  return <div className="overflow-hidden hidden" />
 }

@@ -11,7 +11,7 @@ import {
 import Markdown from "react-markdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
-import { aiChatOpenAtom, viewportObstructedAtom } from "./atoms"
+import { aiChatOpenAtom } from "./atoms"
 import {
   clearAtom,
   currentPromptAtom,
@@ -20,6 +20,7 @@ import {
 } from "./AiChat/AiChatService"
 import { router } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
+import { useIsViewportObstructed, useViewportObstructed } from "./lib/hooks"
 
 export function AiChatModal() {
   const aiEnabled = useAtomValue(isAiEnabledAtom)
@@ -109,62 +110,64 @@ function ModalContent({
     initial: "instant",
     resize: "smooth",
   })
-  const viewportObstructed = useAtomValue(viewportObstructedAtom)
+  const viewportObstructed = useViewportObstructed()
   useEffect(() => {
     setTimeout(() => {
       inputRef.current?.scrollIntoView({ behavior: "instant" })
       scrollToBottom()
-    }, 0)
+    }, 10)
   }, [viewportObstructed > 0, open])
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
-        viewportObstructed > 0
-          ? ""
-          : "top-[15vh]! rounded-t-2xl md:rounded-2xl",
-      )}
-      onClick={(e) => e.stopPropagation()}
-      style={{ top: viewportObstructed }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border pl-4 pr-2 py-2">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">AI Sous-chef</h2>
-        </div>
-        <Button
-          onClick={() => onClose()}
-          className="rounded-full"
-          size="icon"
-          variant="ghost"
-        >
-          <X />
-        </Button>
-      </div>
-      {/* Messages */}
+    <>
       <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-card"
-        onClick={(e) => {
-          if (!(e.target instanceof HTMLAnchorElement)) return
-          e.preventDefault()
-          const url = new URL(e.target.href)
-          router.navigate({ to: url.pathname })
-          onClose()
-        }}
+        ref={containerRef}
+        className={cn(
+          "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:bottom-22 md:w-96 md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
+          viewportObstructed > 0
+            ? ""
+            : "top-[15vh]! rounded-t-2xl md:rounded-2xl",
+        )}
+        onClick={(e) => e.stopPropagation()}
+        style={{ top: viewportObstructed }}
       >
-        <MessagesList
-          ref={contentRef}
-          inputRef={inputRef}
-          onNewMessage={scrollToBottom}
-        />
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border pl-4 pr-2 py-2">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">AI Sous-chef</h2>
+          </div>
+          <Button
+            onClick={() => onClose()}
+            className="rounded-full"
+            size="icon"
+            variant="ghost"
+          >
+            <X />
+          </Button>
+        </div>
+        {/* Messages */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4 bg-card"
+          onClick={(e) => {
+            if (!(e.target instanceof HTMLAnchorElement)) return
+            e.preventDefault()
+            const url = new URL(e.target.href)
+            router.navigate({ to: url.pathname })
+            onClose()
+          }}
+        >
+          <MessagesList
+            ref={contentRef}
+            inputRef={inputRef}
+            onNewMessage={scrollToBottom}
+          />
+        </div>
+        {/* Input */}
+        <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
       </div>
-      {/* Input */}
-      <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
-    </div>
+    </>
   )
 }
 
@@ -216,7 +219,7 @@ function MessagesList({
         message.role === "tool" ? (
           <div
             key={i}
-            className="flex flex-col justify-start text-sm text-muted-foreground"
+            className="flex flex-col justify-start text-muted-foreground"
           >
             {message.content.map((part) => (
               <span key={part.id} className="block">
@@ -230,7 +233,7 @@ function MessagesList({
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 prose dark:prose-invert prose-sm leading-tight overflow-auto ${
+              className={`max-w-[80%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto ${
                 message.role === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-foreground"
@@ -313,13 +316,13 @@ function PromptInput({
 
   const clear = useAtomSet(clearAtom)
 
-  const viewportObstructed = useAtomValue(viewportObstructedAtom, (n) => n > 0)
+  const viewportObstructed = useIsViewportObstructed()
 
   return (
     <form
       onSubmit={handleSubmit}
       className={cn(
-        "border-t border-border p-3 pl-1 z-10",
+        "border-t border-border p-2 pl-1 z-10",
         viewportObstructed ? "" : "nav-pb",
       )}
     >
