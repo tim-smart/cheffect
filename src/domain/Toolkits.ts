@@ -68,7 +68,8 @@ export class toolkit extends Toolkit.make(
     success: TransientResponse(Schema.Struct({ recipeId: Schema.String })),
   }),
   Tool.make("SuggestRecipeEdit", {
-    description: "Suggest edits to an existing recipe",
+    description:
+      "Suggest edits to an existing recipe. The recipe parameter must contain ALL fields from the original recipe, not just the changed fields. Copy all existing values and only modify the specific fields that need to change.",
     parameters: {
       recipeId: Schema.String,
       recipe: ExtractedRecipe,
