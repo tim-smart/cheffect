@@ -66,7 +66,7 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
         type="file"
         multiple
         className="hidden"
-        accept="image/*"
+        accept="image/*,android/allowCamera"
         onChange={(e) => {
           const files = e.target.files
           if (files && files.length > 0) {

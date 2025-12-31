@@ -130,7 +130,7 @@ function ModalContent({
       style={{ top: viewportObstructed }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+      <div className="flex items-center justify-between border-b border-border pl-4 pr-2 py-2">
         <div className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-semibold">AI Sous-chef</h2>
@@ -141,7 +141,7 @@ function ModalContent({
           size="icon"
           variant="ghost"
         >
-          <X className="h-5 w-5" />
+          <X />
         </Button>
       </div>
       {/* Messages */}
@@ -381,7 +381,7 @@ function PromptInput({
             ref={fileRef}
             type="file"
             className="hidden"
-            accept="image/*"
+            accept="image/*,android/allowCamera"
             multiple
             onChange={(e) => {
               const selectedFiles = e.target.files
