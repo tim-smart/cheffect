@@ -349,6 +349,8 @@ Avoid providing information that is already available in the app.
 - The menu list can be linked to using \`[menus](/menus)\`
 - Individual menus can be linked to using \`[name](/menus/$id)\`
 
+If you are able, always provide links to relevant sections of the app instead of plain text.
+
 `
 
       const currentSystemPrompt = Effect.gen(function* () {
