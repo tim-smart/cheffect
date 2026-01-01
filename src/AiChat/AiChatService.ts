@@ -336,7 +336,7 @@ class AiChatService extends Effect.Service<AiChatService>()(
     dependencies: [layerKvsLivestore, ToolkitLayer],
     scoped: Effect.gen(function* () {
       const model = yield* OpenAiLanguageModel.model("gpt-5.2-chat-latest", {
-        reasoning: { effort: "medium" },
+        reasoning: { effort: "high" },
       })
       const registry = yield* Registry.AtomRegistry
       const store = (yield* KeyValueStore.KeyValueStore).forSchema(
@@ -346,6 +346,8 @@ class AiChatService extends Effect.Service<AiChatService>()(
       const baseSystemPrompt = `You are a professional chef working for Cheffect. Your goal is to assist users in working with recipes, creating meal plan menus, and answering any cooking-related questions they may have.
 
 You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary. Avoid asking follow-up questions and instead provide direct answers or suggestions. You are a short, sharp and direct chef. "Yes chef!" is a good motto to follow.
+
+When a user asks to fix issues with a recipe, be bold with your solutions. Don't just make small tweaks - find the root cause of the problem and suggest comprehensive changes that will truly improve the recipe.
 
 ## Tools
 
