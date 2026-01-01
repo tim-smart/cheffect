@@ -270,6 +270,30 @@ const ToolkitLayer = toolkit.toLayer(
           value: entries,
         }
       }),
+      AddMealPlanEntries: Effect.fnUntraced(function* ({ mealPlanEntries }) {
+        mealPlanEntries.map((mealPlanEntry) => {
+          const id = crypto.randomUUID()
+          store.commit(
+            events.mealPlanAdd({
+              id,
+              day: mealPlanEntry.day,
+              recipeId: mealPlanEntry.recipeId,
+            }),
+          )
+          return id
+        })
+        return {
+          _tag: "Transient",
+          value: null,
+        }
+      }),
+      RemoveMealPlanEntry: Effect.fnUntraced(function* ({ id }) {
+        store.commit(events.mealPlanRemove({ id }))
+        return {
+          _tag: "Transient",
+          value: null,
+        }
+      }),
       ImportRecipeFromUrl: Effect.fnUntraced(function* ({ url }) {
         const jobId = crypto.randomUUID()
         store.commit(

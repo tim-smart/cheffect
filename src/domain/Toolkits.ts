@@ -7,6 +7,7 @@ import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
 import { MealPlanEntry } from "./MealPlanEntry"
 import { OpenAiTool } from "@effect/ai-openai"
+import { Model } from "@effect/sql"
 
 export const TerminalResponse = <S extends Schema.Schema.Any>(
   schema: S,
@@ -174,6 +175,28 @@ export class toolkit extends Toolkit.make(
     description:
       "Get the user's current meal plan entries for the current week",
     success: TransientResponse(Schema.Array(MealPlanEntry.json)),
+  }),
+  Tool.make("AddMealPlanEntries", {
+    description: "Add entries to the user's meal plan",
+    parameters: {
+      mealPlanEntries: Schema.Array(
+        Schema.Struct({
+          recipeId: Schema.String,
+          day: Model.Date.annotations({
+            description:
+              "The date for which to plan the meal (YYYY-MM-DD format). Time component is ignored.",
+          }),
+        }),
+      ),
+    },
+    success: TransientResponse(Schema.Null),
+  }),
+  Tool.make("RemoveMealPlanEntry", {
+    description: "Remove an entry from the user's meal plan",
+    parameters: {
+      id: Schema.String,
+    },
+    success: TransientResponse(Schema.Null),
   }),
   Tool.make("ImportRecipeFromUrl", {
     description:
