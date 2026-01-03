@@ -412,7 +412,7 @@ function GroceryListItem({
   return (
     <div
       className={cn(
-        `flex items-center gap-3 p-1 pl-3 min-h-14 transition-colors bg-card ${item.completed ? "bg-muted" : "active:bg-muted dark:active:bg-card/50"}`,
+        `flex items-center gap-3 pl-3 transition-colors bg-card ${item.completed ? "bg-muted" : "active:bg-muted dark:active:bg-card/50"}`,
         editingItem ? "" : "cursor-default",
       )}
     >
@@ -439,31 +439,28 @@ function GroceryListItem({
         // Display mode
         <>
           <div
-            className={cn("flex-1 min-w-0", item.recipeIds ? "pt-1" : "")}
+            className={cn(
+              "flex-1 min-w-0 flex flex-col leading-tight py-1 justify-center",
+              item.recipeIds ? "pt-2" : "min-h-13",
+              `${item.completed ? "text-muted-foreground" : ""}`,
+            )}
             onClick={() => toggleItem(item)}
           >
-            <div
-              className={cn(
-                "flex flex-col leading-tight",
-                `${item.completed ? "text-muted-foreground" : ""}`,
-              )}
-            >
-              <div>
-                <span>{item.name}</span>
-                {item.quantity && (
-                  <span className="text-sm text-muted-foreground ml-2">
-                    ({item.quantity})
-                  </span>
-                )}
-              </div>
-              {item.recipeIds && (
-                <div className="text-xs text-muted-foreground [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
-                  {item.recipeIds.map((id) => (
-                    <RecipeTitle key={id} id={id} />
-                  ))}
-                </div>
+            <div>
+              <span>{item.name}</span>
+              {item.quantity && (
+                <span className="text-sm text-muted-foreground ml-2">
+                  ({item.quantity})
+                </span>
               )}
             </div>
+            {item.recipeIds && (
+              <div className="text-xs text-muted-foreground [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
+                {item.recipeIds.map((id) => (
+                  <RecipeTitle key={id} id={id} />
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <Button
@@ -583,6 +580,7 @@ function NameAutoComplete() {
               <CommandItem
                 key={name}
                 onSelect={setName}
+                onPointerDown={(e) => e.preventDefault()}
                 onPointerUp={(e) => {
                   e.preventDefault()
                   onClick(name)
