@@ -372,10 +372,10 @@ function SelectRecipeButton(props: {}) {
     <Button
       variant="ghost"
       size="sm"
-      className="h-8 w-8 p-0 text-primary hover:bg-primary"
+      className="h-8 w-8 p-0 text-primary hover:bg-primary hover:text-primary-foreground"
       {...props}
     >
-      <Plus className="w-4 h-4" />
+      <Plus />
     </Button>
   )
 }
