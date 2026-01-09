@@ -48,7 +48,8 @@ export const allRecipesAtom = Store.makeQuery(
     (get) => {
       const { query, sortBy } = get(searchState$)
       const trimmedQuery = query.trim()
-      const sort = sortBy === "createdAt" ? "createdAt DESC" : "title ASC"
+      const sort =
+        sortBy === "createdAt" ? "createdAt DESC" : "title COLLATE NOCASE ASC"
       if (trimmedQuery === "") {
         return {
           query: sql`SELECT * FROM recipes WHERE deletedAt IS NULL ORDER BY ${sort}`,
@@ -128,7 +129,11 @@ export const allGroceryItemsAtom = Store.makeQuery(
     (get) => {
       const state = get(groceryListState$)
       return {
-        query: sql`SELECT * FROM grocery_items WHERE ${state.currentList ? "list = ?" : "list IS NULL"} ORDER BY aisle, name ASC`,
+        query: sql`
+          SELECT *
+          FROM grocery_items
+          WHERE ${state.currentList ? "list = ?" : "list IS NULL"}
+          ORDER BY aisle, name COLLATE NOCASE ASC`,
         schema: GroceryItem.array,
         bindValues: state.currentList ? [state.currentList] : [],
       }
@@ -160,7 +165,11 @@ export const allGroceryItemsAtom = Store.makeQuery(
 export const allGroceryItems$ = (list: null | string) =>
   queryDb(
     {
-      query: sql`SELECT * FROM grocery_items WHERE ${list ? "list = ?" : "list IS NULL"} ORDER BY name ASC`,
+      query: sql`
+        SELECT *
+        FROM grocery_items
+        WHERE ${list ? "list = ?" : "list IS NULL"}
+        ORDER BY name COLLATE NOCASE ASC`,
       schema: GroceryItem.array,
       bindValues: list ? [list] : [],
     },
@@ -174,7 +183,11 @@ export const allGroceryItemsCurrent$ = queryDb(
   (get) => {
     const state = get(groceryListState$)
     return {
-      query: sql`SELECT * FROM grocery_items WHERE ${state.currentList ? "list = ?" : "list IS NULL"} ORDER BY name ASC`,
+      query: sql`
+        SELECT *
+        FROM grocery_items
+        WHERE ${state.currentList ? "list = ?" : "list IS NULL"}
+        ORDER BY name COLLATE NOCASE ASC`,
       schema: GroceryItem.array,
       bindValues: state.currentList ? [state.currentList] : [],
     }
@@ -187,7 +200,11 @@ export const allGroceryItemsArrayAtom = Store.makeQuery(allGroceryItemsCurrent$)
 
 export const groceryListNames$ = queryDb(
   {
-    query: sql`SELECT DISTINCT list FROM grocery_items WHERE list IS NOT NULL ORDER BY list ASC`,
+    query: sql`
+      SELECT DISTINCT list
+      FROM grocery_items
+      WHERE list IS NOT NULL
+      ORDER BY list COLLATE NOCASE ASC`,
     schema: Schema.Array(Schema.Struct({ list: Schema.String })),
   },
   {
@@ -241,8 +258,16 @@ const mealPlanRecipes$ = (query: string) => {
     {
       query:
         trimmedQuery === ""
-          ? sql`SELECT * FROM recipes WHERE deletedAt IS NULL ORDER BY title ASC, createdAt DESC`
-          : sql`SELECT * FROM recipes WHERE title LIKE ? AND deletedAt IS NULL ORDER BY title ASC, createdAt DESC`,
+          ? sql`
+              SELECT *
+              FROM recipes
+              WHERE deletedAt IS NULL
+              ORDER BY title COLLATE NOCASE ASC, createdAt DESC`
+          : sql`
+            SELECT *
+            FROM recipes
+            WHERE title LIKE ? AND deletedAt IS NULL
+            ORDER BY title COLLATE NOCASE ASC, createdAt DESC`,
       schema: Recipe.array,
       bindValues: trimmedQuery === "" ? [] : [`%${trimmedQuery}%`],
     },
