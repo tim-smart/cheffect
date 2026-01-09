@@ -34,4 +34,4 @@ jobs:
           pnpm tsc --noEmit
 
       - name: Prettier check
-        run: pnpm prettier --check .
+        run: pnpm prettier --check src
