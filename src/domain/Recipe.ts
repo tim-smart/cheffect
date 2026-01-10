@@ -148,19 +148,19 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
   }
 }
 
-const DurationFromMinuteOrNull = Schema.NullOr(DurationFromMinutes).annotations(
-  {
-    description: "A duration represented in minutes. Can be null if not set.",
-  },
-)
+const DurationFromMinutesOrNull = Schema.NullOr(
+  DurationFromMinutes,
+).annotations({
+  description: "A duration represented in minutes. Can be null if not set.",
+})
 
 const DurationField = Model.Field({
   select: Schema.NullOr(Schema.DurationFromMillis),
   insert: Schema.NullOr(Schema.DurationFromMillis),
   update: Schema.NullOr(Schema.DurationFromMillis),
-  json: DurationFromMinuteOrNull,
-  jsonCreate: DurationFromMinuteOrNull,
-  jsonUpdate: DurationFromMinuteOrNull,
+  json: DurationFromMinutesOrNull,
+  jsonCreate: DurationFromMinutesOrNull,
+  jsonUpdate: DurationFromMinutesOrNull,
 })
 
 export class Recipe extends Model.Class<Recipe>("Recipe")({
