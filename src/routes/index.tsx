@@ -41,12 +41,6 @@ export default function CheffectHome() {
         <SearchInput />
       </div>
 
-      {/* Recipe Count */}
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold">My Recipes</h2>
-      </div>
-
-      {/* Recipe List - Mobile Optimized */}
       <div className="space-y-4">
         {Result.builder(recipes)
           .onInitial(() => <RecipeListSkeleton />)
