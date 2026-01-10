@@ -30,6 +30,8 @@ import {
   mealPlanWeekStart,
   openAiApiKey,
   Setting,
+  exportAllAtom,
+  importAllAtom,
 } from "@/Settings"
 import { useAtomSet, useAtomSuspense } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
@@ -74,10 +76,16 @@ const weekDayOptions = days.map((day, index) => ({
 }))
 
 function SettingsPage() {
+  const exportAllData = useAtomSet(exportAllAtom)
+  const importAllData = useAtomSet(importAllAtom)
+  const importAllRef = useRef<HTMLInputElement>(null)
+
   const exportRecipes = useAtomSet(exportAtom)
   const importRecipes = useAtomSet(importAtom)
-  const clearMemory = useAtomSet(clearAiMemoryAtom)
   const importRef = useRef<HTMLInputElement>(null)
+
+  const clearMemory = useAtomSet(clearAiMemoryAtom)
+
   return (
     <div className="pb-content">
       {/* Header */}
@@ -97,6 +105,22 @@ function SettingsPage() {
               <DropdownMenuContent>
                 <DropdownMenuItem
                   onClick={() => {
+                    exportAllData()
+                  }}
+                >
+                  <Share />
+                  Export all data
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    importAllRef.current?.click()
+                  }}
+                >
+                  <Import />
+                  Import all data
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
                     exportRecipes()
                   }}
                 >
@@ -113,6 +137,17 @@ function SettingsPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <input
+              ref={importAllRef}
+              type="file"
+              className="hidden"
+              accept="text/plain"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                importAllData(file)
+              }}
+            />
             <input
               ref={importRef}
               type="file"

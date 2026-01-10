@@ -224,7 +224,7 @@ export const exportAtom = Store.runtime.fn<void>()(
     const json = yield* Schema.encode(Recipe.arrayJson)(recipes)
     const file = new File(
       [JSON.stringify(json)],
-      `cheffect-${new Date().toISOString()}.txt`,
+      `cheffect-recipes-${new Date().toISOString()}.txt`,
       { type: "text/plain" },
     )
     if (navigator.canShare && navigator.canShare({ files: [file] })) {

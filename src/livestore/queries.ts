@@ -179,6 +179,13 @@ export const allGroceryItems$ = (list: null | string) =>
     },
   )
 
+export const exportGroceryItems$ = queryDb({
+  query: sql`
+    SELECT *
+    FROM grocery_items`,
+  schema: GroceryItem.array,
+})
+
 export const allGroceryItemsCurrent$ = queryDb(
   (get) => {
     const state = get(groceryListState$)

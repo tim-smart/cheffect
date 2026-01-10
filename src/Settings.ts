@@ -1,7 +1,7 @@
 import * as Data from "effect/Data"
 import * as Schema from "effect/Schema"
 import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
-import { events } from "./livestore/schema"
+import { events, tables } from "./livestore/schema"
 import { queryDb, sql } from "@livestore/livestore"
 import { flow } from "effect"
 import * as Array from "effect/Array"
@@ -12,6 +12,7 @@ import * as DateTime from "effect/DateTime"
 import * as Function from "effect/Function"
 import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
+import { allRecipesAtom, exportGroceryItems$ } from "./livestore/queries"
 
 const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   setting: Setting<S>,
@@ -174,5 +175,92 @@ export const clearAiMemoryAtom = Atom.fn<void>()(
   Effect.fnUntraced(function* (_, get) {
     const store = get(Store.storeUnsafe)!
     store.commit(events.aiMemoryClear())
+  }),
+)
+
+const ExportEvents = Schema.Array(
+  Schema.Union(
+    Schema.Struct({
+      name: Schema.Literal(events.recipeCreated.name),
+      args: events.recipeCreated.schema,
+    }),
+    Schema.Struct({
+      name: Schema.Literal(events.groceryItemAdded.name),
+      args: events.groceryItemAdded.schema,
+    }),
+    Schema.Struct({
+      name: Schema.Literal(events.mealPlanAdd.name),
+      args: events.mealPlanAdd.schema,
+    }),
+    Schema.Struct({
+      name: Schema.Literal(events.menuAdd.name),
+      args: events.menuAdd.schema,
+    }),
+    Schema.Struct({
+      name: Schema.Literal(events.menuEntryAdd.name),
+      args: events.menuEntryAdd.schema,
+    }),
+  ),
+)
+const ExportEventsJson = Schema.parseJson(ExportEvents)
+
+export const exportAllAtom = Store.runtime.fn<void>()(
+  Effect.fnUntraced(function* (_, get) {
+    const store = yield* Store
+    const out = Array.empty<(typeof ExportEvents.Type)[number]>()
+
+    // recipes
+    const allRecipes = yield* get.result(allRecipesAtom)
+    for (const recipe of allRecipes) {
+      out.push(events.recipeCreated(recipe))
+    }
+
+    // groceries
+    const allGroceryItems = store.query(exportGroceryItems$)
+    for (const item of allGroceryItems) {
+      out.push(events.groceryItemAdded(item))
+    }
+
+    // meal plan
+    const mealPlanEntries = store.query(tables.mealPlan)
+    for (const entry of mealPlanEntries) {
+      out.push(events.mealPlanAdd(entry))
+    }
+
+    // menus
+    const allMenus = store.query(tables.menus)
+    for (const menu of allMenus) {
+      out.push(events.menuAdd(menu))
+    }
+
+    // menu entries
+    const allMenuEntries = store.query(tables.menuEntries)
+    for (const entry of allMenuEntries) {
+      out.push(events.menuEntryAdd(entry))
+    }
+
+    const json = Schema.encodeSync(ExportEventsJson)(out)
+    const file = new File([json], `cheffect-${new Date().toISOString()}.txt`, {
+      type: "text/plain",
+    })
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] })
+    }
+  }),
+)
+
+export const importAllAtom = Store.runtime.fn<File>()(
+  Effect.fnUntraced(function* (file) {
+    const text = yield* Effect.promise(() => file.text())
+    const events = Schema.decodeSync(ExportEventsJson)(text)
+    const store = yield* Store
+    for (const event of events) {
+      // @effect-diagnostics-next-line tryCatchInEffectGen:off
+      try {
+        store.commit(event)
+      } catch (e) {
+        console.error("Failed to import event", event, e)
+      }
+    }
   }),
 )
