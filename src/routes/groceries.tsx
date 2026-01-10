@@ -298,7 +298,7 @@ function GroceryListList({
       events.groceryItemToggled({ id: item.id, completed: !item.completed }),
     )
     if ("vibrate" in navigator) {
-      navigator.vibrate(8)
+      navigator.vibrate(7)
     }
   }
 
@@ -306,7 +306,7 @@ function GroceryListList({
     cancelBeautify()
     commit(events.groceryItemDeleted({ id: item.id }))
     if ("vibrate" in navigator) {
-      navigator.vibrate(8)
+      navigator.vibrate(7)
     }
   }
 
