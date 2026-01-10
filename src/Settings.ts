@@ -200,6 +200,10 @@ const ExportEvents = Schema.Array(
       name: Schema.Literal(events.menuEntryAdd.name),
       args: events.menuEntryAdd.schema,
     }),
+    Schema.Struct({
+      name: Schema.Literal(events.aiMemoryEntryAdded.name),
+      args: events.aiMemoryEntryAdded.schema,
+    }),
   ),
 )
 const ExportEventsJson = Schema.parseJson(ExportEvents)
@@ -237,6 +241,12 @@ export const exportAllAtom = Store.runtime.fn<void>()(
     const allMenuEntries = store.query(tables.menuEntries)
     for (const entry of allMenuEntries) {
       out.push(events.menuEntryAdd(entry))
+    }
+
+    // AI memory
+    const aiMemoryEntries = store.query(tables.aiMemoryEntries)
+    for (const entry of aiMemoryEntries) {
+      out.push(events.aiMemoryEntryAdded(entry))
     }
 
     const json = Schema.encodeSync(ExportEventsJson)(out)
