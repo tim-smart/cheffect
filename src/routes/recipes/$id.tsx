@@ -421,7 +421,7 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
           Scale
           <Input
             defaultValue={quantityFormatter.format(recipe.ingredientScale)}
-            className="w-16"
+            className="w-14"
             onKeyDown={(e) => {
               if (e.key !== "Enter") return
               const scale = Option.gen(function* () {

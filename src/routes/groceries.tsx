@@ -47,7 +47,6 @@ import {
   groceryNameAutoCompleteAtom,
 } from "@/Groceries/atoms"
 import { Skeleton } from "@/components/ui/skeleton"
-import clsx from "clsx"
 import {
   groceryListNamesAtom,
   groceryListStateAtom,
@@ -233,14 +232,9 @@ function GroceryItemForm({
       }}
     >
       <NameAutoCompleteSync />
-      <div
-        className={clsx(
-          className,
-          compact ? "p-3" : "rounded-lg border border-border p-3",
-        )}
-      >
+      <div className={cn(className, compact ? "p-2" : "p-3")}>
         {!compact && !isEditing && (
-          <h3 className="font-medium  mb-2">Add New Item</h3>
+          <h3 className="font-medium mb-2">Add New Item</h3>
         )}
         <div className={compact ? "space-y-1" : "space-y-2"}>
           {autocomplete ? (
@@ -338,10 +332,10 @@ function GroceryListList({
   return (
     <>
       {showForm && (
-        <div className="bg-background border-b border-border">
+        <div className="bg-background border-b border-border mb-2">
           <GroceryItemForm
             currentList={currentList}
-            className="max-w-lg mx-auto px-2 sm:px-4"
+            className="max-w-lg mx-auto px-2"
             onSubmit={(item) => {
               addGroceryItem(item)
             }}
@@ -350,8 +344,10 @@ function GroceryListList({
           />
         </div>
       )}
-      <div className="space-y-4 max-w-lg mx-auto p-2 sm:p-4">
-        {showCompleted && <h2 className="text-lg font-semibold ">Completed</h2>}
+      <div className="space-y-2 max-w-lg mx-auto p-2">
+        {showCompleted && (
+          <hr className="my-4 border-border border-3 rounded-lg w-2/5 mx-auto" />
+        )}
         {/* Grocery List by Aisle */}
         {aisles
           .flatMap((aisle) => {
@@ -370,7 +366,7 @@ function GroceryListList({
           })
           .map(({ name, items }) => (
             <div key={name}>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <h2 className="font-semibold ">{name}</h2>
               </div>
 
