@@ -37,7 +37,7 @@ export default function CheffectHome() {
   return (
     <div className="max-w-lg mx-auto p-2 sm:p-4 pb-content!">
       {/* Search Bar */}
-      <div className="mb-4">
+      <div className="mb-2 sm:mb-4">
         <SearchInput />
       </div>
 
