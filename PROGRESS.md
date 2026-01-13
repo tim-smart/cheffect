@@ -1,0 +1,1 @@
+- 2026-01-13: Added rating option to recipe sorting and updated query ordering.

@@ -49,7 +49,11 @@ export const allRecipesAtom = Store.makeQuery(
       const { query, sortBy } = get(searchState$)
       const trimmedQuery = query.trim()
       const sort =
-        sortBy === "createdAt" ? "createdAt DESC" : "title COLLATE NOCASE ASC"
+        sortBy === "createdAt"
+          ? "createdAt DESC"
+          : sortBy === "rating"
+            ? "rating IS NULL, rating DESC, title COLLATE NOCASE ASC"
+            : "title COLLATE NOCASE ASC"
       if (trimmedQuery === "") {
         return {
           query: sql`SELECT * FROM recipes WHERE deletedAt IS NULL ORDER BY ${sort}`,
