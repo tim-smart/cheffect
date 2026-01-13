@@ -3,6 +3,8 @@
 ## Project Setup
 
 - This project uses **pnpm** as the package manager
+- Run `pnpm install` before working on the project to ensure all dependencies
+  are installed
 
 ## Code Quality Checks
 
