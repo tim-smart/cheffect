@@ -269,6 +269,10 @@ export const SortBy = [
     value: "createdAt",
   },
   {
+    label: "Rating",
+    value: "rating",
+  },
+  {
     label: "Title",
     value: "title",
   },
