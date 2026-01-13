@@ -1,1 +1,2 @@
 - 2026-01-13: Added rating option to recipe sorting and updated query ordering.
+- 2026-01-13: TIM-12 align top nav logo text via tighter line-height. Files: src/routes/\_\_root.tsx. Notes: none.

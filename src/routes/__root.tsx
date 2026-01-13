@@ -27,7 +27,7 @@ export const Route = createRootRoute({
                 }}
               >
                 <ChefHat className="w-7 h-7 text-primary cursor-pointer" />
-                <h1 className="text-xl font-bold">Cheffect</h1>
+                <h1 className="text-xl font-bold leading-none">Cheffect</h1>
               </button>
               <div className="flex items-center gap-3">
                 <Button
