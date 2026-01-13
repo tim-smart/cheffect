@@ -1,2 +1,3 @@
 src/routeTree.gen.ts
 pnpm-lock.yaml
+.agents/
