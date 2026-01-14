@@ -69,7 +69,13 @@ export const beautifyGroceriesAtom = runtime
         store.commit(events.groceryItemDeleted({ id: item.id }))
       }
       for (const item of updated) {
-        store.commit(events.groceryItemUpdated(item))
+        const prev = previousItems.get(item.id)
+        store.commit(
+          events.groceryItemUpdated({
+            ...item,
+            previousName: prev?.name,
+          }),
+        )
       }
     }),
   )

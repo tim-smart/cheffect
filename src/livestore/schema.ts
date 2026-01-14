@@ -299,7 +299,11 @@ export const events = {
   }),
   groceryItemUpdated: Events.synced({
     name: "v1.GroceryItemUpdated",
-    schema: GroceryItem.update,
+    schema: Schema.Struct({
+      ...GroceryItem.update.fields,
+      previousName: Schema.optional(Schema.String),
+      userInitiated: Schema.optional(Schema.Boolean),
+    }),
   }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
@@ -437,31 +441,33 @@ const materializers = State.SQLite.materializers(events, {
               createdAt: insert.createdAt,
               updatedAt: insert.updatedAt,
             })
-            .onConflict("name", "update", {
-              aisle: insert.aisle,
-              updatedAt: insert.updatedAt,
-            }),
+            .onConflict("name", "ignore"),
         ]
       : add
   },
-  "v1.GroceryItemUpdated": ({ id, ...update }) => {
+  "v1.GroceryItemUpdated": ({ id, previousName, userInitiated, ...update }) => {
     const add = tables.groceryItems.update(update).where({ id })
     const name = update.name.toLowerCase().trim()
+    previousName = previousName?.toLowerCase().trim()
+    const aisleInsert = tables.ingredientAisles.insert({
+      name,
+      aisle: update.aisle!,
+      createdAt: update.updatedAt,
+      updatedAt: update.updatedAt,
+    })
     return [
       add,
       update.aisle
-        ? tables.ingredientAisles
-            .insert({
-              name,
-              aisle: update.aisle,
-              createdAt: update.updatedAt,
-              updatedAt: update.updatedAt,
-            })
-            .onConflict("name", "update", {
+        ? userInitiated
+          ? aisleInsert.onConflict("name", "update", {
               aisle: update.aisle,
               updatedAt: update.updatedAt,
             })
+          : aisleInsert.onConflict("name", "ignore")
         : tables.ingredientAisles.delete().where({ name }),
+      ...(update.aisle && previousName && previousName !== name
+        ? [tables.ingredientAisles.delete().where({ name: previousName })]
+        : []),
     ]
   },
   "v1.GroceryItemCleared": (input) => {
