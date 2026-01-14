@@ -1,0 +1,26 @@
+diff --git a/dist/esm/Prompt.js b/dist/esm/Prompt.js
+index 05a90df2e63c90c17949eddc742f7ee491e3e095..73ea7bda33102468143c73c3861ac086e5528a8e 100644
+--- a/dist/esm/Prompt.js
++++ b/dist/esm/Prompt.js
+@@ -643,6 +643,7 @@ export const fromResponseParts = parts => {
+         {
+           if (activeTextDeltas.has(part.id)) {
+             assistantParts.push(makePart("text", activeTextDeltas.get(part.id)));
++            activeTextDeltas.delete(part.id);
+           }
+           break;
+         }
+@@ -705,6 +706,13 @@ export const fromResponseParts = parts => {
+         }
+     }
+   }
++
++  activeTextDeltas.forEach(({ text }) => {
++    assistantParts.push(makePart("text", {
++      text
++    }));
++  });
++
+   if (assistantParts.length === 0 && toolParts.length === 0) {
+     return empty;
+   }
