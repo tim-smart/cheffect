@@ -360,7 +360,7 @@ function DayListItem({
       </div>
 
       {noteVisible && (
-        <div className="bg-card p-2 pb-1">
+        <div className="bg-card p-2 pb-0">
           <textarea
             value={noteDraft}
             placeholder="Add a note..."
