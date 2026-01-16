@@ -201,6 +201,14 @@ const ExportEvents = Schema.Array(
       args: events.menuEntryAdd.schema,
     }),
     Schema.Struct({
+      name: Schema.Literal(events.menuDayNoteAdd.name),
+      args: events.menuDayNoteAdd.schema,
+    }),
+    Schema.Struct({
+      name: Schema.Literal(events.mealPlanDayNoteAdd.name),
+      args: events.mealPlanDayNoteAdd.schema,
+    }),
+    Schema.Struct({
       name: Schema.Literal(events.aiMemoryEntryAdded.name),
       args: events.aiMemoryEntryAdded.schema,
     }),
@@ -241,6 +249,18 @@ export const exportAllAtom = Store.runtime.fn<void>()(
     const allMenuEntries = store.query(tables.menuEntries)
     for (const entry of allMenuEntries) {
       out.push(events.menuEntryAdd(entry))
+    }
+
+    // menu day notes
+    const allMenuDayNotes = store.query(tables.menuDayNotes)
+    for (const note of allMenuDayNotes) {
+      out.push(events.menuDayNoteAdd(note))
+    }
+
+    // meal plan day notes
+    const allMealPlanDayNotes = store.query(tables.mealPlanDayNotes)
+    for (const note of allMealPlanDayNotes) {
+      out.push(events.mealPlanDayNoteAdd(note))
     }
 
     // AI memory

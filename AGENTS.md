@@ -19,4 +19,4 @@ If you need to work out how something works, there are some `git submodule`s you
 can refer to:
 
 - `.agents/effect` - for the `effect` and `@effect/*` libraries
-- `.agents/effect-atom` - for the `@effecto-atom/*` libraries
+- `.agents/effect-atom` - for the `@effect-atom/*` libraries

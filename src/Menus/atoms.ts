@@ -1,5 +1,6 @@
 import { Menu } from "@/domain/Menu"
 import { MenuEntry } from "@/domain/MenuEntry"
+import { MenuDayNote } from "@/domain/MenuDayNote"
 import { Recipe } from "@/domain/Recipe"
 import { Store } from "@/livestore/atoms"
 import { Atom } from "@effect-atom/atom-react"
@@ -54,6 +55,24 @@ export const menuEntries$ = (menuId: string) =>
 
 export const menuEntriesAtom = Atom.family((menuId: string) =>
   Store.makeQueryUnsafe(menuEntries$(menuId)),
+)
+
+export const menuDayNotes$ = (menuId: string) =>
+  queryDb(
+    {
+      query: sql`
+        select *
+        from menu_day_notes
+        where menuId = ?
+        order by day asc, updatedAt desc`,
+      schema: MenuDayNote.array,
+      bindValues: [menuId],
+    },
+    { deps: [menuId] },
+  )
+
+export const menuDayNotesAtom = Atom.family((menuId: string) =>
+  Store.makeQueryUnsafe(menuDayNotes$(menuId)),
 )
 
 export const menuRecipeCountAtom = (menuId: string) =>
