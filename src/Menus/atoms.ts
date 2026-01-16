@@ -1,6 +1,6 @@
 import { Menu } from "@/domain/Menu"
-import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
+import { MenuEntry } from "@/domain/MenuEntry"
 import { Recipe } from "@/domain/Recipe"
 import { Store } from "@/livestore/atoms"
 import { Atom } from "@effect-atom/atom-react"

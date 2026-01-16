@@ -3,7 +3,6 @@ import { GroceryAisle, GroceryItem } from "../domain/GroceryItem"
 import { Menu } from "../domain/Menu"
 import { MenuEntry } from "../domain/MenuEntry"
 import { MenuDayNote } from "../domain/MenuDayNote"
-import { MealPlanDayNote } from "../domain/MealPlanDayNote"
 import { Rating } from "../domain/Rating"
 import {
   IngredientsComponent,
@@ -16,6 +15,7 @@ import { Model } from "@effect/sql"
 import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 
 const recipeColumns = {
   id: State.SQLite.text({ primaryKey: true }),
@@ -188,7 +188,7 @@ export const tables = {
       id: State.SQLite.text({ primaryKey: true }),
       menuId: State.SQLite.text({ nullable: false }),
       day: State.SQLite.integer({ nullable: false }),
-      note: State.SQLite.text({ default: "" }),
+      note: State.SQLite.text({ nullable: false }),
       createdAt: State.SQLite.integer({
         schema: Schema.DateTimeUtcFromNumber,
       }),
@@ -198,7 +198,7 @@ export const tables = {
     },
     indexes: [
       {
-        name: "menu_day_notes_select_idx",
+        name: "menu_day_notes_menu_idx",
         columns: ["menuId", "day"],
       },
     ],
@@ -211,7 +211,7 @@ export const tables = {
         nullable: false,
         schema: Model.Date,
       }),
-      note: State.SQLite.text({ default: "" }),
+      note: State.SQLite.text({ nullable: false }),
       createdAt: State.SQLite.integer({
         schema: Schema.DateTimeUtcFromNumber,
       }),
