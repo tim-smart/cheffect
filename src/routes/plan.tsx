@@ -9,9 +9,11 @@ import {
   MoreVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import * as DateTime from "effect/DateTime"
 import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import {
+  mealPlanDayNotesAtom,
   mealPlanEntriesAtom,
   mealPlanWeekAdjustedAtom,
   mealPlanWeekAtom,
@@ -25,6 +27,7 @@ import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
+import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import * as Iterable from "effect/Iterable"
@@ -35,6 +38,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { Placeholder } from "@/components/placeholder"
+import { useEffect, useState } from "react"
 import { useSwipeable } from "react-swipeable"
 
 export const Route = createFileRoute("/plan")({
@@ -61,6 +65,7 @@ export function MealPlanPage() {
   const [weekStartRaw, setWeekStart] = useAtom(mealPlanWeekAtom)
   const weekStart = useAtomValue(mealPlanWeekAdjustedAtom)
   const entries = useAtomValue(mealPlanEntriesAtom)
+  const dayNotes = useAtomValue(mealPlanDayNotesAtom)
 
   const getWeekDays = () => {
     const days = []
@@ -184,6 +189,7 @@ export function MealPlanPage() {
         <WeekList
           today={today}
           entries={Result.getOrElse(entries, () => [])}
+          dayNotes={Result.getOrElse(dayNotes, () => [])}
           weekDays={weekDays}
           handleRemoveEntry={handleRemoveEntry}
         />
@@ -194,151 +200,236 @@ export function MealPlanPage() {
 
 function WeekList({
   entries,
+  dayNotes,
   weekDays,
   handleRemoveEntry,
   today,
 }: {
   entries: ReadonlyArray<MealPlanEntry>
+  dayNotes: ReadonlyArray<MealPlanDayNote>
   weekDays: Array<DateTime.Utc>
   handleRemoveEntry: (id: string) => void
   today: DateTime.Utc
 }) {
-  const commit = useCommit()
   const isToday = (date: DateTime.Utc) => DateTime.Equivalence(date, today)
+  const notesByDay = new Map<string, MealPlanDayNote>()
+
+  for (const note of dayNotes) {
+    const key = DateTime.formatIsoDate(note.day)
+    const existing = notesByDay.get(key)
+    if (
+      !existing ||
+      note.updatedAt.epochMillis > existing.updatedAt.epochMillis
+    ) {
+      notesByDay.set(key, note)
+    }
+  }
 
   return (
     <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
       {weekDays.map((date) => {
-        const dateParts = DateTime.toPartsUtc(date)
         const isTodayDate = isToday(date)
         const dayEntries = entries.filter((entry) =>
           DateTime.Equivalence(entry.day, date),
         )
+        const dayNote = notesByDay.get(DateTime.formatIsoDate(date))
 
         return (
-          <div key={date.epochMillis} className="bg-card">
-            {/* Day Header with Add Button */}
-            <div
-              className={`w-full p-2 flex items-center justify-between border-b text-card-foreground ${
-                isTodayDate ? "bg-primary-muted" : "bg-muted dark:bg-background"
-              }`}
-            >
-              <div className="flex items-center gap-3 flex-1">
-                <div>
-                  <p
-                    className={`font-semibold text-sm ${isTodayDate ? "text-primary" : ""}`}
-                  >
-                    {dayNames[dateParts.weekDay]}
-                  </p>
-                  <p
-                    className={`text-xs ${isTodayDate ? "text-primary/70" : "text-muted-foreground"}`}
-                  >
-                    {DateTime.formatUtc(date, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                    {isTodayDate && " • Today"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <SelectRecipeDrawer
-                  onSelect={(recipe) => {
-                    commit(
-                      events.mealPlanAdd({
-                        id: crypto.randomUUID(),
-                        day: date,
-                        recipeId: recipe.id,
-                      }),
-                    )
-                  }}
-                >
-                  <SelectRecipeButton />
-                </SelectRecipeDrawer>
-              </div>
-            </div>
-
-            {/* Day Content - Always Visible */}
-            <div>
-              {dayEntries.length > 0 && (
-                <div className="divide-y divide-border">
-                  {dayEntries.map(({ id, recipe }) => (
-                    <Link
-                      key={id}
-                      className="flex items-center p-2 gap-3"
-                      to="/recipes/$id"
-                      params={{ id: recipe.id }}
-                    >
-                      <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
-                        {recipe.imageUrl ? (
-                          <img
-                            src={recipe.imageUrl}
-                            alt={recipe.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Placeholder />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm  line-clamp-1">
-                          {recipe.title}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {[
-                            ...Option.match(recipe.totalTime, {
-                              onNone: () => [],
-                              onSome: (duration) => [Duration.format(duration)],
-                            }),
-                            ...(recipe.servings
-                              ? [`${recipe.servingsDisplay} servings`]
-                              : []),
-                          ].join(" • ")}
-                        </p>
-                      </div>
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <MealPlanDatePicker
-                          target={MealPlanDatePickerTarget.Existing({
-                            id,
-                            initialValue: date,
-                          })}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-muted-foreground"
-                          >
-                            <Calendar className="w-4 h-4" />
-                          </Button>
-                        </MealPlanDatePicker>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            return handleRemoveEntry(id)
-                          }}
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-
-              {dayEntries.length === 0 && (
-                <div className="p-3 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    No meals planned
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <DayListItem
+            key={date.epochMillis}
+            date={date}
+            dayEntries={dayEntries}
+            dayNote={dayNote}
+            isTodayDate={isTodayDate}
+            handleRemoveEntry={handleRemoveEntry}
+          />
         )
       })}
+    </div>
+  )
+}
+
+function DayListItem({
+  date,
+  dayEntries,
+  dayNote,
+  isTodayDate,
+  handleRemoveEntry,
+}: {
+  date: DateTime.Utc
+  dayEntries: ReadonlyArray<MealPlanEntry>
+  dayNote?: MealPlanDayNote
+  isTodayDate: boolean
+  handleRemoveEntry: (id: string) => void
+}) {
+  const commit = useCommit()
+  const dateParts = DateTime.toPartsUtc(date)
+  const [noteDraft, setNoteDraft] = useState(dayNote?.note ?? "")
+
+  useEffect(() => {
+    setNoteDraft(dayNote?.note ?? "")
+  }, [dayNote?.note])
+
+  const saveNote = () => {
+    const trimmed = noteDraft.trim()
+    if (trimmed.length === 0) {
+      if (dayNote) {
+        commit(events.mealPlanDayNoteRemove({ id: dayNote.id }))
+      }
+      return
+    }
+
+    if (dayNote) {
+      if (trimmed === dayNote.note) return
+      commit(
+        events.mealPlanDayNoteUpdate({
+          ...dayNote,
+          note: trimmed,
+          updatedAt: DateTime.unsafeNow(),
+        }),
+      )
+      return
+    }
+
+    commit(
+      events.mealPlanDayNoteAdd(
+        MealPlanDayNote.fromForm({
+          day: date,
+          note: trimmed,
+        }),
+      ),
+    )
+  }
+
+  return (
+    <div className="bg-card">
+      {/* Day Header with Add Button */}
+      <div
+        className={`w-full p-2 flex items-center justify-between border-b text-card-foreground ${
+          isTodayDate ? "bg-primary-muted" : "bg-muted dark:bg-background"
+        }`}
+      >
+        <div className="flex items-center gap-3 flex-1">
+          <div>
+            <p
+              className={`font-semibold text-sm ${isTodayDate ? "text-primary" : ""}`}
+            >
+              {dayNames[dateParts.weekDay]}
+            </p>
+            <p
+              className={`text-xs ${isTodayDate ? "text-primary/70" : "text-muted-foreground"}`}
+            >
+              {DateTime.formatUtc(date, {
+                month: "short",
+                day: "numeric",
+              })}
+              {isTodayDate && " • Today"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <SelectRecipeDrawer
+            onSelect={(recipe) => {
+              commit(
+                events.mealPlanAdd({
+                  id: crypto.randomUUID(),
+                  day: date,
+                  recipeId: recipe.id,
+                }),
+              )
+            }}
+          >
+            <SelectRecipeButton />
+          </SelectRecipeDrawer>
+        </div>
+      </div>
+
+      <div className="bg-card px-3 pb-2 pt-2">
+        <Textarea
+          value={noteDraft}
+          placeholder="Add a note..."
+          className="min-h-10 bg-background text-sm"
+          onChange={(event) => setNoteDraft(event.target.value)}
+          onBlur={saveNote}
+        />
+      </div>
+
+      {/* Day Content - Always Visible */}
+      <div>
+        {dayEntries.length > 0 && (
+          <div className="divide-y divide-border">
+            {dayEntries.map(({ id, recipe }) => (
+              <Link
+                key={id}
+                className="flex items-center p-2 gap-3"
+                to="/recipes/$id"
+                params={{ id: recipe.id }}
+              >
+                <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
+                  {recipe.imageUrl ? (
+                    <img
+                      src={recipe.imageUrl}
+                      alt={recipe.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Placeholder />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-sm  line-clamp-1">
+                    {recipe.title}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      ...Option.match(recipe.totalTime, {
+                        onNone: () => [],
+                        onSome: (duration) => [Duration.format(duration)],
+                      }),
+                      ...(recipe.servings
+                        ? [`${recipe.servingsDisplay} servings`]
+                        : []),
+                    ].join(" • ")}
+                  </p>
+                </div>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <MealPlanDatePicker
+                    target={MealPlanDatePickerTarget.Existing({
+                      id,
+                      initialValue: date,
+                    })}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-muted-foreground"
+                    >
+                      <Calendar className="w-4 h-4" />
+                    </Button>
+                  </MealPlanDatePicker>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      return handleRemoveEntry(id)
+                    }}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {dayEntries.length === 0 && (
+          <div className="p-3 text-center">
+            <p className="text-sm text-muted-foreground">No meals planned</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
