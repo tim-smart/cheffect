@@ -7,6 +7,7 @@ import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
+import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { mealPlanWeekStart } from "@/Settings"
 import * as Option from "effect/Option"
@@ -259,8 +260,35 @@ export const mealPlanEntries$ = (startDay: DateTime.Utc) => {
   )
 }
 
+export const mealPlanDayNotes$ = (startDay: DateTime.Utc) => {
+  const weekDays = Array.of(DateTime.formatIsoDate(startDay))
+  for (let i = 1; i < 7; i++) {
+    weekDays.push(
+      DateTime.add(startDay, { days: i }).pipe(DateTime.formatIsoDate),
+    )
+  }
+  return queryDb(
+    {
+      query: sql`
+        select *
+        from meal_plan_day_notes
+        where day IN ('${weekDays.join("','")}')
+        order by day asc, updatedAt desc
+      `,
+      schema: MealPlanDayNote.array,
+    },
+    {
+      deps: [startDay.epochMillis],
+    },
+  )
+}
+
 export const mealPlanEntriesAtom = Store.makeQuery((get) =>
   mealPlanEntries$(get(mealPlanWeekAdjustedAtom)),
+)
+
+export const mealPlanDayNotesAtom = Store.makeQuery((get) =>
+  mealPlanDayNotes$(get(mealPlanWeekAdjustedAtom)),
 )
 
 const mealPlanRecipes$ = (query: string) => {

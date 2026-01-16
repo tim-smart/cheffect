@@ -2,6 +2,8 @@ import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 import { GroceryAisle, GroceryItem } from "../domain/GroceryItem"
 import { Menu } from "../domain/Menu"
 import { MenuEntry } from "../domain/MenuEntry"
+import { MenuDayNote } from "../domain/MenuDayNote"
+import { MealPlanDayNote } from "../domain/MealPlanDayNote"
 import { Rating } from "../domain/Rating"
 import {
   IngredientsComponent,
@@ -177,6 +179,50 @@ export const tables = {
       {
         name: "menu_entries_select_idx",
         columns: ["day", "menuId"],
+      },
+    ],
+  }),
+  menuDayNotes: State.SQLite.table({
+    name: "menu_day_notes",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      menuId: State.SQLite.text({ nullable: false }),
+      day: State.SQLite.integer({ nullable: false }),
+      note: State.SQLite.text({ default: "" }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+    indexes: [
+      {
+        name: "menu_day_notes_select_idx",
+        columns: ["menuId", "day"],
+      },
+    ],
+  }),
+  mealPlanDayNotes: State.SQLite.table({
+    name: "meal_plan_day_notes",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      day: State.SQLite.text({
+        nullable: false,
+        schema: Model.Date,
+      }),
+      note: State.SQLite.text({ default: "" }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+    indexes: [
+      {
+        name: "meal_plan_day_notes_day_idx",
+        columns: ["day"],
       },
     ],
   }),
@@ -368,6 +414,30 @@ export const events = {
     name: "v1.MenuEntryRemove",
     schema: Schema.Struct({ id: Schema.String }),
   }),
+  menuDayNoteAdd: Events.synced({
+    name: "v1.MenuDayNoteAdd",
+    schema: MenuDayNote.insert,
+  }),
+  menuDayNoteUpdate: Events.synced({
+    name: "v1.MenuDayNoteUpdate",
+    schema: MenuDayNote.update,
+  }),
+  menuDayNoteRemove: Events.synced({
+    name: "v1.MenuDayNoteRemove",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
+  mealPlanDayNoteAdd: Events.synced({
+    name: "v1.MealPlanDayNoteAdd",
+    schema: MealPlanDayNote.insert,
+  }),
+  mealPlanDayNoteUpdate: Events.synced({
+    name: "v1.MealPlanDayNoteUpdate",
+    schema: MealPlanDayNote.update,
+  }),
+  mealPlanDayNoteRemove: Events.synced({
+    name: "v1.MealPlanDayNoteRemove",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
   settingsSet: Events.synced({
     name: "v1.SettingsSet",
     schema: Schema.Struct({
@@ -489,6 +559,7 @@ const materializers = State.SQLite.materializers(events, {
   "v1.MenuDayRemove": ({ id, newDays, day, updatedAt }) => [
     tables.menus.update({ days: newDays, updatedAt }).where({ id }),
     tables.menuEntries.delete().where({ menuId: id, day }),
+    tables.menuDayNotes.delete().where({ menuId: id, day }),
   ],
   "v1.MenuRemove": ({ id }) => tables.menus.delete().where({ id }),
   "v1.MenuEntryAdd": (insert) =>
@@ -496,6 +567,18 @@ const materializers = State.SQLite.materializers(events, {
   "v1.MenuEntrySetDay": ({ id, ...update }) =>
     tables.menuEntries.update(update).where({ id }),
   "v1.MenuEntryRemove": ({ id }) => tables.menuEntries.delete().where({ id }),
+  "v1.MenuDayNoteAdd": (insert) =>
+    tables.menuDayNotes.insert(insert).onConflict("id", "update", insert),
+  "v1.MenuDayNoteUpdate": ({ id, ...update }) =>
+    tables.menuDayNotes.update(update).where({ id }),
+  "v1.MenuDayNoteRemove": ({ id }) =>
+    tables.menuDayNotes.delete().where({ id }),
+  "v1.MealPlanDayNoteAdd": (insert) =>
+    tables.mealPlanDayNotes.insert(insert).onConflict("id", "update", insert),
+  "v1.MealPlanDayNoteUpdate": ({ id, ...update }) =>
+    tables.mealPlanDayNotes.update(update).where({ id }),
+  "v1.MealPlanDayNoteRemove": ({ id }) =>
+    tables.mealPlanDayNotes.delete().where({ id }),
   "v1.SettingsSet": ({ id, value, updatedAt }) => {
     const encoded = value.pipe(
       Option.map((v) => JSON.stringify(v)),
