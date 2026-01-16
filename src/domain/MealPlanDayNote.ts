@@ -8,8 +8,12 @@ export class MealPlanDayNote extends Model.Class<MealPlanDayNote>(
   id: Model.GeneratedByApp(Schema.String),
   day: Model.Date,
   note: Schema.String,
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(Model.FieldExcept("update")),
-  updatedAt: Schema.DateTimeUtcFromNumber,
+  createdAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
+  ),
+  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
+    Model.FieldExcept("jsonCreate", "jsonUpdate"),
+  ),
 }) {
   static array = Schema.Array(MealPlanDayNote)
 
