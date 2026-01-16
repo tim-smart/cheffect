@@ -7,6 +7,7 @@ import {
   MoreVertical,
   Trash,
   GripVertical,
+  StickyNote,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as Option from "effect/Option"
@@ -37,7 +38,6 @@ import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 
 export const Route = createFileRoute("/menus/$id")({
   component: MenuDetailPage,
@@ -205,6 +205,7 @@ function DayListItem({
   const { isOver, setNodeRef } = useDroppable({
     id: day,
   })
+  const [noteVisible, setNoteVisible] = useState(() => dayNote !== undefined)
   const [noteDraft, setNoteDraft] = useState(dayNote?.note ?? "")
   useEffect(() => {
     setNoteDraft(dayNote?.note ?? "")
@@ -255,24 +256,15 @@ function DayListItem({
         <div className="flex items-center gap-3 flex-1">
           <p className={`font-semibold`}>Day {day}</p>
         </div>
-        <div className="flex items-center gap-1">
-          {menu.days > 1 && (
+        <div className="flex items-center">
+          {!noteVisible && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-muted-foreground hover:bg-foreground/10"
-              onClick={() => {
-                commit(
-                  events.menuDayRemove({
-                    id: menu.id,
-                    day,
-                    newDays: menu.days - 1,
-                    updatedAt: DateTime.unsafeNow(),
-                  }),
-                )
-              }}
+              className="h-8 w-8 p-0 text-muted-foreground"
+              onClick={() => setNoteVisible(true)}
             >
-              <X className="w-4 h-4" />
+              <StickyNote />
             </Button>
           )}
           <SelectRecipeDrawer
@@ -293,15 +285,17 @@ function DayListItem({
         </div>
       </div>
 
-      <div className="bg-card px-3 pb-2 pt-2">
-        <Textarea
-          value={noteDraft}
-          placeholder="Add a note..."
-          className="min-h-10 bg-background text-sm"
-          onChange={(event) => setNoteDraft(event.target.value)}
-          onBlur={saveNote}
-        />
-      </div>
+      {noteVisible && (
+        <div className="bg-card p-2 pb-0">
+          <textarea
+            value={noteDraft}
+            placeholder="Add a note..."
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-ring focus:outline-none field-sizing-content resize-none w-full"
+            onChange={(event) => setNoteDraft(event.target.value)}
+            onBlur={saveNote}
+          />
+        </div>
+      )}
 
       {/* Day Content - Always Visible */}
       <div>

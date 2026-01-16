@@ -7,9 +7,9 @@ import {
   Calendar,
   Eraser,
   MoreVertical,
+  StickyNote,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import * as DateTime from "effect/DateTime"
 import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
 import {
@@ -130,6 +130,10 @@ export function MealPlanPage() {
                       const toRemove = Result.getOrElse(entries, () => [])
                       toRemove.forEach((entry) => {
                         commit(events.mealPlanRemove({ id: entry.id }))
+                      })
+                      const notesToRemove = Result.getOrElse(dayNotes, () => [])
+                      notesToRemove.forEach((note) => {
+                        commit(events.mealPlanDayNoteRemove({ id: note.id }))
                       })
                     }}
                   >
@@ -264,6 +268,7 @@ function DayListItem({
 }) {
   const commit = useCommit()
   const dateParts = DateTime.toPartsUtc(date)
+  const [noteVisible, setNoteVisible] = useState(() => dayNote !== undefined)
   const [noteDraft, setNoteDraft] = useState(dayNote?.note ?? "")
 
   useEffect(() => {
@@ -327,7 +332,17 @@ function DayListItem({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
+          {!noteVisible && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-muted-foreground"
+              onClick={() => setNoteVisible(true)}
+            >
+              <StickyNote />
+            </Button>
+          )}
           <SelectRecipeDrawer
             onSelect={(recipe) => {
               commit(
@@ -344,15 +359,17 @@ function DayListItem({
         </div>
       </div>
 
-      <div className="bg-card px-3 pb-2 pt-2">
-        <Textarea
-          value={noteDraft}
-          placeholder="Add a note..."
-          className="min-h-10 bg-background text-sm"
-          onChange={(event) => setNoteDraft(event.target.value)}
-          onBlur={saveNote}
-        />
-      </div>
+      {noteVisible && (
+        <div className="bg-card p-2 pb-1">
+          <textarea
+            value={noteDraft}
+            placeholder="Add a note..."
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-ring focus:outline-none field-sizing-content resize-none w-full"
+            onChange={(event) => setNoteDraft(event.target.value)}
+            onBlur={saveNote}
+          />
+        </div>
+      )}
 
       {/* Day Content - Always Visible */}
       <div>
