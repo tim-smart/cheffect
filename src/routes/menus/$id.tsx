@@ -15,8 +15,9 @@ import { SelectRecipeDrawer } from "@/Recipes/Drawer"
 import { router } from "@/Router"
 import * as Array from "effect/Array"
 import { useAtomSuspense, useAtomValue } from "@effect-atom/atom-react"
-import { menuByIdAtom, menuEntriesAtom } from "@/Menus/atoms"
+import { menuByIdAtom, menuDayNotesAtom, menuEntriesAtom } from "@/Menus/atoms"
 import { MenuEntry } from "@/domain/MenuEntry"
+import { MenuDayNote } from "@/domain/MenuDayNote"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { Menu } from "@/domain/Menu"
@@ -36,6 +37,7 @@ import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 
 export const Route = createFileRoute("/menus/$id")({
   component: MenuDetailPage,
@@ -46,6 +48,7 @@ export function MenuDetailPage() {
   const commit = useCommit()
   const menu = useAtomSuspense(menuByIdAtom(id)).value
   const entries = useAtomValue(menuEntriesAtom(id))!
+  const dayNotes = useAtomValue(menuDayNotesAtom(id))!
 
   const setDays = (days: number) => {
     if (days < 1 || days === menu.days) return
@@ -134,7 +137,7 @@ export function MenuDetailPage() {
             )
           }}
         >
-          <DayList menu={menu} entries={entries} />
+          <DayList menu={menu} entries={entries} dayNotes={dayNotes} />
         </DndContext>
         <div className="flex items-center">
           <div className="flex-1" />
@@ -162,20 +165,24 @@ export function MenuDetailPage() {
 function DayList({
   menu,
   entries,
+  dayNotes,
 }: {
   menu: Menu
   entries: ReadonlyArray<MenuEntry>
+  dayNotes: ReadonlyArray<MenuDayNote>
 }) {
   return (
     <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
       {Array.range(1, menu.days).map((day) => {
         const dayEntries = entries.filter((entry) => entry.day === day)
+        const dayNote = dayNotes.find((note) => note.day === day)
         return (
           <DayListItem
             key={day}
             menu={menu}
             day={day}
             dayEntries={dayEntries}
+            dayNote={dayNote}
           />
         )
       })}
@@ -187,15 +194,54 @@ function DayListItem({
   menu,
   day,
   dayEntries,
+  dayNote,
 }: {
   menu: Menu
   day: number
   dayEntries: ReadonlyArray<MenuEntry>
+  dayNote?: MenuDayNote
 }) {
   const commit = useCommit()
   const { isOver, setNodeRef } = useDroppable({
     id: day,
   })
+  const [noteDraft, setNoteDraft] = useState(dayNote?.note ?? "")
+  useEffect(() => {
+    setNoteDraft(dayNote?.note ?? "")
+  }, [dayNote?.note])
+
+  const saveNote = () => {
+    const trimmed = noteDraft.trim()
+    if (trimmed.length === 0) {
+      if (dayNote) {
+        commit(events.menuDayNoteRemove({ id: dayNote.id }))
+      }
+      return
+    }
+
+    if (dayNote) {
+      if (trimmed === dayNote.note) return
+      commit(
+        events.menuDayNoteUpdate({
+          ...dayNote,
+          note: trimmed,
+          updatedAt: DateTime.unsafeNow(),
+        }),
+      )
+      return
+    }
+
+    commit(
+      events.menuDayNoteAdd(
+        MenuDayNote.fromForm({
+          menuId: menu.id,
+          day,
+          note: trimmed,
+        }),
+      ),
+    )
+  }
+
   return (
     <div ref={setNodeRef} className="bg-card">
       <div
@@ -245,6 +291,16 @@ function DayListItem({
             <SelectRecipeButton />
           </SelectRecipeDrawer>
         </div>
+      </div>
+
+      <div className="bg-card px-3 pb-2 pt-2">
+        <Textarea
+          value={noteDraft}
+          placeholder="Add a note..."
+          className="min-h-10 bg-background text-sm"
+          onChange={(event) => setNoteDraft(event.target.value)}
+          onBlur={saveNote}
+        />
       </div>
 
       {/* Day Content - Always Visible */}
