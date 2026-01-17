@@ -257,16 +257,19 @@ function DayListItem({
           <p className={`font-semibold`}>Day {day}</p>
         </div>
         <div className="flex items-center">
-          {!noteVisible && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-muted-foreground"
-              onClick={() => setNoteVisible(true)}
-            >
-              <StickyNote />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 text-muted-foreground"
+            onClick={() => {
+              if (noteVisible) {
+                saveNote()
+              }
+              setNoteVisible((visible) => !visible)
+            }}
+          >
+            <StickyNote />
+          </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {
               commit(
