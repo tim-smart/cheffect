@@ -215,7 +215,7 @@ export function RecipeDetails({
       </header>
 
       {!recipe.hasNoDetails && (
-        <div className="bg-background p-4 border-b border-border flex items-center">
+        <div className="bg-background p-2 md:p-4 border-b border-border flex items-center">
           {/* Recipe Image & Basic Info */}
           <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-muted-foreground">
             {recipe.prepTime && (
@@ -261,11 +261,11 @@ export function RecipeDetails({
 
       {modified && <ModifiedBanner recipe={recipe} />}
 
-      <div className="flex flex-col md:items-start gap-4 mt-4 md:flex-row max-w-7xl mx-auto">
+      <div className="flex flex-col md:items-start gap-2 md:gap-4 mt-2 md:mt-4 md:flex-row max-w-7xl mx-auto">
         {/* Ingredients */}
-        <div className="flex-1 md:rounded-lg p-4">
+        <div className="flex-1 md:rounded-lg p-2 md:p-4">
           <div className="flex">
-            <h2 className="text-lg font-semibold  mb-4">
+            <h2 className="text-lg font-semibold mb-2 md:mb-4">
               Ingredients
               {recipe.ingredientScale !== 1 && (
                 <span className="text-sm text-muted-foreground ml-2">
@@ -339,19 +339,19 @@ export function RecipeDetails({
         </div>
 
         {/* Instructions */}
-        <div className="flex-2 p-4">
+        <div className="flex-2 p-2 md:p-4">
           {recipe.steps.length > 0 && (
-            <h2 className="text-xl font-semibold  mb-4">Instructions</h2>
+            <h2 className="text-xl font-semibold mb-2 md:mb-4">Instructions</h2>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-2 md:space-y-4">
             {recipe.steps.map((step, stepIndex) => (
               <div
                 key={stepIndex}
                 ref={(el) => {
                   stepElements[stepIndex] = el!
                 }}
-                className={`border-2 rounded-lg p-4 transition-all ${
+                className={`border-2 rounded-lg p-3 md:p-4 transition-all ${
                   currentStep === stepIndex
                     ? "border-primary bg-primary-muted"
                     : "border-border bg-card"
@@ -468,7 +468,7 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
   const save = useAtomSet(saveModifiedRecipeAtom)
   const create = useAtomSet(newModifiedRecipeAtom)
   return (
-    <div className="bg-yellow-50 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-50 px-4 py-2 text-sm border-b border-yellow-200 dark:border-yellow-700 flex items-center gap-2">
+    <div className="bg-yellow-50 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-50 px-2 py-2 text-sm border-b border-yellow-200 dark:border-yellow-700 flex items-center gap-2">
       <div>You are viewing a modified version of this recipe.</div>
       <div className="flex-1" />
       <ButtonGroup>
