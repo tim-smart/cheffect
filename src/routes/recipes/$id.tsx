@@ -215,7 +215,7 @@ export function RecipeDetails({
       </header>
 
       {!recipe.hasNoDetails && (
-        <div className="bg-background p-4 md:p-4 border-b border-border flex items-center">
+        <div className="bg-background p-4 border-b border-border flex items-center">
           {/* Recipe Image & Basic Info */}
           <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-muted-foreground">
             {recipe.prepTime && (
