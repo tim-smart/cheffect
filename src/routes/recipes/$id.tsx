@@ -265,7 +265,7 @@ export function RecipeDetails({
         {/* Ingredients */}
         <div className="flex-1 md:rounded-lg p-2 md:p-4">
           <div className="flex">
-            <h2 className="text-lg font-semibold mb-2 md:mb-4">
+            <h2 className="text-lg font-semibold mb-4">
               Ingredients
               {recipe.ingredientScale !== 1 && (
                 <span className="text-sm text-muted-foreground ml-2">
@@ -287,7 +287,7 @@ export function RecipeDetails({
             {ingredients.map((group, groupIndex) => (
               <div key={groupIndex}>
                 {ingredients.length > 1 && (
-                  <h3 className="font-medium  mb-3 text-base">{group.name}</h3>
+                  <h3 className="font-medium mb-3 text-base">{group.name}</h3>
                 )}
 
                 <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
@@ -341,7 +341,7 @@ export function RecipeDetails({
         {/* Instructions */}
         <div className="flex-2 p-2 md:p-4">
           {recipe.steps.length > 0 && (
-            <h2 className="text-xl font-semibold mb-2 md:mb-4">Instructions</h2>
+            <h2 className="text-lg font-semibold mb-4">Instructions</h2>
           )}
 
           <div className="space-y-2 md:space-y-4">
