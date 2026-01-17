@@ -364,7 +364,7 @@ function DayListItem({
           <textarea
             value={noteDraft}
             placeholder="Add a note..."
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-ring focus:outline-none field-sizing-content resize-none w-full"
+            className="block rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-ring focus:outline-none field-sizing-content resize-none w-full"
             onChange={(event) => setNoteDraft(event.target.value)}
             onBlur={saveNote}
           />
