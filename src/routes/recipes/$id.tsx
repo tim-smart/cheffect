@@ -261,7 +261,7 @@ export function RecipeDetails({
 
       {modified && <ModifiedBanner recipe={recipe} />}
 
-      <div className="flex flex-col md:items-start gap-2 md:gap-4 mt-2 md:mt-4 md:flex-row max-w-7xl mx-auto">
+      <div className="flex flex-col md:items-start gap-2 md:gap-4 mt-2 md:mt-4 md:flex-row max-w-7xl mx-auto px-2 md:px-0">
         {/* Ingredients */}
         <div className="flex-1 md:rounded-lg p-2 md:p-4">
           <div className="flex">
