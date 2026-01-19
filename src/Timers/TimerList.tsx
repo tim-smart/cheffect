@@ -117,24 +117,14 @@ export function TimerCircle({
           <span className="block text-[11px] font-semibold text-foreground">
             {label}
           </span>
-          <span className="text-[11px] font-normal text-muted-foreground">
-            {status === "completed" ? "Completed" : remainingLabel}
-            {status === "paused" ? " • Paused" : ""}
-          </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => {
-            if (status === "completed") {
-              dismiss(timer.id)
-              return
-            }
-            toggle(timer)
-          }}
-        >
-          {status === "paused" ? <Play /> : <Pause />}
-          {status === "paused" ? "Resume" : "Pause"}
-        </DropdownMenuItem>
+        {status === "completed" ? null : (
+          <DropdownMenuItem onClick={() => toggle(timer)}>
+            {status === "paused" ? <Play /> : <Pause />}
+            {status === "paused" ? "Resume" : "Pause"}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           variant="destructive"
           onClick={() => dismiss(timer.id)}
