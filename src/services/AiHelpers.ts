@@ -165,6 +165,7 @@ You will receive a list of ingredients from a recipe in XML format. Your task is
 - only include item quantities in the dedicated quantity field, not in the name
 - keep "optional" items, but add "(optional)" to the item name
 - you *MUST* categorize items into aisles
+- if an item already has an aisle assigned, keep it and do not change it
 - if multiple items are merged, only use the id of the first item
 
 Here is the list of items as XML:
