@@ -10,7 +10,7 @@
         "--headless",
         "--no-sandbox",
         "--viewport-size",
-        "1920x1080"
+        "480x1080"
       ]
     }
   },
