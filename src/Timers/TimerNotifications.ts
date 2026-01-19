@@ -5,6 +5,7 @@ import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import { toast } from "sonner"
 import { dismissTimerAtom, timerUiStateAtom } from "./atoms"
+import * as FiberHandle from "effect/FiberHandle"
 
 export const TimerNotifications = Layer.scopedDiscard(
   Effect.gen(function* () {
@@ -28,11 +29,17 @@ export const TimerNotifications = Layer.scopedDiscard(
             registry.set(dismissTimerAtom, timerId)
           },
         })
+      })
 
+    const vibrateHandle = yield* FiberHandle.make()
+    const vibrate = Effect.gen(function* () {
+      while (true) {
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate(200)
         }
-      })
+        yield* Effect.sleep(1000)
+      }
+    }).pipe(FiberHandle.run(vibrateHandle, { onlyIfMissing: true }))
 
     yield* Registry.toStream(registry, timerUiStateAtom).pipe(
       Stream.runForEach(
@@ -42,6 +49,15 @@ export const TimerNotifications = Layer.scopedDiscard(
           const activeIds = new Set(
             timerStates.map((timerState) => timerState.timer.id),
           )
+          const anyCompleted = timerStates.some(
+            (timerState) => timerState.status === "completed",
+          )
+
+          if (anyCompleted) {
+            yield* vibrate
+          } else {
+            yield* FiberHandle.clear(vibrateHandle)
+          }
 
           for (const id of nextNotified) {
             if (!activeIds.has(id)) {

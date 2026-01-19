@@ -5,26 +5,6 @@
 
 @tailwind utilities;
 
-@keyframes timer-complete-pulse {
-  0%,
-  100% {
-    stroke: hsl(var(--destructive));
-    opacity: 0.35;
-  }
-  50% {
-    stroke: hsl(var(--destructive));
-    opacity: 1;
-  }
-}
-
-.animate-timer-complete-pulse {
-  animation: timer-complete-pulse 1.4s ease-in-out infinite;
-}
-
-.timer-complete-ring {
-  stroke: hsl(var(--destructive));
-}
-
 @plugin "@tailwindcss/typography";
 
 @layer utilities {
@@ -48,6 +28,20 @@
     -webkit-appearance: none;
     margin: 0;
     -moz-appearance: textfield;
+  }
+}
+
+@theme {
+  --animate-timer-pulse: timer-pulse 2s infinite;
+
+  @keyframes timer-pulse {
+    0%,
+    100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 }
 
