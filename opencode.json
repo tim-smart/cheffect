@@ -8,7 +8,8 @@
         "github:akirak/nix-playwright-mcp",
         "--",
         "--headless",
-        "--no-sandbox"
+        "--no-sandbox",
+        "--device=\"iPhone 15\""
       ]
     }
   },
