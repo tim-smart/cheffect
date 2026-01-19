@@ -5,10 +5,12 @@ import { useAtomMount, useAtomValue } from "@effect-atom/atom-react"
 import { Store } from "./livestore/atoms"
 import { aiChatOpenAtom, installPromptAtom } from "./atoms"
 import { useLayoutEffect } from "react"
+import { timerNotificationsAtom } from "./Timers/TimerNotifications"
 
 export default function App() {
   useAtomMount(Store.runtime)
   useAtomMount(installPromptAtom)
+  useAtomMount(timerNotificationsAtom)
 
   useRegisterSW({
     immediate: true,

@@ -20,13 +20,13 @@ Add in-recipe timers by parsing recipe step text for durations and turning them 
 - Timer circles remain until dismissed; completed timers do not auto-dismiss.
 - Show timers globally (not per-recipe); include recipe title in labels when available.
 - Timer completion triggers a toast notification and optional haptic/vibration feedback when supported.
-- Timers are session-only and do not persist across reloads.
+- Timers are stored in LiveStore and persist locally across reloads until dismissed; they are not synced across devices.
 - Parsing is English-only for now; non-English units are not recognized.
 
 ### Non-functional
 
 - Preserve existing step selection and scroll behavior; starting a timer must not change the selected step.
-- Timer updates are lightweight (single global tick, 1-second cadence).
+- Timer updates are lightweight (single global tick; current `nowAtom` cadence is 250ms, but derived UI should avoid heavy work per tick).
 - UI works on mobile and desktop, respects safe-area insets, and does not overlap the bottom nav.
 - Accessibility: duration links are keyboard focusable with clear aria labels; timer circles are labeled and announce completion to screen readers.
 - Very short durations (<= 5 seconds) still render and start timers; they should still show in the dock until dismissed.
@@ -35,28 +35,27 @@ Add in-recipe timers by parsing recipe step text for durations and turning them 
 
 ### Data model
 
-- New Timer type:
+- Use the existing `Timer` model in `src/domain/Timer.ts` and the `timers` table in `src/livestore/schema.ts`:
   - id: string
   - label: string (for example, "Step 3: 20 min")
-  - durationMs: number
-  - startedAt: number (epoch ms)
-  - endsAt: number
-  - status: "running" | "complete" | "canceled"
-  - recipeId?: string
-  - stepIndex?: number
+  - duration: Duration (stored as millis)
+  - expiresAt: DateTimeUtc (stored as number)
+  - pausedRemaining: Duration | null
+  - dismissed: boolean
+  - createdAt: DateTimeUtc
+  - updatedAt: DateTimeUtc
+- Timer state is derived, not stored:
+  - running: `pausedRemaining === null && remainingAt(now) > 0`
+  - paused: `pausedRemaining !== null`
+  - complete: `remainingAt(now) === 0`
 - Derived values: remainingMs, progress (0..1), formattedRemaining.
 
-### Timers service
+### Timer state integration
 
-- Add `src/Timers/TimersService.ts` defining a `Timers` Effect.Service that owns timer state.
-- Keep the timer list in a keepAlive atom, updated via `AtomRegistry` inside the service (similar to `AiChatService` updating `currentPromptAtom`).
-- Add a self-contained `nowAtom` in `src/atoms.ts` that maintains a single 1s tick (keepAlive); the Timers UI/atoms read it for derived values, but the service does not update it.
-- Expose service methods for `start`, `cancel`, and `dismiss` timers; keep state changes centralized in the service.
-- Provide derived helpers/selectors for active vs completed timers and computed fields (remainingMs, progress, formattedRemaining).
-- Emit completion events (stream/queue) for UI notifications when timers finish.
-- Add a small `src/Timers/atoms.ts` adapter that wires `Timers.runtime` into React:
-  - `timersAtom`, `activeTimersAtom`, `completedTimersAtom`, and derived helpers that read `nowAtom` from `src/atoms.ts`.
-  - `startTimerAtom`, `cancelTimerAtom`, `dismissTimerAtom` that call the service methods.
+- Keep using LiveStore timers state and events (`events.timerAdded`, `events.timerUpdate`, `events.timerDeleted`).
+- Use `src/Timers/atoms.ts` for the existing React adapter (`activeTimersAtom`, `toggleTimerAtom`, `dismissTimerAtom`).
+- Use the existing `nowAtom` in `src/atoms.ts` (currently ticking every 250ms); do not add a new ticking atom.
+- Add lightweight derived selectors in `src/Timers/atoms.ts` or `TimerList` for running/paused/completed timers and progress math.
 
 ### Duration parsing and rendering
 
@@ -73,18 +72,20 @@ Add in-recipe timers by parsing recipe step text for durations and turning them 
 
 ### Timer dock UI
 
-- Create a TimersDock component rendered alongside the AI chat floating button:
+- Build on the existing `TimerList`/`TimerCircle` component in `src/Timers/TimerList.tsx` (currently TODO).
+- Render the timer dock alongside the AI chat floating button:
   - Anchor using the same fixed right-4 + floating-b positioning.
   - Layout timers as small circular progress rings to the left of the chat button, wrapping if needed.
   - Use SVG or conic-gradient to show progress; optionally show remaining time in the center.
   - Tooltip or long-press shows full label and remaining time.
-  - Clicking a circle cancels running timers or dismisses completed timers.
+  - Clicking a circle pauses/resumes running timers or dismisses completed timers using `toggleTimerAtom` and `dismissTimerAtom`.
   - If more than 4 timers are active, collapse extras into a "+N" indicator.
 
 ### Notifications
 
 - On completion, show a sonner toast "Timer finished: <label>" with a dismiss action (multiple simultaneous completions should stack).
 - Trigger navigator.vibrate(200) when available.
+- Completion detection is edge-triggered based on existing timer rows: when `remainingAt(now)` transitions from >0 to 0 for a timer that was previously running.
 
 ## Acceptance Criteria
 
