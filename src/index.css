@@ -5,6 +5,22 @@
 
 @tailwind utilities;
 
+@keyframes timer-complete-pulse {
+  0%,
+  100% {
+    stroke: hsl(var(--destructive));
+    opacity: 0.35;
+  }
+  50% {
+    stroke: hsl(var(--destructive));
+    opacity: 1;
+  }
+}
+
+.animate-timer-complete-pulse {
+  animation: timer-complete-pulse 1.4s ease-in-out infinite;
+}
+
 @plugin "@tailwindcss/typography";
 
 @layer utilities {
