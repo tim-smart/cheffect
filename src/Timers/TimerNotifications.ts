@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import { dismissTimerAtom, timerUiStateAtom } from "./atoms"
 import * as FiberHandle from "effect/FiberHandle"
 import { Timer } from "@/domain/Timer"
-import * as Fiber from "effect/Fiber"
 
 declare global {
   interface NotificationOptions {
@@ -47,7 +46,6 @@ export const TimerNotifications = Layer.scopedDiscard(
 
     const vibrateHandle = yield* FiberHandle.make()
     const vibrate = Effect.gen(function* () {
-      // play /timer.mp3 sound
       yield* Effect.acquireRelease(
         Effect.sync(() => {
           if (typeof window === "undefined") return
@@ -77,55 +75,6 @@ export const TimerNotifications = Layer.scopedDiscard(
       FiberHandle.run(vibrateHandle, { onlyIfMissing: true }),
     )
 
-    let serviceWorkerRegistration: ServiceWorkerRegistration | undefined
-    const regFiber = yield* Effect.promise(() => {
-      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-        return navigator.serviceWorker.ready
-      }
-      return Promise.resolve<undefined>(undefined)
-    }).pipe(
-      Effect.tap((registration) => {
-        serviceWorkerRegistration = registration
-        if (registration) {
-          Notification.requestPermission()
-        }
-      }),
-      Effect.forkScoped,
-    )
-
-    const getNotifications = Effect.fnUntraced(function* (timer: Timer) {
-      if (!serviceWorkerRegistration) return []
-      const reg = serviceWorkerRegistration
-      return yield* Effect.promise(() =>
-        reg.getNotifications({
-          tag: timer.notificationTag(),
-          includeTriggered: true,
-        } as NotificationOptions),
-      )
-    })
-
-    const scheduleNotification = Effect.fnUntraced(function* (timer: Timer) {
-      if (!serviceWorkerRegistration) return
-      if (!("showTrigger" in Notification.prototype)) return
-      const existing = yield* getNotifications(timer)
-      if (existing.length > 0) return
-      serviceWorkerRegistration.showNotification(`Timer finished`, {
-        tag: timer.notificationTag(),
-        body: timer.label,
-        showTrigger: new TimestampTrigger(timer.expiresAt.epochMillis),
-      })
-    })
-
-    const cancelNotification = Effect.fnUntraced(function* (timer: Timer) {
-      if (!serviceWorkerRegistration) return
-      const existing = yield* getNotifications(timer)
-      for (const notification of existing) {
-        notification.close()
-      }
-    })
-
-    yield* Fiber.await(regFiber).pipe(Effect.timeoutOption("1 seconds"))
-
     yield* Registry.toStream(registry, timerUiStateAtom).pipe(
       Stream.runForEach(
         Effect.fnUntraced(function* (timerStates) {
@@ -147,7 +96,6 @@ export const TimerNotifications = Layer.scopedDiscard(
           for (const timer of nextNotified.values()) {
             if (activeIds.has(timer.id)) continue
             nextNotified.delete(timer.id)
-            yield* cancelNotification(timer)
           }
 
           for (const timerState of timerStates) {
@@ -159,11 +107,6 @@ export const TimerNotifications = Layer.scopedDiscard(
               continue
             }
             nextNotified.delete(timerState.timer.id)
-            if (timerState.status === "running") {
-              yield* scheduleNotification(timerState.timer)
-            } else {
-              yield* cancelNotification(timerState.timer)
-            }
           }
 
           yield* Ref.set(notifiedRef, nextNotified)
