@@ -124,20 +124,20 @@ export function TimerCircle({
             {label}
           </span>
         </DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={() => addDuration({ timer, durationMs: 60_000 })}
+        >
+          <Plus />
+          Add 1 minute
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => addDuration({ timer, durationMs: 300_000 })}
+        >
+          <Plus />
+          Add 5 minutes
+        </DropdownMenuItem>
         {status === "completed" ? null : (
           <>
-            <DropdownMenuItem
-              onClick={() => addDuration({ timer, durationMs: 60_000 })}
-            >
-              <Plus />
-              Add 1 minute
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => addDuration({ timer, durationMs: 300_000 })}
-            >
-              <Plus />
-              Add 5 minutes
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => toggle(timer)}>
               {status === "paused" ? <Play /> : <Pause />}
