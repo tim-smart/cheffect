@@ -78,7 +78,7 @@ export function TimerCircle({
           <svg
             width={RING_SIZE}
             height={RING_SIZE}
-            className="absolute inset-0"
+            className="absolute inset-0 -rotate-90"
             role="presentation"
             aria-hidden="true"
           >
