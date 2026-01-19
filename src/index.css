@@ -21,6 +21,10 @@
   animation: timer-complete-pulse 1.4s ease-in-out infinite;
 }
 
+.timer-complete-ring {
+  stroke: hsl(var(--destructive));
+}
+
 @plugin "@tailwindcss/typography";
 
 @layer utilities {
