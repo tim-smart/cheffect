@@ -214,16 +214,9 @@ export class toolkit extends Toolkit.make(
       label: Schema.String.annotations({
         description: "Short label for the timer, like 'Boil pasta'.",
       }),
-      durationMinutes: Schema.optional(
-        Schema.Number.annotations({
-          description: "Timer duration in minutes (positive number).",
-        }),
-      ),
-      durationSeconds: Schema.optional(
-        Schema.Number.annotations({
-          description: "Timer duration in seconds (positive number).",
-        }),
-      ),
+      duration: Schema.DurationFromMillis.annotations({
+        description: "Timer duration in milliseconds (positive number).",
+      }),
     },
     success: TransientResponse(
       Schema.Struct({

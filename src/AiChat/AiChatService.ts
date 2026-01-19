@@ -328,14 +328,8 @@ const ToolkitLayer = toolkit.toLayer(
           value: null,
         }
       }),
-      StartTimer: Effect.fnUntraced(function* ({
-        label,
-        durationMinutes,
-        durationSeconds,
-      }) {
-        const minutes = durationMinutes ?? 0
-        const seconds = durationSeconds ?? 0
-        const durationMs = Math.max(0, (minutes * 60 + seconds) * 1000)
+      StartTimer: Effect.fnUntraced(function* ({ label, duration }) {
+        const durationMs = Math.max(0, Duration.toMillis(duration))
         if (durationMs <= 0) {
           return {
             _tag: "Transient",
@@ -347,7 +341,6 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
         const now = DateTime.unsafeNow()
-        const duration = Duration.millis(durationMs)
         const timer = new Timer({
           id: crypto.randomUUID(),
           label,
