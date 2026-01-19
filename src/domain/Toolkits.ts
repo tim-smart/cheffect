@@ -207,6 +207,32 @@ export class toolkit extends Toolkit.make(
     },
     success: TerminalResponse(Schema.Struct({ jobId: Schema.String })),
   }),
+  Tool.make("StartTimer", {
+    description:
+      "Start a countdown timer with a label and duration in minutes and/or seconds.",
+    parameters: {
+      label: Schema.String.annotations({
+        description: "Short label for the timer, like 'Boil pasta'.",
+      }),
+      durationMinutes: Schema.optional(
+        Schema.Number.annotations({
+          description: "Timer duration in minutes (positive number).",
+        }),
+      ),
+      durationSeconds: Schema.optional(
+        Schema.Number.annotations({
+          description: "Timer duration in seconds (positive number).",
+        }),
+      ),
+    },
+    success: TransientResponse(
+      Schema.Struct({
+        timerId: Schema.String,
+        label: Schema.String,
+        durationMs: Schema.Number,
+      }),
+    ),
+  }),
   Tool.make("SaveLearning", {
     description:
       "Save absolutely any information discovered during the conversation that could benefit future interactions. This includes user preferences, dietary restrictions, allergies, cooking skill level, household size, favorite cuisines, ingredient dislikes, kitchen equipment available, and any other relevant details. Keep notes concise to prevent exceeding token limits. Consolidate related information into single entries when possible.",

@@ -44,6 +44,8 @@ import { aiCountry, mealPlanWeekStart } from "@/Settings"
 import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
 import { Menu } from "@/domain/Menu"
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
+import { Timer } from "@/domain/Timer"
+import * as Duration from "effect/Duration"
 
 const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
@@ -324,6 +326,45 @@ const ToolkitLayer = toolkit.toLayer(
         return {
           _tag: "Transient",
           value: null,
+        }
+      }),
+      StartTimer: Effect.fnUntraced(function* ({
+        label,
+        durationMinutes,
+        durationSeconds,
+      }) {
+        const minutes = durationMinutes ?? 0
+        const seconds = durationSeconds ?? 0
+        const durationMs = Math.max(0, (minutes * 60 + seconds) * 1000)
+        if (durationMs <= 0) {
+          return {
+            _tag: "Transient",
+            value: {
+              timerId: "",
+              label,
+              durationMs,
+            },
+          }
+        }
+        const now = DateTime.unsafeNow()
+        const duration = Duration.millis(durationMs)
+        const timer = new Timer({
+          id: crypto.randomUUID(),
+          label,
+          duration,
+          expiresAt: DateTime.addDuration(now, duration),
+          pausedRemaining: null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        store.commit(events.timerAdded(timer))
+        return {
+          _tag: "Transient",
+          value: {
+            timerId: timer.id,
+            label: timer.label,
+            durationMs,
+          },
         }
       }),
     })
