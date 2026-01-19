@@ -333,11 +333,7 @@ const ToolkitLayer = toolkit.toLayer(
         if (durationMs <= 0) {
           return {
             _tag: "Transient",
-            value: {
-              timerId: "",
-              label,
-              durationMs,
-            },
+            value: null,
           }
         }
         const now = DateTime.unsafeNow()

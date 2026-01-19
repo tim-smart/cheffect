@@ -219,11 +219,13 @@ export class toolkit extends Toolkit.make(
       }),
     },
     success: TransientResponse(
-      Schema.Struct({
-        timerId: Schema.String,
-        label: Schema.String,
-        durationMs: Schema.Number,
-      }),
+      Schema.NullOr(
+        Schema.Struct({
+          timerId: Schema.String,
+          label: Schema.String,
+          durationMs: Schema.Number,
+        }),
+      ),
     ),
   }),
   Tool.make("SaveLearning", {
