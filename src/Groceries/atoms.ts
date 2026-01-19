@@ -71,7 +71,7 @@ export const beautifyGroceriesAtom = runtime
       for (const item of updated) {
         const prev = previousItems.get(item.id)
         let nextItem = item
-        if (prev?.name && item.name !== prev.name && !item.aisle) {
+        if (prev?.name && item.name !== prev.name {
           const maybePrevItem = store.query(previousGroceryAisle$(item.name))
           if (maybePrevItem._tag === "Some") {
             nextItem = new GroceryItem({
