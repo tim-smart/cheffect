@@ -135,19 +135,18 @@ export function RecipeDetails({
 
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const handleStartTimer = (
-    durationMs: number,
-    label: string,
-    stepIndex: number,
-  ) => {
-    window.dispatchEvent(
-      new CustomEvent("recipe-timer:start", {
-        detail: {
-          durationMs,
-          label,
-          recipeId: recipe.id,
-          stepIndex,
-        },
+  const handleStartTimer = (durationMs: number, label: string) => {
+    const now = DateTime.unsafeNow()
+    const duration = Duration.millis(durationMs)
+    commit(
+      events.timerAdded({
+        id: crypto.randomUUID(),
+        label,
+        duration,
+        expiresAt: DateTime.addDuration(now, duration),
+        pausedRemaining: null,
+        createdAt: now,
+        updatedAt: now,
       }),
     )
   }
@@ -156,14 +155,13 @@ export function RecipeDetails({
     event: ReactKeyboardEvent<HTMLButtonElement>,
     durationMs: number,
     label: string,
-    stepIndex: number,
   ) => {
     if (!(event.key === "Enter" || event.key === " ")) {
       return
     }
     event.preventDefault()
     event.stopPropagation()
-    handleStartTimer(durationMs, label, stepIndex)
+    handleStartTimer(durationMs, label)
   }
 
   const renderStepText = (stepText: string, stepIndex: number) =>
@@ -184,15 +182,10 @@ export function RecipeDetails({
           className="text-primary underline decoration-primary/50 underline-offset-4 transition-colors hover:text-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
           onClick={(event) => {
             event.stopPropagation()
-            handleStartTimer(segment.durationMs, timerLabel, stepIndex)
+            handleStartTimer(segment.durationMs, timerLabel)
           }}
           onKeyDown={(event) =>
-            handleDurationKeyDown(
-              event,
-              segment.durationMs,
-              timerLabel,
-              stepIndex,
-            )
+            handleDurationKeyDown(event, segment.durationMs, timerLabel)
           }
           aria-label={`Start timer for ${durationLabel}`}
         >

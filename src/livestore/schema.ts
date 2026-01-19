@@ -16,6 +16,7 @@ import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
+import { Timer } from "@/domain/Timer"
 
 const recipeColumns = {
   id: State.SQLite.text({ primaryKey: true }),
@@ -258,6 +259,35 @@ export const tables = {
       }),
     },
   }),
+  timers: State.SQLite.table({
+    name: "timers",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      label: State.SQLite.text({ nullable: false }),
+      duration: State.SQLite.integer({
+        schema: Schema.DurationFromMillis,
+      }),
+      expiresAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      pausedRemaining: State.SQLite.integer({
+        nullable: true,
+        schema: Schema.DurationFromMillis,
+      }),
+      createdAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+    indexes: [
+      {
+        name: "timers_expires_at_idx",
+        columns: ["expiresAt", "dismissed"],
+      },
+    ],
+  }),
   // Client documents can be used for local-only state (e.g. form inputs)
   searchState: State.SQLite.clientDocument({
     name: "searchState",
@@ -476,6 +506,18 @@ export const events = {
     name: "v1.AIMemoryClear",
     schema: Schema.Void,
   }),
+  timerAdded: Events.synced({
+    name: "v1.TimerAdded",
+    schema: Timer.insert,
+  }),
+  timerUpdate: Events.synced({
+    name: "v1.TimerUpdated",
+    schema: Timer.update,
+  }),
+  timerDeleted: Events.synced({
+    name: "v1.TimerDeleted",
+    schema: Schema.Struct({ id: Schema.String }),
+  }),
 }
 
 // Materializers are used to map events to state (https://docs.livestore.dev/reference/state/materializers)
@@ -606,6 +648,10 @@ const materializers = State.SQLite.materializers(events, {
   "v1.AIMemoryEntryRemove": ({ id }) =>
     tables.aiMemoryEntries.delete().where({ id }),
   "v1.AIMemoryClear": () => tables.aiMemoryEntries.delete(),
+  "v1.TimerAdded": (insert) => tables.timers.insert(insert),
+  "v1.TimerUpdated": ({ id, ...update }) =>
+    tables.timers.update(update).where({ id }),
+  "v1.TimerDeleted": ({ id }) => tables.timers.delete().where({ id }),
 })
 
 const state = State.SQLite.makeState({ tables, materializers })
