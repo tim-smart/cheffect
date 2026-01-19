@@ -281,12 +281,6 @@ export const tables = {
         schema: Schema.DateTimeUtcFromNumber,
       }),
     },
-    indexes: [
-      {
-        name: "timers_expires_at_idx",
-        columns: ["expiresAt", "dismissed"],
-      },
-    ],
   }),
   // Client documents can be used for local-only state (e.g. form inputs)
   searchState: State.SQLite.clientDocument({

@@ -9,7 +9,7 @@ import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 
 export const activeTimers$ = queryDb({
-  query: sql`select * from timers where dismissed = false order by createdAt asc`,
+  query: sql`select * from timers order by createdAt asc`,
   schema: Timer.array,
 })
 
