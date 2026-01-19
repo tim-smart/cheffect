@@ -2,11 +2,14 @@ import { useAtomSet, useAtomValue } from "@effect-atom/atom-react"
 import { dismissTimerAtom, timerUiStateAtom, toggleTimerAtom } from "./atoms"
 import * as Duration from "effect/Duration"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Pause, Play, Trash2 } from "lucide-react"
 import { Timer } from "@/domain/Timer"
 import { cn } from "@/lib/utils"
 
@@ -23,18 +26,16 @@ export function TimerList() {
   const hiddenCount = Math.max(0, timers.length - visibleTimers.length)
 
   return (
-    <TooltipProvider>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {visibleTimers.map((timerState) => (
-          <TimerCircle key={timerState.timer.id} timerState={timerState} />
-        ))}
-        {hiddenCount > 0 ? (
-          <div className="flex h-10 min-w-10 items-center justify-center rounded-full bg-card text-xs font-semibold text-foreground shadow-lg ring-1 ring-border">
-            +{hiddenCount}
-          </div>
-        ) : null}
-      </div>
-    </TooltipProvider>
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {visibleTimers.map((timerState) => (
+        <TimerCircle key={timerState.timer.id} timerState={timerState} />
+      ))}
+      {hiddenCount > 0 ? (
+        <div className="flex h-10 min-w-10 items-center justify-center rounded-full bg-card text-xs font-semibold text-foreground shadow-lg ring-1 ring-border">
+          +{hiddenCount}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -56,12 +57,7 @@ export function TimerCircle({
   const toggle = useAtomSet(toggleTimerAtom)
 
   const remainingLabel = formatRemaining(remaining)
-  const ariaLabel =
-    status === "completed"
-      ? `Dismiss timer ${label}`
-      : status === "paused"
-        ? `Resume timer ${label}`
-        : `Pause timer ${label}`
+  const ariaLabel = `Open timer menu for ${label}`
 
   const ringRadius = (RING_SIZE - RING_STROKE) / 2
   const circumference = 2 * Math.PI * ringRadius
@@ -69,8 +65,8 @@ export function TimerCircle({
   const dashOffset = circumference * (1 - progressValue)
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           aria-label={ariaLabel}
@@ -78,13 +74,6 @@ export function TimerCircle({
             "relative flex h-11 w-11 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             status === "completed" ? "text-foreground" : "text-primary",
           )}
-          onClick={() => {
-            if (status === "completed") {
-              dismiss(timer.id)
-              return
-            }
-            toggle(timer)
-          }}
         >
           <svg
             width={RING_SIZE}
@@ -122,19 +111,39 @@ export function TimerCircle({
             {status === "completed" ? "Done" : remainingLabel}
           </span>
         </button>
-      </TooltipTrigger>
-      <TooltipContent side="left" className="max-w-[220px]">
-        <div className="text-left">
-          <div className="text-xs font-semibold text-primary-foreground">
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="left" align="start" className="w-52">
+        <DropdownMenuLabel className="text-xs">
+          <span className="block text-[11px] font-semibold text-foreground">
             {label}
-          </div>
-          <div className="text-[11px] text-primary-foreground/80">
+          </span>
+          <span className="text-[11px] font-normal text-muted-foreground">
             {status === "completed" ? "Completed" : remainingLabel}
             {status === "paused" ? " • Paused" : ""}
-          </div>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+          </span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            if (status === "completed") {
+              dismiss(timer.id)
+              return
+            }
+            toggle(timer)
+          }}
+        >
+          {status === "paused" ? <Play /> : <Pause />}
+          {status === "paused" ? "Resume" : "Pause"}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={() => dismiss(timer.id)}
+        >
+          <Trash2 />
+          Dismiss
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
