@@ -47,13 +47,35 @@ export const TimerNotifications = Layer.scopedDiscard(
 
     const vibrateHandle = yield* FiberHandle.make()
     const vibrate = Effect.gen(function* () {
+      // play /timer.mp3 sound
+      yield* Effect.acquireRelease(
+        Effect.sync(() => {
+          if (typeof window === "undefined") return
+          const audio = new Audio("/timer.mp3")
+          audio.loop = true
+          audio.play().catch(() => {
+            // ignore
+          })
+          return audio
+        }),
+        (audio) =>
+          Effect.sync(() => {
+            if (!audio) return
+            audio.pause()
+            audio.currentTime = 0
+          }),
+      )
+
       while (true) {
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           navigator.vibrate(200)
         }
         yield* Effect.sleep(1000)
       }
-    }).pipe(FiberHandle.run(vibrateHandle, { onlyIfMissing: true }))
+    }).pipe(
+      Effect.scoped,
+      FiberHandle.run(vibrateHandle, { onlyIfMissing: true }),
+    )
 
     let serviceWorkerRegistration: ServiceWorkerRegistration | undefined
     const regFiber = yield* Effect.promise(() => {
