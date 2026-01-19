@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Recipe, unitNeedsSpace } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
+import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
@@ -60,7 +61,12 @@ import {
   ArrowLeftRight,
   MoreHorizontal,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react"
 
 export const Route = createFileRoute("/recipes/$id")({
   component: RouteComponent,
@@ -128,6 +134,72 @@ export function RecipeDetails({
   }
 
   const [menuOpen, setMenuOpen] = useState(false)
+
+  const handleStartTimer = (
+    durationMs: number,
+    label: string,
+    stepIndex: number,
+  ) => {
+    window.dispatchEvent(
+      new CustomEvent("recipe-timer:start", {
+        detail: {
+          durationMs,
+          label,
+          recipeId: recipe.id,
+          stepIndex,
+        },
+      }),
+    )
+  }
+
+  const handleDurationKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    durationMs: number,
+    label: string,
+    stepIndex: number,
+  ) => {
+    if (!(event.key === "Enter" || event.key === " ")) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    handleStartTimer(durationMs, label, stepIndex)
+  }
+
+  const renderStepText = (stepText: string, stepIndex: number) =>
+    parseStepDurations(stepText).map((segment, segmentIndex) => {
+      if (segment.type === "text") {
+        return (
+          <span key={`${stepIndex}-text-${segmentIndex}`}>{segment.text}</span>
+        )
+      }
+
+      const durationLabel = segment.text.trim()
+      const timerLabel = `${recipe.title} · Step ${stepIndex + 1}: ${durationLabel}`
+
+      return (
+        <button
+          key={`${stepIndex}-duration-${segmentIndex}`}
+          type="button"
+          className="text-primary underline decoration-primary/50 underline-offset-4 transition-colors hover:text-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
+          onClick={(event) => {
+            event.stopPropagation()
+            handleStartTimer(segment.durationMs, timerLabel, stepIndex)
+          }}
+          onKeyDown={(event) =>
+            handleDurationKeyDown(
+              event,
+              segment.durationMs,
+              timerLabel,
+              stepIndex,
+            )
+          }
+          aria-label={`Start timer for ${durationLabel}`}
+        >
+          {segment.text}
+        </button>
+      )
+    })
 
   return (
     <div className="pb-content">
@@ -370,7 +442,9 @@ export function RecipeDetails({
                   </div>
 
                   <div className="flex-1 flex flex-col gap-2">
-                    <p className=" leading-relaxed">{step.text}</p>
+                    <p className="leading-relaxed">
+                      {renderStepText(step.text, stepIndex)}
+                    </p>
 
                     {step.tips.length > 0 && (
                       <div className="space-y-1">
