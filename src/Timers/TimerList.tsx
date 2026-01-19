@@ -112,9 +112,9 @@ export function TimerCircle({
           </span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="left" align="start" className="w-52">
+      <DropdownMenuContent side="top" className="w-52">
         <DropdownMenuLabel className="text-xs">
-          <span className="block text-[11px] font-semibold text-foreground">
+          <span className="block text-sm font-semibold text-foreground">
             {label}
           </span>
         </DropdownMenuLabel>
