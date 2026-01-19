@@ -1,42 +1,62 @@
 import { Atom, Registry } from "@effect-atom/atom-react"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import { activeTimersAtom } from "./atoms"
+import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
-import * as FiberMap from "effect/FiberMap"
-import * as DateTime from "effect/DateTime"
-import * as Duration from "effect/Duration"
-import { Timer } from "@/domain/Timer"
+import { toast } from "sonner"
+import { timerUiStateAtom } from "./atoms"
 
 export const TimerNotifications = Layer.scopedDiscard(
   Effect.gen(function* () {
     const registry = yield* Registry.AtomRegistry
-    const fibers = yield* FiberMap.make<string>()
+    const notifiedRef = yield* Ref.make<Set<string>>(new Set())
 
-    const notify = Effect.fnUntraced(function* (timer: Timer) {
-      while (true) {
-        const now = yield* DateTime.now
-        const remaining = timer.remainingAt(now)
-        if (Duration.isZero(remaining)) break
-        yield* Effect.sleep(1000)
-      }
+    const notify = (label: string) =>
+      Effect.sync(() => {
+        let toastId: number | string | undefined
+        toastId = toast(`Timer finished: ${label}`, {
+          action: {
+            label: "Dismiss",
+            onClick: () => {
+              if (toastId !== undefined) {
+                toast.dismiss(toastId)
+              }
+            },
+          },
+        })
 
-      // TODO: Send notification to user
-      yield* Effect.log(`Timer "${timer.label}" has completed!`)
-    })
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate(200)
+        }
+      })
 
-    yield* Registry.toStream(registry, activeTimersAtom).pipe(
+    yield* Registry.toStream(registry, timerUiStateAtom).pipe(
       Stream.runForEach(
-        Effect.fnUntraced(function* (activeTimers) {
-          for (const timer of activeTimers) {
-            if (timer.pausedRemaining) {
-              yield* FiberMap.remove(fibers, timer.id)
-              continue
+        Effect.fnUntraced(function* (timerStates) {
+          const notified = yield* Ref.get(notifiedRef)
+          const nextNotified = new Set(notified)
+          const activeIds = new Set(
+            timerStates.map((timerState) => timerState.timer.id),
+          )
+
+          for (const id of nextNotified) {
+            if (!activeIds.has(id)) {
+              nextNotified.delete(id)
             }
-            yield* FiberMap.run(fibers, timer.id, notify(timer), {
-              onlyIfMissing: true,
-            })
           }
+
+          for (const timerState of timerStates) {
+            if (timerState.status === "completed") {
+              if (!nextNotified.has(timerState.timer.id)) {
+                nextNotified.add(timerState.timer.id)
+                yield* notify(timerState.label)
+              }
+            } else {
+              nextNotified.delete(timerState.timer.id)
+            }
+          }
+
+          yield* Ref.set(notifiedRef, nextNotified)
         }),
       ),
       Effect.forkScoped,
