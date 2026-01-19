@@ -19,7 +19,7 @@ import { Timer } from "@/domain/Timer"
 import { cn } from "@/lib/utils"
 
 const MAX_VISIBLE_TIMERS = 4
-const RING_SIZE = 44
+const RING_SIZE = 56
 const RING_STROKE = 5
 
 export function TimerList() {
@@ -31,12 +31,12 @@ export function TimerList() {
   const hiddenCount = Math.max(0, timers.length - visibleTimers.length)
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-3">
       {visibleTimers.map((timerState) => (
         <TimerCircle key={timerState.timer.id} timerState={timerState} />
       ))}
       {hiddenCount > 0 ? (
-        <div className="flex h-10 min-w-10 items-center justify-center rounded-full bg-card text-xs font-semibold text-foreground shadow-lg ring-1 ring-border">
+        <div className="flex h-12 min-w-12 items-center justify-center rounded-full bg-card text-xs font-semibold text-foreground shadow-lg ring-1 ring-border">
           +{hiddenCount}
         </div>
       ) : null}
@@ -77,7 +77,7 @@ export function TimerCircle({
           type="button"
           aria-label={ariaLabel}
           className={cn(
-            "relative flex h-11 w-11 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            "relative flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             status === "completed" ? "text-foreground" : "text-primary",
           )}
         >
@@ -113,7 +113,7 @@ export function TimerCircle({
               )}
             />
           </svg>
-          <span className="relative z-10 text-[10px] font-semibold">
+          <span className="relative z-10 text-xs font-semibold">
             {status === "completed" ? "Done" : remainingLabel}
           </span>
         </button>
