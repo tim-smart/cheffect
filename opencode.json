@@ -1,11 +1,16 @@
 {
   "mcp": {
-    "Playwright": {
+    "playwright": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
-        "@playwright/mcp@latest"
+        "nix",
+        "run",
+        "github:benjaminkitt/nix-playwright-mcp",
+        "--",
+        "--browser",
+        "chromium",
+        "--no-sandbox",
+        "--headless"
       ]
     }
   },

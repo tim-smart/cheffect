@@ -19,3 +19,9 @@ can refer to:
 
 - `.agents/effect` - for the `effect` and `@effect/*` libraries
 - `.agents/effect-atom` - for the `@effect-atom/*` libraries
+
+## Interaction with the app
+
+1. Start the dev server in the background `pnpm dev &`
+2. Use the playwright MCP tools to interact with the app at
+   http://localhost:5173
