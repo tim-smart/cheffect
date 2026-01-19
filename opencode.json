@@ -9,7 +9,8 @@
         "--",
         "--headless",
         "--no-sandbox",
-        "--device=\"iPhone 15\""
+        "--viewport-size",
+        "1920x1080"
       ]
     }
   },
