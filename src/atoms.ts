@@ -39,7 +39,7 @@ export const screenWakeLockAtom = Atom.make(
 export const nowAtom = Atom.make((get) => {
   const handle = setInterval(() => {
     get.setSelf(DateTime.unsafeNow())
-  }, 1000)
+  }, 250)
   get.addFinalizer(() => {
     clearInterval(handle)
   })
