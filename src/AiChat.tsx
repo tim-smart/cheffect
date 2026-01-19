@@ -1,6 +1,7 @@
-import { useRef, useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { TimerList } from "@/Timers/TimerList"
 import { Button } from "@/components/ui/button"
-import { X, Send, MessageSquare, Eraser, Square, Plus } from "lucide-react"
+import { Eraser, MessageSquare, Plus, Send, Square, X } from "lucide-react"
 import {
   Atom,
   Result,
@@ -65,21 +66,24 @@ export function AiChatModal() {
 
   return (
     <>
-      {/* Floating Action Button */}
-      <button
-        onClick={() => {
-          if (!aiEnabled) {
-            return router.navigate({ to: "/settings" })
-          }
-          setIsOpen(true)
-          ref.current?.classList.remove("hidden")
-          inputRef.current?.focus()
-        }}
-        className="fixed right-4 floating-b z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg active:scale-95 transition-transform"
-        aria-label="Open AI Chat"
-      >
-        <MessageSquare className="h-6 w-6" />
-      </button>
+      <div className="fixed right-4 floating-b z-50 flex items-center gap-2">
+        <TimerList />
+        {/* Floating Action Button */}
+        <button
+          onClick={() => {
+            if (!aiEnabled) {
+              return router.navigate({ to: "/settings" })
+            }
+            setIsOpen(true)
+            ref.current?.classList.remove("hidden")
+            inputRef.current?.focus()
+          }}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg active:scale-95 transition-transform"
+          aria-label="Open AI Chat"
+        >
+          <MessageSquare className="h-6 w-6" />
+        </button>
+      </div>
 
       {/* Modal - Desktop: bottom-right corner, allows page interaction. Mobile: full-screen modal */}
       {/* Mobile overlay (blocks interaction) */}
