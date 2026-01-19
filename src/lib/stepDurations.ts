@@ -17,7 +17,7 @@ const secondUnitPattern = "(?:seconds?|secs?|sec|s)\\b"
 const unitPattern = `(?:${hourUnitPattern}|${minuteUnitPattern}|${secondUnitPattern})`
 
 const durationRegex = new RegExp(
-  `${qualifierPattern}?(?:` +
+  `(?:${qualifierPattern})?(?:` +
     `(?<hoursValue>${numberPattern})\\s*${hourUnitPattern}\\s*(?<minutesValue>${numberPattern})\\s*${minuteUnitPattern}` +
     `|(?<rangeStart>${numberPattern})\\s*(?:-|–)\\s*(?<rangeEnd>${numberPattern})\\s*(?<rangeUnit>${unitPattern})` +
     `|(?<value>${numberPattern})\\s*(?<unit>${unitPattern})` +
@@ -98,12 +98,12 @@ const parseDurationMs = (
     return (hours * 60 + minutes) * 60 * 1000
   }
 
-  if (groups.rangeEnd && groups.rangeUnit) {
-    const rangeEnd = Number.parseFloat(groups.rangeEnd)
-    if (Number.isNaN(rangeEnd)) {
+  if (groups.rangeStart && groups.rangeUnit) {
+    const rangeStart = Number.parseFloat(groups.rangeStart)
+    if (Number.isNaN(rangeStart)) {
       return null
     }
-    return rangeEnd * unitToMs(groups.rangeUnit)
+    return rangeStart * unitToMs(groups.rangeUnit)
   }
 
   if (groups.value && groups.unit) {
