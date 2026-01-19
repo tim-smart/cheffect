@@ -83,16 +83,19 @@ export const addTimerDurationAtom = Store.runtime.fn<{
     const now = DateTime.unsafeNow()
     const remaining = timer.remainingAt(now)
     const nextRemaining = Duration.sum(remaining, duration)
+    const nextDuration = Duration.sum(timer.duration, duration)
     store.commit(
       events.timerUpdate(
         timer.pausedRemaining
           ? new Timer({
               ...timer,
+              duration: nextDuration,
               pausedRemaining: nextRemaining,
               updatedAt: now,
             })
           : new Timer({
               ...timer,
+              duration: nextDuration,
               expiresAt: DateTime.addDuration(now, nextRemaining),
               updatedAt: now,
             }),
