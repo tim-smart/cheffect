@@ -4,14 +4,14 @@ import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import { toast } from "sonner"
-import { timerUiStateAtom } from "./atoms"
+import { dismissTimerAtom, timerUiStateAtom } from "./atoms"
 
 export const TimerNotifications = Layer.scopedDiscard(
   Effect.gen(function* () {
     const registry = yield* Registry.AtomRegistry
     const notifiedRef = yield* Ref.make<Set<string>>(new Set())
 
-    const notify = (label: string) =>
+    const notify = (timerId: string, label: string) =>
       Effect.sync(() => {
         let toastId: number | string | undefined
         toastId = toast(`Timer finished: ${label}`, {
@@ -21,7 +21,11 @@ export const TimerNotifications = Layer.scopedDiscard(
               if (toastId !== undefined) {
                 toast.dismiss(toastId)
               }
+              registry.set(dismissTimerAtom, timerId)
             },
+          },
+          onDismiss: () => {
+            registry.set(dismissTimerAtom, timerId)
           },
         })
 
@@ -49,7 +53,7 @@ export const TimerNotifications = Layer.scopedDiscard(
             if (timerState.status === "completed") {
               if (!nextNotified.has(timerState.timer.id)) {
                 nextNotified.add(timerState.timer.id)
-                yield* notify(timerState.label)
+                yield* notify(timerState.timer.id, timerState.label)
               }
             } else {
               nextNotified.delete(timerState.timer.id)
