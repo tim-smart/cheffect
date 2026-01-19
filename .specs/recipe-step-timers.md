@@ -46,14 +46,17 @@ Add in-recipe timers by parsing recipe step text for durations and turning them 
   - stepIndex?: number
 - Derived values: remainingMs, progress (0..1), formattedRemaining.
 
-### State management
+### Timers service
 
-- Add `src/Timers/atoms.ts` with:
-  - timersAtom: list of timers.
-  - startTimerAtom and cancelTimerAtom helpers.
-  - nowAtom updated via a single interval (1s).
-  - selectors for activeTimers and completedTimers.
-- Completion handling: when now >= endsAt, mark timer complete and expose a completion event for UI.
+- Add `src/Timers/TimersService.ts` defining a `Timers` Effect.Service that owns timer state.
+- Keep the timer list in a keepAlive atom, updated via `AtomRegistry` inside the service (similar to `AiChatService` updating `currentPromptAtom`).
+- Add a self-contained `nowAtom` in `src/atoms.ts` that maintains a single 1s tick (keepAlive); the Timers UI/atoms read it for derived values, but the service does not update it.
+- Expose service methods for `start`, `cancel`, and `dismiss` timers; keep state changes centralized in the service.
+- Provide derived helpers/selectors for active vs completed timers and computed fields (remainingMs, progress, formattedRemaining).
+- Emit completion events (stream/queue) for UI notifications when timers finish.
+- Add a small `src/Timers/atoms.ts` adapter that wires `Timers.runtime` into React:
+  - `timersAtom`, `activeTimersAtom`, `completedTimersAtom`, and derived helpers that read `nowAtom` from `src/atoms.ts`.
+  - `startTimerAtom`, `cancelTimerAtom`, `dismissTimerAtom` that call the service methods.
 
 ### Duration parsing and rendering
 

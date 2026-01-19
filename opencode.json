@@ -1,0 +1,13 @@
+{
+  "mcp": {
+    "Playwright": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@latest"
+      ]
+    }
+  },
+  "$schema": "https://opencode.ai/config.json"
+}
