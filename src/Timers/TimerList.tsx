@@ -113,7 +113,7 @@ export function TimerCircle({
               )}
             />
           </svg>
-          <span className="relative z-10 text-xs font-semibold">
+          <span className="relative z-10 text-sm font-semibold">
             {status === "completed" ? "Done" : remainingLabel}
           </span>
         </button>
