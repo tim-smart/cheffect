@@ -5,6 +5,7 @@ import { events } from "@/livestore/schema"
 import { Atom, Result } from "@effect-atom/atom-react"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
+import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 
@@ -67,6 +68,34 @@ export const toggleTimerAtom = Store.runtime.fn<Timer>()(
     store.commit(
       events.timerUpdate(
         timer.pausedRemaining ? timer.resume() : timer.pause(),
+      ),
+    )
+  }),
+)
+
+export const addTimerDurationAtom = Store.runtime.fn<{
+  timer: Timer
+  durationMs: number
+}>()(
+  Effect.fnUntraced(function* ({ timer, durationMs }) {
+    const store = yield* Store
+    const duration = Duration.millis(durationMs)
+    const now = DateTime.unsafeNow()
+    const remaining = timer.remainingAt(now)
+    const nextRemaining = Duration.sum(remaining, duration)
+    store.commit(
+      events.timerUpdate(
+        timer.pausedRemaining
+          ? new Timer({
+              ...timer,
+              pausedRemaining: nextRemaining,
+              updatedAt: now,
+            })
+          : new Timer({
+              ...timer,
+              expiresAt: DateTime.addDuration(now, nextRemaining),
+              updatedAt: now,
+            }),
       ),
     )
   }),
