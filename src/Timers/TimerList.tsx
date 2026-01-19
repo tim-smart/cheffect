@@ -106,7 +106,7 @@ export function TimerCircle({
               strokeDasharray={circumference}
               strokeDashoffset={dashOffset}
               className={cn(
-                "transition-[stroke-dashoffset] duration-700 ease-linear",
+                "transition-[stroke-dashoffset] duration-200 ease-linear",
                 status === "completed"
                   ? "animate-timer-pulse stroke-red-500"
                   : "stroke-primary",
@@ -125,13 +125,19 @@ export function TimerCircle({
           </span>
         </DropdownMenuLabel>
         <DropdownMenuItem
-          onClick={() => addDuration({ timer, durationMs: 60_000 })}
+          onClick={(e) => {
+            e.preventDefault()
+            addDuration({ timer, duration: Duration.minutes(1) })
+          }}
         >
           <Plus />
           Add 1 minute
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => addDuration({ timer, durationMs: 300_000 })}
+          onClick={(e) => {
+            e.preventDefault()
+            addDuration({ timer, duration: Duration.minutes(5) })
+          }}
         >
           <Plus />
           Add 5 minutes

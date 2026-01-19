@@ -75,11 +75,10 @@ export const toggleTimerAtom = Store.runtime.fn<Timer>()(
 
 export const addTimerDurationAtom = Store.runtime.fn<{
   timer: Timer
-  durationMs: number
+  duration: Duration.Duration
 }>()(
-  Effect.fnUntraced(function* ({ timer, durationMs }) {
+  Effect.fnUntraced(function* ({ timer, duration }) {
     const store = yield* Store
-    const duration = Duration.millis(durationMs)
     const now = DateTime.unsafeNow()
     const remaining = timer.remainingAt(now)
     const isCompleted = Duration.isZero(remaining)
