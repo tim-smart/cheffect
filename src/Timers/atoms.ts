@@ -82,7 +82,7 @@ export const addTimerDurationAtom = Store.runtime.fn<{
     const duration = Duration.millis(durationMs)
     const now = DateTime.unsafeNow()
     const remaining = timer.remainingAt(now)
-    const isCompleted = Duration.toMillis(remaining) <= 0
+    const isCompleted = Duration.isZero(remaining)
     const nextRemaining = Duration.sum(remaining, duration)
     const nextDuration = isCompleted
       ? duration
