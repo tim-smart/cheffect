@@ -61,4 +61,29 @@ export class Timer extends Model.Class<Timer>("Timer")({
       updatedAt: now,
     })
   }
+
+  add(now: DateTime.Utc, duration: Duration.Duration): Timer {
+    const remaining = this.remainingAt(now)
+    if (Duration.isZero(duration)) {
+      return new Timer({
+        ...this,
+        duration,
+        expiresAt: DateTime.addDuration(now, duration),
+        updatedAt: DateTime.unsafeNow(),
+      })
+    } else if (this.pausedRemaining) {
+      return new Timer({
+        ...this,
+        duration: Duration.sum(this.duration, duration),
+        pausedRemaining: Duration.sum(this.pausedRemaining, duration),
+        updatedAt: DateTime.unsafeNow(),
+      })
+    }
+    return new Timer({
+      ...this,
+      duration: Duration.sum(this.duration, duration),
+      expiresAt: DateTime.addDuration(now, Duration.sum(remaining, duration)),
+      updatedAt: DateTime.unsafeNow(),
+    })
+  }
 }

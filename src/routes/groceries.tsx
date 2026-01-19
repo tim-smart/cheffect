@@ -124,7 +124,7 @@ function GroceryList() {
                     <Check className="w-4 h-4 mr-2" />
                     Clear completed
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={clearAll}>
+                  <DropdownMenuItem variant="destructive" onClick={clearAll}>
                     <Trash className="w-4 h-4 mr-2" />
                     Clear all items
                   </DropdownMenuItem>

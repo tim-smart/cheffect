@@ -96,6 +96,7 @@ export function MenuDetailPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem
+                  variant="destructive"
                   onClick={() => {
                     if (
                       !confirm("Are you sure you want to remove this menu?")

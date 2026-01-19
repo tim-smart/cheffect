@@ -255,6 +255,7 @@ export function RecipeDetails({
                   </DropdownMenuItem>
                 </MealPlanDatePicker>
                 <DropdownMenuItem
+                  variant="destructive"
                   onClick={() => {
                     if (
                       !confirm("Are you sure you want to delete this recipe?")

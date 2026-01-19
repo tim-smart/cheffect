@@ -186,6 +186,7 @@ function MenuCard({ menu }: { menu: Menu }) {
             Rename
           </DropdownMenuItem>
           <DropdownMenuItem
+            variant="destructive"
             onClick={(e) => {
               e.preventDefault()
               setMenuOpen(false)

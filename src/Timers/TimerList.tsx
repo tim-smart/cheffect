@@ -2,6 +2,7 @@ import { useAtomSet, useAtomValue } from "@effect-atom/atom-react"
 import {
   addTimerDurationAtom,
   dismissTimerAtom,
+  TimerUiState,
   timerUiStateAtom,
   toggleTimerAtom,
 } from "./atoms"
@@ -15,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Pause, Play, Plus, Trash2 } from "lucide-react"
-import { Timer } from "@/domain/Timer"
 import { cn } from "@/lib/utils"
 
 const MAX_VISIBLE_TIMERS = 4
@@ -44,31 +44,21 @@ export function TimerList() {
   )
 }
 
-type TimerUiState = {
-  timer: Timer
-  status: "running" | "paused" | "completed"
-  remaining: Duration.Duration
-  progress: number
-  label: string
-}
-
 export function TimerCircle({
   timerState,
 }: {
   readonly timerState: TimerUiState
 }) {
-  const { timer, status, progress, remaining, label } = timerState
+  const { timer, status, progress } = timerState
   const dismiss = useAtomSet(dismissTimerAtom)
   const toggle = useAtomSet(toggleTimerAtom)
   const addDuration = useAtomSet(addTimerDurationAtom)
 
-  const remainingLabel = formatRemaining(remaining)
-  const ariaLabel = `Open timer menu for ${label}`
+  const ariaLabel = `Open timer menu for ${timer.label}`
 
   const ringRadius = (RING_SIZE - RING_STROKE) / 2
   const circumference = 2 * Math.PI * ringRadius
-  const progressValue = status === "completed" ? 1 : progress
-  const dashOffset = circumference * (1 - progressValue)
+  const dashOffset = circumference * (1 - progress)
 
   return (
     <DropdownMenu>
@@ -78,7 +68,7 @@ export function TimerCircle({
           aria-label={ariaLabel}
           className={cn(
             "relative flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            status === "completed" ? "text-foreground" : "text-primary",
+            status._tag === "Completed" ? "text-foreground" : "text-primary",
           )}
         >
           <svg
@@ -107,21 +97,23 @@ export function TimerCircle({
               strokeDashoffset={dashOffset}
               className={cn(
                 "transition-[stroke-dashoffset] duration-200 ease-linear",
-                status === "completed"
+                status._tag === "Completed"
                   ? "animate-timer-pulse stroke-red-500"
                   : "stroke-primary",
               )}
             />
           </svg>
           <span className="relative z-10 text-sm font-semibold">
-            {status === "completed" ? "Done" : remainingLabel}
+            {status._tag === "Completed"
+              ? "Done"
+              : formatRemaining(status.remaining)}
           </span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" className="w-52">
         <DropdownMenuLabel className="text-xs">
           <span className="block text-sm font-semibold text-foreground">
-            {label}
+            {timer.label}
           </span>
         </DropdownMenuLabel>
         <DropdownMenuItem
@@ -142,12 +134,12 @@ export function TimerCircle({
           <Plus />
           Add 5 minutes
         </DropdownMenuItem>
-        {status === "completed" ? null : (
+        {status._tag !== "Completed" && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => toggle(timer)}>
-              {status === "paused" ? <Play /> : <Pause />}
-              {status === "paused" ? "Resume" : "Pause"}
+              {status._tag === "Paused" ? <Play /> : <Pause />}
+              {status._tag === "Paused" ? "Resume" : "Pause"}
             </DropdownMenuItem>
           </>
         )}
