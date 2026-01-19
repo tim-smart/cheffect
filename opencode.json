@@ -7,7 +7,8 @@
         "run",
         "github:akirak/nix-playwright-mcp",
         "--",
-        "--headless"
+        "--headless",
+        "--no-sandbox"
       ]
     }
   },
