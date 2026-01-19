@@ -1,5 +1,10 @@
 import { useAtomSet, useAtomValue } from "@effect-atom/atom-react"
-import { dismissTimerAtom, timerUiStateAtom, toggleTimerAtom } from "./atoms"
+import {
+  addTimerDurationAtom,
+  dismissTimerAtom,
+  timerUiStateAtom,
+  toggleTimerAtom,
+} from "./atoms"
 import * as Duration from "effect/Duration"
 import {
   DropdownMenu,
@@ -9,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Pause, Play, Trash2 } from "lucide-react"
+import { Pause, Play, Plus, Trash2 } from "lucide-react"
 import { Timer } from "@/domain/Timer"
 import { cn } from "@/lib/utils"
 
@@ -55,6 +60,7 @@ export function TimerCircle({
   const { timer, status, progress, remaining, label } = timerState
   const dismiss = useAtomSet(dismissTimerAtom)
   const toggle = useAtomSet(toggleTimerAtom)
+  const addDuration = useAtomSet(addTimerDurationAtom)
 
   const remainingLabel = formatRemaining(remaining)
   const ariaLabel = `Open timer menu for ${label}`
@@ -118,12 +124,26 @@ export function TimerCircle({
             {label}
           </span>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
         {status === "completed" ? null : (
-          <DropdownMenuItem onClick={() => toggle(timer)}>
-            {status === "paused" ? <Play /> : <Pause />}
-            {status === "paused" ? "Resume" : "Pause"}
-          </DropdownMenuItem>
+          <>
+            <DropdownMenuItem
+              onClick={() => addDuration({ timer, durationMs: 60_000 })}
+            >
+              <Plus />
+              Add 1 minute
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => addDuration({ timer, durationMs: 300_000 })}
+            >
+              <Plus />
+              Add 5 minutes
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => toggle(timer)}>
+              {status === "paused" ? <Play /> : <Pause />}
+              {status === "paused" ? "Resume" : "Pause"}
+            </DropdownMenuItem>
+          </>
         )}
         <DropdownMenuItem
           variant="destructive"
