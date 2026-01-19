@@ -70,9 +70,19 @@ export const beautifyGroceriesAtom = runtime
       }
       for (const item of updated) {
         const prev = previousItems.get(item.id)
+        let nextItem = item
+        if (prev?.name && item.name !== prev.name && !item.aisle) {
+          const maybePrevItem = store.query(previousGroceryAisle$(item.name))
+          if (maybePrevItem._tag === "Some") {
+            nextItem = new GroceryItem({
+              ...item,
+              aisle: maybePrevItem.value.aisle,
+            })
+          }
+        }
         store.commit(
           events.groceryItemUpdated({
-            ...item,
+            ...nextItem,
             previousName: prev?.name,
           }),
         )
