@@ -5,11 +5,8 @@
       "command": [
         "nix",
         "run",
-        "github:benjaminkitt/nix-playwright-mcp",
+        "github:akirak/nix-playwright-mcp",
         "--",
-        "--browser",
-        "chromium",
-        "--no-sandbox",
         "--headless"
       ]
     }
