@@ -1,6 +1,8 @@
 import { Model } from "@effect/sql"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
+import * as Equal from "effect/Equal"
+import * as Hash from "effect/Hash"
 import * as Schema from "effect/Schema"
 
 export class Timer extends Model.Class<Timer>("Timer")({
@@ -16,7 +18,19 @@ export class Timer extends Model.Class<Timer>("Timer")({
     Model.FieldExcept("jsonCreate", "jsonUpdate"),
   ),
 }) {
-  static array = Schema.Array(Timer)
+  static array = Schema.Array(Timer);
+
+  [Equal.symbol](that: Timer) {
+    return this.id === that.id
+  }
+
+  [Hash.symbol]() {
+    return Hash.string(this.id)
+  }
+
+  notificationTag(): string {
+    return `timer-${this.id}`
+  }
 
   remainingAt(now: DateTime.Utc): Duration.Duration {
     if (this.pausedRemaining !== null) {
