@@ -108,7 +108,7 @@ export function TimerCircle({
               className={cn(
                 "transition-[stroke-dashoffset] duration-700 ease-linear",
                 status === "completed"
-                  ? "stroke-muted-foreground"
+                  ? "stroke-muted-foreground animate-timer-complete-pulse"
                   : "stroke-primary",
               )}
             />
