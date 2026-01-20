@@ -96,7 +96,7 @@ export function TimerCircle({
               strokeDasharray={circumference}
               strokeDashoffset={dashOffset}
               className={cn(
-                "transition-[stroke-dashoffset] duration-200 ease-linear",
+                "transition-[stroke-dashoffset] duration-500 ease-linear",
                 status._tag === "Completed"
                   ? "animate-timer-pulse stroke-red-500"
                   : "stroke-primary",
