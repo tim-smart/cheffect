@@ -279,6 +279,9 @@ importers:
       vite-plugin-pwa:
         specifier: ^1.2.0
         version: 1.2.0(@vite-pwa/assets-generator@1.0.2)(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(workbox-build@7.4.0(@types/babel__core@7.20.5))(workbox-window@7.4.0)
+      workbox-cacheable-response:
+        specifier: ^7.4.0
+        version: 7.4.0
       workbox-core:
         specifier: ^7.4.0
         version: 7.4.0
