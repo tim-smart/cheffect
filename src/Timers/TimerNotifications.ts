@@ -84,7 +84,7 @@ export const TimerNotifications = Layer.scopedDiscard(
             timerStates.map((timerState) => timerState.timer.id),
           )
           const anyCompleted = timerStates.some(
-            (timerState) => timerState.status === "completed",
+            (timerState) => timerState.status._tag === "Completed",
           )
 
           if (anyCompleted) {
@@ -99,10 +99,11 @@ export const TimerNotifications = Layer.scopedDiscard(
           }
 
           for (const timerState of timerStates) {
-            if (timerState.status === "completed") {
+            const timer = timerState.timer
+            if (timerState.status._tag === "Completed") {
               if (!nextNotified.has(timerState.timer.id)) {
-                nextNotified.set(timerState.timer.id, timerState.timer)
-                yield* notify(timerState.timer.id, timerState.label)
+                nextNotified.set(timerState.timer.id, timer)
+                yield* notify(timerState.timer.id, timer.label)
               }
               continue
             }
