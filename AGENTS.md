@@ -24,6 +24,9 @@ can refer to:
 
 ## Interaction with the app
 
+Any visual changes to the app should be tested by running the dev server and
+using the playwright MCP tools to interact with the app.
+
 1. Start the dev server in the background `pnpm dev &`
 2. Use the playwright MCP tools to interact with the app at
    http://localhost:5173
