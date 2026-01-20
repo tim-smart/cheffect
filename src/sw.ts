@@ -13,7 +13,8 @@ declare let self: ServiceWorkerGlobalScope
 // self.__WB_MANIFEST is default injection point
 precacheAndRoute(self.__WB_MANIFEST)
 
-const imageCacheName = "cheffect-images-v1"
+const imageCachePrefix = "cheffect-images-"
+const imageCacheName = `${imageCachePrefix}v1`
 
 // cache external images
 registerRoute(
@@ -26,6 +27,24 @@ registerRoute(
 
 // clean old assets
 cleanupOutdatedCaches()
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames
+            .filter(
+              (cacheName) =>
+                cacheName.startsWith(imageCachePrefix) &&
+                cacheName !== imageCacheName,
+            )
+            .map((cacheName) => caches.delete(cacheName)),
+        ),
+      ),
+  )
+})
 
 // to allow work offline
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")))
