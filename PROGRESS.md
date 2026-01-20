@@ -1,3 +1,0 @@
-- 2026-01-13: Added rating option to recipe sorting and updated query ordering.
-- 2026-01-13: TIM-12 align top nav logo text via tighter line-height. Files: src/routes/\_\_root.tsx. Notes: none.
-- 2026-01-14: TIM-20 swap grocery beautify model to gpt-5-nano, reasoning low. Files: src/services/AiHelpers.ts. Notes: prettier+tsc ok, no blockers.
