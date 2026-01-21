@@ -31,6 +31,7 @@ import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { GroceryItem } from "@/domain/GroceryItem"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
+import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import * as Prompt from "@effect/ai/Prompt"
 import * as LanguageModel from "@effect/ai/LanguageModel"
 import { layerKvsLivestore } from "@/lib/kvs"
@@ -358,7 +359,73 @@ const ToolkitLayer = toolkit.toLayer(
           },
         }
       }),
-      SetMealPlanDayNote: Effect.fnUntraced(function* () {
+      SetMealPlanDayNote: Effect.fnUntraced(function* ({ day, note }) {
+        const normalizedDay = day.pipe(
+          DateTime.setZone(DateTime.zoneMakeLocal()),
+          DateTime.removeTime,
+        )
+        const dayOfWeek = DateTime.toDateUtc(normalizedDay).getDay()
+        const weekStartsOn = registry.get(mealPlanWeekStart.atom).pipe(
+          Result.value,
+          Option.flatten,
+          Option.getOrElse(() => 0 as const),
+        )
+        const weekStart = normalizedDay.pipe(
+          DateTime.startOf("week"),
+          DateTime.removeTime,
+        )
+        const startDay = DateTime.add(weekStart, {
+          days: dayOfWeek < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
+        })
+        const notes = store.query(mealPlanDayNotes$(startDay))
+        const key = DateTime.formatIsoDate(normalizedDay)
+        let existing: (typeof notes)[number] | undefined
+
+        for (const candidate of notes) {
+          if (DateTime.formatIsoDate(candidate.day) !== key) continue
+          if (
+            !existing ||
+            candidate.updatedAt.epochMillis > existing.updatedAt.epochMillis
+          ) {
+            existing = candidate
+          }
+        }
+
+        const trimmed = note.trim()
+        if (trimmed.length === 0) {
+          if (existing) {
+            store.commit(events.mealPlanDayNoteRemove({ id: existing.id }))
+          }
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+
+        if (existing) {
+          if (existing.note !== trimmed) {
+            store.commit(
+              events.mealPlanDayNoteUpdate({
+                ...existing,
+                note: trimmed,
+                updatedAt: DateTime.unsafeNow(),
+              }),
+            )
+          }
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+
+        store.commit(
+          events.mealPlanDayNoteAdd(
+            MealPlanDayNote.fromForm({
+              day: normalizedDay,
+              note: trimmed,
+            }),
+          ),
+        )
         return {
           _tag: "Transient",
           value: null,
