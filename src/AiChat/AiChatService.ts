@@ -22,6 +22,7 @@ import {
 import {
   allMenus$,
   menuByIdAtom,
+  menuDayNotes$,
   menuEntries$,
   menuEntriesAtom,
 } from "@/Menus/atoms"
@@ -204,11 +205,22 @@ const ToolkitLayer = toolkit.toLayer(
       }),
       GetMenuEntries: Effect.fnUntraced(function* ({ menuId }) {
         const entries = store.query(menuEntries$(menuId))
+        const notes = store.query(menuDayNotes$(menuId))
+        const latestNotes = new Map<number, (typeof notes)[number]>()
+        for (const note of notes) {
+          const existing = latestNotes.get(note.day)
+          if (
+            !existing ||
+            note.updatedAt.epochMillis > existing.updatedAt.epochMillis
+          ) {
+            latestNotes.set(note.day, note)
+          }
+        }
         return {
           _tag: "Transient",
           value: {
             entries,
-            menuDayNotes: [],
+            menuDayNotes: globalThis.Array.from(latestNotes.values()),
           },
         }
       }),
