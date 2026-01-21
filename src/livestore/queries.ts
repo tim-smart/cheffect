@@ -283,6 +283,24 @@ export const mealPlanDayNotes$ = (startDay: DateTime.Utc) => {
   )
 }
 
+export const mealPlanDayNotesForDay$ = (day: DateTime.Utc) => {
+  const weekDay = DateTime.formatIsoDate(day)
+  return queryDb(
+    {
+      query: sql`
+        select *
+        from meal_plan_day_notes
+        where day = ?
+      `,
+      schema: MealPlanDayNote.array,
+      bindValues: [weekDay],
+    },
+    {
+      deps: [day.epochMillis],
+    },
+  )
+}
+
 export const mealPlanEntriesAtom = Store.makeQuery((get) =>
   mealPlanEntries$(get(mealPlanWeekAdjustedAtom)),
 )
