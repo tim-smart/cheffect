@@ -15,6 +15,7 @@ import {
   allGroceryItems$,
   allGroceryItemsArrayAtom,
   groceryListNames$,
+  mealPlanDayNotes$,
   mealPlanEntries$,
   mealPlanEntriesAtom,
   recipeByIdAtom,
@@ -288,11 +289,23 @@ const ToolkitLayer = toolkit.toLayer(
           days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
         })
         const entries = store.query(mealPlanEntries$(startDay))
+        const notes = store.query(mealPlanDayNotes$(startDay))
+        const latestNotes = new Map<string, (typeof notes)[number]>()
+        for (const note of notes) {
+          const key = DateTime.formatIsoDate(note.day)
+          const existing = latestNotes.get(key)
+          if (
+            !existing ||
+            note.updatedAt.epochMillis > existing.updatedAt.epochMillis
+          ) {
+            latestNotes.set(key, note)
+          }
+        }
         return {
           _tag: "Transient",
           value: {
             entries,
-            mealPlanDayNotes: [],
+            mealPlanDayNotes: globalThis.Array.from(latestNotes.values()),
           },
         }
       }),
