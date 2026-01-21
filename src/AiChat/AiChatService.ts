@@ -206,7 +206,16 @@ const ToolkitLayer = toolkit.toLayer(
         const entries = store.query(menuEntries$(menuId))
         return {
           _tag: "Transient",
-          value: entries,
+          value: {
+            entries,
+            menuDayNotes: [],
+          },
+        }
+      }),
+      SetMenuDayNote: Effect.fnUntraced(function* () {
+        return {
+          _tag: "Transient",
+          value: null,
         }
       }),
       CreateMenu: Effect.fnUntraced(function* ({ menu }) {
@@ -269,7 +278,16 @@ const ToolkitLayer = toolkit.toLayer(
         const entries = store.query(mealPlanEntries$(startDay))
         return {
           _tag: "Transient",
-          value: entries,
+          value: {
+            entries,
+            mealPlanDayNotes: [],
+          },
+        }
+      }),
+      SetMealPlanDayNote: Effect.fnUntraced(function* () {
+        return {
+          _tag: "Transient",
+          value: null,
         }
       }),
       AddMealPlanEntries: Effect.fnUntraced(function* ({ mealPlanEntries }) {

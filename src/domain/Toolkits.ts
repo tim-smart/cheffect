@@ -5,7 +5,9 @@ import { ExtractedRecipe, Recipe } from "./Recipe"
 import { GroceryItem } from "./GroceryItem"
 import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
+import { MenuDayNote } from "./MenuDayNote"
 import { MealPlanEntry } from "./MealPlanEntry"
+import { MealPlanDayNote } from "./MealPlanDayNote"
 import { OpenAiTool } from "@effect/ai-openai"
 import { Model } from "@effect/sql"
 
@@ -159,11 +161,31 @@ export class toolkit extends Toolkit.make(
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("GetMenuEntries", {
-    description: "Get the recipes added to a specific menu",
+    description:
+      "Get the recipes added to a specific menu along with existing menu day notes",
     parameters: {
       menuId: Schema.String,
     },
-    success: TransientResponse(Schema.Array(MenuEntry.json)),
+    success: TransientResponse(
+      Schema.Struct({
+        entries: Schema.Array(MenuEntry.json),
+        menuDayNotes: Schema.Array(MenuDayNote.json),
+      }),
+    ),
+  }),
+  Tool.make("SetMenuDayNote", {
+    description:
+      "Create or update a note for a menu day. Pass an empty note to remove the existing note.",
+    parameters: {
+      menuId: Schema.String,
+      day: Schema.Number.annotations({
+        description: "Menu day number to set the note for.",
+      }),
+      note: Schema.String.annotations({
+        description: "Note content for the menu day (empty string removes it).",
+      }),
+    },
+    success: TransientResponse(Schema.Null),
   }),
   Tool.make("RemoveMenuEntry", {
     description: "Remove a recipe entry from a menu",
@@ -174,8 +196,27 @@ export class toolkit extends Toolkit.make(
   }),
   Tool.make("GetCurrentMealPlan", {
     description:
-      "Get the user's current meal plan entries for the current week",
-    success: TransientResponse(Schema.Array(MealPlanEntry.json)),
+      "Get the user's current meal plan entries for the current week along with existing meal plan day notes",
+    success: TransientResponse(
+      Schema.Struct({
+        entries: Schema.Array(MealPlanEntry.json),
+        mealPlanDayNotes: Schema.Array(MealPlanDayNote.json),
+      }),
+    ),
+  }),
+  Tool.make("SetMealPlanDayNote", {
+    description:
+      "Create or update a note for a meal plan day. Pass an empty note to remove the existing note.",
+    parameters: {
+      day: Model.Date.annotations({
+        description: "Meal plan day date (YYYY-MM-DD format).",
+      }),
+      note: Schema.String.annotations({
+        description:
+          "Note content for the meal plan day (empty string removes it).",
+      }),
+    },
+    success: TransientResponse(Schema.Null),
   }),
   Tool.make("AddMealPlanEntries", {
     description: "Add entries to the user's meal plan",
