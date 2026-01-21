@@ -16,6 +16,7 @@ import {
   allGroceryItemsArrayAtom,
   groceryListNames$,
   mealPlanDayNotes$,
+  mealPlanDayNotesForDay$,
   mealPlanEntries$,
   mealPlanEntriesAtom,
   recipeByIdAtom,
@@ -209,36 +210,17 @@ const ToolkitLayer = toolkit.toLayer(
       GetMenuEntries: Effect.fnUntraced(function* ({ menuId }) {
         const entries = store.query(menuEntries$(menuId))
         const notes = store.query(menuDayNotes$(menuId))
-        const latestNotes = new Map<number, (typeof notes)[number]>()
-        for (const note of notes) {
-          const existing = latestNotes.get(note.day)
-          if (
-            !existing ||
-            note.updatedAt.epochMillis > existing.updatedAt.epochMillis
-          ) {
-            latestNotes.set(note.day, note)
-          }
-        }
         return {
           _tag: "Transient",
           value: {
             entries,
-            menuDayNotes: globalThis.Array.from(latestNotes.values()),
+            menuDayNotes: notes,
           },
         }
       }),
       SetMenuDayNote: Effect.fnUntraced(function* ({ menuId, day, note }) {
         const notes = store.query(menuDayNotes$(menuId))
-        let existing: (typeof notes)[number] | undefined
-        for (const candidate of notes) {
-          if (candidate.day !== day) continue
-          if (
-            !existing ||
-            candidate.updatedAt.epochMillis > existing.updatedAt.epochMillis
-          ) {
-            existing = candidate
-          }
-        }
+        let existing = notes.find((n) => n.day === day)
 
         const trimmed = note.trim()
         if (trimmed.length === 0) {
@@ -364,32 +346,7 @@ const ToolkitLayer = toolkit.toLayer(
           DateTime.setZone(DateTime.zoneMakeLocal()),
           DateTime.removeTime,
         )
-        const dayOfWeek = DateTime.toDateUtc(normalizedDay).getDay()
-        const weekStartsOn = registry.get(mealPlanWeekStart.atom).pipe(
-          Result.value,
-          Option.flatten,
-          Option.getOrElse(() => 0 as const),
-        )
-        const weekStart = normalizedDay.pipe(
-          DateTime.startOf("week"),
-          DateTime.removeTime,
-        )
-        const startDay = DateTime.add(weekStart, {
-          days: dayOfWeek < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
-        })
-        const notes = store.query(mealPlanDayNotes$(startDay))
-        const key = DateTime.formatIsoDate(normalizedDay)
-        let existing: (typeof notes)[number] | undefined
-
-        for (const candidate of notes) {
-          if (DateTime.formatIsoDate(candidate.day) !== key) continue
-          if (
-            !existing ||
-            candidate.updatedAt.epochMillis > existing.updatedAt.epochMillis
-          ) {
-            existing = candidate
-          }
-        }
+        const existing = store.query(mealPlanDayNotesForDay$(normalizedDay))[0]
 
         const trimmed = note.trim()
         if (trimmed.length === 0) {
