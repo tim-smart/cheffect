@@ -28,6 +28,7 @@ import {
   menuEntriesAtom,
 } from "@/Menus/atoms"
 import { MenuEntry } from "@/domain/MenuEntry"
+import { MenuDayNote } from "@/domain/MenuDayNote"
 import { GroceryItem } from "@/domain/GroceryItem"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import * as Prompt from "@effect/ai/Prompt"
@@ -225,7 +226,55 @@ const ToolkitLayer = toolkit.toLayer(
           },
         }
       }),
-      SetMenuDayNote: Effect.fnUntraced(function* () {
+      SetMenuDayNote: Effect.fnUntraced(function* ({ menuId, day, note }) {
+        const notes = store.query(menuDayNotes$(menuId))
+        let existing: (typeof notes)[number] | undefined
+        for (const candidate of notes) {
+          if (candidate.day !== day) continue
+          if (
+            !existing ||
+            candidate.updatedAt.epochMillis > existing.updatedAt.epochMillis
+          ) {
+            existing = candidate
+          }
+        }
+
+        const trimmed = note.trim()
+        if (trimmed.length === 0) {
+          if (existing) {
+            store.commit(events.menuDayNoteRemove({ id: existing.id }))
+          }
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+
+        if (existing) {
+          if (existing.note !== trimmed) {
+            store.commit(
+              events.menuDayNoteUpdate({
+                ...existing,
+                note: trimmed,
+                updatedAt: DateTime.unsafeNow(),
+              }),
+            )
+          }
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+
+        store.commit(
+          events.menuDayNoteAdd(
+            MenuDayNote.fromForm({
+              menuId,
+              day,
+              note: trimmed,
+            }),
+          ),
+        )
         return {
           _tag: "Transient",
           value: null,
