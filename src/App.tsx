@@ -6,11 +6,15 @@ import { Store } from "./livestore/atoms"
 import { aiChatOpenAtom, installPromptAtom } from "./atoms"
 import { useLayoutEffect } from "react"
 import { timerNotificationsAtom } from "./Timers/TimerNotifications"
+import { seedDevRecipesAtom } from "@/dev/seedDevRecipes"
 
 export default function App() {
   useAtomMount(Store.runtime)
   useAtomMount(installPromptAtom)
   useAtomMount(timerNotificationsAtom)
+  if (import.meta.env.DEV) {
+    useAtomMount(seedDevRecipesAtom)
+  }
 
   useRegisterSW({
     immediate: true,
