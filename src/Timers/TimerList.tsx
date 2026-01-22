@@ -56,7 +56,7 @@ export function TimerCircle({
 
   const ariaLabel = `Open timer menu for ${timer.label}`
   const isLongTimer =
-    Duration.toMillis(timer.duration) > Duration.toMillis(Duration.minutes(30))
+    Duration.toMillis(timer.duration) > Duration.toMillis(Duration.minutes(60))
 
   const ringRadius = (RING_SIZE - RING_STROKE) / 2
   const circumference = 2 * Math.PI * ringRadius
