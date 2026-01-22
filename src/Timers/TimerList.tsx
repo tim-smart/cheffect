@@ -118,15 +118,17 @@ export function TimerCircle({
             {timer.label}
           </span>
         </DropdownMenuLabel>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.preventDefault()
-            addDuration({ timer, duration: Duration.minutes(1) })
-          }}
-        >
-          <Plus />
-          Add 1 minute
-        </DropdownMenuItem>
+        {isLongTimer ? null : (
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.preventDefault()
+              addDuration({ timer, duration: Duration.minutes(1) })
+            }}
+          >
+            <Plus />
+            Add 1 minute
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={(e) => {
             e.preventDefault()
