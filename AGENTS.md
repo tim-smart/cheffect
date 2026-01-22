@@ -30,3 +30,4 @@ using the playwright MCP tools to interact with the app.
 1. Start the dev server in the background `pnpm dev &`
 2. Use the playwright MCP tools to interact with the app at
    http://localhost:5173
+3. Stop the dev server when done
