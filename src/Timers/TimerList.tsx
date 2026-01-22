@@ -55,6 +55,8 @@ export function TimerCircle({
   const addDuration = useAtomSet(addTimerDurationAtom)
 
   const ariaLabel = `Open timer menu for ${timer.label}`
+  const isLongTimer =
+    Duration.toMillis(timer.duration) > Duration.toMillis(Duration.minutes(30))
 
   const ringRadius = (RING_SIZE - RING_STROKE) / 2
   const circumference = 2 * Math.PI * ringRadius
@@ -134,6 +136,17 @@ export function TimerCircle({
           <Plus />
           Add 5 minutes
         </DropdownMenuItem>
+        {isLongTimer ? (
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.preventDefault()
+              addDuration({ timer, duration: Duration.minutes(15) })
+            }}
+          >
+            <Plus />
+            Add 15 minutes
+          </DropdownMenuItem>
+        ) : null}
         {status._tag !== "Completed" && (
           <>
             <DropdownMenuSeparator />
