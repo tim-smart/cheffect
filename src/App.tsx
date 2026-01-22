@@ -6,6 +6,7 @@ import { Store } from "./livestore/atoms"
 import { aiChatOpenAtom, installPromptAtom } from "./atoms"
 import { useLayoutEffect } from "react"
 import { timerNotificationsAtom } from "./Timers/TimerNotifications"
+import { seedDevRecipesAtom } from "@/dev/seedDevRecipes"
 
 export default function App() {
   useAtomMount(Store.runtime)
@@ -18,11 +19,17 @@ export default function App() {
 
   return (
     <>
+      {import.meta.env.DEV ? <DevSeedRecipesMount /> : null}
       <RouterProvider router={router} />
       <DisableScroll />
       <SystemTheme />
     </>
   )
+}
+
+function DevSeedRecipesMount() {
+  useAtomMount(seedDevRecipesAtom)
+  return null
 }
 
 function isDarkMode() {
