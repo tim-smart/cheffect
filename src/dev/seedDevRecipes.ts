@@ -25,14 +25,9 @@ const recipeCount$ = queryDb(
 export const seedDevRecipesAtom = Atom.make((get) => {
   const store = get(Store.storeUnsafe)
   if (!store) return
-  const handle = window.setTimeout(() => {
-    const count = store.query(recipeCount$)
-    if (count > 0) return
-    for (const recipe of seedRecipes) {
-      store.commit(events.recipeCreated(recipe.asRecipe()))
-    }
-  }, 0)
-  get.addFinalizer(() => {
-    window.clearTimeout(handle)
-  })
+  const count = store.query(recipeCount$)
+  if (count > 0) return
+  for (const recipe of seedRecipes) {
+    store.commit(events.recipeCreated(recipe.asRecipe()))
+  }
 })
