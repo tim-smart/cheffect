@@ -12,9 +12,6 @@ export default function App() {
   useAtomMount(Store.runtime)
   useAtomMount(installPromptAtom)
   useAtomMount(timerNotificationsAtom)
-  if (import.meta.env.DEV) {
-    useAtomMount(seedDevRecipesAtom)
-  }
 
   useRegisterSW({
     immediate: true,
@@ -22,11 +19,17 @@ export default function App() {
 
   return (
     <>
+      {import.meta.env.DEV ? <DevSeedRecipesMount /> : null}
       <RouterProvider router={router} />
       <DisableScroll />
       <SystemTheme />
     </>
   )
+}
+
+function DevSeedRecipesMount() {
+  useAtomMount(seedDevRecipesAtom)
+  return null
 }
 
 function isDarkMode() {
