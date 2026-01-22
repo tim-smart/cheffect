@@ -15,11 +15,12 @@ const hourUnitPattern = "(?:hours?|hrs?|hr|h)\\b"
 const minuteUnitPattern = "(?:minutes?|mins?|min|m)\\b"
 const secondUnitPattern = "(?:seconds?|secs?|sec|s)\\b"
 const unitPattern = `(?:${hourUnitPattern}|${minuteUnitPattern}|${secondUnitPattern})`
+const rangeSeparatorPattern = "(?:-|–|\\bto\\b)"
 
 const durationRegex = new RegExp(
   `(?:${qualifierPattern})?(?:` +
     `(?<hoursValue>${numberPattern})\\s*${hourUnitPattern}\\s*(?<minutesValue>${numberPattern})\\s*${minuteUnitPattern}` +
-    `|(?<rangeStart>${numberPattern})\\s*(?:-|–)\\s*(?<rangeEnd>${numberPattern})\\s*(?<rangeUnit>${unitPattern})` +
+    `|(?<rangeStart>${numberPattern})\\s*${rangeSeparatorPattern}\\s*(?<rangeEnd>${numberPattern})\\s*(?<rangeUnit>${unitPattern})` +
     `|(?<value>${numberPattern})\\s*(?<unit>${unitPattern})` +
     `)`,
   "gi",
