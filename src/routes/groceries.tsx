@@ -191,6 +191,7 @@ function GroceryItemForm({
   initialValue,
   compact = false,
   autocomplete = false,
+  showDetails = true,
 }: {
   currentList: string | null
   className?: string
@@ -199,6 +200,7 @@ function GroceryItemForm({
   initialValue?: GroceryItem | undefined
   compact?: boolean
   autocomplete?: boolean
+  showDetails?: boolean
 }) {
   const isEditing = !!initialValue
   return (
@@ -242,35 +244,41 @@ function GroceryItemForm({
           ) : (
             <Display.name placeholder="Item name" />
           )}
-          <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
-            <Display.quantity
-              placeholder="Quantity (optional)"
-              className="flex-1"
-              {...{ tabIndex: -1 }}
-            />
-            <Display.aisle
-              options={aisleOptions}
-              placeholder="Other"
-              {...{ tabIndex: -1 }}
-            />
-          </div>
-          <div className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}>
-            <Button
-              type="submit"
-              className="flex-1 bg-primary hover:bg-orange-700"
-            >
-              {isEditing ? "Save" : "Add Item"}
-            </Button>
-            {onCancel && (
-              <Button
-                onClick={() => onCancel()}
-                variant="outline"
-                className="flex-1"
+          {showDetails && (
+            <>
+              <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
+                <Display.quantity
+                  placeholder="Quantity (optional)"
+                  className="flex-1"
+                  {...{ tabIndex: -1 }}
+                />
+                <Display.aisle
+                  options={aisleOptions}
+                  placeholder="Other"
+                  {...{ tabIndex: -1 }}
+                />
+              </div>
+              <div
+                className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}
               >
-                Cancel
-              </Button>
-            )}
-          </div>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-primary hover:bg-orange-700"
+                >
+                  {isEditing ? "Save" : "Add Item"}
+                </Button>
+                {onCancel && (
+                  <Button
+                    onClick={() => onCancel()}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </Display.Form>
@@ -341,6 +349,7 @@ function GroceryListList({
             }}
             compact
             autocomplete
+            showDetails={false}
           />
         </div>
       )}
@@ -556,7 +565,7 @@ function NameAutoComplete() {
   return (
     <Command className="overflow-visible bg-transparent!">
       <Display.name
-        placeholder="Item name"
+        placeholder="Add an item..."
         {...{
           onFocus(e: React.FocusEvent) {
             inputRef.current = e.target as HTMLInputElement
