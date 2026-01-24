@@ -62,6 +62,10 @@ export const tables = {
         name: "recipes_deleted_at_title_idx",
         columns: ["deletedAt", "title"],
       },
+      {
+        name: "recipes_deleted_at_ingredients_idx",
+        columns: ["deletedAt", "ingredients"],
+      },
     ],
   }),
   recipeEdits: State.SQLite.table({
