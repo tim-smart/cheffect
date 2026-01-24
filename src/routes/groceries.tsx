@@ -191,6 +191,7 @@ function GroceryItemForm({
   initialValue,
   compact = false,
   autocomplete = false,
+  showDetails = true,
 }: {
   currentList: string | null
   className?: string
@@ -199,6 +200,7 @@ function GroceryItemForm({
   initialValue?: GroceryItem | undefined
   compact?: boolean
   autocomplete?: boolean
+  showDetails?: boolean
 }) {
   const isEditing = !!initialValue
   return (
@@ -242,18 +244,20 @@ function GroceryItemForm({
           ) : (
             <Display.name placeholder="Item name" />
           )}
-          <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
-            <Display.quantity
-              placeholder="Quantity (optional)"
-              className="flex-1"
-              {...{ tabIndex: -1 }}
-            />
-            <Display.aisle
-              options={aisleOptions}
-              placeholder="Other"
-              {...{ tabIndex: -1 }}
-            />
-          </div>
+          {showDetails && (
+            <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
+              <Display.quantity
+                placeholder="Quantity (optional)"
+                className="flex-1"
+                {...{ tabIndex: -1 }}
+              />
+              <Display.aisle
+                options={aisleOptions}
+                placeholder="Other"
+                {...{ tabIndex: -1 }}
+              />
+            </div>
+          )}
           <div className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}>
             <Button
               type="submit"
@@ -341,6 +345,7 @@ function GroceryListList({
             }}
             compact
             autocomplete
+            showDetails={false}
           />
         </div>
       )}
