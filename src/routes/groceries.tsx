@@ -258,23 +258,27 @@ function GroceryItemForm({
               />
             </div>
           )}
-          <div className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}>
-            <Button
-              type="submit"
-              className="flex-1 bg-primary hover:bg-orange-700"
+          {showDetails && (
+            <div
+              className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}
             >
-              {isEditing ? "Save" : "Add Item"}
-            </Button>
-            {onCancel && (
               <Button
-                onClick={() => onCancel()}
-                variant="outline"
-                className="flex-1"
+                type="submit"
+                className="flex-1 bg-primary hover:bg-orange-700"
               >
-                Cancel
+                {isEditing ? "Save" : "Add Item"}
               </Button>
-            )}
-          </div>
+              {onCancel && (
+                <Button
+                  onClick={() => onCancel()}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Display.Form>
