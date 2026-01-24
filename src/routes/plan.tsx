@@ -3,7 +3,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  X,
+  Trash,
   Calendar,
   Eraser,
   MoreVertical,
@@ -445,7 +445,7 @@ function DayListItem({
                           handleRemoveEntry(id)
                         }}
                       >
-                        <X />
+                        <Trash />
                         Remove
                       </DropdownMenuItem>
                     </DropdownMenuContent>
