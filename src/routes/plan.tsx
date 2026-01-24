@@ -413,31 +413,43 @@ function DayListItem({
                   </p>
                 </div>
                 <div onClick={(e) => e.stopPropagation()}>
-                  <MealPlanDatePicker
-                    target={MealPlanDatePickerTarget.Existing({
-                      id,
-                      initialValue: date,
-                    })}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-muted-foreground"
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      onCloseAutoFocus={(event) => event.preventDefault()}
                     >
-                      <Calendar className="w-4 h-4" />
-                    </Button>
-                  </MealPlanDatePicker>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      return handleRemoveEntry(id)
-                    }}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
+                      <MealPlanDatePicker
+                        target={MealPlanDatePickerTarget.Existing({
+                          id,
+                          initialValue: date,
+                        })}
+                      >
+                        <DropdownMenuItem>
+                          <Calendar />
+                          Change day
+                        </DropdownMenuItem>
+                      </MealPlanDatePicker>
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          handleRemoveEntry(id)
+                        }}
+                      >
+                        <X />
+                        Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </Link>
             ))}
