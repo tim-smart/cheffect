@@ -57,6 +57,12 @@ export const tables = {
         schema: Schema.DateTimeUtcFromNumber,
       }),
     },
+    indexes: [
+      {
+        name: "recipes_deleted_at_title_idx",
+        columns: ["deletedAt", "title"],
+      },
+    ],
   }),
   recipeEdits: State.SQLite.table({
     name: "recipe_edits",
