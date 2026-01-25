@@ -564,10 +564,7 @@ function NameAutoComplete() {
     inputRef.current?.form?.requestSubmit()
   }
   const onRemove = (value: string) => {
-    const normalized = value.trim().toLowerCase()
-    if (!normalized) return
-    commit(events.ingredientAisleRemoved({ name: normalized }))
-    inputRef.current?.focus()
+    commit(events.ingredientAisleRemoved({ name: value }))
   }
   const stopPointer = (event: React.PointerEvent) => {
     event.preventDefault()
@@ -619,7 +616,6 @@ function NameAutoComplete() {
                 <Button
                   type="button"
                   variant="ghost"
-                  size="xs"
                   className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                   onPointerDown={stopPointer}
                   onPointerUp={stopPointer}
