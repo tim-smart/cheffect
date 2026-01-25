@@ -626,7 +626,7 @@ function NameAutoComplete() {
                   }}
                   aria-label={`Remove ${name} from suggestions`}
                 >
-                  <X className="size-3" />
+                  <X />
                 </Button>
               </CommandItem>
             ))}
