@@ -553,6 +553,7 @@ function NameAutoCompleteSync() {
 }
 
 function NameAutoComplete() {
+  const commit = useCommit()
   const setName = Display.name.useControls().set
   const results = useAtomValue(groceryNameAutoCompleteAtom)
   const [focused, setFocused] = useState(false)
@@ -561,6 +562,16 @@ function NameAutoComplete() {
     setName(value)
     inputRef.current?.focus()
     inputRef.current?.form?.requestSubmit()
+  }
+  const onRemove = (value: string) => {
+    const normalized = value.trim().toLowerCase()
+    if (!normalized) return
+    commit(events.ingredientAisleRemoved({ name: normalized }))
+    inputRef.current?.focus()
+  }
+  const stopPointer = (event: React.PointerEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
   }
   return (
     <Command className="overflow-visible bg-transparent!">
@@ -596,6 +607,7 @@ function NameAutoComplete() {
             {results.map((name) => (
               <CommandItem
                 key={name}
+                className="justify-between"
                 onSelect={setName}
                 onPointerDown={(e) => e.preventDefault()}
                 onPointerUp={(e) => {
@@ -603,7 +615,23 @@ function NameAutoComplete() {
                   onClick(name)
                 }}
               >
-                {name}
+                <span className="truncate">{name}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  className="ml-auto h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                  onPointerDown={stopPointer}
+                  onPointerUp={stopPointer}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    onRemove(name)
+                  }}
+                  aria-label={`Remove ${name} from suggestions`}
+                >
+                  <X className="size-3" />
+                </Button>
               </CommandItem>
             ))}
           </CommandGroup>
