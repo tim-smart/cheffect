@@ -385,6 +385,12 @@ export const events = {
       userInitiated: Schema.optional(Schema.Boolean),
     }),
   }),
+  ingredientAisleRemoved: Events.synced({
+    name: "v1.IngredientAisleRemoved",
+    schema: Schema.Struct({
+      name: Schema.String,
+    }),
+  }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
     schema: Schema.Union(
@@ -586,6 +592,8 @@ const materializers = State.SQLite.materializers(events, {
         : []),
     ]
   },
+  "v1.IngredientAisleRemoved": ({ name }) =>
+    tables.ingredientAisles.delete().where({ name }),
   "v1.GroceryItemCleared": (input) => {
     const list = input ? input.list : null
     return tables.groceryItems.delete().where({ list })
