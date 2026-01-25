@@ -129,7 +129,7 @@ function ModalContent({
       <div
         ref={containerRef}
         className={cn(
-          "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:floating-b md:w-100 md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
+          "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:floating-b md:w-[30rem] md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
           viewportObstructed > 0
             ? "md:rounded-2xl"
             : "top-[15vh]! rounded-t-2xl md:rounded-2xl",
