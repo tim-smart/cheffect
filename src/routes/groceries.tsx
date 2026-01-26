@@ -318,6 +318,7 @@ function GroceryListList({
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
   const cancelBeautify = () => beautifyResult(Atom.Reset)
   const canReorder = !showCompleted
+  const lastOverId = useRef<string | null>(null)
 
   const toggleItem = (item: GroceryItem) => {
     commit(
@@ -392,8 +393,14 @@ function GroceryListList({
       )}
       <DndContext
         collisionDetection={pointerWithin}
-        onDragOver={() => {
+        onDragStart={() => {
+          lastOverId.current = null
+        }}
+        onDragOver={(event) => {
           if (!canReorder) return
+          const overId = String(event?.over?.id ?? "")
+          if (!overId || lastOverId.current === overId) return
+          lastOverId.current = overId
           if ("vibrate" in navigator) {
             navigator.vibrate(5)
           }
@@ -403,6 +410,10 @@ function GroceryListList({
           const { active, over } = event
           if (!over) return
           reorderAisles(String(active.id), String(over.id))
+          lastOverId.current = null
+        }}
+        onDragCancel={() => {
+          lastOverId.current = null
         }}
       >
         <div className="space-y-2 max-w-lg mx-auto p-2 overflow-hidden">
