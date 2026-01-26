@@ -158,6 +158,24 @@ export const tables = {
       }),
     },
   }),
+  groceryAisleOrders: State.SQLite.table({
+    name: "grocery_aisle_orders",
+    columns: {
+      id: State.SQLite.text({ primaryKey: true }),
+      list: State.SQLite.text({ nullable: true }),
+      aisle: State.SQLite.text({ nullable: false }),
+      sortOrder: State.SQLite.integer({ nullable: false }),
+      updatedAt: State.SQLite.integer({
+        schema: Schema.DateTimeUtcFromNumber,
+      }),
+    },
+    indexes: [
+      {
+        name: "grocery_aisle_orders_list_idx",
+        columns: ["list"],
+      },
+    ],
+  }),
   menus: State.SQLite.table({
     name: "menus",
     columns: {
@@ -391,6 +409,16 @@ export const events = {
       name: Schema.String,
     }),
   }),
+  groceryAisleOrderSet: Events.synced({
+    name: "v1.GroceryAisleOrderSet",
+    schema: Schema.Struct({
+      id: Schema.String,
+      list: Schema.NullOr(Schema.String),
+      aisle: Schema.String,
+      sortOrder: Schema.Number,
+      updatedAt: Schema.DateTimeUtcFromNumber,
+    }),
+  }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
     schema: Schema.Union(
@@ -594,6 +622,11 @@ const materializers = State.SQLite.materializers(events, {
   },
   "v1.IngredientAisleRemoved": ({ name }) =>
     tables.ingredientAisles.delete().where({ name }),
+  "v1.GroceryAisleOrderSet": (insert) =>
+    tables.groceryAisleOrders.insert(insert).onConflict("id", "update", {
+      sortOrder: insert.sortOrder,
+      updatedAt: insert.updatedAt,
+    }),
   "v1.GroceryItemCleared": (input) => {
     const list = input ? input.list : null
     return tables.groceryItems.delete().where({ list })

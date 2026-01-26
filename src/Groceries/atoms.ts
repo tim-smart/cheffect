@@ -3,10 +3,11 @@ import { Store } from "@/livestore/atoms"
 import {
   allGroceryItemsArrayAtom,
   allGroceryItemsAtom,
+  groceryAisleOrdersAtom,
 } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
 import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
-import { Atom } from "@effect-atom/atom-react"
+import { Atom, Result } from "@effect-atom/atom-react"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
@@ -27,23 +28,39 @@ export const groceryItemAddAtom = Atom.fnSync<GroceryItem>()((item, get) => {
   store.commit(events.groceryItemAdded(item))
 })
 
-export const groceryCountAtom = Atom.mapResult(allGroceryItemsAtom, (items) => {
-  const aisles: Array<{ name: string; items: GroceryItem[] }> = []
-  let total = 0
-  let completed = 0
-  items.forEach((items, aisle) => {
-    total += items.length
-    completed += items.filter((item) => item.completed).length
-    aisles.push({ name: aisle, items })
-  })
-  aisles.sort(({ name: a }, { name: b }) => {
-    const aIndex =
-      a === "Other" ? 1000 : GroceryAisle.literals.indexOf(a as any)
-    const bIndex =
-      b === "Other" ? 1000 : GroceryAisle.literals.indexOf(b as any)
-    return aIndex - bIndex
-  })
-  return { total, completed, aisles }
+const fallbackAisleOrder = [...GroceryAisle.literals, "Other"]
+
+export const groceryCountAtom = Atom.make((get) => {
+  const itemsResult = get(allGroceryItemsAtom)
+  const orderResult = get(groceryAisleOrdersAtom)
+  const orderMap = Result.isSuccess(orderResult)
+    ? new Map(
+        orderResult.value.map(({ aisle, sortOrder }) => [aisle, sortOrder]),
+      )
+    : new Map<string, number>()
+  const getOrder = (name: string) => {
+    const stored = orderMap.get(name)
+    if (stored !== undefined) return stored
+    const index = fallbackAisleOrder.indexOf(name)
+    return index === -1 ? 1000 : index
+  }
+  return itemsResult.pipe(
+    Result.map((items) => {
+      const aisles: Array<{ name: string; items: GroceryItem[] }> = []
+      let total = 0
+      let completed = 0
+      items.forEach((items, aisle) => {
+        total += items.length
+        completed += items.filter((item) => item.completed).length
+        aisles.push({ name: aisle, items })
+      })
+      aisles.sort(({ name: a }, { name: b }) => {
+        const orderDiff = getOrder(a) - getOrder(b)
+        return orderDiff !== 0 ? orderDiff : a.localeCompare(b)
+      })
+      return { total, completed, aisles }
+    }),
+  )
 })
 
 const runtime = Atom.runtime((get) =>
