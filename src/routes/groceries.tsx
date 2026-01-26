@@ -11,7 +11,7 @@ import {
   LoaderCircle,
   CheckIcon,
   ChevronDown,
-  GripHorizontal,
+  GripVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -410,7 +410,7 @@ function GroceryListList({
           setOverAisle(null)
         }}
       >
-        <div className="space-y-2 max-w-lg mx-auto p-2">
+        <div className="space-y-2 max-w-lg mx-auto p-2 overflow-hidden">
           {showCompleted && (
             <hr className="my-4 border-border border-3 rounded-lg w-2/5 mx-auto" />
           )}
@@ -498,7 +498,7 @@ function GroceryAisleSection({
               )}
               {...listeners}
             >
-              <GripHorizontal className="size-4" />
+              <GripVertical className="size-5" />
             </div>
           )}
           <h2 className="font-semibold ">{name}</h2>
