@@ -352,6 +352,18 @@ function GroceryListList({
     return null
   }
 
+  const dropIndicatorPosition = (() => {
+    if (!activeAisle || !overAisle || activeAisle === overAisle) {
+      return null
+    }
+    const activeIndex = filteredAisles.findIndex(
+      ({ name }) => name === activeAisle,
+    )
+    const overIndex = filteredAisles.findIndex(({ name }) => name === overAisle)
+    if (activeIndex < 0 || overIndex < 0) return null
+    return activeIndex < overIndex ? "bottom" : "top"
+  })()
+
   const reorderAisles = (activeId: string, overId: string) => {
     const fromIndex = aisles.findIndex(({ name }) => name === activeId)
     const toIndex = aisles.findIndex(({ name }) => name === overId)
@@ -423,7 +435,11 @@ function GroceryListList({
               toggleItem={toggleItem}
               removeItem={removeItem}
               draggable={canReorder}
-              showDropIndicator={overAisle === name && activeAisle !== name}
+              dropIndicatorPosition={
+                overAisle === name && activeAisle !== name
+                  ? dropIndicatorPosition
+                  : null
+              }
             />
           ))}
 
@@ -451,14 +467,14 @@ function GroceryAisleSection({
   toggleItem,
   removeItem,
   draggable,
-  showDropIndicator,
+  dropIndicatorPosition,
 }: {
   name: string
   items: GroceryItem[]
   toggleItem: (item: GroceryItem) => void
   removeItem: (item: GroceryItem) => void
   draggable: boolean
-  showDropIndicator: boolean
+  dropIndicatorPosition: "top" | "bottom" | null
 }) {
   const {
     attributes,
@@ -480,11 +496,12 @@ function GroceryAisleSection({
       }
     : undefined
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    <div ref={setNodeRef} style={style} className="relative" {...attributes}>
       <div
         className={cn(
-          "h-0 border-t-2 border-orange-500 rounded-full mb-2 transition-opacity",
-          showDropIndicator ? "opacity-100" : "opacity-0",
+          "pointer-events-none absolute inset-x-0 border-t-2 border-orange-500 rounded-full transition-opacity z-10",
+          dropIndicatorPosition ? "opacity-100" : "opacity-0",
+          dropIndicatorPosition === "bottom" ? "-bottom-1" : "-top-1",
         )}
       />
       <div className="flex items-center justify-between mb-2">
