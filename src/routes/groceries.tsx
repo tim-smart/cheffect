@@ -470,15 +470,15 @@ function GroceryAisleSection({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "relative rounded-lg transition-colors ring-1 ring-transparent",
-        isOver && "bg-primary-muted ring-primary/30",
+        "relative rounded-lg transition-colors",
+        isOver && !isDragging && "bg-primary-muted",
       )}
       {...attributes}
     >
       <div
         className={cn(
           "flex items-center justify-between mb-2 rounded-lg px-2 py-1",
-          isOver && "text-primary",
+          isOver && !isDragging && "text-primary",
         )}
       >
         <div className="flex items-center gap-2">
