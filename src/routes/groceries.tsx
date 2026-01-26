@@ -423,7 +423,6 @@ function GroceryListList({
               toggleItem={toggleItem}
               removeItem={removeItem}
               draggable={canReorder}
-              hideItems={activeAisle !== null}
               showDropIndicator={overAisle === name && activeAisle !== name}
             />
           ))}
@@ -452,7 +451,6 @@ function GroceryAisleSection({
   toggleItem,
   removeItem,
   draggable,
-  hideItems,
   showDropIndicator,
 }: {
   name: string
@@ -460,7 +458,6 @@ function GroceryAisleSection({
   toggleItem: (item: GroceryItem) => void
   removeItem: (item: GroceryItem) => void
   draggable: boolean
-  hideItems: boolean
   showDropIndicator: boolean
 }) {
   const {
@@ -505,18 +502,16 @@ function GroceryAisleSection({
         </div>
       </div>
 
-      {!hideItems && (
-        <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
-          {items.map((item) => (
-            <GroceryListItem
-              key={item.id}
-              item={item}
-              toggleItem={toggleItem}
-              removeItem={removeItem}
-            />
-          ))}
-        </div>
-      )}
+      <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
+        {items.map((item) => (
+          <GroceryListItem
+            key={item.id}
+            item={item}
+            toggleItem={toggleItem}
+            removeItem={removeItem}
+          />
+        ))}
+      </div>
     </div>
   )
 }
