@@ -68,7 +68,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
+import {
+  DndContext,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
@@ -386,6 +391,7 @@ function GroceryListList({
         </div>
       )}
       <DndContext
+        collisionDetection={pointerWithin}
         onDragOver={() => {
           if (!canReorder) return
           if ("vibrate" in navigator) {
@@ -472,6 +478,7 @@ function GroceryAisleSection({
       className={cn(
         "relative rounded-lg transition-colors",
         isOver && !isDragging && "bg-primary-muted",
+        isDragging && "bg-muted",
       )}
       {...attributes}
     >
