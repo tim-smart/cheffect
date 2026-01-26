@@ -34,13 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Placeholder } from "@/components/placeholder"
-import {
-  closestCorners,
-  DndContext,
-  pointerWithin,
-  useDraggable,
-  useDroppable,
-} from "@dnd-kit/core"
+import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
