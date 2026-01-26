@@ -378,7 +378,7 @@ function GroceryListList({
   return (
     <>
       {showForm && (
-        <div className="bg-background border-b border-border mb-2">
+        <div className="bg-background border-b border-border">
           <GroceryItemForm
             currentList={currentList}
             className="max-w-lg mx-auto px-2"
