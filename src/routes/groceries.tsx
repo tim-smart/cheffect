@@ -312,8 +312,6 @@ function GroceryListList({
   const addGroceryItem = useAtomSet(groceryItemAddAtom)
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
   const cancelBeautify = () => beautifyResult(Atom.Reset)
-  const [activeAisle, setActiveAisle] = useState<string | null>(null)
-  const [overAisle, setOverAisle] = useState<string | null>(null)
   const canReorder = !showCompleted
 
   const toggleItem = (item: GroceryItem) => {
@@ -352,18 +350,6 @@ function GroceryListList({
     return null
   }
 
-  const dropIndicatorPosition = (() => {
-    if (!activeAisle || !overAisle || activeAisle === overAisle) {
-      return null
-    }
-    const activeIndex = filteredAisles.findIndex(
-      ({ name }) => name === activeAisle,
-    )
-    const overIndex = filteredAisles.findIndex(({ name }) => name === overAisle)
-    if (activeIndex < 0 || overIndex < 0) return null
-    return activeIndex < overIndex ? "bottom" : "top"
-  })()
-
   const reorderAisles = (activeId: string, overId: string) => {
     const fromIndex = aisles.findIndex(({ name }) => name === activeId)
     const toIndex = aisles.findIndex(({ name }) => name === overId)
@@ -400,26 +386,17 @@ function GroceryListList({
         </div>
       )}
       <DndContext
-        onDragStart={(event) => {
+        onDragOver={() => {
           if (!canReorder) return
-          setActiveAisle(String(event.active.id))
-        }}
-        onDragOver={(event) => {
-          if (!canReorder) return
-          const overId = event.over?.id
-          setOverAisle(overId ? String(overId) : null)
+          if ("vibrate" in navigator) {
+            navigator.vibrate(5)
+          }
         }}
         onDragEnd={(event) => {
           if (!canReorder) return
           const { active, over } = event
-          setActiveAisle(null)
-          setOverAisle(null)
           if (!over) return
           reorderAisles(String(active.id), String(over.id))
-        }}
-        onDragCancel={() => {
-          setActiveAisle(null)
-          setOverAisle(null)
         }}
       >
         <div className="space-y-2 max-w-lg mx-auto p-2 overflow-hidden">
@@ -435,11 +412,6 @@ function GroceryListList({
               toggleItem={toggleItem}
               removeItem={removeItem}
               draggable={canReorder}
-              dropIndicatorPosition={
-                overAisle === name && activeAisle !== name
-                  ? dropIndicatorPosition
-                  : null
-              }
             />
           ))}
 
@@ -467,14 +439,12 @@ function GroceryAisleSection({
   toggleItem,
   removeItem,
   draggable,
-  dropIndicatorPosition,
 }: {
   name: string
   items: GroceryItem[]
   toggleItem: (item: GroceryItem) => void
   removeItem: (item: GroceryItem) => void
   draggable: boolean
-  dropIndicatorPosition: "top" | "bottom" | null
 }) {
   const {
     attributes,
@@ -484,7 +454,7 @@ function GroceryAisleSection({
     transform,
     isDragging,
   } = useDraggable({ id: name, disabled: !draggable })
-  const { setNodeRef: setDroppableRef } = useDroppable({ id: name })
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({ id: name })
   const setNodeRef = (node: HTMLDivElement | null) => {
     setDraggableRef(node)
     setDroppableRef(node)
@@ -496,15 +466,21 @@ function GroceryAisleSection({
       }
     : undefined
   return (
-    <div ref={setNodeRef} style={style} className="relative" {...attributes}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative rounded-lg transition-colors ring-1 ring-transparent",
+        isOver && "bg-primary-muted ring-primary/30",
+      )}
+      {...attributes}
+    >
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 border-t-2 border-orange-500 rounded-full transition-opacity z-10",
-          dropIndicatorPosition ? "opacity-100" : "opacity-0",
-          dropIndicatorPosition === "bottom" ? "-bottom-1" : "-top-1",
+          "flex items-center justify-between mb-2 rounded-lg px-2 py-1",
+          isOver && "text-primary",
         )}
-      />
-      <div className="flex items-center justify-between mb-2">
+      >
         <div className="flex items-center gap-2">
           {draggable && (
             <div
