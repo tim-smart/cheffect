@@ -11,7 +11,7 @@ import {
   LoaderCircle,
   CheckIcon,
   ChevronDown,
-  GripVertical,
+  GripHorizontal,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -481,9 +481,12 @@ function GroceryAisleSection({
     : undefined
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      {showDropIndicator && (
-        <div className="h-0 border-t-2 border-orange-500 rounded-full mb-2" />
-      )}
+      <div
+        className={cn(
+          "h-0 border-t-2 border-orange-500 rounded-full mb-2 transition-opacity",
+          showDropIndicator ? "opacity-100" : "opacity-0",
+        )}
+      />
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           {draggable && (
@@ -495,7 +498,7 @@ function GroceryAisleSection({
               )}
               {...listeners}
             >
-              <GripVertical className="size-4" />
+              <GripHorizontal className="size-4" />
             </div>
           )}
           <h2 className="font-semibold ">{name}</h2>
