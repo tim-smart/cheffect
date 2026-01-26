@@ -129,6 +129,33 @@ export const groceryListStateAtom = Atom.writable(
   },
 )
 
+const GroceryAisleOrderRow = Schema.Array(
+  Schema.Struct({
+    aisle: Schema.String,
+    sortOrder: Schema.Number,
+  }),
+)
+
+export const groceryAisleOrders$ = queryDb(
+  (get) => {
+    const state = get(groceryListState$)
+    return {
+      query: sql`
+        SELECT aisle, sortOrder
+        FROM grocery_aisle_orders
+        WHERE ${state.currentList ? "list = ?" : "list IS NULL"}
+        ORDER BY sortOrder ASC`,
+      schema: GroceryAisleOrderRow,
+      bindValues: state.currentList ? [state.currentList] : [],
+    }
+  },
+  {
+    label: "groceryAisleOrders",
+  },
+)
+
+export const groceryAisleOrdersAtom = Store.makeQuery(groceryAisleOrders$)
+
 export const allGroceryItemsAtom = Store.makeQuery(
   queryDb(
     (get) => {

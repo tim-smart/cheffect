@@ -11,6 +11,7 @@ import {
   LoaderCircle,
   CheckIcon,
   ChevronDown,
+  GripVertical,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -67,10 +68,26 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  DndContext,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+} from "@dnd-kit/core"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
 })
+
+const groceryAisleOrderId = (list: string | null, aisle: string) =>
+  JSON.stringify([list ?? null, aisle])
+
+const arrayMove = <T,>(items: readonly T[], from: number, to: number): T[] => {
+  const next = [...items]
+  const [moved] = next.splice(from, 1)
+  next.splice(to, 0, moved)
+  return next
+}
 
 function GroceryList() {
   const currentList = useAtomValue(groceryListStateAtom).pipe(
@@ -300,6 +317,7 @@ function GroceryListList({
   const addGroceryItem = useAtomSet(groceryItemAddAtom)
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
   const cancelBeautify = () => beautifyResult(Atom.Reset)
+  const canReorder = !showCompleted
 
   const toggleItem = (item: GroceryItem) => {
     commit(
@@ -337,6 +355,25 @@ function GroceryListList({
     return null
   }
 
+  const reorderAisles = (activeId: string, overId: string) => {
+    const fromIndex = aisles.findIndex(({ name }) => name === activeId)
+    const toIndex = aisles.findIndex(({ name }) => name === overId)
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return
+    const nextOrder = arrayMove(aisles, fromIndex, toIndex)
+    const updatedAt = DateTime.unsafeNow()
+    nextOrder.forEach(({ name }, index) => {
+      commit(
+        events.groceryAisleOrderSet({
+          id: groceryAisleOrderId(currentList, name),
+          list: currentList,
+          aisle: name,
+          sortOrder: index,
+          updatedAt,
+        }),
+      )
+    })
+  }
+
   return (
     <>
       {showForm && (
@@ -353,59 +390,132 @@ function GroceryListList({
           />
         </div>
       )}
-      <div className="space-y-2 max-w-lg mx-auto p-2">
-        {showCompleted && (
-          <hr className="my-4 border-border border-3 rounded-lg w-2/5 mx-auto" />
-        )}
-        {/* Grocery List by Aisle */}
-        {aisles
-          .flatMap((aisle) => {
-            const items = aisle.items.filter((item) =>
-              showCompleted ? item.completed : !item.completed,
-            )
-            if (items.length === 0) {
-              return []
-            }
-            return [
-              {
-                ...aisle,
-                items,
-              },
-            ]
-          })
-          .map(({ name, items }) => (
-            <div key={name}>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="font-semibold ">{name}</h2>
-              </div>
-
-              <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
-                {items.map((item) => (
-                  <GroceryListItem
-                    key={item.id}
-                    item={item}
-                    toggleItem={toggleItem}
-                    removeItem={removeItem}
-                  />
-                ))}
-              </div>
-            </div>
+      <DndContext
+        collisionDetection={pointerWithin}
+        onDragOver={() => {
+          if (!canReorder) return
+          if ("vibrate" in navigator) {
+            navigator.vibrate(5)
+          }
+        }}
+        onDragEnd={(event) => {
+          if (!canReorder) return
+          const { active, over } = event
+          if (!over) return
+          reorderAisles(String(active.id), String(over.id))
+        }}
+      >
+        <div className="space-y-2 max-w-lg mx-auto p-2 overflow-hidden">
+          {showCompleted && (
+            <hr className="my-4 border-border border-3 rounded-lg w-2/5 mx-auto" />
+          )}
+          {/* Grocery List by Aisle */}
+          {filteredAisles.map(({ name, items }) => (
+            <GroceryAisleSection
+              key={name}
+              name={name}
+              items={items}
+              toggleItem={toggleItem}
+              removeItem={removeItem}
+              draggable={canReorder}
+            />
           ))}
 
-        {/* Empty State */}
-        {total === 0 && (
-          <div className="text-center py-16">
-            <ShoppingCart className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              Your grocery list is empty
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Add items to start building your shopping list
-            </p>
-          </div>
-        )}
-      </div>
+          {/* Empty State */}
+          {total === 0 && (
+            <div className="text-center py-16">
+              <ShoppingCart className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                Your grocery list is empty
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                Add items to start building your shopping list
+              </p>
+            </div>
+          )}
+        </div>
+      </DndContext>
     </>
+  )
+}
+
+function GroceryAisleSection({
+  name,
+  items,
+  toggleItem,
+  removeItem,
+  draggable,
+}: {
+  name: string
+  items: GroceryItem[]
+  toggleItem: (item: GroceryItem) => void
+  removeItem: (item: GroceryItem) => void
+  draggable: boolean
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDraggableRef,
+    setActivatorNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({ id: name, disabled: !draggable })
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({ id: name })
+  const setNodeRef = (node: HTMLDivElement | null) => {
+    setDraggableRef(node)
+    setDroppableRef(node)
+  }
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        zIndex: 999,
+      }
+    : undefined
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "relative rounded-lg transition-colors",
+        isOver && !isDragging && "bg-primary-muted",
+        isDragging && "bg-muted",
+      )}
+      {...attributes}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between mb-2 rounded-lg px-2 py-1",
+          isOver && !isDragging && "text-primary",
+        )}
+      >
+        <div className="flex items-center gap-2">
+          {draggable && (
+            <div
+              ref={setActivatorNodeRef}
+              className={cn(
+                "touch-none p-1 -ml-1 rounded text-muted-foreground/60",
+                isDragging ? "cursor-grabbing" : "cursor-grab",
+              )}
+              {...listeners}
+            >
+              <GripVertical className="size-5" />
+            </div>
+          )}
+          <h2 className="font-semibold ">{name}</h2>
+        </div>
+      </div>
+
+      <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
+        {items.map((item) => (
+          <GroceryListItem
+            key={item.id}
+            item={item}
+            toggleItem={toggleItem}
+            removeItem={removeItem}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
