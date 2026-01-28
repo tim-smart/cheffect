@@ -416,34 +416,36 @@ function GroceryListList({
           lastOverId.current = null
         }}
       >
-        <div className="space-y-2 max-w-lg mx-auto p-2 overflow-hidden">
-          {showCompleted && (
-            <hr className="my-4 border-border border-3 rounded-lg w-2/5 mx-auto" />
-          )}
-          {/* Grocery List by Aisle */}
-          {filteredAisles.map(({ name, items }) => (
-            <GroceryAisleSection
-              key={name}
-              name={name}
-              items={items}
-              toggleItem={toggleItem}
-              removeItem={removeItem}
-              draggable={canReorder}
-            />
-          ))}
+        <div className="overflow-hidden">
+          <div className="space-y-2 max-w-lg mx-auto p-2">
+            {showCompleted && (
+              <hr className="my-4 border-border border-3 rounded-lg w-2/5 mx-auto" />
+            )}
+            {/* Grocery List by Aisle */}
+            {filteredAisles.map(({ name, items }) => (
+              <GroceryAisleSection
+                key={name}
+                name={name}
+                items={items}
+                toggleItem={toggleItem}
+                removeItem={removeItem}
+                draggable={canReorder}
+              />
+            ))}
 
-          {/* Empty State */}
-          {total === 0 && (
-            <div className="text-center py-16">
-              <ShoppingCart className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                Your grocery list is empty
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Add items to start building your shopping list
-              </p>
-            </div>
-          )}
+            {/* Empty State */}
+            {total === 0 && (
+              <div className="text-center py-16">
+                <ShoppingCart className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">
+                  Your grocery list is empty
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Add items to start building your shopping list
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </DndContext>
     </>
