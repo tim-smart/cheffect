@@ -9,6 +9,8 @@ import * as Csv from "@vanillaes/csv"
 export const GroceryAisle = Schema.Literal(
   "Produce",
   "Meat & Seafood",
+  "Seafood",
+  "Deli",
   "Dairy & Eggs",
   "Canned & Jar Goods",
   "Herbs & Spices",
