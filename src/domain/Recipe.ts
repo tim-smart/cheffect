@@ -50,6 +50,19 @@ const unitParentConversions: Partial<
   mm: { parent: "cm", factor: 10 },
 }
 
+const unitChildConversions: Partial<
+  Record<Unit, { child: Unit; factor: number }>
+> = {
+  kg: { child: "g", factor: 1000 },
+  l: { child: "ml", factor: 1000 },
+  tbsp: { child: "tsp", factor: 3 },
+  cup: { child: "tbsp", factor: 16 },
+  lb: { child: "oz", factor: 16 },
+  pt: { child: "fl oz", factor: 16 },
+  qt: { child: "pt", factor: 2 },
+  cm: { child: "mm", factor: 10 },
+}
+
 export const normalizeScaledQuantity = (
   quantity: number,
   unit: Unit | null,
@@ -64,13 +77,25 @@ export const normalizeScaledQuantity = (
   while (true) {
     const conversion = unitParentConversions[currentUnit]
     if (!conversion) {
-      return { quantity: currentQuantity, unit: currentUnit }
+      break
     }
     if (currentQuantity < conversion.factor) {
-      return { quantity: currentQuantity, unit: currentUnit }
+      break
     }
     currentQuantity = currentQuantity / conversion.factor
     currentUnit = conversion.parent
+  }
+
+  while (true) {
+    const conversion = unitChildConversions[currentUnit]
+    if (!conversion) {
+      return { quantity: currentQuantity, unit: currentUnit }
+    }
+    if (currentQuantity >= 1 || currentQuantity === 0) {
+      return { quantity: currentQuantity, unit: currentUnit }
+    }
+    currentQuantity = currentQuantity * conversion.factor
+    currentUnit = conversion.child
   }
 }
 
