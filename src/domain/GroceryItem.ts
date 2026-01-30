@@ -7,8 +7,8 @@ import { UnknownToXml } from "./Xml"
 import * as Csv from "@vanillaes/csv"
 
 export const GroceryAisle = Schema.Literal(
-  "Baking Supplies",
   "Bakery",
+  "Baking Supplies",
   "Beverages",
   "Breakfast",
   "Canned & Jar Goods",
