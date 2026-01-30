@@ -37,6 +37,43 @@ export const unitNeedsSpace: ReadonlySet<Unit> = new Set([
   "fl oz",
 ])
 
+const unitParentConversions: Partial<
+  Record<Unit, { parent: Unit; factor: number }>
+> = {
+  g: { parent: "kg", factor: 1000 },
+  ml: { parent: "l", factor: 1000 },
+  tsp: { parent: "tbsp", factor: 3 },
+  tbsp: { parent: "cup", factor: 16 },
+  oz: { parent: "lb", factor: 16 },
+  "fl oz": { parent: "pt", factor: 16 },
+  pt: { parent: "qt", factor: 2 },
+  mm: { parent: "cm", factor: 10 },
+}
+
+export const normalizeScaledQuantity = (
+  quantity: number,
+  unit: Unit | null,
+) => {
+  if (unit === null) {
+    return { quantity, unit }
+  }
+
+  let currentQuantity = quantity
+  let currentUnit: Unit = unit
+
+  while (true) {
+    const conversion = unitParentConversions[currentUnit]
+    if (!conversion) {
+      return { quantity: currentQuantity, unit: currentUnit }
+    }
+    if (currentQuantity < conversion.factor) {
+      return { quantity: currentQuantity, unit: currentUnit }
+    }
+    currentQuantity = currentQuantity / conversion.factor
+    currentUnit = conversion.parent
+  }
+}
+
 export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
   {
     name: Schema.String.annotations({
@@ -232,9 +269,14 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
         if (ingredient.quantity === null) {
           return ingredient
         }
+        const normalized = normalizeScaledQuantity(
+          ingredient.quantity * scale,
+          ingredient.unit,
+        )
         return new Ingredient({
           ...ingredient,
-          quantity: ingredient.quantity * scale,
+          quantity: normalized.quantity,
+          unit: normalized.unit,
         })
       })
       return new IngredientsComponent({
