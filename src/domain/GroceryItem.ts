@@ -7,18 +7,20 @@ import { UnknownToXml } from "./Xml"
 import * as Csv from "@vanillaes/csv"
 
 export const GroceryAisle = Schema.Literal(
-  "Produce",
-  "Meat & Seafood",
-  "Dairy & Eggs",
-  "Canned & Jar Goods",
-  "Herbs & Spices",
-  "Baking Supplies",
-  "Pantry",
-  "Frozen Foods",
   "Bakery",
-  "Breakfast",
-  "Household",
+  "Baking Supplies",
   "Beverages",
+  "Breakfast",
+  "Canned & Jar Goods",
+  "Dairy & Eggs",
+  "Deli",
+  "Frozen Foods",
+  "Herbs & Spices",
+  "Household",
+  "Meat & Seafood",
+  "Pantry",
+  "Produce",
+  "Seafood",
   "Snacks",
 )
 export type GroceryAisle = typeof GroceryAisle.Type
