@@ -38,16 +38,16 @@ export const unitNeedsSpace: ReadonlySet<Unit> = new Set([
 ])
 
 const unitParentConversions: Partial<
-  Record<Unit, { parent: Unit; factor: number }>
+  Record<Unit, { parent: Unit; factor: number; min: number }>
 > = {
-  g: { parent: "kg", factor: 1000 },
-  ml: { parent: "l", factor: 1000 },
-  tsp: { parent: "tbsp", factor: 3 },
-  tbsp: { parent: "cup", factor: 16 },
-  oz: { parent: "lb", factor: 16 },
-  "fl oz": { parent: "pt", factor: 16 },
-  pt: { parent: "qt", factor: 2 },
-  mm: { parent: "cm", factor: 10 },
+  g: { parent: "kg", factor: 1000, min: 2000 },
+  ml: { parent: "l", factor: 1000, min: 2000 },
+  tsp: { parent: "tbsp", factor: 3, min: 6 },
+  tbsp: { parent: "cup", factor: 16, min: 32 },
+  oz: { parent: "lb", factor: 16, min: 32 },
+  "fl oz": { parent: "pt", factor: 16, min: 32 },
+  pt: { parent: "qt", factor: 2, min: 4 },
+  mm: { parent: "cm", factor: 10, min: 20 },
 }
 
 const unitChildConversions: Partial<
@@ -79,7 +79,7 @@ export const normalizeScaledQuantity = (
     if (!conversion) {
       break
     }
-    if (currentQuantity < conversion.factor) {
+    if (currentQuantity < conversion.min) {
       break
     }
     currentQuantity = currentQuantity / conversion.factor
