@@ -37,6 +37,68 @@ export const unitNeedsSpace: ReadonlySet<Unit> = new Set([
   "fl oz",
 ])
 
+const unitParentConversions: Partial<
+  Record<Unit, { parent: Unit; factor: number; min: number }>
+> = {
+  g: { parent: "kg", factor: 1000, min: 2000 },
+  ml: { parent: "l", factor: 1000, min: 2000 },
+  tsp: { parent: "tbsp", factor: 3, min: 6 },
+  tbsp: { parent: "cup", factor: 16, min: 32 },
+  oz: { parent: "lb", factor: 16, min: 32 },
+  "fl oz": { parent: "pt", factor: 16, min: 32 },
+  pt: { parent: "qt", factor: 2, min: 4 },
+  mm: { parent: "cm", factor: 10, min: 20 },
+}
+
+const unitChildConversions: Partial<
+  Record<Unit, { child: Unit; factor: number }>
+> = {
+  kg: { child: "g", factor: 1000 },
+  l: { child: "ml", factor: 1000 },
+  tbsp: { child: "tsp", factor: 3 },
+  cup: { child: "tbsp", factor: 16 },
+  lb: { child: "oz", factor: 16 },
+  pt: { child: "fl oz", factor: 16 },
+  qt: { child: "pt", factor: 2 },
+  cm: { child: "mm", factor: 10 },
+}
+
+export const normalizeScaledQuantity = (
+  quantity: number,
+  unit: Unit | null,
+) => {
+  if (unit === null) {
+    return { quantity, unit }
+  }
+
+  let currentQuantity = quantity
+  let currentUnit: Unit = unit
+
+  while (true) {
+    const conversion = unitParentConversions[currentUnit]
+    if (!conversion) {
+      break
+    }
+    if (currentQuantity < conversion.min) {
+      break
+    }
+    currentQuantity = currentQuantity / conversion.factor
+    currentUnit = conversion.parent
+  }
+
+  while (true) {
+    const conversion = unitChildConversions[currentUnit]
+    if (!conversion) {
+      return { quantity: currentQuantity, unit: currentUnit }
+    }
+    if (currentQuantity >= 1 || currentQuantity === 0) {
+      return { quantity: currentQuantity, unit: currentUnit }
+    }
+    currentQuantity = currentQuantity * conversion.factor
+    currentUnit = conversion.child
+  }
+}
+
 export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
   {
     name: Schema.String.annotations({
@@ -232,9 +294,14 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
         if (ingredient.quantity === null) {
           return ingredient
         }
+        const normalized = normalizeScaledQuantity(
+          ingredient.quantity * scale,
+          ingredient.unit,
+        )
         return new Ingredient({
           ...ingredient,
-          quantity: ingredient.quantity * scale,
+          quantity: normalized.quantity,
+          unit: normalized.unit,
         })
       })
       return new IngredientsComponent({
