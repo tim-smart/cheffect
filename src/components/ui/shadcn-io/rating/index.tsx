@@ -158,11 +158,13 @@ export const Rating = ({
       newValue: number,
     ) => {
       if (!readOnly) {
-        onChange?.(event, newValue)
-        onValueChange?.(newValue)
+        // Toggle off if clicking the same value
+        const valueToSet = newValue === value ? 0 : newValue
+        onChange?.(event, valueToSet)
+        onValueChange?.(valueToSet)
       }
     },
-    [readOnly, onChange, onValueChange],
+    [readOnly, onChange, onValueChange, value],
   )
 
   const handleKeyDown = useCallback(

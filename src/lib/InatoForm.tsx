@@ -77,9 +77,18 @@ export class RatingInput extends FormField.FormField("RatingInput")<
   RatingInputFC
 >() {
   static Optional = this.make({
-    schema: NumberInputOrNull.schema.pipe(
-      Schema.compose(Schema.NullOr(Rating)),
-      Schema.asSchema,
+    schema: Schema.Union(Schema.Literal(0), NumberInputOrNull.schema).pipe(
+      Schema.transform(Schema.NullOr(Rating), {
+        decode: (value) => {
+          // Convert 0, empty string, or invalid ratings to null
+          if (value === 0 || value === null) return null
+          if (typeof value === "string" && value === "") return null
+          return typeof value === "number" && value >= 1 && value <= 5
+            ? value
+            : null
+        },
+        encode: (value) => value ?? 0,
+      }),
     ),
     defaultValue: "",
   })
@@ -168,12 +177,12 @@ export const ShadcnFields: Layer.Layer<
       </FormItem>
     )
   }),
-  RatingInput.layerControlled(({ onChange, label, size, ...props }) => (
+  RatingInput.layerControlled(({ onChange, label, size, value, ...props }) => (
     <FormItem className="w-full">
       {label && <FormLabel>{label}</FormLabel>}
       <FormControl>
         <div className="pt-1">
-          <RatingUi {...props} onValueChange={onChange}>
+          <RatingUi {...props} value={value || 0} onValueChange={onChange}>
             {Arr.range(1, 5).map((i) => (
               <RatingButton key={i} size={size} />
             ))}
