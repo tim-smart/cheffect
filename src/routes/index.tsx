@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -25,7 +25,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog"
 
@@ -159,11 +158,6 @@ function InviteIdChecker() {
 
   const inviteId = new URLSearchParams(window.location.search).get("invite_id")
 
-  useEffect(() => {
-    if (!inviteId) return
-    setOpen(true)
-  }, [inviteId])
-
   if (!inviteId || inviteId === storeId || invitesSeen.has(inviteId))
     return null
 
@@ -185,7 +179,6 @@ function InviteIdChecker() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
               console.log("Accepting invite", inviteId)
