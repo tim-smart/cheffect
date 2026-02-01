@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -153,6 +154,7 @@ function RecipeListSkeleton() {
 const invitesSeen = new Set<string>()
 
 function InviteIdChecker() {
+  const [open, setOpen] = useState(true)
   const [storeId, setStoreId] = useAtom(storeIdAtom)
 
   const inviteId = new URLSearchParams(window.location.search).get("invite_id")
@@ -160,7 +162,13 @@ function InviteIdChecker() {
     return null
 
   return (
-    <AlertDialog open>
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) invitesSeen.add(inviteId)
+        setOpen(nextOpen)
+      }}
+    >
       <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>Accept invitation</AlertDialogTitle>
@@ -174,6 +182,7 @@ function InviteIdChecker() {
           <AlertDialogCancel
             onClick={() => {
               invitesSeen.add(inviteId)
+              setOpen(false)
             }}
           >
             Cancel

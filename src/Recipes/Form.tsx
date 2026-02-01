@@ -102,7 +102,7 @@ function AddComponent() {
     <Button
       type="button"
       onClick={() => controls.append()}
-      size="xs"
+      size="sm"
       variant="outline"
     >
       <Plus />
@@ -205,7 +205,7 @@ function AddStep() {
     <Button
       type="button"
       onClick={() => controls.append()}
-      size="xs"
+      size="sm"
       variant="outline"
     >
       <Plus />
@@ -263,7 +263,7 @@ function AddTip() {
     <Button
       type="button"
       onClick={() => controls.append()}
-      size="xs"
+      size="sm"
       variant="outline"
     >
       <Plus />
