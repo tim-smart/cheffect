@@ -16,16 +16,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSearchQuery } from "@/Recipes/atoms"
 import { RecipeList } from "@/Recipes/List"
-import { useState } from "react"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -152,7 +144,6 @@ function RecipeListSkeleton() {
 const invitesSeen = new Set<string>()
 
 function InviteIdChecker() {
-  const [open, setOpen] = useState(true)
   const [storeId, setStoreId] = useAtom(storeIdAtom)
 
   const inviteId = new URLSearchParams(window.location.search).get("invite_id")
@@ -160,28 +151,24 @@ function InviteIdChecker() {
     return null
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(open) => {
-        if (!open) invitesSeen.add(inviteId)
-        setOpen(open)
-      }}
-    >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Accept invitation</DialogTitle>
-          <DialogDescription>
-            Someone has shared their recipe collection with you.
-            <br />
-            Once you "Accept", all data will be replaced with the shared data.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
+    <Alert className="mb-4">
+      <AlertTitle>Accept invitation</AlertTitle>
+      <AlertDescription className="space-y-4">
+        <div>
+          Someone has shared their recipe collection with you.
+          <br />
+          Once you "Accept", all data will be replaced with the shared data.
+        </div>
+        <div className="flex gap-2 justify-end">
           <Button
-            type="submit"
+            variant="outline"
+            onClick={() => {
+              invitesSeen.add(inviteId)
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
             onClick={() => {
               console.log("Accepting invite", inviteId)
               setStoreId(inviteId)
@@ -190,8 +177,8 @@ function InviteIdChecker() {
           >
             Accept
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </AlertDescription>
+    </Alert>
   )
 }
