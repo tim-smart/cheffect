@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -158,6 +158,12 @@ function InviteIdChecker() {
   const [storeId, setStoreId] = useAtom(storeIdAtom)
 
   const inviteId = new URLSearchParams(window.location.search).get("invite_id")
+
+  useEffect(() => {
+    if (!inviteId) return
+    setOpen(true)
+  }, [inviteId])
+
   if (!inviteId || inviteId === storeId || invitesSeen.has(inviteId))
     return null
 
