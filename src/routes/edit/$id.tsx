@@ -83,7 +83,7 @@ function Header({
             {recipe.title}
           </h1>
           <Button type="submit" form={formId} size="sm">
-            <Save className="w-4 h-4 mr-2" />
+            <Save />
             Save
           </Button>
         </div>
