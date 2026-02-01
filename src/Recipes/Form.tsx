@@ -8,7 +8,7 @@ import * as Arr from "effect/Array"
 import { Unit } from "@/domain/Recipe"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const Display = FormDisplay.make(RecipeFormSchema).pipe(
+export const Display = FormDisplay.make(RecipeFormSchema).pipe(
   Effect.provide(ShadcnReactHookFormLayer),
   Effect.runSync,
 )
