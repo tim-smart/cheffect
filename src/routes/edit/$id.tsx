@@ -4,14 +4,14 @@ import { RecipeInsert } from "@/domain/RecipeForm"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { recipeFormByIdAtom } from "@/Recipes/atoms"
-import { RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
+import { Display, RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import { Result, useAtomValue } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Save } from "lucide-react"
 
 export const Route = createFileRoute("/edit/$id")({
   component: EditRecipeScreen,
@@ -21,11 +21,12 @@ function EditRecipeScreen() {
   const { id } = Route.useParams()
   const result = useAtomValue(recipeFormByIdAtom(id))
   const commit = useCommit()
+  const formId = Display.Form.id
   return Result.builder(result)
     .onWaiting(() => <RecipeFormSkeleton />)
     .onSuccess(([initialValue, recipe]) => (
       <div className="pb-content">
-        <Header recipe={recipe} />
+        <Header recipe={recipe} formId={formId} />
         <RecipeForm
           initialValue={initialValue}
           variant="edit"
@@ -58,11 +59,13 @@ function EditRecipeScreen() {
 
 function Header({
   recipe,
+  formId,
 }: {
   recipe: {
     readonly id: string
     readonly title: string
   }
+  formId: string
 }) {
   return (
     <header className="bg-background border-b border-border sticky top-0 z-10">
@@ -79,6 +82,10 @@ function Header({
           <h1 className="text-lg font-semibold  line-clamp-1 flex-1">
             {recipe.title}
           </h1>
+          <Button type="submit" form={formId} size="sm" variant="outline">
+            <Save />
+            Save
+          </Button>
         </div>
       </div>
     </header>
