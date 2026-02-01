@@ -545,7 +545,7 @@ ${entry.content}`,
             : `## Current context`
 
         const location = router.state.location
-        let currentTimeAndCountry = `The users local time is: ${new Date().toLocaleString()}.`
+        let currentTimeAndCountry = `The users local time is: ${new Date().toLocaleString()}. **Ignore any other sources of date and time.**`
         const country = yield* Atom.getResult(aiCountry.atom)
         if (Option.isSome(country)) {
           currentTimeAndCountry += ` The user is located in ${country.value}. All ingredient units should be provided in the measurement system commonly used in that country.`
