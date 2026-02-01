@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,16 +17,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSearchQuery } from "@/Recipes/atoms"
 import { RecipeList } from "@/Recipes/List"
-import { useState } from "react"
+
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -156,32 +158,35 @@ function InviteIdChecker() {
   const [storeId, setStoreId] = useAtom(storeIdAtom)
 
   const inviteId = new URLSearchParams(window.location.search).get("invite_id")
+
+  useEffect(() => {
+    if (!inviteId) return
+    setOpen(true)
+  }, [inviteId])
+
   if (!inviteId || inviteId === storeId || invitesSeen.has(inviteId))
     return null
 
   return (
-    <Dialog
+    <AlertDialog
       open={open}
-      onOpenChange={(open) => {
-        if (!open) invitesSeen.add(inviteId)
-        setOpen(open)
+      onOpenChange={(nextOpen: boolean) => {
+        if (!nextOpen) invitesSeen.add(inviteId)
+        setOpen(nextOpen)
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Accept invitation</DialogTitle>
-          <DialogDescription>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Accept invitation</AlertDialogTitle>
+          <AlertDialogDescription>
             Someone has shared their recipe collection with you.
             <br />
             Once you "Accept", all data will be replaced with the shared data.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <Button
-            type="submit"
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
             onClick={() => {
               console.log("Accepting invite", inviteId)
               setStoreId(inviteId)
@@ -189,9 +194,9 @@ function InviteIdChecker() {
             }}
           >
             Accept
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
