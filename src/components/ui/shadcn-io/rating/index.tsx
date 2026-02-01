@@ -122,12 +122,12 @@ export const RatingButton = ({
 
 export type RatingProps = {
   defaultValue?: number
-  value?: number
+  value?: number | null
   onChange?: (
     event: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLButtonElement>,
-    value: number,
+    value: number | null,
   ) => void
-  onValueChange?: (value: number) => void
+  onValueChange?: (value: number | null) => void
   readOnly?: boolean
   className?: string
   children?: ReactNode
@@ -158,11 +158,13 @@ export const Rating = ({
       newValue: number,
     ) => {
       if (!readOnly) {
-        onChange?.(event, newValue)
-        onValueChange?.(newValue)
+        // Toggle off if clicking the same value
+        const valueToSet = newValue === value ? null : newValue
+        onChange?.(event, valueToSet)
+        onValueChange?.(valueToSet)
       }
     },
-    [readOnly, onChange, onValueChange],
+    [readOnly, onChange, onValueChange, value],
   )
 
   const handleKeyDown = useCallback(

@@ -92,7 +92,7 @@ export interface RatingInputFC extends React.FC<{
   label?: React.ReactNode
   placeholder?: string | undefined | undefined
   className?: string
-  value?: number | undefined
+  value?: number | null
   onChange?: (value: any) => void
   size?: number
 }> {}
@@ -168,12 +168,12 @@ export const ShadcnFields: Layer.Layer<
       </FormItem>
     )
   }),
-  RatingInput.layerControlled(({ onChange, label, size, ...props }) => (
+  RatingInput.layerControlled(({ onChange, label, size, value, ...props }) => (
     <FormItem className="w-full">
       {label && <FormLabel>{label}</FormLabel>}
       <FormControl>
         <div className="pt-1">
-          <RatingUi {...props} onValueChange={onChange}>
+          <RatingUi {...props} value={value ?? null} onValueChange={onChange}>
             {Arr.range(1, 5).map((i) => (
               <RatingButton key={i} size={size} />
             ))}
