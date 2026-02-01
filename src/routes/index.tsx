@@ -17,7 +17,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useSearchQuery } from "@/Recipes/atoms"
 import { RecipeList } from "@/Recipes/List"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -151,24 +160,25 @@ function InviteIdChecker() {
     return null
 
   return (
-    <Alert className="mb-4">
-      <AlertTitle>Accept invitation</AlertTitle>
-      <AlertDescription className="space-y-4">
-        <div>
-          Someone has shared their recipe collection with you.
-          <br />
-          Once you "Accept", all data will be replaced with the shared data.
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button
-            variant="outline"
+    <AlertDialog open>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Accept invitation</AlertDialogTitle>
+          <AlertDialogDescription>
+            Someone has shared their recipe collection with you.
+            <br />
+            Once you "Accept", all data will be replaced with the shared data.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel
             onClick={() => {
               invitesSeen.add(inviteId)
             }}
           >
             Cancel
-          </Button>
-          <Button
+          </AlertDialogCancel>
+          <AlertDialogAction
             onClick={() => {
               console.log("Accepting invite", inviteId)
               setStoreId(inviteId)
@@ -176,9 +186,9 @@ function InviteIdChecker() {
             }}
           >
             Accept
-          </Button>
-        </div>
-      </AlertDescription>
-    </Alert>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
