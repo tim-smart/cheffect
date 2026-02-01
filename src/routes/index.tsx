@@ -170,7 +170,7 @@ function InviteIdChecker() {
   return (
     <AlertDialog
       open={open}
-      onOpenChange={(nextOpen) => {
+      onOpenChange={(nextOpen: boolean) => {
         if (!nextOpen) invitesSeen.add(inviteId)
         setOpen(nextOpen)
       }}
@@ -185,14 +185,7 @@ function InviteIdChecker() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel
-            onClick={() => {
-              invitesSeen.add(inviteId)
-              setOpen(false)
-            }}
-          >
-            Cancel
-          </AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
               console.log("Accepting invite", inviteId)

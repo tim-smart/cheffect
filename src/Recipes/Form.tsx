@@ -102,7 +102,7 @@ function AddComponent() {
     <Button
       type="button"
       onClick={() => controls.append()}
-      size="sm"
+      size="xs"
       variant="outline"
     >
       <Plus />
