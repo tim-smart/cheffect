@@ -82,7 +82,7 @@ function Header({
           <h1 className="text-lg font-semibold  line-clamp-1 flex-1">
             {recipe.title}
           </h1>
-          <Button type="submit" form={formId} size="sm">
+          <Button type="submit" form={formId} size="sm" variant="outline">
             <Save />
             Save
           </Button>
