@@ -160,6 +160,9 @@ export const Rating = ({
       if (!readOnly) {
         // Toggle off if clicking the same value
         const valueToSet = newValue === value ? null : newValue
+        if (valueToSet === null) {
+          event.currentTarget.blur()
+        }
         onChange?.(event, valueToSet)
         onValueChange?.(valueToSet)
       }
