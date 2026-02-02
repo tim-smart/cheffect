@@ -157,7 +157,7 @@ function GroceryList() {
               <div
                 className="bg-primary h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: total > 0 ? `${(remaining / total) * 100}%` : "0%",
+                  width: total > 0 ? `${(completed / total) * 100}%` : "0%",
                 }}
               />
             </div>
