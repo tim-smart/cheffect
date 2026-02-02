@@ -107,6 +107,7 @@ function GroceryList() {
 
   const total = result._tag === "Success" ? result.value.total : 0
   const completed = result._tag === "Success" ? result.value.completed : 0
+  const remaining = total - completed
 
   return (
     <div className="pb-content">
@@ -124,7 +125,7 @@ function GroceryList() {
                   </h1>
                 </ListCombobox>
                 <p className="text-sm text-muted-foreground">
-                  {completed} of {total} items
+                  {remaining} of {total} items remaining
                 </p>
               </div>
             </div>
