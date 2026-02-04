@@ -7,7 +7,7 @@ import {
   MoreVertical,
   Trash,
   GripVertical,
-  StickyNote,
+  NotebookPen,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as Option from "effect/Option"
@@ -269,7 +269,7 @@ function DayListItem({
               setNoteVisible((visible) => !visible)
             }}
           >
-            <StickyNote />
+            <NotebookPen />
           </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {

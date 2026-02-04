@@ -7,7 +7,7 @@ import {
   Calendar,
   Eraser,
   MoreVertical,
-  StickyNote,
+  NotebookPen,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as DateTime from "effect/DateTime"
@@ -344,7 +344,7 @@ function DayListItem({
               setNoteVisible((visible) => !visible)
             }}
           >
-            <StickyNote />
+            <NotebookPen />
           </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {
