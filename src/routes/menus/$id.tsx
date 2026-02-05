@@ -7,7 +7,8 @@ import {
   MoreVertical,
   Trash,
   GripVertical,
-  FilePen,
+  MessageSquarePlus,
+  MessageSquare,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as Option from "effect/Option"
@@ -269,7 +270,7 @@ function DayListItem({
               setNoteVisible((visible) => !visible)
             }}
           >
-            <FilePen />
+            {dayNote?.note ? <MessageSquare /> : <MessageSquarePlus />}
           </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {
