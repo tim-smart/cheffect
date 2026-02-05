@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Recipe, recipeToHtmlFile, unitNeedsSpace } from "@/domain/Recipe"
+import { Recipe, unitNeedsSpace } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
@@ -30,6 +30,7 @@ import {
   saveModifiedRecipeAtom,
   showOriginalRecipeAtom,
 } from "@/Recipes/atoms"
+import { exportRecipeAsHtml } from "@/Recipes/export"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import {
@@ -72,24 +73,6 @@ import {
 export const Route = createFileRoute("/recipes/$id")({
   component: RouteComponent,
 })
-
-const exportRecipeAsHtml = (recipe: Recipe) => {
-  const file = recipeToHtmlFile(recipe)
-
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    void navigator.share({ files: [file], title: recipe.title }).catch(() => {})
-    return
-  }
-
-  const url = URL.createObjectURL(file)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = file.name
-  document.body.append(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}
 
 function RouteComponent() {
   const { id } = Route.useParams()
