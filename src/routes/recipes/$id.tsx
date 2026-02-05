@@ -30,6 +30,7 @@ import {
   saveModifiedRecipeAtom,
   showOriginalRecipeAtom,
 } from "@/Recipes/atoms"
+import { exportRecipeAsHtml } from "@/Recipes/export"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import {
@@ -60,6 +61,7 @@ import {
   Plus,
   ArrowLeftRight,
   MoreHorizontal,
+  Share,
 } from "lucide-react"
 import {
   useEffect,
@@ -254,6 +256,15 @@ export function RecipeDetails({
                     Add to meal plan
                   </DropdownMenuItem>
                 </MealPlanDatePicker>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setMenuOpen(false)
+                    exportRecipeAsHtml(recipe)
+                  }}
+                >
+                  <Share />
+                  Export HTML
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => {

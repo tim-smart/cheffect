@@ -7,6 +7,8 @@ import { DurationFromMinutes } from "./Duration"
 import * as Predicate from "effect/Predicate"
 import { UnknownToXml } from "./Xml"
 import * as Struct from "effect/Struct"
+import Fraction from "fraction.js"
+import { escapeHtml, escapeHtmlMultiline } from "@/lib/html"
 
 export const Unit = Schema.Literal(
   "g",
@@ -346,3 +348,152 @@ export const SortBy = [
 ] as const
 export const SortByValue = Schema.Literal(...SortBy.map((s) => s.value))
 export type SortBy = (typeof SortBy)[number]["value"]
+
+const htmlNumberFormatter = new Intl.NumberFormat("en-US", {
+  style: "decimal",
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
+
+const FRACTION_SIMPLIFICATION_TOLERANCE = 0.01
+
+const formatQuantity = (value: number, unit?: Unit | null): string => {
+  switch (unit) {
+    case "cup":
+    case "tsp":
+    case "tbsp":
+    case null: {
+      return new Fraction(value)
+        .simplify(FRACTION_SIMPLIFICATION_TOLERANCE)
+        .toFraction(true)
+    }
+    default: {
+      return htmlNumberFormatter.format(value)
+    }
+  }
+}
+
+const formatIngredient = (ingredient: Ingredient) => {
+  if (ingredient.quantity === null) {
+    return ingredient.name
+  }
+  const quantity = formatQuantity(ingredient.quantity, ingredient.unit)
+  if (!ingredient.unit) {
+    return `${quantity} ${ingredient.name}`
+  }
+  const separator = unitNeedsSpace.has(ingredient.unit) ? " " : ""
+  return `${quantity}${separator}${ingredient.unit} ${ingredient.name}`
+}
+
+export const recipeToHtml = (recipe: Recipe) => {
+  const details: Array<string> = []
+  if (recipe.prepTime) {
+    details.push(
+      `<li><strong>Prep:</strong> ${escapeHtml(Duration.format(recipe.prepTime))}</li>`,
+    )
+  }
+  if (recipe.cookingTime) {
+    details.push(
+      `<li><strong>Cook:</strong> ${escapeHtml(Duration.format(recipe.cookingTime))}</li>`,
+    )
+  }
+  if (recipe.servings) {
+    details.push(
+      `<li><strong>Servings:</strong> ${escapeHtml(String(recipe.servingsDisplay))}</li>`,
+    )
+  }
+  if (recipe.rating) {
+    details.push(
+      `<li><strong>Rating:</strong> ${escapeHtml(String(recipe.rating))}</li>`,
+    )
+  }
+  if (recipe.sourceUrl) {
+    const label = recipe.sourceName ?? "Source"
+    details.push(
+      `<li><strong>Source:</strong> <a href="${escapeHtml(recipe.sourceUrl)}">${escapeHtml(label)}</a></li>`,
+    )
+  }
+
+  const ingredientSections = recipe.ingredientsDisplay
+    .map((group) => {
+      const heading =
+        recipe.ingredientsDisplay.length > 1
+          ? `<h3>${escapeHtml(group.name)}</h3>`
+          : ""
+      const ingredientItems = group.ingredients
+        .map(
+          (ingredient) =>
+            `<li>${escapeHtml(formatIngredient(ingredient))}</li>`,
+        )
+        .join("\n")
+
+      return `<section>${heading}<ul>${ingredientItems}</ul></section>`
+    })
+    .join("\n")
+
+  const instructions =
+    recipe.steps.length > 0
+      ? `<ol>${recipe.steps
+          .map((step) => {
+            const tips =
+              step.tips.length > 0
+                ? `<ul>${step.tips
+                    .map((tip) => `<li>${escapeHtmlMultiline(tip)}</li>`)
+                    .join("\n")}</ul>`
+                : ""
+            return `<li><p>${escapeHtmlMultiline(step.text)}</p>${tips}</li>`
+          })
+          .join("\n")}</ol>`
+      : `<p>No instructions provided.</p>`
+
+  const image = recipe.imageUrl
+    ? `<img src="${escapeHtml(recipe.imageUrl)}" alt="${escapeHtml(recipe.title)}" />`
+    : ""
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(recipe.title)}</title>
+    <style>
+      body { font-family: "Segoe UI", sans-serif; margin: 2rem auto; max-width: 56rem; padding: 0 1rem; color: #111827; }
+      h1 { margin-bottom: 0.5rem; }
+      img { width: 100%; max-width: 24rem; border-radius: 0.5rem; margin: 0.5rem 0 1rem; }
+      ul, ol { padding-left: 1.25rem; }
+      li + li { margin-top: 0.5rem; }
+      .meta { margin: 0 0 1.5rem; }
+      .section { margin-top: 1.5rem; }
+      p { margin: 0.25rem 0 0.5rem; }
+      a { color: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(recipe.title)}</h1>
+    ${image}
+    ${details.length > 0 ? `<ul class="meta">${details.join("\n")}</ul>` : ""}
+    <section class="section">
+      <h2>Ingredients</h2>
+      ${ingredientSections}
+    </section>
+    <section class="section">
+      <h2>Instructions</h2>
+      ${instructions}
+    </section>
+  </body>
+</html>`
+}
+
+export const recipeHtmlFileName = (title: string) => {
+  const slug = title
+    .toLowerCase()
+    .trim()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "")
+  return `${slug || "recipe"}.html`
+}
+
+export const recipeToHtmlFile = (recipe: Recipe) =>
+  new File([recipeToHtml(recipe)], recipeHtmlFileName(recipe.title), {
+    type: "text/html",
+  })
