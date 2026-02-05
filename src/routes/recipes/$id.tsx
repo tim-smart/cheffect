@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Recipe, unitNeedsSpace } from "@/domain/Recipe"
+import { Ingredient, Recipe, unitNeedsSpace } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
@@ -60,6 +60,7 @@ import {
   Plus,
   ArrowLeftRight,
   MoreHorizontal,
+  Share,
 } from "lucide-react"
 import {
   useEffect,
@@ -71,6 +72,156 @@ import {
 export const Route = createFileRoute("/recipes/$id")({
   component: RouteComponent,
 })
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+
+const formatMultiline = (value: string) =>
+  escapeHtml(value).replaceAll("\n", "<br />")
+
+const formatIngredient = (ingredient: Ingredient) => {
+  if (ingredient.quantity === null) {
+    return ingredient.name
+  }
+  const quantity = quantityFormatter.format(
+    ingredient.quantity,
+    ingredient.unit,
+  )
+  if (!ingredient.unit) {
+    return `${quantity} ${ingredient.name}`
+  }
+  const separator = unitNeedsSpace.has(ingredient.unit) ? " " : ""
+  return `${quantity}${separator}${ingredient.unit} ${ingredient.name}`
+}
+
+const recipeToHtml = (recipe: Recipe) => {
+  const details: Array<string> = []
+  if (recipe.prepTime) {
+    details.push(
+      `<li><strong>Prep:</strong> ${escapeHtml(Duration.format(recipe.prepTime))}</li>`,
+    )
+  }
+  if (recipe.cookingTime) {
+    details.push(
+      `<li><strong>Cook:</strong> ${escapeHtml(Duration.format(recipe.cookingTime))}</li>`,
+    )
+  }
+  if (recipe.servings) {
+    details.push(
+      `<li><strong>Servings:</strong> ${recipe.servingsDisplay}</li>`,
+    )
+  }
+  if (recipe.sourceUrl) {
+    const label = recipe.sourceName ?? "Source"
+    details.push(
+      `<li><strong>Source:</strong> <a href="${escapeHtml(recipe.sourceUrl)}">${escapeHtml(label)}</a></li>`,
+    )
+  }
+
+  const ingredientSections = recipe.ingredientsDisplay
+    .map((group) => {
+      const heading =
+        recipe.ingredientsDisplay.length > 1
+          ? `<h3>${escapeHtml(group.name)}</h3>`
+          : ""
+      const ingredientItems = group.ingredients
+        .map(
+          (ingredient) =>
+            `<li>${escapeHtml(formatIngredient(ingredient))}</li>`,
+        )
+        .join("\n")
+
+      return `<section>${heading}<ul>${ingredientItems}</ul></section>`
+    })
+    .join("\n")
+
+  const instructions =
+    recipe.steps.length > 0
+      ? `<ol>${recipe.steps
+          .map((step) => {
+            const tips =
+              step.tips.length > 0
+                ? `<ul>${step.tips
+                    .map((tip) => `<li>${formatMultiline(tip)}</li>`)
+                    .join("\n")}</ul>`
+                : ""
+            return `<li><p>${formatMultiline(step.text)}</p>${tips}</li>`
+          })
+          .join("\n")}</ol>`
+      : `<p>No instructions provided.</p>`
+
+  const image = recipe.imageUrl
+    ? `<img src="${escapeHtml(recipe.imageUrl)}" alt="${escapeHtml(recipe.title)}" />`
+    : ""
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(recipe.title)}</title>
+    <style>
+      body { font-family: "Segoe UI", sans-serif; margin: 2rem auto; max-width: 56rem; padding: 0 1rem; color: #111827; }
+      h1 { margin-bottom: 0.5rem; }
+      img { width: 100%; max-width: 24rem; border-radius: 0.5rem; margin: 0.5rem 0 1rem; }
+      ul, ol { padding-left: 1.25rem; }
+      li + li { margin-top: 0.5rem; }
+      .meta { margin: 0 0 1.5rem; }
+      .section { margin-top: 1.5rem; }
+      p { margin: 0.25rem 0 0.5rem; }
+      a { color: #1d4ed8; }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(recipe.title)}</h1>
+    ${image}
+    ${details.length > 0 ? `<ul class="meta">${details.join("\n")}</ul>` : ""}
+    <section class="section">
+      <h2>Ingredients</h2>
+      ${ingredientSections}
+    </section>
+    <section class="section">
+      <h2>Instructions</h2>
+      ${instructions}
+    </section>
+  </body>
+</html>`
+}
+
+const recipeFileName = (title: string) => {
+  const slug = title
+    .toLowerCase()
+    .trim()
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "")
+  return `${slug || "recipe"}.html`
+}
+
+const exportRecipeAsHtml = (recipe: Recipe) => {
+  const html = recipeToHtml(recipe)
+  const fileName = recipeFileName(recipe.title)
+  const blob = new Blob([html], { type: "text/html" })
+  const file = new File([blob], fileName, { type: "text/html" })
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    void navigator.share({ files: [file], title: recipe.title }).catch(() => {})
+    return
+  }
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = fileName
+  document.body.append(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
 
 function RouteComponent() {
   const { id } = Route.useParams()
@@ -254,6 +405,15 @@ export function RecipeDetails({
                     Add to meal plan
                   </DropdownMenuItem>
                 </MealPlanDatePicker>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setMenuOpen(false)
+                    exportRecipeAsHtml(recipe)
+                  }}
+                >
+                  <Share />
+                  Export HTML
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   onClick={() => {
