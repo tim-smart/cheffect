@@ -8,6 +8,7 @@ import * as Predicate from "effect/Predicate"
 import { UnknownToXml } from "./Xml"
 import * as Struct from "effect/Struct"
 import Fraction from "fraction.js"
+import { escapeHtml, escapeHtmlMultiline } from "@/lib/html"
 
 export const Unit = Schema.Literal(
   "g",
@@ -348,17 +349,6 @@ export const SortBy = [
 export const SortByValue = Schema.Literal(...SortBy.map((s) => s.value))
 export type SortBy = (typeof SortBy)[number]["value"]
 
-const escapeHtml = (value: string) =>
-  value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;")
-
-const formatMultiline = (value: string) =>
-  escapeHtml(value).replaceAll("\n", "<br />")
-
 const htmlNumberFormatter = new Intl.NumberFormat("en-US", {
   style: "decimal",
   minimumFractionDigits: 0,
@@ -448,10 +438,10 @@ export const recipeToHtml = (recipe: Recipe) => {
             const tips =
               step.tips.length > 0
                 ? `<ul>${step.tips
-                    .map((tip) => `<li>${formatMultiline(tip)}</li>`)
+                    .map((tip) => `<li>${escapeHtmlMultiline(tip)}</li>`)
                     .join("\n")}</ul>`
                 : ""
-            return `<li><p>${formatMultiline(step.text)}</p>${tips}</li>`
+            return `<li><p>${escapeHtmlMultiline(step.text)}</p>${tips}</li>`
           })
           .join("\n")}</ol>`
       : `<p>No instructions provided.</p>`
@@ -502,3 +492,8 @@ export const recipeHtmlFileName = (title: string) => {
     .replaceAll(/^-+|-+$/g, "")
   return `${slug || "recipe"}.html`
 }
+
+export const recipeToHtmlFile = (recipe: Recipe) =>
+  new File([recipeToHtml(recipe)], recipeHtmlFileName(recipe.title), {
+    type: "text/html",
+  })

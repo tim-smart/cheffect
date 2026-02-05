@@ -9,12 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import {
-  Recipe,
-  recipeHtmlFileName,
-  recipeToHtml,
-  unitNeedsSpace,
-} from "@/domain/Recipe"
+import { Recipe, recipeToHtmlFile, unitNeedsSpace } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
@@ -79,20 +74,17 @@ export const Route = createFileRoute("/recipes/$id")({
 })
 
 const exportRecipeAsHtml = (recipe: Recipe) => {
-  const html = recipeToHtml(recipe)
-  const fileName = recipeHtmlFileName(recipe.title)
-  const blob = new Blob([html], { type: "text/html" })
-  const file = new File([blob], fileName, { type: "text/html" })
+  const file = recipeToHtmlFile(recipe)
 
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     void navigator.share({ files: [file], title: recipe.title }).catch(() => {})
     return
   }
 
-  const url = URL.createObjectURL(blob)
+  const url = URL.createObjectURL(file)
   const link = document.createElement("a")
   link.href = url
-  link.download = fileName
+  link.download = file.name
   document.body.append(link)
   link.click()
   link.remove()
