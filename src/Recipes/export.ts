@@ -25,5 +25,5 @@ export const exportRecipeAsHtml = (recipe: Recipe) => {
 }
 
 export const exportRecipeAsYaml = (recipe: Recipe) => {
-  shareOrDownloadFile(recipeToYamlFile(recipe), recipe.title)
+  downloadFile(recipeToYamlFile(recipe))
 }
