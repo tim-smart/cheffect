@@ -30,7 +30,7 @@ import {
   saveModifiedRecipeAtom,
   showOriginalRecipeAtom,
 } from "@/Recipes/atoms"
-import { exportRecipeAsHtml } from "@/Recipes/export"
+import { exportRecipeAsHtml, exportRecipeAsPaprika } from "@/Recipes/export"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import {
@@ -256,6 +256,15 @@ export function RecipeDetails({
                     Add to meal plan
                   </DropdownMenuItem>
                 </MealPlanDatePicker>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setMenuOpen(false)
+                    exportRecipeAsPaprika(recipe)
+                  }}
+                >
+                  <Share />
+                  Export Paprika
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     setMenuOpen(false)

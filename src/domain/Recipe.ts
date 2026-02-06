@@ -484,16 +484,107 @@ export const recipeToHtml = (recipe: Recipe) => {
 </html>`
 }
 
-export const recipeHtmlFileName = (title: string) => {
-  const slug = title
+const recipeFileSlug = (title: string) =>
+  title
     .toLowerCase()
     .trim()
     .replaceAll(/[^a-z0-9]+/g, "-")
     .replaceAll(/^-+|-+$/g, "")
+
+const yamlQuote = (value: string) => JSON.stringify(value)
+
+const asYamlBlock = (value: string) => {
+  if (value.length === 0) {
+    return "  "
+  }
+  return value
+    .split(/\r?\n/u)
+    .map((line) => `  ${line}`)
+    .join("\n")
+}
+
+const recipeToPaprikaIngredients = (recipe: Recipe) => {
+  const lines = recipe.ingredientsDisplay.flatMap((group, index, groups) => {
+    const ingredients = group.ingredients.map(formatIngredient)
+    if (groups.length === 1) {
+      return ingredients
+    }
+
+    const section = [`${group.name}:`, ...ingredients]
+    if (index < groups.length - 1) {
+      section.push("")
+    }
+    return section
+  })
+
+  return lines.join("\n")
+}
+
+const recipeToPaprikaDirections = (recipe: Recipe) => {
+  if (recipe.steps.length === 0) {
+    return "No directions provided."
+  }
+
+  const lines: Array<string> = []
+  for (const [index, step] of recipe.steps.entries()) {
+    lines.push(`${index + 1}. ${step.text}`)
+    for (const tip of step.tips) {
+      lines.push(`Tip: ${tip}`)
+    }
+    if (index < recipe.steps.length - 1) {
+      lines.push("")
+    }
+  }
+
+  return lines.join("\n")
+}
+
+export const recipeToPaprika = (recipe: Recipe) => {
+  const lines: Array<string> = [`name: ${yamlQuote(recipe.title)}`]
+
+  if (recipe.servingsDisplay !== null) {
+    lines.push(`servings: ${yamlQuote(String(recipe.servingsDisplay))}`)
+  }
+  if (recipe.sourceName) {
+    lines.push(`source: ${yamlQuote(recipe.sourceName)}`)
+  }
+  if (recipe.sourceUrl) {
+    lines.push(`source_url: ${yamlQuote(recipe.sourceUrl)}`)
+  }
+  if (recipe.prepTime) {
+    lines.push(`prep_time: ${yamlQuote(Duration.format(recipe.prepTime))}`)
+  }
+  if (recipe.cookingTime) {
+    lines.push(`cook_time: ${yamlQuote(Duration.format(recipe.cookingTime))}`)
+  }
+  if (recipe.rating) {
+    lines.push(`rating: ${recipe.rating}`)
+  }
+
+  lines.push("ingredients: |")
+  lines.push(asYamlBlock(recipeToPaprikaIngredients(recipe)))
+  lines.push("directions: |")
+  lines.push(asYamlBlock(recipeToPaprikaDirections(recipe)))
+
+  return `${lines.join("\n")}\n`
+}
+
+export const recipeHtmlFileName = (title: string) => {
+  const slug = recipeFileSlug(title)
   return `${slug || "recipe"}.html`
 }
 
 export const recipeToHtmlFile = (recipe: Recipe) =>
   new File([recipeToHtml(recipe)], recipeHtmlFileName(recipe.title), {
     type: "text/html",
+  })
+
+export const recipePaprikaFileName = (title: string) => {
+  const slug = recipeFileSlug(title)
+  return `${slug || "recipe"}.paprikarecipe`
+}
+
+export const recipeToPaprikaFile = (recipe: Recipe) =>
+  new File([recipeToPaprika(recipe)], recipePaprikaFileName(recipe.title), {
+    type: "text/yaml",
   })
