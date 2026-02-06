@@ -1,4 +1,4 @@
-import { Recipe, recipeToHtmlFile, recipeToPaprikaFile } from "@/domain/Recipe"
+import { Recipe, recipeToHtmlFile, recipeToYamlFile } from "@/domain/Recipe"
 
 const downloadFile = (file: File) => {
   const url = URL.createObjectURL(file)
@@ -24,6 +24,6 @@ export const exportRecipeAsHtml = (recipe: Recipe) => {
   shareOrDownloadFile(recipeToHtmlFile(recipe), recipe.title)
 }
 
-export const exportRecipeAsPaprika = (recipe: Recipe) => {
-  downloadFile(recipeToPaprikaFile(recipe))
+export const exportRecipeAsYaml = (recipe: Recipe) => {
+  shareOrDownloadFile(recipeToYamlFile(recipe), recipe.title)
 }

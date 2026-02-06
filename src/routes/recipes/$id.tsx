@@ -30,7 +30,7 @@ import {
   saveModifiedRecipeAtom,
   showOriginalRecipeAtom,
 } from "@/Recipes/atoms"
-import { exportRecipeAsHtml, exportRecipeAsPaprika } from "@/Recipes/export"
+import { exportRecipeAsHtml, exportRecipeAsYaml } from "@/Recipes/export"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import {
@@ -259,11 +259,11 @@ export function RecipeDetails({
                 <DropdownMenuItem
                   onClick={() => {
                     setMenuOpen(false)
-                    exportRecipeAsPaprika(recipe)
+                    exportRecipeAsYaml(recipe)
                   }}
                 >
                   <Share />
-                  Export Paprika
+                  Export YAML
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
