@@ -1,11 +1,6 @@
 import { Recipe, recipeToHtmlFile, recipeToPaprikaFile } from "@/domain/Recipe"
 
-const shareOrDownloadFile = (file: File, title: string) => {
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    void navigator.share({ files: [file], title }).catch(() => {})
-    return
-  }
-
+const downloadFile = (file: File) => {
   const url = URL.createObjectURL(file)
   const link = document.createElement("a")
   link.href = url
@@ -16,10 +11,19 @@ const shareOrDownloadFile = (file: File, title: string) => {
   URL.revokeObjectURL(url)
 }
 
+const shareOrDownloadFile = (file: File, title: string) => {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    void navigator.share({ files: [file], title }).catch(() => {})
+    return
+  }
+
+  downloadFile(file)
+}
+
 export const exportRecipeAsHtml = (recipe: Recipe) => {
   shareOrDownloadFile(recipeToHtmlFile(recipe), recipe.title)
 }
 
 export const exportRecipeAsPaprika = (recipe: Recipe) => {
-  shareOrDownloadFile(recipeToPaprikaFile(recipe), recipe.title)
+  downloadFile(recipeToPaprikaFile(recipe))
 }
