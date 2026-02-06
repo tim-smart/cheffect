@@ -503,7 +503,7 @@ const asYamlBlock = (value: string) => {
     .join("\n")
 }
 
-const recipeToPaprikaIngredients = (recipe: Recipe) => {
+const recipeToYamlIngredients = (recipe: Recipe) => {
   const lines = recipe.ingredientsDisplay.flatMap((group, index, groups) => {
     const ingredients = group.ingredients.map(formatIngredient)
     if (groups.length === 1) {
@@ -520,7 +520,7 @@ const recipeToPaprikaIngredients = (recipe: Recipe) => {
   return lines.join("\n")
 }
 
-const recipeToPaprikaDirections = (recipe: Recipe) => {
+const recipeToYamlDirections = (recipe: Recipe) => {
   if (recipe.steps.length === 0) {
     return "No directions provided."
   }
@@ -539,7 +539,7 @@ const recipeToPaprikaDirections = (recipe: Recipe) => {
   return lines.join("\n")
 }
 
-export const recipeToPaprika = (recipe: Recipe) => {
+export const recipeToYaml = (recipe: Recipe) => {
   const lines: Array<string> = [`name: ${yamlQuote(recipe.title)}`]
 
   if (recipe.servingsDisplay !== null) {
@@ -562,9 +562,9 @@ export const recipeToPaprika = (recipe: Recipe) => {
   }
 
   lines.push("ingredients: |")
-  lines.push(asYamlBlock(recipeToPaprikaIngredients(recipe)))
+  lines.push(asYamlBlock(recipeToYamlIngredients(recipe)))
   lines.push("directions: |")
-  lines.push(asYamlBlock(recipeToPaprikaDirections(recipe)))
+  lines.push(asYamlBlock(recipeToYamlDirections(recipe)))
 
   return `${lines.join("\n")}\n`
 }
@@ -579,12 +579,12 @@ export const recipeToHtmlFile = (recipe: Recipe) =>
     type: "text/html",
   })
 
-export const recipePaprikaFileName = (title: string) => {
+export const recipeYamlFileName = (title: string) => {
   const slug = recipeFileSlug(title)
-  return `${slug || "recipe"}.paprikarecipe`
+  return `${slug || "recipe"}.yml`
 }
 
-export const recipeToPaprikaFile = (recipe: Recipe) =>
-  new File([recipeToPaprika(recipe)], recipePaprikaFileName(recipe.title), {
+export const recipeToYamlFile = (recipe: Recipe) =>
+  new File([recipeToYaml(recipe)], recipeYamlFileName(recipe.title), {
     type: "text/yaml",
   })
