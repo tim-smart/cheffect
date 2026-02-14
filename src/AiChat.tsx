@@ -240,7 +240,7 @@ function MessagesList({
           >
             <div
               className={cn(
-                `max-w-[90%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto`,
+                `max-w-[90%] rounded-2xl p-4 prose dark:prose-invert leading-tight overflow-auto`,
                 `prose-headings:text-lg prose-headings:my-3 prose-headings:first:mt-0 prose-headings:last:mb-0`,
                 `prose-p:my-3 prose-p:first:mt-0 prose-p:last:mb-0`,
                 `prose-hr:my-3`,
