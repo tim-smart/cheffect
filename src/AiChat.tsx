@@ -239,11 +239,14 @@ function MessagesList({
             className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`max-w-[90%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto ${
+              className={cn(
+                `max-w-[90%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto`,
+                `prose-headings:text-xl prose-headings:my-3 prose-headings:first:mt-0 prose-headings:last:mb-0`,
+                `prose-p:my-3 prose-p:first:mt-0 prose-p:last:mb-0`,
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted dark:bg-border text-foreground"
-              }`}
+                  ? "bg-primary text-primary-foreground prose-headings:text-primary-foreground"
+                  : "bg-muted dark:bg-border text-foreground",
+              )}
             >
               {message.content
                 .filter((_) => _.type === "text")
