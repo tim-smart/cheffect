@@ -22,6 +22,10 @@ can refer to:
 
 **Do not** use node_modules to look at the source code for these libraries.
 
+## When working on UI changes
+
+When working on UI changes, use the `frontend-design` skill
+
 ## Interaction with the app
 
 Any visual changes to the app should be tested by running the dev server and
