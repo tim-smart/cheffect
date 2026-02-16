@@ -45,6 +45,20 @@ export const TransientResponse = <S extends Schema.Schema.Any>(
     },
   )
 
+export const TransientEncodedResponse = <S extends Schema.Schema.Any>(
+  schema: S,
+) =>
+  Schema.transform(
+    Schema.encodedSchema(schema),
+    Schema.TaggedStruct("Transient", {
+      value: Schema.encodedSchema(schema),
+    }),
+    {
+      decode: (value) => ({ _tag: "Transient", value }) as const,
+      encode: ({ value }) => value,
+    },
+  )
+
 export class toolkit extends Toolkit.make(
   OpenAiTool.WebSearch({}),
   Tool.make("SearchRecipes", {
@@ -52,14 +66,14 @@ export class toolkit extends Toolkit.make(
     parameters: {
       query: Schema.String,
     },
-    success: TransientResponse(Schema.Array(Recipe.json)),
+    success: TransientEncodedResponse(Schema.Array(Recipe.json)),
   }),
   Tool.make("RecipeById", {
     description: "Get a recipe by its unique ID",
     parameters: {
       id: Schema.String,
     },
-    success: TransientResponse(Schema.NullOr(Recipe.json)),
+    success: TransientEncodedResponse(Schema.NullOr(Recipe.json)),
   }),
   Tool.make("CreateRecipe", {
     description:

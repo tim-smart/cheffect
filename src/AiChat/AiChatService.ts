@@ -59,11 +59,20 @@ const ToolkitLayer = toolkit.toLayer(
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
         const recipes = store.query(searchRecipes$(query))
-        return { _tag: "Transient", value: recipes } as const
+        return {
+          _tag: "Transient",
+          value: Schema.encodeSync(Recipe.arrayJson)(recipes),
+        } as const
       }),
       RecipeById: Effect.fnUntraced(function* ({ id }) {
         const recipe = store.query(recipeById$(id))
-        return { _tag: "Transient", value: Option.getOrNull(recipe) } as const
+        return {
+          _tag: "Transient",
+          value: Option.match(recipe, {
+            onNone: () => null,
+            onSome: (value) => Schema.encodeSync(Recipe.json)(value),
+          }),
+        } as const
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
         const newRecipe = recipe.asRecipe()
