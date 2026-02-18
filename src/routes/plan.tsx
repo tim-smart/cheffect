@@ -78,6 +78,11 @@ export function MealPlanPage() {
 
   const weekDays = getWeekDays()
 
+  const weekEnd = DateTime.add(weekStart, { days: 6 })
+  const isCurrentWeek =
+    DateTime.greaterThanOrEqualTo(today, weekStart) &&
+    DateTime.lessThanOrEqualTo(today, weekEnd)
+
   const handlePreviousWeek = () => {
     setWeekStart(DateTime.subtract(weekStartRaw, { weeks: 1 }))
   }
@@ -157,12 +162,8 @@ export function MealPlanPage() {
               <ChevronLeft />
             </Button>
 
-            <div className="text-center flex-1">
-              <Button
-                variant="ghost"
-                className="text-sm font-medium "
-                onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
-              >
+            <div className="text-center flex-1 flex flex-col items-center gap-0.5">
+              <span className="text-sm font-medium">
                 {DateTime.formatUtc(weekStart, {
                   month: "short",
                   day: "numeric",
@@ -175,7 +176,21 @@ export function MealPlanPage() {
                     day: "numeric",
                   }),
                 )}
-              </Button>
+              </span>
+              {isCurrentWeek ? (
+                <span className="inline-flex items-center h-6 text-xs text-muted-foreground">
+                  This week
+                </span>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="text-primary border-primary/40 hover:bg-primary/10"
+                  onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
+                >
+                  Today
+                </Button>
+              )}
             </div>
 
             <Button
