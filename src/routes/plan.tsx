@@ -177,14 +177,20 @@ export function MealPlanPage() {
                   }),
                 )}
               </span>
-              <Button
-                variant="outline"
-                size="xs"
-                className={`text-primary border-primary/40 hover:bg-primary/10 ${isCurrentWeek ? "invisible" : ""}`}
-                onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
-              >
-                Today
-              </Button>
+              {isCurrentWeek ? (
+                <span className="inline-flex items-center h-6 text-xs text-muted-foreground">
+                  This week
+                </span>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="text-primary border-primary/40 hover:bg-primary/10"
+                  onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
+                >
+                  Today
+                </Button>
+              )}
             </div>
 
             <Button
