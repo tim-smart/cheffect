@@ -845,26 +845,6 @@ export const isVisualPart = (
     | Prompt.ToolMessagePart,
 ): boolean => part.type === "text" || part.type === "tool-result"
 
-/** Resolve the MIME type for a file, falling back to extension-based lookup */
-const resolveMediaType = (file: File): string => {
-  if (file.type) return file.type
-  const ext = file.name.split(".").pop()?.toLowerCase()
-  const extMap: Record<string, string> = {
-    txt: "text/plain",
-    csv: "text/csv",
-    json: "application/json",
-    md: "text/markdown",
-    xml: "application/xml",
-    html: "text/html",
-    yaml: "application/yaml",
-    yml: "application/yaml",
-    log: "text/plain",
-    tsv: "text/tab-separated-values",
-    pdf: "application/pdf",
-  }
-  return (ext && extMap[ext]) || "application/octet-stream"
-}
-
 const makeMessage = Effect.fnUntraced(function* (options: {
   readonly text: string
   readonly files: FileList | null
@@ -878,7 +858,7 @@ const makeMessage = Effect.fnUntraced(function* (options: {
       )
       content.push(
         Prompt.filePart({
-          mediaType: resolveMediaType(file),
+          mediaType: file.type,
           fileName: file.name,
           data,
         }),

@@ -13,7 +13,7 @@ patchedDependencies:
     hash: b7eb5273caf30c94f68996c2b96e50042916913153ff6be30bdbc1df3cfbaec9
     path: patches/@effect__ai.patch
   '@effect/ai-openai':
-    hash: 7b0b84cf23f7d426b14afad05422dc00cb7a2112415d9d013622ffd85921d7a3
+    hash: 015392cbf20fcafe9921336b449b577a7f83578c82bad426bb45faa34848ffb4
     path: patches/@effect__ai-openai.patch
   '@inato-form/react-hook-form':
     hash: 9a0115cbf6a74aa8945480d2e1623a091a5342a7f8555c9ae1aa2fc44c94bd0f
@@ -37,7 +37,7 @@ importers:
         version: 0.33.2(patch_hash=b7eb5273caf30c94f68996c2b96e50042916913153ff6be30bdbc1df3cfbaec9)(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
       '@effect/ai-openai':
         specifier: ^0.37.2
-        version: 0.37.2(patch_hash=7b0b84cf23f7d426b14afad05422dc00cb7a2112415d9d013622ffd85921d7a3)(@effect/ai@0.33.2(patch_hash=b7eb5273caf30c94f68996c2b96e50042916913153ff6be30bdbc1df3cfbaec9)(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14))(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
+        version: 0.37.2(patch_hash=015392cbf20fcafe9921336b449b577a7f83578c82bad426bb45faa34848ffb4)(@effect/ai@0.33.2(patch_hash=b7eb5273caf30c94f68996c2b96e50042916913153ff6be30bdbc1df3cfbaec9)(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14))(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
       '@effect/experimental':
         specifier: ^0.58.0
         version: 0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
@@ -3620,7 +3620,6 @@ packages:
   glob@11.1.0:
     resolution: {integrity: sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==}
     engines: {node: 20 || >=22}
-    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   globalthis@1.0.4:
@@ -6083,7 +6082,7 @@ snapshots:
       '@effect/rpc': 0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)
       effect: 3.19.14
 
-  '@effect/ai-openai@0.37.2(patch_hash=7b0b84cf23f7d426b14afad05422dc00cb7a2112415d9d013622ffd85921d7a3)(@effect/ai@0.33.2(patch_hash=b7eb5273caf30c94f68996c2b96e50042916913153ff6be30bdbc1df3cfbaec9)(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14))(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)':
+  '@effect/ai-openai@0.37.2(patch_hash=015392cbf20fcafe9921336b449b577a7f83578c82bad426bb45faa34848ffb4)(@effect/ai@0.33.2(patch_hash=b7eb5273caf30c94f68996c2b96e50042916913153ff6be30bdbc1df3cfbaec9)(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14))(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)':
     dependencies:
       '@effect/ai': 0.33.2(patch_hash=b7eb5273caf30c94f68996c2b96e50042916913153ff6be30bdbc1df3cfbaec9)(@effect/experimental@0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(@effect/platform@0.94.1(effect@3.19.14))(@effect/rpc@0.73.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14))(effect@3.19.14)
       '@effect/experimental': 0.58.0(@effect/platform@0.94.1(effect@3.19.14))(effect@3.19.14)

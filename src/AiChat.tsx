@@ -248,7 +248,7 @@ function MessagesList({
           >
             <div
               className={cn(
-                `max-w-[90%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto`,
+                `max-w-[90%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto break-words`,
                 `prose-headings:text-lg prose-headings:my-2 prose-headings:first:mt-0 prose-headings:last:mb-0`,
                 `prose-p:my-2 prose-p:first:mt-0 prose-p:last:mb-0`,
                 `prose-hr:my-2`,
@@ -354,9 +354,9 @@ function PromptInput({
                 className="size-16 rounded-md object-cover border border-border mb-2"
               />
             ) : (
-              <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1.5 mb-2 max-w-32">
+              <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1.5 mb-2 max-w-32 overflow-hidden">
                 <FileText className="size-4 shrink-0 text-muted-foreground" />
-                <span className="text-xs truncate" title={file.name}>
+                <span className="text-xs truncate min-w-0" title={file.name}>
                   {file.name}
                 </span>
               </div>
@@ -416,7 +416,7 @@ function PromptInput({
             ref={fileRef}
             type="file"
             className="hidden"
-            accept="image/*,android/allowCamera,application/pdf,.txt,.csv,.json,.md,.xml,.html,.yaml,.yml,.log,.tsv"
+            accept="image/*,android/allowCamera,application/pdf"
             multiple
             onChange={(e) => {
               const selectedFiles = e.target.files
