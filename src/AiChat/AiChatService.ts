@@ -883,6 +883,7 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
 
     let textPart: Prompt.TextPart | null = null
     let hasFiles = false
+    const fileNames: string[] = []
     const parts = Array.empty<Prompt.AssistantMessagePart>()
     for (let i = 0; i < message.content.length; i++) {
       const part = message.content[i]
@@ -891,10 +892,17 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
         continue
       } else if (part.type === "file") {
         hasFiles = true
+        if ("fileName" in part && part.fileName) {
+          fileNames.push(part.fileName)
+        }
         continue
       }
       parts.push(part)
     }
+    const attachmentLabel =
+      fileNames.length > 0
+        ? fileNames.map((n) => `[📎 ${n}]`).join(" ")
+        : "[file attachment]"
     const updated = hasFiles
       ? Prompt.makeMessage(message.role, {
           content:
@@ -902,8 +910,8 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
               ? [
                   Prompt.textPart({
                     text: textPart
-                      ? `${textPart.text}\n\n[file attachment]`
-                      : "[file attachment]",
+                      ? `${textPart.text}\n\n${attachmentLabel}`
+                      : attachmentLabel,
                   }),
                   ...parts,
                 ]
