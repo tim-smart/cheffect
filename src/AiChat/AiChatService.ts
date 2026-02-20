@@ -845,6 +845,37 @@ export const isVisualPart = (
     | Prompt.ToolMessagePart,
 ): boolean => part.type === "text" || part.type === "tool-result"
 
+/** Check if a file should be read as text and included as a text part */
+const isTextFile = (file: File): boolean => {
+  const textTypes = [
+    "text/",
+    "application/json",
+    "application/xml",
+    "application/yaml",
+    "application/x-yaml",
+  ]
+  if (textTypes.some((t) => file.type.startsWith(t))) return true
+  // Fall back to extension check for files with empty or generic MIME types
+  const ext = file.name.split(".").pop()?.toLowerCase()
+  const textExtensions = [
+    "txt",
+    "csv",
+    "json",
+    "md",
+    "xml",
+    "html",
+    "yaml",
+    "yml",
+    "log",
+    "tsv",
+  ]
+  return ext !== undefined && textExtensions.includes(ext)
+}
+
+/** Check if a file is natively supported as a file part by OpenAI */
+const isNativeFilePart = (file: File): boolean =>
+  file.type.startsWith("image/") || file.type === "application/pdf"
+
 const makeMessage = Effect.fnUntraced(function* (options: {
   readonly text: string
   readonly files: FileList | null
@@ -853,16 +884,25 @@ const makeMessage = Effect.fnUntraced(function* (options: {
   if (options.files) {
     for (let i = 0; i < options.files.length; i++) {
       const file = options.files[i]
-      const data = new Uint8Array(
-        yield* Effect.promise(() => file.arrayBuffer()),
-      )
-      content.push(
-        Prompt.filePart({
-          mediaType: file.type,
-          fileName: file.name,
-          data,
-        }),
-      )
+      if (isTextFile(file)) {
+        const text = yield* Effect.promise(() => file.text())
+        content.push(
+          Prompt.textPart({
+            text: `[File: ${file.name}]\n\`\`\`\n${text}\n\`\`\``,
+          }),
+        )
+      } else if (isNativeFilePart(file)) {
+        const data = new Uint8Array(
+          yield* Effect.promise(() => file.arrayBuffer()),
+        )
+        content.push(
+          Prompt.filePart({
+            mediaType: file.type || "application/pdf",
+            fileName: file.name,
+            data,
+          }),
+        )
+      }
     }
   }
   content.push(Prompt.textPart({ text: options.text }))
@@ -883,6 +923,7 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
 
     let textPart: Prompt.TextPart | null = null
     let hasFiles = false
+    const fileNames: string[] = []
     const parts = Array.empty<Prompt.AssistantMessagePart>()
     for (let i = 0; i < message.content.length; i++) {
       const part = message.content[i]
@@ -891,10 +932,17 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
         continue
       } else if (part.type === "file") {
         hasFiles = true
+        if ("fileName" in part && part.fileName) {
+          fileNames.push(part.fileName)
+        }
         continue
       }
       parts.push(part)
     }
+    const attachmentLabel =
+      fileNames.length > 0
+        ? fileNames.map((n) => `[📎 ${n}]`).join(" ")
+        : "[file attachment]"
     const updated = hasFiles
       ? Prompt.makeMessage(message.role, {
           content:
@@ -902,8 +950,8 @@ const filterFileParts = (prompt: Prompt.Prompt): Prompt.Prompt => {
               ? [
                   Prompt.textPart({
                     text: textPart
-                      ? `${textPart.text}\n\n[file attachment]`
-                      : "[file attachment]",
+                      ? `${textPart.text}\n\n${attachmentLabel}`
+                      : attachmentLabel,
                   }),
                   ...parts,
                 ]

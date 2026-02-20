@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react"
 import { TimerList } from "@/Timers/TimerList"
 import { Button } from "@/components/ui/button"
-import { Eraser, MessageSquare, Plus, Send, Square, X } from "lucide-react"
+import {
+  Eraser,
+  FileText,
+  MessageSquare,
+  Paperclip,
+  Send,
+  Square,
+  X,
+} from "lucide-react"
 import {
   Atom,
   Result,
@@ -339,11 +347,20 @@ function PromptInput({
       <div className="flex gap-2 pl-15">
         {(files ? Array.from(files) : []).map((file) => (
           <div key={file.name} className="relative">
-            <img
-              src={URL.createObjectURL(file)}
-              alt={file.name}
-              className="size-16 rounded-md object-cover border border-border mb-2"
-            />
+            {file.type.startsWith("image/") ? (
+              <img
+                src={URL.createObjectURL(file)}
+                alt={file.name}
+                className="size-16 rounded-md object-cover border border-border mb-2"
+              />
+            ) : (
+              <div className="flex items-center gap-1.5 rounded-md border border-border bg-muted px-2 py-1.5 mb-2 max-w-32">
+                <FileText className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-xs truncate" title={file.name}>
+                  {file.name}
+                </span>
+              </div>
+            )}
             <Button
               type="button"
               size="icon"
@@ -393,13 +410,13 @@ function PromptInput({
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => fileRef.current?.click()}
           >
-            <Plus />
+            <Paperclip />
           </Button>
           <input
             ref={fileRef}
             type="file"
             className="hidden"
-            accept="image/*,android/allowCamera"
+            accept="image/*,android/allowCamera,application/pdf,.txt,.csv,.json,.md,.xml,.html,.yaml,.yml,.log,.tsv"
             multiple
             onChange={(e) => {
               const selectedFiles = e.target.files
