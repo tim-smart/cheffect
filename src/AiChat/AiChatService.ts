@@ -845,36 +845,25 @@ export const isVisualPart = (
     | Prompt.ToolMessagePart,
 ): boolean => part.type === "text" || part.type === "tool-result"
 
-/** Check if a file should be read as text and included as a text part */
-const isTextFile = (file: File): boolean => {
-  const textTypes = [
-    "text/",
-    "application/json",
-    "application/xml",
-    "application/yaml",
-    "application/x-yaml",
-  ]
-  if (textTypes.some((t) => file.type.startsWith(t))) return true
-  // Fall back to extension check for files with empty or generic MIME types
+/** Resolve the MIME type for a file, falling back to extension-based lookup */
+const resolveMediaType = (file: File): string => {
+  if (file.type) return file.type
   const ext = file.name.split(".").pop()?.toLowerCase()
-  const textExtensions = [
-    "txt",
-    "csv",
-    "json",
-    "md",
-    "xml",
-    "html",
-    "yaml",
-    "yml",
-    "log",
-    "tsv",
-  ]
-  return ext !== undefined && textExtensions.includes(ext)
+  const extMap: Record<string, string> = {
+    txt: "text/plain",
+    csv: "text/csv",
+    json: "application/json",
+    md: "text/markdown",
+    xml: "application/xml",
+    html: "text/html",
+    yaml: "application/yaml",
+    yml: "application/yaml",
+    log: "text/plain",
+    tsv: "text/tab-separated-values",
+    pdf: "application/pdf",
+  }
+  return (ext && extMap[ext]) || "application/octet-stream"
 }
-
-/** Check if a file is natively supported as a file part by OpenAI */
-const isNativeFilePart = (file: File): boolean =>
-  file.type.startsWith("image/") || file.type === "application/pdf"
 
 const makeMessage = Effect.fnUntraced(function* (options: {
   readonly text: string
@@ -884,25 +873,16 @@ const makeMessage = Effect.fnUntraced(function* (options: {
   if (options.files) {
     for (let i = 0; i < options.files.length; i++) {
       const file = options.files[i]
-      if (isTextFile(file)) {
-        const text = yield* Effect.promise(() => file.text())
-        content.push(
-          Prompt.textPart({
-            text: `[File: ${file.name}]\n\`\`\`\n${text}\n\`\`\``,
-          }),
-        )
-      } else if (isNativeFilePart(file)) {
-        const data = new Uint8Array(
-          yield* Effect.promise(() => file.arrayBuffer()),
-        )
-        content.push(
-          Prompt.filePart({
-            mediaType: file.type || "application/pdf",
-            fileName: file.name,
-            data,
-          }),
-        )
-      }
+      const data = new Uint8Array(
+        yield* Effect.promise(() => file.arrayBuffer()),
+      )
+      content.push(
+        Prompt.filePart({
+          mediaType: resolveMediaType(file),
+          fileName: file.name,
+          data,
+        }),
+      )
     }
   }
   content.push(Prompt.textPart({ text: options.text }))

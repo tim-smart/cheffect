@@ -1,5 +1,5 @@
 diff --git a/dist/esm/Generated.js b/dist/esm/Generated.js
-index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..1c2defe6a6e5930dd08852b001bca1d01019a273 100644
+index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..025099e6d5b34cbbab871714e61c20245c3d4cb3 100644
 --- a/dist/esm/Generated.js
 +++ b/dist/esm/Generated.js
 @@ -1527,9 +1527,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
@@ -57,19 +57,19 @@ index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..1c2defe6a6e5930dd08852b001bca1d0
       *
       * - The length and order of items in the `output` array is dependent
 diff --git a/dist/esm/OpenAiClient.js b/dist/esm/OpenAiClient.js
-index c65e55f47385218c2b9521df26c99c41bc31b2f8..f14ad960964a733dcea27689eb3f9ebaad478eb3 100644
+index 8bf901cd455dfe157a6143425e13c4f208b2946c..ebe06db3db1a1e9178799fb4fad84b4a7568fd71 100644
 --- a/dist/esm/OpenAiClient.js
 +++ b/dist/esm/OpenAiClient.js
-@@ -242,7 +242,7 @@ export class ResponseFailedEvent extends /*#__PURE__*/Schema.Class("@effect/ai-o
+@@ -247,7 +247,7 @@ export class ResponseFailedEvent extends /*#__PURE__*/Schema.Class("@effect/ai-o
    /**
     * The response that failed.
     */
 -  response: Generated.Response
 +  response: Schema.Unknown
  }) {}
- /**
-  * Emitted when a new output item is added.
-@@ -1481,7 +1481,7 @@ export class ResponseErrorEvent extends /*#__PURE__*/Schema.Class("@effect/ai-op
+ const WebSearchToolCallForAddEvent = /*#__PURE__*/Schema.asSchema(/*#__PURE__*/Generated.WebSearchToolCall.pipe(/*#__PURE__*/Schema.omit("action")));
+ const AddEventOutputItem = /*#__PURE__*/Schema.Union(Generated.OutputItem, WebSearchToolCallForAddEvent);
+@@ -1488,7 +1488,7 @@ export class ResponseErrorEvent extends /*#__PURE__*/Schema.Class("@effect/ai-op
    /**
     * The error message.
     */
@@ -79,10 +79,45 @@ index c65e55f47385218c2b9521df26c99c41bc31b2f8..f14ad960964a733dcea27689eb3f9eba
     * The error parameter.
     */
 diff --git a/dist/esm/OpenAiLanguageModel.js b/dist/esm/OpenAiLanguageModel.js
-index 63b19f1035baef958a366b02bb2af99f74b848ed..5ae4d8a01e5d1c1b1d0fa4b282f2590b6d2bf1e7 100644
+index 63b19f1035baef958a366b02bb2af99f74b848ed..d273e3b120607b7d48f7336331897eacf8b45505 100644
 --- a/dist/esm/OpenAiLanguageModel.js
 +++ b/dist/esm/OpenAiLanguageModel.js
-@@ -268,15 +268,13 @@ const prepareMessages = /*#__PURE__*/Effect.fnUntraced(function* (options, confi
+@@ -206,11 +206,29 @@ const prepareMessages = /*#__PURE__*/Effect.fnUntraced(function* (options, confi
+                       });
+                     }
+                   } else {
+-                    return yield* new AiError.MalformedInput({
+-                      module: "OpenAiLanguageModel",
+-                      method: "prepareMessages",
+-                      description: `Detected unsupported media type for file: '${part.mediaType}'`
+-                    });
++                    if (typeof part.data === "string" && isFileId(part.data, config)) {
++                      content.push({
++                        type: "input_file",
++                        file_id: part.data
++                      });
++                    }
++                    if (part.data instanceof URL) {
++                      content.push({
++                        type: "input_file",
++                        file_url: part.data.toString()
++                      });
++                    }
++                    if (part.data instanceof Uint8Array) {
++                      const base64 = Encoding.encodeBase64(part.data);
++                      const ext = part.fileName?.split(".").pop() ?? "bin";
++                      const fileName = part.fileName ?? `part-${index}.${ext}`;
++                      const fileData = `data:${part.mediaType || "application/octet-stream"};base64,${base64}`;
++                      content.push({
++                        type: "input_file",
++                        filename: fileName,
++                        file_data: fileData
++                      });
++                    }
+                   }
+                 }
+             }
+@@ -268,15 +286,13 @@ const prepareMessages = /*#__PURE__*/Effect.fnUntraced(function* (options, confi
                  }
                case "tool-call":
                  {
