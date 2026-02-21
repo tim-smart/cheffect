@@ -105,7 +105,7 @@ export function MealPlanPage() {
     <div className="pb-content">
       {/* Header */}
       <header className="bg-background border-b border-border sticky top-0 z-10">
-        <div className="px-4 py-3">
+        <div className="px-4 py-2">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />
@@ -185,7 +185,7 @@ export function MealPlanPage() {
                 <Button
                   variant="outline"
                   size="xs"
-                  className="text-primary border-primary/40 hover:bg-primary/10"
+                  className="text-primary border-primary/40 hover:text-primary hover:bg-primary/10"
                   onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
                 >
                   Today
