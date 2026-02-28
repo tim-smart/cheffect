@@ -165,7 +165,7 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       effect:
-        specifier: ^3.19.19
+        specifier: ^3.17.1
         version: 3.19.19
       embla-carousel-react:
         specifier: ^8.6.0
