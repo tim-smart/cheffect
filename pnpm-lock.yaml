@@ -164,9 +164,6 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
-      effect:
-        specifier: ^3.17.1
-        version: 3.19.19
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.3)
@@ -235,8 +232,8 @@ importers:
         version: 4.3.5
     devDependencies:
       '@effect/language-service':
-        specifier: ^0.65.0
-        version: 0.65.0
+        specifier: ^0.77.0
+        version: 0.77.0
       '@tailwindcss/typography':
         specifier: ^0.5.19
         version: 0.5.19(tailwindcss@4.1.18)
@@ -261,6 +258,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^5.1.2
         version: 5.1.2(vite@7.3.1(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+      effect:
+        specifier: ^3.19.19
+        version: 3.19.19
       prettier:
         specifier: ^3.7.4
         version: 3.7.4
@@ -1016,8 +1016,8 @@ packages:
       lmdb:
         optional: true
 
-  '@effect/language-service@0.65.0':
-    resolution: {integrity: sha512-eHcpLNCZa1XEDRrXLZqTdky6jAQojL6zQEW53Ba6vJL35j77tJTnV9BFkk34G3rxKoplNo39U0Mum3RfuH9rsg==}
+  '@effect/language-service@0.77.0':
+    resolution: {integrity: sha512-QP2bri8DdcK7Eo+SqFS2yNeD0Ch9kKHYxq2jeE9CaPpBknevCNFb3+hT6qSsPt2P6yOkhNP83KMy5Uk7DGBXlg==}
     hasBin: true
 
   '@effect/opentelemetry@0.56.6':
@@ -3131,8 +3131,8 @@ packages:
   brace-expansion@2.0.2:
     resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
 
-  brace-expansion@5.0.3:
-    resolution: {integrity: sha512-fy6KJm2RawA5RcHkLa1z/ScpBeA762UF9KmZQxwIbDtRJrgLzM10depAiEQ+CXYcoiqW1/m96OAAoke2nE9EeA==}
+  brace-expansion@5.0.4:
+    resolution: {integrity: sha512-h+DEnpVvxmfVefa4jFbCf5HdH5YMDXRsmKflpf1pILZWRFlTbJpxeU55nJl4Smt5HQaGzg1o6RHFPJaOqnmBDg==}
     engines: {node: 18 || 20 || >=22}
 
   braces@3.0.3:
@@ -6175,7 +6175,7 @@ snapshots:
       effect: 3.19.19
       uuid: 11.1.0
 
-  '@effect/language-service@0.65.0': {}
+  '@effect/language-service@0.77.0': {}
 
   '@effect/opentelemetry@0.56.6(@effect/platform@0.93.8(effect@3.19.19))(@opentelemetry/api@1.9.0)(@opentelemetry/resources@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.38.0)(effect@3.19.19)':
     dependencies:
@@ -8309,7 +8309,7 @@ snapshots:
     dependencies:
       balanced-match: 1.0.2
 
-  brace-expansion@5.0.3:
+  brace-expansion@5.0.4:
     dependencies:
       balanced-match: 4.0.4
 
@@ -9791,7 +9791,7 @@ snapshots:
 
   minimatch@10.2.4:
     dependencies:
-      brace-expansion: 5.0.3
+      brace-expansion: 5.0.4
 
   minimatch@5.1.9:
     dependencies:
