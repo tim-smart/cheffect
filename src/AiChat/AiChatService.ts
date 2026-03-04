@@ -481,9 +481,7 @@ class AiChatService extends Effect.Service<AiChatService>()(
   {
     dependencies: [layerKvsLivestore, ToolkitLayer],
     scoped: Effect.gen(function* () {
-      const model = yield* OpenAiLanguageModel.model("gpt-5.2-chat-latest", {
-        reasoning: { effort: "medium" },
-      })
+      const model = yield* OpenAiLanguageModel.model("gpt-5.3-chat-latest")
       const registry = yield* Registry.AtomRegistry
       const store = (yield* KeyValueStore.KeyValueStore).forSchema(
         Prompt.Prompt,
