@@ -49,12 +49,7 @@ export const openAiClientLayer = Atom.make((get) => {
 export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
   dependencies: [CorsProxy.Default],
   scoped: Effect.gen(function* () {
-    const model = yield* OpenAiLanguageModel.model("gpt-5-mini", {
-      reasoning: {
-        effort: "medium",
-      },
-    })
-    const groceryModel = yield* OpenAiLanguageModel.model("gpt-5.2")
+    const model = yield* OpenAiLanguageModel.model("gpt-5.4")
     const proxy = yield* CorsProxy
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
@@ -213,7 +208,7 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
 
         return { updated, removed, merges } as const
       },
-      Effect.provide(groceryModel),
+      Effect.provide(model),
     )
 
     return {
