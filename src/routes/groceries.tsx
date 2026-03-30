@@ -178,7 +178,7 @@ function GroceryList() {
                     disabled={completed === 0}
                   >
                     <SquareArrowRightExit className="w-4 h-4 mr-2" />
-                    Move completed to Pantry
+                    Move completed to Groceries
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onClick={clearAll}>
                     <Trash className="w-4 h-4 mr-2" />
