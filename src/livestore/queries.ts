@@ -269,7 +269,7 @@ export const pantryGroceryItemNames$ = queryDb(
     query: sql`
       SELECT DISTINCT lower(trim(name)) AS name
       FROM grocery_items
-      WHERE list = ?`,
+      WHERE list = ? AND completed = FALSE`,
     bindValues: [PANTRY_GROCERY_LIST_NAME],
     schema: Schema.Array(
       Schema.Struct({
