@@ -103,7 +103,10 @@ function GroceryList() {
     commit(events.groceryItemClearedCompleted({ list: currentList }))
   }
 
-  const moveCompletedToPantry = () => {
+  const moveCompletedTargetList =
+    currentList === PANTRY_GROCERY_LIST_NAME ? null : PANTRY_GROCERY_LIST_NAME
+
+  const moveCompletedToOtherList = () => {
     if (result._tag !== "Success") {
       return
     }
@@ -116,7 +119,7 @@ function GroceryList() {
             new GroceryItem({
               ...item,
               id: crypto.randomUUID(),
-              list: PANTRY_GROCERY_LIST_NAME,
+              list: moveCompletedTargetList,
               completed: false,
               createdAt: now,
               updatedAt: now,
@@ -174,11 +177,13 @@ function GroceryList() {
                     Clear completed
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={moveCompletedToPantry}
+                    onClick={moveCompletedToOtherList}
                     disabled={completed === 0}
                   >
                     <SquareArrowRightExit className="w-4 h-4 mr-2" />
-                    Move completed to Pantry
+                    {moveCompletedTargetList === null
+                      ? "Move completed to Groceries"
+                      : "Move completed to Pantry"}
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onClick={clearAll}>
                     <Trash className="w-4 h-4 mr-2" />
