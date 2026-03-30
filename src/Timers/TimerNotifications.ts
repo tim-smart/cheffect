@@ -66,7 +66,7 @@ export const TimerNotifications = Layer.scopedDiscard(
 
       while (true) {
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-          navigator.vibrate(3)
+          navigator.vibrate(200)
         }
         yield* Effect.sleep(1000)
       }
