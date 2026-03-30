@@ -4,6 +4,7 @@ import {
   X,
   ShoppingCart,
   Check,
+  SquareArrowRight as SquareArrowRightExit,
   MoreVertical,
   Edit,
   Trash,
@@ -168,16 +169,16 @@ function GroceryList() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
+                  <DropdownMenuItem onClick={clearCompleted}>
+                    <Check className="w-4 h-4 mr-2" />
+                    Clear completed
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={moveCompletedToPantry}
                     disabled={completed === 0}
                   >
-                    <Check className="w-4 h-4 mr-2" />
+                    <SquareArrowRightExit className="w-4 h-4 mr-2" />
                     Move completed to Pantry
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={clearCompleted}>
-                    <Check className="w-4 h-4 mr-2" />
-                    Clear completed
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onClick={clearAll}>
                     <Trash className="w-4 h-4 mr-2" />
