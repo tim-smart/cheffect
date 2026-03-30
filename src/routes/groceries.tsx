@@ -4,6 +4,7 @@ import {
   X,
   ShoppingCart,
   Check,
+  SquareArrowRight as SquareArrowRightExit,
   MoreVertical,
   Edit,
   Trash,
@@ -51,6 +52,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   groceryListNamesAtom,
   groceryListStateAtom,
+  PANTRY_GROCERY_LIST_NAME,
   recipeTitleAtom,
 } from "@/livestore/queries"
 import { cn } from "@/lib/utils"
@@ -101,6 +103,35 @@ function GroceryList() {
     commit(events.groceryItemClearedCompleted({ list: currentList }))
   }
 
+  const moveCompletedToPantry = () => {
+    if (result._tag !== "Success") {
+      return
+    }
+    for (const { items } of result.value.aisles) {
+      for (const item of items) {
+        if (!item.completed) continue
+        const now = DateTime.unsafeNow()
+        commit(
+          events.groceryItemAdded(
+            new GroceryItem({
+              ...item,
+              id: crypto.randomUUID(),
+              list: PANTRY_GROCERY_LIST_NAME,
+              completed: false,
+              createdAt: now,
+              updatedAt: now,
+            }),
+          ),
+        )
+        commit(
+          events.groceryItemDeleted({
+            id: item.id,
+          }),
+        )
+      }
+    }
+  }
+
   const clearAll = () => {
     commit(events.groceryItemCleared({ list: currentList }))
   }
@@ -141,6 +172,13 @@ function GroceryList() {
                   <DropdownMenuItem onClick={clearCompleted}>
                     <Check className="w-4 h-4 mr-2" />
                     Clear completed
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={moveCompletedToPantry}
+                    disabled={completed === 0}
+                  >
+                    <SquareArrowRightExit className="w-4 h-4 mr-2" />
+                    Move completed to Pantry
                   </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive" onClick={clearAll}>
                     <Trash className="w-4 h-4 mr-2" />
