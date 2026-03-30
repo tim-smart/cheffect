@@ -14,6 +14,8 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { flow } from "effect"
 
+export const PANTRY_GROCERY_LIST_NAME = "Pantry" as const
+
 export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
 export const searchSortByAtom = Atom.map(searchStateAtom, (r) =>
@@ -240,10 +242,16 @@ export const allGroceryItemsArrayAtom = Store.makeQuery(allGroceryItemsCurrent$)
 export const groceryListNames$ = queryDb(
   {
     query: sql`
-      SELECT DISTINCT list
-      FROM grocery_items
-      WHERE list IS NOT NULL
+      SELECT list
+      FROM (
+        SELECT DISTINCT list
+        FROM grocery_items
+        WHERE list IS NOT NULL
+        UNION
+        SELECT ? AS list
+      )
       ORDER BY list COLLATE NOCASE ASC`,
+    bindValues: [PANTRY_GROCERY_LIST_NAME],
     schema: Schema.Array(Schema.Struct({ list: Schema.String })),
   },
   {
@@ -255,6 +263,25 @@ export const groceryListNames$ = queryDb(
   },
 )
 export const groceryListNamesAtom = Store.makeQuery(groceryListNames$)
+
+export const pantryGroceryItemNames$ = queryDb(
+  {
+    query: sql`
+      SELECT DISTINCT lower(trim(name)) AS name
+      FROM grocery_items
+      WHERE list = ?`,
+    bindValues: [PANTRY_GROCERY_LIST_NAME],
+    schema: Schema.Array(
+      Schema.Struct({
+        name: Schema.String,
+      }),
+    ),
+  },
+  {
+    label: "pantryGroceryItemNames",
+    map: Array.map((row) => row.name),
+  },
+)
 
 export const mealPlanEntries$ = (startDay: DateTime.Utc) => {
   const weekDays = Array.of(DateTime.formatIsoDate(startDay))

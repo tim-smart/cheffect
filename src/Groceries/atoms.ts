@@ -4,6 +4,8 @@ import {
   allGroceryItemsArrayAtom,
   allGroceryItemsAtom,
   groceryAisleOrdersAtom,
+  pantryGroceryItemNames$,
+  PANTRY_GROCERY_LIST_NAME,
 } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
 import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
@@ -80,6 +82,7 @@ export const beautifyGroceriesAtom = runtime
       for (const item of currentItems) {
         previousItems.set(item.id, item)
       }
+      const pantryItemNames = new Set(store.query(pantryGroceryItemNames$))
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
       for (const item of removed) {
@@ -87,6 +90,15 @@ export const beautifyGroceriesAtom = runtime
       }
       for (const item of updated) {
         const prev = previousItems.get(item.id)
+        if (
+          prev?.list !== PANTRY_GROCERY_LIST_NAME &&
+          prev?.name &&
+          item.name !== prev.name &&
+          pantryItemNames.has(item.nameNormalized)
+        ) {
+          store.commit(events.groceryItemDeleted({ id: item.id }))
+          continue
+        }
         let nextItem = item
         if (prev?.name && item.name !== prev.name) {
           const maybePrevItem = store.query(previousGroceryAisle$(item.name))

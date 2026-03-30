@@ -9,6 +9,7 @@ import { GroceryItem } from "@/domain/GroceryItem"
 import * as HashSet from "effect/HashSet"
 import { previousGroceryAisle$ } from "./atoms"
 import * as Option from "effect/Option"
+import { pantryGroceryItemNames$ } from "@/livestore/queries"
 
 export function AddToGroceriesButton({
   recipes,
@@ -22,6 +23,7 @@ export function AddToGroceriesButton({
   const [groceryAddResult, setGroceryAddCompleted] =
     useAtom(groceryAddCompleted)
   const addWeekToGrocery = () => {
+    const pantryItemNames = new Set(store.query(pantryGroceryItemNames$))
     for (const recipe of recipes) {
       recipe.ingredientsDisplay.forEach((group, gi) => {
         group.ingredients.forEach((ingredient, ii) => {
@@ -32,6 +34,9 @@ export function AddToGroceriesButton({
             return
           }
           let item = GroceryItem.fromIngredient(null, ingredient, recipe)
+          if (pantryItemNames.has(item.nameNormalized)) {
+            return
+          }
           const maybePrevAisle = store.query(previousGroceryAisle$(item.name))
           item = new GroceryItem({
             ...item,
