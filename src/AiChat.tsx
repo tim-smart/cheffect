@@ -17,7 +17,7 @@ import {
   useAtomSet,
   useAtomValue,
 } from "@effect-atom/atom-react"
-import Markdown from "react-markdown"
+import { Streamdown } from "streamdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
 import { aiChatOpenAtom } from "./atoms"
@@ -195,6 +195,7 @@ function MessagesList({
   readonly onNewMessage: () => void
 }) {
   const currentPrompt = useAtomValue(currentPromptAtom)
+  const isLoading = useAtomValue(sendAtom, Result.isWaiting)
   const messages = currentPrompt.content
   const setInput = useAtomSet(inputAtom)
 
@@ -248,21 +249,23 @@ function MessagesList({
           >
             <div
               className={cn(
-                `max-w-[90%] rounded-2xl px-4 py-2 prose dark:prose-invert leading-tight overflow-auto break-words`,
-                `prose-headings:text-lg prose-headings:my-2 prose-headings:first:mt-0 prose-headings:last:mb-0`,
-                `prose-p:my-2 prose-p:first:mt-0 prose-p:last:mb-0`,
-                `prose-hr:my-2`,
+                `max-w-[90%] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground prose-headings:text-primary-foreground"
+                  ? "bg-primary text-primary-foreground"
                   : "bg-muted dark:bg-border text-foreground",
               )}
             >
               {message.content
                 .filter((_) => _.type === "text")
                 .map((part, idx) => (
-                  <Markdown key={idx}>
+                  <Streamdown
+                    key={idx}
+                    animated
+                    isAnimating={isLoading && message.role === "assistant"}
+                    linkSafety={{ enabled: false }}
+                  >
                     {part.type === "text" ? part.text : ""}
-                  </Markdown>
+                  </Streamdown>
                 ))}
             </div>
           </div>
@@ -311,7 +314,7 @@ function PromptInput({
   const [input, setInput] = useAtom(inputAtom)
   const inputTrim = input.trim()
   const sendMessage = useAtomSet(sendAtom)
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault()
 
     const message = input.trim()
