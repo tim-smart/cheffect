@@ -195,6 +195,7 @@ function MessagesList({
   readonly onNewMessage: () => void
 }) {
   const currentPrompt = useAtomValue(currentPromptAtom)
+  const isLoading = useAtomValue(sendAtom, Result.isWaiting)
   const messages = currentPrompt.content
   const setInput = useAtomSet(inputAtom)
 
@@ -257,7 +258,12 @@ function MessagesList({
               {message.content
                 .filter((_) => _.type === "text")
                 .map((part, idx) => (
-                  <Streamdown key={idx}>
+                  <Streamdown
+                    key={idx}
+                    animated
+                    isAnimating={isLoading && message.role === "assistant"}
+                    linkSafety={{ enabled: false }}
+                  >
                     {part.type === "text" ? part.text : ""}
                   </Streamdown>
                 ))}
@@ -308,7 +314,7 @@ function PromptInput({
   const [input, setInput] = useAtom(inputAtom)
   const inputTrim = input.trim()
   const sendMessage = useAtomSet(sendAtom)
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault()
 
     const message = input.trim()
