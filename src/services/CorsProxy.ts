@@ -5,13 +5,16 @@ import { flow } from "effect"
 import * as Effect from "effect/Effect"
 import * as Schedule from "effect/Schedule"
 import * as Cheerio from "cheerio"
+import * as Schema from "effect/Schema"
+import { pipe } from "effect/Function"
+import * as HttpClientResponse from "@effect/platform/HttpClientResponse"
 
 export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
   dependencies: [FetchHttpClient.layer],
   scoped: Effect.gen(function* () {
     const client = (yield* HttpClient.HttpClient).pipe(
       HttpClient.mapRequest(
-        flow(HttpClientRequest.prependUrl("https://corsproxy.io")),
+        flow(HttpClientRequest.prependUrl("https://cors.io")),
       ),
       HttpClient.filterStatusOk,
       HttpClient.retryTransient({
@@ -19,10 +22,13 @@ export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
       }),
     )
 
+    const decode = HttpClientResponse.schemaBodyJson(ContentSchema)
     const html = (url: string) =>
-      client
-        .get("/", { urlParams: { url } })
-        .pipe(Effect.flatMap((_) => _.text))
+      pipe(
+        client.get("/", { urlParams: { url } }),
+        Effect.flatMap(decode),
+        Effect.map(({ body }) => body),
+      )
 
     const htmlStripped = (url: string) =>
       html(url).pipe(
@@ -67,3 +73,7 @@ export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
     return { html, htmlStripped } as const
   }),
 }) {}
+
+const ContentSchema = Schema.Struct({
+  body: Schema.String,
+})
