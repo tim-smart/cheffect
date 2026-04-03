@@ -14,6 +14,7 @@ export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
       HttpClient.mapRequest(
         flow(HttpClientRequest.prependUrl("https://api.allorigins.win")),
       ),
+      HttpClient.withTracerPropagation(false),
       HttpClient.filterStatusOk,
       HttpClient.retryTransient({
         schedule: Schedule.spaced(1000),
