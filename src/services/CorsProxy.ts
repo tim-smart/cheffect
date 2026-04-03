@@ -12,7 +12,7 @@ export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
   scoped: Effect.gen(function* () {
     const client = (yield* HttpClient.HttpClient).pipe(
       HttpClient.mapRequest(
-        flow(HttpClientRequest.prependUrl("https://proxy.killcors.com")),
+        flow(HttpClientRequest.prependUrl("https://api.codetabs.com/v1/proxy")),
       ),
       HttpClient.filterStatusOk,
       HttpClient.retryTransient({
@@ -22,7 +22,7 @@ export class CorsProxy extends Effect.Service<CorsProxy>()("CorsProxy", {
 
     const html = (url: string) =>
       pipe(
-        client.get("/", { urlParams: { url } }),
+        client.get("/", { urlParams: { quest: url } }),
         Effect.flatMap((r) => r.text),
       )
 
