@@ -561,7 +561,7 @@ ${currentTimeAndCountry}`
         } else if (location.pathname.startsWith("/recipes/")) {
           const id = location.pathname.split("/")[2]
           const recipe = yield* Atom.getResult(recipeByIdAtom(id))
-          const selectedStep = registry.get(recipeSelectedStep)
+          const selectedStep = registry.get(recipeSelectedStep(id))
 
           return `${baseSystemPrompt}${memoryPrompt}
 

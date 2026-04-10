@@ -249,7 +249,9 @@ export const importAtom = Store.runtime.fn<File>()(
   }),
 )
 
-export const recipeSelectedStep = Atom.make(0).pipe(Atom.setIdleTTL(0))
+export const recipeSelectedStep = Atom.family((_id: string) =>
+  Atom.make(0).pipe(Atom.keepAlive),
+)
 
 export const convertIngredientsAtom = AiHelpers.runtime.fn<Recipe>()(
   Effect.fnUntraced(function* (recipe, get) {

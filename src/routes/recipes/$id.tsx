@@ -102,7 +102,7 @@ export function RecipeDetails({
     checkedIngredientsAtom(recipe.id),
   )
   const stepElements: Array<HTMLDivElement> = []
-  const [currentStep, setCurrentStep] = useAtom(recipeSelectedStep)
+  const [currentStep, setCurrentStep] = useAtom(recipeSelectedStep(recipe.id))
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
