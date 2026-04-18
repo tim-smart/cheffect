@@ -1,7 +1,16 @@
 diff --git a/dist/esm/Generated.js b/dist/esm/Generated.js
-index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..1c2defe6a6e5930dd08852b001bca1d01019a273 100644
+index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..e5c563998f1c9c22eda90e9f9a6b3d607340dcad 100644
 --- a/dist/esm/Generated.js
 +++ b/dist/esm/Generated.js
+@@ -925,7 +925,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+      * The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
+      */"name":S.String,"parameters":/*#__PURE__*/S.optionalWith(FunctionParameters,{nullable:true})}){}/**
+  * The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](https://platform.openai.com/docs/guides/prompt-caching#prompt-cache-retention).
+- */export class CreateChatCompletionRequestPromptCacheRetentionEnum extends/*#__PURE__*/S.Literal("in-memory","24h"){}export class CreateChatCompletionRequest extends/*#__PURE__*/S.Class("CreateChatCompletionRequest")({/**
++ */export class CreateChatCompletionRequestPromptCacheRetentionEnum extends/*#__PURE__*/S.Literal("in-memory","in_memory","24h"){}export class CreateChatCompletionRequest extends/*#__PURE__*/S.Class("CreateChatCompletionRequest")({/**
+      * A list of messages comprising the conversation so far. Depending on the
+      * [model](https://platform.openai.com/docs/models) you use, different message types (modalities) are
+      * supported, like [text](https://platform.openai.com/docs/guides/text-generation),
 @@ -1527,9 +1527,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
   * Action type "search" - Performs a web search query.
   */export class WebSearchActionSearch extends/*#__PURE__*/S.Class("WebSearchActionSearch")({/**
@@ -44,6 +53,24 @@ index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..1c2defe6a6e5930dd08852b001bca1d0
   * The type of the image generation call. Always `image_generation_call`.
   */export class ImageGenToolCallType extends/*#__PURE__*/S.Literal("image_generation_call"){}/**
   * The status of the image generation call.
+@@ -5802,7 +5800,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+  *   size for a model, the request will fail with a 400 error.
+  */export class CreateResponseTruncationEnum extends/*#__PURE__*/S.Literal("auto","disabled"){}/**
+  * The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](https://platform.openai.com/docs/guides/prompt-caching#prompt-cache-retention).
+- */export class CreateResponsePromptCacheRetentionEnum extends/*#__PURE__*/S.Literal("in-memory","24h"){}export class CreateResponse extends/*#__PURE__*/S.Class("CreateResponse")({"input":/*#__PURE__*/S.optionalWith(InputParam,{nullable:true}),"include":/*#__PURE__*/S.optionalWith(/*#__PURE__*/S.Array(IncludeEnum),{nullable:true}),"parallel_tool_calls":/*#__PURE__*/S.optionalWith(S.Boolean,{nullable:true}),"store":/*#__PURE__*/S.optionalWith(S.Boolean,{nullable:true}),"instructions":/*#__PURE__*/S.optionalWith(S.String,{nullable:true}),"stream":/*#__PURE__*/S.optionalWith(S.Boolean,{nullable:true}),"stream_options":/*#__PURE__*/S.optionalWith(/*#__PURE__*/S.Struct({/**
++ */export class CreateResponsePromptCacheRetentionEnum extends/*#__PURE__*/S.Literal("in-memory","in_memory","24h"){}export class CreateResponse extends/*#__PURE__*/S.Class("CreateResponse")({"input":/*#__PURE__*/S.optionalWith(InputParam,{nullable:true}),"include":/*#__PURE__*/S.optionalWith(/*#__PURE__*/S.Array(IncludeEnum),{nullable:true}),"parallel_tool_calls":/*#__PURE__*/S.optionalWith(S.Boolean,{nullable:true}),"store":/*#__PURE__*/S.optionalWith(S.Boolean,{nullable:true}),"instructions":/*#__PURE__*/S.optionalWith(S.String,{nullable:true}),"stream":/*#__PURE__*/S.optionalWith(S.Boolean,{nullable:true}),"stream_options":/*#__PURE__*/S.optionalWith(/*#__PURE__*/S.Struct({/**
+          * When true, stream obfuscation will be enabled. Stream obfuscation adds
+          * random characters to an `obfuscation` field on streaming delta events to
+          * normalize payload sizes as a mitigation to certain side-channel attacks.
+@@ -5870,7 +5868,7 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
+  *   size for a model, the request will fail with a 400 error.
+  */export class ResponseTruncationEnum extends/*#__PURE__*/S.Literal("auto","disabled"){}/**
+  * The retention policy for the prompt cache. Set to `24h` to enable extended prompt caching, which keeps cached prefixes active for longer, up to a maximum of 24 hours. [Learn more](https://platform.openai.com/docs/guides/prompt-caching#prompt-cache-retention).
+- */export class ResponsePromptCacheRetentionEnum extends/*#__PURE__*/S.Literal("in-memory","24h"){}export class Response extends/*#__PURE__*/S.Class("Response")({/**
++ */export class ResponsePromptCacheRetentionEnum extends/*#__PURE__*/S.Literal("in-memory","in_memory","24h"){}export class Response extends/*#__PURE__*/S.Class("Response")({/**
+      * Unique identifier for this Response.
+      */"id":S.String,/**
+      * The object type of this resource - always set to `response`.
 @@ -5881,9 +5879,9 @@ import*as HttpClientError from"@effect/platform/HttpClientError";import*as HttpC
       * Unix timestamp (in seconds) of when this Response was created.
       */"created_at":S.Number,"error":/*#__PURE__*/S.NullOr(/*#__PURE__*/S.Struct({"code":ResponseErrorCode,/**
@@ -56,52 +83,3 @@ index 4651d56d4777d0d2662c7de45f7d4d37baf5559c..1c2defe6a6e5930dd08852b001bca1d0
       * An array of content items generated by the model.
       *
       * - The length and order of items in the `output` array is dependent
-diff --git a/dist/esm/OpenAiClient.js b/dist/esm/OpenAiClient.js
-index c65e55f47385218c2b9521df26c99c41bc31b2f8..f14ad960964a733dcea27689eb3f9ebaad478eb3 100644
---- a/dist/esm/OpenAiClient.js
-+++ b/dist/esm/OpenAiClient.js
-@@ -242,7 +242,7 @@ export class ResponseFailedEvent extends /*#__PURE__*/Schema.Class("@effect/ai-o
-   /**
-    * The response that failed.
-    */
--  response: Generated.Response
-+  response: Schema.Unknown
- }) {}
- /**
-  * Emitted when a new output item is added.
-@@ -1481,7 +1481,7 @@ export class ResponseErrorEvent extends /*#__PURE__*/Schema.Class("@effect/ai-op
-   /**
-    * The error message.
-    */
--  message: Schema.String,
-+  message: Schema.optionalWith(Schema.String, { nullable: true }),
-   /**
-    * The error parameter.
-    */
-diff --git a/dist/esm/OpenAiLanguageModel.js b/dist/esm/OpenAiLanguageModel.js
-index 63b19f1035baef958a366b02bb2af99f74b848ed..5ae4d8a01e5d1c1b1d0fa4b282f2590b6d2bf1e7 100644
---- a/dist/esm/OpenAiLanguageModel.js
-+++ b/dist/esm/OpenAiLanguageModel.js
-@@ -268,15 +268,13 @@ const prepareMessages = /*#__PURE__*/Effect.fnUntraced(function* (options, confi
-                 }
-               case "tool-call":
-                 {
--                  if (!part.providerExecuted) {
--                    messages.push({
--                      id: getItemId(part),
--                      type: "function_call",
--                      call_id: part.id,
--                      name: part.name,
--                      arguments: JSON.stringify(part.params)
--                    });
--                  }
-+                  messages.push({
-+                    id: getItemId(part),
-+                    type: "function_call",
-+                    call_id: part.id,
-+                    name: part.name,
-+                    arguments: JSON.stringify(part.params)
-+                  });
-                   break;
-                 }
-             }
