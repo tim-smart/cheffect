@@ -32,6 +32,7 @@ import {
   Setting,
   exportAllAtom,
   importAllAtom,
+  openAiModel,
 } from "@/Settings"
 import { useAtomSet, useAtomSuspense } from "@effect-atom/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
@@ -187,6 +188,19 @@ function SettingsPage() {
           >
             Create an OpenAI API key
           </a>
+          <SettingControl
+            setting={openAiModel}
+            render={({ value, onChange, onBlur, onKeyDown }) => (
+              <Input
+                id={openAiModel.name}
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={() => onBlur()}
+                onKeyDown={onKeyDown}
+              />
+            )}
+          />
           <SettingCombobox setting={aiCountry} options={countryOptions} />
           <Button
             type="button"

@@ -129,6 +129,14 @@ export const openAiApiKey = new Setting({
   ),
 })
 
+export const openAiModel = new Setting({
+  name: "openAiModel",
+  label: "OpenAI Model",
+  schema: Schema.NonEmptyString,
+  schemaInput: OptionFromString,
+  initialValue: "gpt-5.4",
+})
+
 export const aiCountry = new Setting({
   name: "aiCountry",
   label: "Country",
