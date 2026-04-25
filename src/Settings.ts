@@ -34,6 +34,9 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
         map: flow(
           Array.head,
           Option.flatMap((row) => row.value),
+          setting.initialValue
+            ? Option.orElse(() => Option.some(setting.initialValue))
+            : Function.identity,
         ),
       },
     ),
@@ -61,9 +64,6 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
       const cached = get(cacheAtom)
       if (Option.isSome(cached)) {
         return Result.success(cached)
-      } else if (setting.initialValue !== undefined) {
-        get.set(cacheAtom, Option.some(setting.initialValue))
-        return Result.success(Option.some(setting.initialValue))
       }
       return result
     },
