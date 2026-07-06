@@ -838,9 +838,7 @@ const aiMemoryEntries$ = queryDb({
 export const isVisualMessage = (
   message: Prompt.Message,
 ): message is
-  | Prompt.UserMessage
-  | Prompt.AssistantMessage
-  | Prompt.ToolMessage => {
+  Prompt.UserMessage | Prompt.AssistantMessage | Prompt.ToolMessage => {
   if (message.role === "system") return false
   return message.content.some(isVisualPart)
 }
