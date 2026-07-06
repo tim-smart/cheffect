@@ -35,7 +35,7 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
           Array.head,
           Option.flatMap((row) => row.value),
           setting.initialValue
-            ? Option.orElse(() => Option.some(setting.initialValue))
+            ? Option.orElse(() => Option.some(setting.initialValue!))
             : Function.identity,
         ),
       },
