@@ -1,11 +1,11 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
-import * as Prompt from "@effect/ai/Prompt"
-import * as Response from "@effect/ai/Response"
+import * as Prompt from "effect/ai/Prompt"
+import * as Response from "effect/ai/Response"
 
 // AiChatService rebuilds the assistant message from the parts streamed so far
 // on every chunk, so text that has not ended yet must still be included.
-// Upstream drops it; patches/@effect__ai.patch fixes that.
+// Upstream drops it; patches/effect@4.0.3.patch fixes that.
 
 const assistantTexts = (prompt: Prompt.Prompt) =>
   prompt.content.flatMap((message) =>
