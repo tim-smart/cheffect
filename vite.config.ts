@@ -104,12 +104,35 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      "@livestore/adapter-web/shared-worker?sharedworker":
+        path.resolve(__dirname, "src/livestore/livestore-shared.worker.ts") +
+        "?sharedworker",
     },
   },
 
-  worker: { format: "es" },
+  worker: {
+    format: "es",
+    plugins: () => [
+      {
+        name: "livestore-shared-worker-side-effects",
+        transform(code, id) {
+          // The package declares sideEffects: false, but this module starts the worker.
+          if (id.endsWith("/shared-worker/make-shared-worker.js")) {
+            return { code, moduleSideEffects: true }
+          }
+        },
+      },
+    ],
+  },
 
   optimizeDeps: {
+    // Discover worker dependencies before boot so optimization cannot invalidate their imports mid-load.
+    entries: [
+      "index.html",
+      "src/livestore/livestore.worker.ts",
+      "src/livestore/livestore-no-sync.worker.ts",
+      "src/livestore/livestore-shared.worker.ts",
+    ],
     // pre-bundling effect leaves the LiveStore workers with a separate copy
     // of it in dev, and the store never finishes booting
     exclude: ["@livestore/wa-sqlite", "effect"],

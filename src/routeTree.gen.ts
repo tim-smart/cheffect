@@ -9,41 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as PlanRouteImport } from './routes/plan'
-import { Route as MenusRouteImport } from './routes/menus'
-import { Route as ImportRouteImport } from './routes/import'
-import { Route as GroceriesRouteImport } from './routes/groceries'
-import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MenusIndexRouteImport } from './routes/menus/index'
-import { Route as RecipesIdRouteImport } from './routes/recipes/$id'
-import { Route as MenusIdRouteImport } from './routes/menus/$id'
+import { Route as AddRouteImport } from './routes/add'
+import { Route as GroceriesRouteImport } from './routes/groceries'
+import { Route as ImportRouteImport } from './routes/import'
+import { Route as MenusRouteImport } from './routes/menus'
+import { Route as PlanRouteImport } from './routes/plan'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as EditIdRouteImport } from './routes/edit/$id'
+import { Route as MenusIndexRouteImport } from './routes/menus/index'
+import { Route as MenusIdRouteImport } from './routes/menus/$id'
+import { Route as RecipesIdRouteImport } from './routes/recipes/$id'
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlanRoute = PlanRouteImport.update({
-  id: '/plan',
-  path: '/plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MenusRoute = MenusRouteImport.update({
-  id: '/menus',
-  path: '/menus',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImportRoute = ImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GroceriesRoute = GroceriesRouteImport.update({
-  id: '/groceries',
-  path: '/groceries',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AddRoute = AddRouteImport.update({
@@ -51,9 +31,34 @@ const AddRoute = AddRouteImport.update({
   path: '/add',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const GroceriesRoute = GroceriesRouteImport.update({
+  id: '/groceries',
+  path: '/groceries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportRoute = ImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MenusRoute = MenusRouteImport.update({
+  id: '/menus',
+  path: '/menus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanRoute = PlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditIdRoute = EditIdRouteImport.update({
+  id: '/edit/$id',
+  path: '/edit/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MenusIndexRoute = MenusIndexRouteImport.update({
@@ -61,19 +66,14 @@ const MenusIndexRoute = MenusIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MenusRoute,
 } as any)
-const RecipesIdRoute = RecipesIdRouteImport.update({
-  id: '/recipes/$id',
-  path: '/recipes/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MenusIdRoute = MenusIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => MenusRoute,
 } as any)
-const EditIdRoute = EditIdRouteImport.update({
-  id: '/edit/$id',
-  path: '/edit/$id',
+const RecipesIdRoute = RecipesIdRouteImport.update({
+  id: '/recipes/$id',
+  path: '/recipes/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -171,39 +171,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/plan': {
-      id: '/plan'
-      path: '/plan'
-      fullPath: '/plan'
-      preLoaderRoute: typeof PlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/menus': {
-      id: '/menus'
-      path: '/menus'
-      fullPath: '/menus'
-      preLoaderRoute: typeof MenusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/import': {
-      id: '/import'
-      path: '/import'
-      fullPath: '/import'
-      preLoaderRoute: typeof ImportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/groceries': {
-      id: '/groceries'
-      path: '/groceries'
-      fullPath: '/groceries'
-      preLoaderRoute: typeof GroceriesRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/add': {
@@ -213,11 +185,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AddRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/groceries': {
+      id: '/groceries'
+      path: '/groceries'
+      fullPath: '/groceries'
+      preLoaderRoute: typeof GroceriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/import': {
+      id: '/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof ImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/menus': {
+      id: '/menus'
+      path: '/menus'
+      fullPath: '/menus'
+      preLoaderRoute: typeof MenusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plan': {
+      id: '/plan'
+      path: '/plan'
+      fullPath: '/plan'
+      preLoaderRoute: typeof PlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/edit/$id': {
+      id: '/edit/$id'
+      path: '/edit/$id'
+      fullPath: '/edit/$id'
+      preLoaderRoute: typeof EditIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/menus/': {
@@ -227,13 +234,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenusIndexRouteImport
       parentRoute: typeof MenusRoute
     }
-    '/recipes/$id': {
-      id: '/recipes/$id'
-      path: '/recipes/$id'
-      fullPath: '/recipes/$id'
-      preLoaderRoute: typeof RecipesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/menus/$id': {
       id: '/menus/$id'
       path: '/$id'
@@ -241,11 +241,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenusIdRouteImport
       parentRoute: typeof MenusRoute
     }
-    '/edit/$id': {
-      id: '/edit/$id'
-      path: '/edit/$id'
-      fullPath: '/edit/$id'
-      preLoaderRoute: typeof EditIdRouteImport
+    '/recipes/$id': {
+      id: '/recipes/$id'
+      path: '/recipes/$id'
+      fullPath: '/recipes/$id'
+      preLoaderRoute: typeof RecipesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

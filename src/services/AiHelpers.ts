@@ -37,31 +37,29 @@ export const openAiClientLayer = Atom.make((get) => {
   const apiKeyOption = AsyncResult.value(get(openAiApiKey.atom)).pipe(
     Option.flatten,
   )
-  if (Option.isNone(apiKeyOption)) {
-    return Layer.effect(OpenAiClient.OpenAiClient, Effect.never)
-  }
-  return OpenAiClient.layer({
-    apiKey: apiKeyOption.value,
-    transformClient: HttpClient.retryTransient({
-      schedule: Schedule.min([
-        Schedule.exponential(500, 1.5),
-        Schedule.spaced(10_000),
-      ]),
-    }),
-  }).pipe(Layer.provide(FetchHttpClient.layer))
-})
-
-export const openAiModelLayer = Atom.make((get) => {
   const modelOption = AsyncResult.value(get(openAiModel.atom)).pipe(
     Option.flatten,
   )
-  if (Option.isNone(modelOption)) {
-    return Layer.effect(LanguageModel.LanguageModel, Effect.never)
+  if (Option.isNone(apiKeyOption) || Option.isNone(modelOption)) {
+    return Layer.effect(OpenAiClient.OpenAiClient, Effect.never).pipe(
+      Layer.merge(Layer.effect(LanguageModel.LanguageModel, Effect.never)),
+    )
   }
-  return OpenAiLanguageModel.layer({
-    model: modelOption.value,
-    config: { reasoning: { effort: "medium" } },
-  })
+  return OpenAiLanguageModel.model(modelOption.value, {
+    reasoning: { effort: "medium" },
+  }).pipe(
+    Layer.provideMerge(
+      OpenAiClient.layer({
+        apiKey: apiKeyOption.value,
+        transformClient: HttpClient.retryTransient({
+          schedule: Schedule.min([
+            Schedule.exponential(500, 1.5),
+            Schedule.spaced(10_000),
+          ]),
+        }),
+      }).pipe(Layer.provide(FetchHttpClient.layer)),
+    ),
+  )
 })
 
 export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
@@ -234,9 +232,6 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
   )
 
   static runtime = Atom.runtime((get) =>
-    AiHelpers.layer.pipe(
-      Layer.provideMerge(get(openAiModelLayer)),
-      Layer.provideMerge(get(openAiClientLayer)),
-    ),
+    AiHelpers.layer.pipe(Layer.provideMerge(get(openAiClientLayer))),
   )
 }
