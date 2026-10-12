@@ -6,3 +6,4 @@ dist/
 .env
 package-lock.json
 .lalph/
+test-results/
