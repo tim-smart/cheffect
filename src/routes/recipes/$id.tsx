@@ -13,7 +13,7 @@ import { Recipe, unitNeedsSpace } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
-import { useCommit } from "@/livestore/atoms"
+import { useCommit, useCommitPersisted } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import {
   MealPlanDatePicker,
@@ -103,6 +103,7 @@ export function RecipeDetails({
   useAtomMount(screenWakeLockAtom)
 
   const commit = useCommit()
+  const commitPersisted = useCommitPersisted()
 
   const ingredients = useMemo(() => recipe.ingredientsDisplay, [recipe])
   const [checkedIngredients, setCheckedIngredients] = useAtom(
@@ -283,13 +284,13 @@ export function RecipeDetails({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
-                  onClick={() => {
+                  onClick={async () => {
                     if (
                       !confirm("Are you sure you want to delete this recipe?")
                     ) {
                       return
                     }
-                    commit(
+                    await commitPersisted(
                       events.recipeDeleted({
                         id: recipe.id,
                         deletedAt: DateTime.nowUnsafe(),

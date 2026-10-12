@@ -17,6 +17,20 @@ import * as Layer from "effect/Layer"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Atom from "effect/reactivity/Atom"
 
+/**
+ * Waits until the leader thread has confirmed every event committed by this
+ * client session. The leader writes events to its eventlog and state database
+ * before confirming them.
+ *
+ * This polls `syncStatus()`, because `syncStatusStream()` reads from a queue
+ * that is never drained, so it can replay stale states.
+ */
+const awaitPersisted = Effect.fnUntraced(function* (store: Store<any, any>) {
+  while (!store.syncStatus().isSynced) {
+    yield* Effect.sleep(10)
+  }
+})
+
 export interface AtomLiveStore<
   Self,
   Id extends string,
@@ -50,6 +64,12 @@ export interface AtomLiveStore<
    * Commits an event to the Store.
    */
   readonly commit: Atom.Writable<void, {}>
+  /**
+   * Commits an event to the Store and resolves once the leader thread has
+   * persisted it. Use this when the page may unload straight after the commit
+   * (full page navigation, reload), otherwise the event can be lost.
+   */
+  readonly commitPersisted: Atom.AtomResultFn<{}, void>
 }
 
 export type Options<S extends LiveStoreSchema, C = {}> = CreateStoreOptions<
@@ -126,6 +146,15 @@ export const Tag =
       },
     )
 
+    const commitPersisted = runtime.fn<{}>()(
+      Effect.fnUntraced(function* (value) {
+        const store = yield* tag
+        store.commit(value)
+        yield* awaitPersisted(store)
+      }),
+      { concurrent: true },
+    )
+
     return Object.assign(tag, {
       runtime,
       layer: runtime.layer,
@@ -134,5 +163,6 @@ export const Tag =
       makeQuery,
       makeQueryUnsafe,
       commit,
+      commitPersisted,
     })
   }

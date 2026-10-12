@@ -51,3 +51,10 @@ export class Store extends AtomLivestore.Tag<Store>()("Store", (get) => ({
 })) {}
 
 export const useCommit = () => useAtomSet(Store.commit)
+
+/**
+ * Like `useCommit`, but the returned promise resolves once the event is
+ * persisted. Await it before navigating somewhere that may unload the page.
+ */
+export const useCommitPersisted = () =>
+  useAtomSet(Store.commitPersisted, { mode: "promise" })

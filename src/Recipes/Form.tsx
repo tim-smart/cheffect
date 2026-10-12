@@ -15,7 +15,9 @@ export function RecipeForm({
 }: {
   initialValue?: typeof RecipeFormSchema.schema.Encoded
   variant?: "add" | "edit"
-  onSubmit: (decoded: typeof RecipeFormSchema.schema.Type) => void
+  onSubmit: (
+    decoded: typeof RecipeFormSchema.schema.Type,
+  ) => void | Promise<void>
 }) {
   return (
     <Display.Form
@@ -23,9 +25,7 @@ export function RecipeForm({
       onError={(error) => {
         console.error("Form submission error:", error)
       }}
-      onSubmit={({ decoded }) => {
-        onSubmit(decoded)
-      }}
+      onSubmit={({ decoded }) => onSubmit(decoded)}
     >
       <div className="flex flex-col gap-4 p-2 pt-8 max-w-lg mx-auto">
         <FormCard>
