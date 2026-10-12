@@ -1,0 +1,400 @@
+[
+  {
+    "name": "v1.RecipeCreated",
+    "args": {
+      "id": "recipe-1",
+      "title": "Garlic spaghetti",
+      "imageUrl": "https://example.com/pasta.jpg",
+      "prepTime": 600000,
+      "cookingTime": 1200000,
+      "servings": 4,
+      "ingredients": "[{\"name\":\"Sauce\",\"ingredients\":[{\"name\":\"olive oil\",\"quantity\":2,\"unit\":\"tbsp\"},{\"name\":\"garlic cloves\",\"quantity\":3,\"unit\":null},{\"name\":\"salt\",\"quantity\":null,\"unit\":null}]},{\"name\":\"Pasta\",\"ingredients\":[{\"name\":\"spaghetti\",\"quantity\":0.5,\"unit\":\"kg\"}]}]",
+      "steps": "[{\"text\":\"Boil the pasta.\",\"tips\":[\"Salt the water well.\"]},{\"text\":\"Fry the garlic in oil.\",\"tips\":[]}]",
+      "sourceName": "Example",
+      "sourceUrl": "https://example.com/pasta",
+      "rating": 4.5,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000,
+      "deletedAt": null
+    }
+  },
+  {
+    "name": "v1.RecipeUpdated",
+    "args": {
+      "id": "recipe-1",
+      "title": "Garlic spaghetti",
+      "imageUrl": "https://example.com/pasta.jpg",
+      "prepTime": 600000,
+      "cookingTime": 1200000,
+      "servings": 4,
+      "ingredients": "[{\"name\":\"Sauce\",\"ingredients\":[{\"name\":\"olive oil\",\"quantity\":2,\"unit\":\"tbsp\"},{\"name\":\"garlic cloves\",\"quantity\":3,\"unit\":null},{\"name\":\"salt\",\"quantity\":null,\"unit\":null}]},{\"name\":\"Pasta\",\"ingredients\":[{\"name\":\"spaghetti\",\"quantity\":0.5,\"unit\":\"kg\"}]}]",
+      "steps": "[{\"text\":\"Boil the pasta.\",\"tips\":[\"Salt the water well.\"]},{\"text\":\"Fry the garlic in oil.\",\"tips\":[]}]",
+      "sourceName": "Example",
+      "sourceUrl": "https://example.com/pasta",
+      "rating": 4.5,
+      "updatedAt": 1760000001000,
+      "deletedAt": null,
+      "ingredientScale": 1.5
+    }
+  },
+  {
+    "name": "v1.RecipeSetIngredientScale",
+    "args": {
+      "id": "recipe-1",
+      "ingredientScale": 2,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.RecipeDeleted",
+    "args": {
+      "id": "recipe-1",
+      "deletedAt": "2025-10-09T08:53:20.000Z"
+    }
+  },
+  {
+    "name": "v1.RecipeExtractJobAdded",
+    "args": {
+      "id": "job-1",
+      "url": "https://example.com/recipe"
+    }
+  },
+  {
+    "name": "v1.RecipeExtractJobCompleted",
+    "args": {
+      "id": "job-1",
+      "completedAt": "2025-10-09T08:53:20.000Z"
+    }
+  },
+  {
+    "name": "v1.RecipeEditSet",
+    "args": {
+      "id": "recipe-1",
+      "title": "Garlic spaghetti v2",
+      "imageUrl": null,
+      "prepTime": null,
+      "cookingTime": 900000,
+      "servings": null,
+      "ingredients": "[{\"name\":\"Sauce\",\"ingredients\":[{\"name\":\"olive oil\",\"quantity\":2,\"unit\":\"tbsp\"},{\"name\":\"garlic cloves\",\"quantity\":3,\"unit\":null},{\"name\":\"salt\",\"quantity\":null,\"unit\":null}]},{\"name\":\"Pasta\",\"ingredients\":[{\"name\":\"spaghetti\",\"quantity\":0.5,\"unit\":\"kg\"}]}]",
+      "steps": "[{\"text\":\"Boil the pasta.\",\"tips\":[\"Salt the water well.\"]},{\"text\":\"Fry the garlic in oil.\",\"tips\":[]}]",
+      "sourceName": null
+    }
+  },
+  {
+    "name": "v1.RecipeEditRemove",
+    "args": {
+      "id": "recipe-1"
+    }
+  },
+  {
+    "name": "v1.MealPlanAdd",
+    "args": {
+      "id": "plan-1",
+      "recipeId": "recipe-1",
+      "day": "2026-10-12"
+    }
+  },
+  {
+    "name": "v1.MealPlanSetDay",
+    "args": {
+      "id": "plan-1",
+      "day": "2026-10-13"
+    }
+  },
+  {
+    "name": "v1.MealPlanRemove",
+    "args": {
+      "id": "plan-1"
+    }
+  },
+  {
+    "name": "v1.GroceryItemAdded",
+    "args": {
+      "id": "item-1",
+      "list": null,
+      "name": "Milk",
+      "quantity": "2 l",
+      "aisle": "Dairy & Eggs",
+      "recipeIds": ["recipe-1"],
+      "completed": 0,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.GroceryItemAdded",
+    "args": {
+      "id": "item-2",
+      "name": "Bread",
+      "quantity": null,
+      "aisle": null,
+      "recipeIds": null,
+      "completed": 1,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.GroceryItemUpdated",
+    "args": {
+      "id": "item-1",
+      "name": "Oat milk",
+      "quantity": null,
+      "aisle": "Dairy & Eggs",
+      "recipeIds": null,
+      "completed": 1,
+      "updatedAt": 1760000000000,
+      "previousName": "Milk",
+      "userInitiated": true
+    }
+  },
+  {
+    "name": "v1.GroceryItemUpdated",
+    "args": {
+      "id": "item-1",
+      "name": "Oat milk",
+      "quantity": "1 l",
+      "aisle": null,
+      "recipeIds": ["recipe-1", "recipe-2"],
+      "completed": 0,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.IngredientAisleRemoved",
+    "args": {
+      "name": "milk"
+    }
+  },
+  {
+    "name": "v1.GroceryAisleOrderSet",
+    "args": {
+      "id": "order-1",
+      "list": "Weekly",
+      "aisle": "Bakery",
+      "sortOrder": 3,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.GroceryItemCleared",
+    "args": {
+      "list": "Weekly"
+    }
+  },
+  {
+    "name": "v1.GroceryItemCleared"
+  },
+  {
+    "name": "v1.GroceryItemClearedCompleted",
+    "args": {
+      "list": null
+    }
+  },
+  {
+    "name": "v1.GroceryItemDeleted",
+    "args": {
+      "id": "item-1"
+    }
+  },
+  {
+    "name": "v1.GroceryItemToggled",
+    "args": {
+      "id": "item-1",
+      "completed": true
+    }
+  },
+  {
+    "name": "v1.MenuAdd",
+    "args": {
+      "id": "menu-1",
+      "name": "Weeknights",
+      "days": 7,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuUpdate",
+    "args": {
+      "id": "menu-1",
+      "name": "Weeknight dinners",
+      "days": 5,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuDayRemove",
+    "args": {
+      "id": "menu-1",
+      "newDays": 4,
+      "day": 2,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuRemove",
+    "args": {
+      "id": "menu-1"
+    }
+  },
+  {
+    "name": "v1.MenuEntryAdd",
+    "args": {
+      "id": "entry-1",
+      "menuId": "menu-1",
+      "recipeId": "recipe-1",
+      "day": 1,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuEntrySetDay",
+    "args": {
+      "id": "entry-1",
+      "day": 3,
+      "updatedAt": "2025-10-09T08:53:20.000Z"
+    }
+  },
+  {
+    "name": "v1.MenuEntryRemove",
+    "args": {
+      "id": "entry-1"
+    }
+  },
+  {
+    "name": "v1.MenuDayNoteAdd",
+    "args": {
+      "id": "note-1",
+      "menuId": "menu-1",
+      "day": 1,
+      "note": "Leftovers",
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuDayNoteUpdate",
+    "args": {
+      "id": "note-1",
+      "day": 2,
+      "note": "Eat out",
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuDayNoteRemove",
+    "args": {
+      "id": "note-1"
+    }
+  },
+  {
+    "name": "v1.MealPlanDayNoteAdd",
+    "args": {
+      "id": "dnote-1",
+      "day": "2026-10-12",
+      "note": "Guests",
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MealPlanDayNoteUpdate",
+    "args": {
+      "id": "dnote-1",
+      "day": "2026-10-12",
+      "note": "No guests",
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MealPlanDayNoteRemove",
+    "args": {
+      "id": "dnote-1"
+    }
+  },
+  {
+    "name": "v1.SettingsSet",
+    "args": {
+      "id": "openAiModel",
+      "value": {
+        "_tag": "Some",
+        "value": "gpt-5.4"
+      },
+      "updatedAt": "2025-10-09T08:53:20.000Z"
+    }
+  },
+  {
+    "name": "v1.SettingsSet",
+    "args": {
+      "id": "openAiApiKey",
+      "value": {
+        "_tag": "None"
+      },
+      "updatedAt": "2025-10-09T08:53:20.000Z"
+    }
+  },
+  {
+    "name": "v1.KeyValueSet",
+    "args": {
+      "key": "ai-history",
+      "value": "{\"content\":[]}"
+    }
+  },
+  {
+    "name": "v1.KeyValueRemove",
+    "args": {
+      "key": "ai-history"
+    }
+  },
+  {
+    "name": "v1.KeyValueClear"
+  },
+  {
+    "name": "v1.AIMemoryEntryAdded",
+    "args": {
+      "id": "memory-1",
+      "content": "Vegetarian household",
+      "createdAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.AIMemoryEntryRemove",
+    "args": {
+      "id": "memory-1"
+    }
+  },
+  {
+    "name": "v1.AIMemoryClear"
+  },
+  {
+    "name": "v1.TimerAdded",
+    "args": {
+      "id": "timer-1",
+      "label": "Pasta",
+      "duration": 600000,
+      "expiresAt": 1760000600000,
+      "pausedRemaining": null,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.TimerUpdated",
+    "args": {
+      "id": "timer-1",
+      "label": "Pasta",
+      "duration": 600000,
+      "expiresAt": 1760000600000,
+      "pausedRemaining": 300000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.TimerDeleted",
+    "args": {
+      "id": "timer-1"
+    }
+  }
+]
