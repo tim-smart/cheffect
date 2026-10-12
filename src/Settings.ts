@@ -1,12 +1,14 @@
 import * as Data from "effect/Data"
 import * as Schema from "effect/Schema"
+import * as SchemaTransformation from "effect/SchemaTransformation"
 import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
 import { events, tables } from "./livestore/schema"
 import { queryDb, sql } from "@livestore/livestore"
 import { flow } from "effect"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
-import { Atom, Result } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { kvsRuntime } from "./atoms"
 import * as DateTime from "effect/DateTime"
 import * as Function from "effect/Function"
@@ -14,11 +16,9 @@ import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
 import { allRecipesAtom, exportGroceryItems$ } from "./livestore/queries"
 
-const makeAtom = <S extends Schema.Schema.AnyNoContext>(
-  setting: Setting<S>,
-) => {
-  const schema: Schema.Schema<S["Type"], S["Encoded"]> = setting.schema
-  const optionSchema = Schema.OptionFromSelf(schema)
+const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
+  const schema: Schema.Codec<S["Type"], S["Encoded"]> = setting.schema
+  const optionSchema = Schema.Option(schema)
   const read = Store.makeQuery(
     queryDb(
       {
@@ -26,7 +26,7 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
         bindValues: [setting.name],
         schema: Schema.Array(
           Schema.Struct({
-            value: Schema.OptionFromNullOr(Schema.parseJson(schema)),
+            value: Schema.OptionFromNullOr(Schema.fromJsonString(schema)),
           }),
         ),
       },
@@ -54,7 +54,7 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   return Atom.writable(
     (get) => {
       const result = get(read)
-      const isSuccess = Result.isSuccess(result)
+      const isSuccess = AsyncResult.isSuccess(result)
       if (isSuccess || !cacheAtom) {
         if (cacheAtom && isSuccess) {
           get.set(cacheAtom, result.value)
@@ -63,7 +63,7 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
       }
       const cached = get(cacheAtom)
       if (Option.isSome(cached)) {
-        return Result.success(cached)
+        return AsyncResult.success(cached)
       }
       return result
     },
@@ -74,7 +74,7 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
         events.settingsSet({
           id: setting.name,
           value,
-          updatedAt: DateTime.unsafeNow(),
+          updatedAt: DateTime.nowUnsafe(),
         }),
       )
       if (cacheAtom) {
@@ -84,15 +84,15 @@ const makeAtom = <S extends Schema.Schema.AnyNoContext>(
   )
 }
 
-export class Setting<S extends Schema.Schema.AnyNoContext> extends Data.Class<{
+export class Setting<S extends Schema.Codec<any, any>> extends Data.Class<{
   name: string
   label: string
   schema: S
-  schemaInput: Schema.Schema<Option.Option<S["Type"]>, string>
+  schemaInput: Schema.Codec<Option.Option<S["Type"]>, string>
   initialValue?: S["Type"] | undefined
   cached?: boolean | undefined
   atomOverride?: Atom.Writable<
-    Result.Result<Option.Option<S["Type"]>>,
+    AsyncResult.AsyncResult<Option.Option<S["Type"]>>,
     Option.Option<S["Type"]>
   >
 }> {
@@ -100,32 +100,38 @@ export class Setting<S extends Schema.Schema.AnyNoContext> extends Data.Class<{
 }
 
 const OptionFromString = Schema.String.pipe(
-  Schema.transform(Schema.OptionFromSelf(Schema.String), {
-    decode: (s) => (s === "" ? Option.none() : Option.some(s)),
-    encode: Option.match({
-      onNone: () => "",
-      onSome: (s) => s,
+  Schema.decodeTo(
+    Schema.Option(Schema.String),
+    SchemaTransformation.transform({
+      decode: (s) => (s === "" ? Option.none() : Option.some(s)),
+      encode: Option.match({
+        onNone: () => "",
+        onSome: (s) => s,
+      }),
     }),
-  }),
+  ),
 )
 
-const AsSome = <S extends Schema.Schema.Any>(
+const AsSome = <S extends Schema.Codec<any, any>>(
   schema: S,
   orElse: () => S["Type"],
 ) =>
   schema.pipe(
-    Schema.transform(Schema.OptionFromSelf(Schema.typeSchema(schema)), {
-      decode: Option.some,
-      encode: Option.getOrElse(orElse),
-    }),
+    Schema.decodeTo(
+      Schema.Option(Schema.toType(schema)),
+      SchemaTransformation.transform({
+        decode: (a: S["Type"]) => Option.some(a),
+        encode: Option.getOrElse(orElse),
+      }),
+    ),
   )
 
 export const openAiApiKey = new Setting({
   name: "openAiApiKey",
   label: "OpenAI API Key",
-  schema: Schema.Redacted(Schema.String),
+  schema: Schema.RedactedFromValue(Schema.String),
   schemaInput: OptionFromString.pipe(
-    Schema.compose(Schema.OptionFromSelf(Schema.Redacted(Schema.String))),
+    Schema.decodeTo(Schema.Option(Schema.RedactedFromValue(Schema.String))),
   ),
 })
 
@@ -144,14 +150,14 @@ export const aiCountry = new Setting({
   schemaInput: OptionFromString,
 })
 
-const WeekDays = Schema.Literal(0, 1, 2, 3, 4, 5, 6)
+const WeekDays = Schema.Literals([0, 1, 2, 3, 4, 5, 6])
 
 export const mealPlanWeekStart = new Setting({
   name: "mealPlanWeekStart",
   label: "Week Start",
   schema: WeekDays,
   schemaInput: AsSome(
-    Schema.NumberFromString.pipe(Schema.compose(WeekDays)),
+    Schema.NumberFromString.pipe(Schema.decodeTo(WeekDays)),
     () => 0 as const,
   ),
   cached: true,
@@ -170,10 +176,15 @@ export const livestoreSyncEnabled = new Setting({
   label: "Enable Sync",
   schema: Schema.Boolean,
   schemaInput: AsSome(
-    Schema.transform(Schema.String, Schema.Boolean, {
-      decode: (s) => s === "true",
-      encode: (b) => (b ? "true" : "false"),
-    }),
+    Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.Boolean,
+        SchemaTransformation.transform({
+          decode: (s) => s === "true",
+          encode: (b) => (b ? "true" : "false"),
+        }),
+      ),
+    ),
     Function.constFalse,
   ),
   atomOverride: makeResultOptionAtom(syncEnabledAtom),
@@ -187,7 +198,7 @@ export const clearAiMemoryAtom = Atom.fn<void>()(
 )
 
 const ExportEvents = Schema.Array(
-  Schema.Union(
+  Schema.Union([
     Schema.Struct({
       name: Schema.Literal(events.recipeCreated.name),
       args: events.recipeCreated.schema,
@@ -220,9 +231,9 @@ const ExportEvents = Schema.Array(
       name: Schema.Literal(events.aiMemoryEntryAdded.name),
       args: events.aiMemoryEntryAdded.schema,
     }),
-  ),
+  ]),
 )
-const ExportEventsJson = Schema.parseJson(ExportEvents)
+const ExportEventsJson = Schema.fromJsonString(ExportEvents)
 
 export const exportAllAtom = Store.runtime.fn<void>()(
   Effect.fnUntraced(function* (_, get) {

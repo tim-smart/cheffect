@@ -10,13 +10,9 @@ import {
   Square,
   X,
 } from "lucide-react"
-import {
-  Atom,
-  Result,
-  useAtom,
-  useAtomSet,
-  useAtomValue,
-} from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { Streamdown } from "streamdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
@@ -195,7 +191,7 @@ function MessagesList({
   readonly onNewMessage: () => void
 }) {
   const currentPrompt = useAtomValue(currentPromptAtom)
-  const isLoading = useAtomValue(sendAtom, Result.isWaiting)
+  const isLoading = useAtomValue(sendAtom, AsyncResult.isWaiting)
   const messages = currentPrompt.content
   const setInput = useAtomSet(inputAtom)
 
@@ -236,11 +232,13 @@ function MessagesList({
             key={i}
             className="flex flex-col justify-start text-muted-foreground text-sm"
           >
-            {message.content.map((part) => (
-              <span key={part.id} className="block">
-                Tool call "{part.name}"
-              </span>
-            ))}
+            {message.content.map((part) =>
+              part.type === "tool-result" ? (
+                <span key={part.id} className="block">
+                  Tool call "{part.name}"
+                </span>
+              ) : null,
+            )}
           </div>
         ) : (
           <div
@@ -333,7 +331,7 @@ function PromptInput({
   const fileRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<FileList | null>(null)
 
-  const isLoading = useAtomValue(sendAtom, Result.isWaiting)
+  const isLoading = useAtomValue(sendAtom, AsyncResult.isWaiting)
 
   const clear = useAtomSet(clearAtom)
 

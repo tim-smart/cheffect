@@ -34,7 +34,7 @@ import {
   importAllAtom,
   openAiModel,
 } from "@/Settings"
-import { useAtomSet, useAtomSuspense } from "@effect-atom/atom-react"
+import { useAtomSet, useAtomSuspense } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   CommandList,
@@ -45,6 +45,7 @@ import {
   Command,
 } from "@/components/ui/command"
 import { Schema } from "effect"
+import type * as SchemaAST from "effect/SchemaAST"
 import {
   CheckIcon,
   ChevronsUpDownIcon,
@@ -281,7 +282,7 @@ function SettingSection({
   )
 }
 
-function SettingControl<S extends Schema.Schema.AnyNoContext>({
+function SettingControl<S extends Schema.Codec<any, any>>({
   setting,
   render,
 }: {
@@ -327,7 +328,7 @@ function SettingControl<S extends Schema.Schema.AnyNoContext>({
   )
 }
 
-function SettingSelect<S extends Schema.Literal<any>>({
+function SettingSelect<S extends Schema.Literals<ReadonlyArray<SchemaAST.LiteralValue>>>({
   setting,
   options,
 }: {
@@ -357,7 +358,7 @@ function SettingSelect<S extends Schema.Literal<any>>({
   )
 }
 
-function SettingCheckbox<S extends Schema.Schema.AnyNoContext>({
+function SettingCheckbox<S extends Schema.Codec<any, any>>({
   setting,
 }: {
   setting: Setting<S>
@@ -376,7 +377,7 @@ function SettingCheckbox<S extends Schema.Schema.AnyNoContext>({
   )
 }
 
-function SettingCombobox<S extends Schema.Schema.AnyNoContext>({
+function SettingCombobox<S extends Schema.Codec<any, any>>({
   setting,
   options,
 }: {

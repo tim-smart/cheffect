@@ -1,5 +1,5 @@
 import { Duration, Option } from "effect"
-import { Model } from "@effect/sql"
+import * as Model from "effect/schema/Model"
 import * as DateTime from "effect/DateTime"
 import { Rating } from "./Rating"
 import * as Schema from "effect/Schema"
@@ -10,7 +10,7 @@ import * as Struct from "effect/Struct"
 import Fraction from "fraction.js"
 import { escapeHtml, escapeHtmlMultiline } from "@/lib/html"
 
-export const Unit = Schema.Literal(
+export const Unit = Schema.Literals([
   "g",
   "kg",
   "ml",
@@ -26,7 +26,7 @@ export const Unit = Schema.Literal(
   "fl oz",
   "pt",
   "qt",
-).annotations({
+]).annotate({
   description: "A unit of measurement for ingredients.",
 })
 export type Unit = typeof Unit.Type
@@ -103,13 +103,13 @@ export const normalizeScaledQuantity = (
 
 export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
   {
-    name: Schema.String.annotations({
+    name: Schema.String.annotate({
       description: "The name of the ingredient.",
     }),
-    quantity: Schema.NullOr(Schema.Number).annotations({
+    quantity: Schema.NullOr(Schema.Number).annotate({
       description: "The quantity of the ingredient, if applicable.",
     }),
-    unit: Schema.NullOr(Unit).annotations({
+    unit: Schema.NullOr(Unit).annotate({
       description: "The unit of measurement for the ingredient, if applicable.",
     }),
   },
@@ -132,10 +132,10 @@ export class IngredientsComponent extends Schema.Class<IngredientsComponent>(
   "IngredientsComponent",
 )(
   {
-    name: Schema.String.annotations({
+    name: Schema.String.annotate({
       description: "The name of the component, e.g., 'Marinade' or 'Cake'.",
     }),
-    ingredients: Schema.Array(Ingredient).annotations({
+    ingredients: Schema.Array(Ingredient).annotate({
       description: "A list of ingredients that belong to this component.",
     }),
   },
@@ -144,15 +144,15 @@ export class IngredientsComponent extends Schema.Class<IngredientsComponent>(
   },
 ) {
   static array = Schema.Array(IngredientsComponent)
-  static arrayJson = Schema.parseJson(this.array)
+  static arrayJson = Schema.fromJsonString(this.array)
 }
 
 export class Step extends Schema.Class<Step>("Step")(
   {
-    text: Schema.String.annotations({
+    text: Schema.String.annotate({
       description: "The text of the step in the recipe.",
     }),
-    tips: Schema.Array(Schema.String).annotations({
+    tips: Schema.Array(Schema.String).annotate({
       description: "Optional tips or notes for the step.",
     }),
   },
@@ -165,31 +165,31 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
   "ExtractedRecipe",
 )(
   {
-    title: Schema.String.annotations({
+    title: Schema.String.annotate({
       description: "A short title for the recipe. Exclude website names.",
     }),
-    imageUrl: Schema.NullOr(Schema.String).annotations({
+    imageUrl: Schema.NullOr(Schema.String).annotate({
       description:
         "An image URL for the recipe, preferrably from the og:image meta tag. Set to null if not available.",
     }),
-    prepTime: Schema.NullOr(DurationFromMinutes).annotations({
+    prepTime: Schema.NullOr(DurationFromMinutes).annotate({
       description: "The time it takes to prepare the recipe in minutes.",
     }),
-    cookingTime: Schema.NullOr(DurationFromMinutes).annotations({
+    cookingTime: Schema.NullOr(DurationFromMinutes).annotate({
       description:
         "The time it takes to cook the recipe in minutes. This is different from prep time.",
     }),
-    servings: Schema.NullOr(Schema.Number).annotations({
+    servings: Schema.NullOr(Schema.Number).annotate({
       description:
         "The number of persons the recipe serves. If unsure, set to null.",
     }),
-    ingredients: Schema.Array(IngredientsComponent).annotations({
+    ingredients: Schema.Array(IngredientsComponent).annotate({
       description: "A list of ingredients required for the recipe.",
     }),
-    steps: Schema.Array(Step).annotations({
+    steps: Schema.Array(Step).annotate({
       description: "A list of steps to follow in the recipe.",
     }),
-    sourceName: Schema.NullOr(Schema.String).annotations({
+    sourceName: Schema.NullOr(Schema.String).annotate({
       description:
         "The name of the source where the recipe was extracted from, e.g., 'AllRecipes'. Set to null if not available.",
     }),
@@ -205,8 +205,8 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
       rating: null,
       ingredientScale: 1,
       sourceUrl: url ?? null,
-      createdAt: DateTime.unsafeNow(),
-      updatedAt: DateTime.unsafeNow(),
+      createdAt: DateTime.nowUnsafe(),
+      updatedAt: DateTime.nowUnsafe(),
       deletedAt: null,
     })
   }
@@ -214,7 +214,7 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
 
 const DurationFromMinutesOrNull = Schema.NullOr(
   DurationFromMinutes,
-).annotations({
+).annotate({
   description: "A duration represented in minutes. Can be null if not set.",
 })
 
@@ -230,7 +230,7 @@ const DurationField = Model.Field({
 export class Recipe extends Model.Class<Recipe>("Recipe")({
   ...ExtractedRecipe.fields,
   id: Model.GeneratedByApp(
-    Schema.String.annotations({
+    Schema.String.annotate({
       description: "A unique identifier for the recipe.",
     }),
   ),
@@ -244,18 +244,18 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   steps: Model.JsonFromString(Schema.Array(Step)),
   rating: Schema.NullOr(Rating),
   sourceUrl: Schema.NullOr(Schema.String),
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldOnly("insert", "select", "json"),
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldOnly(["insert", "select", "json"]),
   ),
-  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldOnly("insert", "update", "select", "json"),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldOnly(["insert", "update", "select", "json"]),
   ),
-  deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromNumber)),
+  deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromMillis)),
 }) {
   static array = Schema.Array(Recipe)
   static arrayJson = Schema.Array(Recipe.json)
   static xml = UnknownToXml.pipe(
-    Schema.compose(
+    Schema.decodeTo(
       Schema.Struct({
         recipe: Recipe.json,
       }),
@@ -272,10 +272,10 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   }
 
   get totalTime(): Option.Option<Duration.Duration> {
-    const prep = Option.fromNullable(this.prepTime).pipe(
+    const prep = Option.fromNullishOr(this.prepTime).pipe(
       Option.getOrElse(() => Duration.zero),
     )
-    const cook = Option.fromNullable(this.cookingTime).pipe(
+    const cook = Option.fromNullishOr(this.cookingTime).pipe(
       Option.getOrElse(() => Duration.zero),
     )
     return filterZero(Duration.sum(prep, cook))
@@ -319,15 +319,14 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
 }
 
 export const RecipeEdit = Schema.Struct(
-  Struct.omit(
-    Recipe.fields,
+  Struct.omit(Recipe.fields, [
     "sourceUrl",
     "rating",
     "ingredientScale",
     "createdAt",
     "updatedAt",
     "deletedAt",
-  ),
+  ]),
 )
 
 const filterZero = Option.liftPredicate(Predicate.not(Duration.isZero))
@@ -346,7 +345,7 @@ export const SortBy = [
     value: "title",
   },
 ] as const
-export const SortByValue = Schema.Literal(...SortBy.map((s) => s.value))
+export const SortByValue = Schema.Literals(SortBy.map((s) => s.value))
 export type SortBy = (typeof SortBy)[number]["value"]
 
 const htmlNumberFormatter = new Intl.NumberFormat("en-US", {

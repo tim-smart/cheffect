@@ -1,4 +1,4 @@
-import { Model } from "@effect/sql"
+import * as Model from "effect/schema/Model"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
@@ -9,13 +9,13 @@ export class Timer extends Model.Class<Timer>("Timer")({
   id: Model.GeneratedByApp(Schema.String),
   label: Schema.String,
   duration: Schema.DurationFromMillis,
-  expiresAt: Schema.DateTimeUtcFromNumber,
+  expiresAt: Schema.DateTimeUtcFromMillis,
   pausedRemaining: Schema.NullOr(Schema.DurationFromMillis),
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
   ),
-  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("jsonCreate", "jsonUpdate"),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
   ),
 }) {
   static array = Schema.Array(Timer);
@@ -35,15 +35,15 @@ export class Timer extends Model.Class<Timer>("Timer")({
   remainingAt(now: DateTime.Utc): Duration.Duration {
     if (this.pausedRemaining !== null) {
       return this.pausedRemaining
-    } else if (DateTime.greaterThanOrEqualTo(now, this.expiresAt)) {
+    } else if (DateTime.isGreaterThanOrEqualTo(now, this.expiresAt)) {
       return Duration.zero
     }
-    return DateTime.distanceDuration(now, this.expiresAt)
+    return Duration.abs(DateTime.distance(now, this.expiresAt))
   }
 
   pause(): Timer {
     if (this.pausedRemaining !== null) return this
-    const now = DateTime.unsafeNow()
+    const now = DateTime.nowUnsafe()
     return new Timer({
       ...this,
       pausedRemaining: this.remainingAt(now),
@@ -53,7 +53,7 @@ export class Timer extends Model.Class<Timer>("Timer")({
 
   resume(): Timer {
     if (this.pausedRemaining === null) return this
-    const now = DateTime.unsafeNow()
+    const now = DateTime.nowUnsafe()
     return new Timer({
       ...this,
       expiresAt: DateTime.addDuration(now, this.pausedRemaining),
@@ -69,21 +69,21 @@ export class Timer extends Model.Class<Timer>("Timer")({
         ...this,
         duration,
         expiresAt: DateTime.addDuration(now, duration),
-        updatedAt: DateTime.unsafeNow(),
+        updatedAt: DateTime.nowUnsafe(),
       })
     } else if (this.pausedRemaining) {
       return new Timer({
         ...this,
         duration: Duration.sum(this.duration, duration),
         pausedRemaining: Duration.sum(this.pausedRemaining, duration),
-        updatedAt: DateTime.unsafeNow(),
+        updatedAt: DateTime.nowUnsafe(),
       })
     }
     return new Timer({
       ...this,
       duration: Duration.sum(this.duration, duration),
       expiresAt: DateTime.addDuration(now, Duration.sum(remaining, duration)),
-      updatedAt: DateTime.unsafeNow(),
+      updatedAt: DateTime.nowUnsafe(),
     })
   }
 }

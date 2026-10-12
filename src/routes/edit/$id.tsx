@@ -7,7 +7,8 @@ import { recipeFormByIdAtom } from "@/Recipes/atoms"
 import { Display, RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
-import { Result, useAtomValue } from "@effect-atom/atom-react"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtomValue } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
@@ -22,7 +23,7 @@ function EditRecipeScreen() {
   const result = useAtomValue(recipeFormByIdAtom(id))
   const commit = useCommit()
   const formId = Display.Form.id
-  return Result.builder(result)
+  return AsyncResult.builder(result)
     .onWaiting(() => <RecipeFormSkeleton />)
     .onSuccess(([initialValue, recipe]) => (
       <div className="pb-content">
@@ -38,7 +39,7 @@ function EditRecipeScreen() {
                   ...formRecipe,
                   id: recipe.id,
                   ingredientScale: recipe.ingredientScale,
-                  updatedAt: DateTime.unsafeNow(),
+                  updatedAt: DateTime.nowUnsafe(),
                 }),
               ),
             )
@@ -53,7 +54,7 @@ function EditRecipeScreen() {
         />
       </div>
     ))
-    .onErrorTag("NoSuchElementException", () => <NoRecipeFound />)
+    .onErrorTag("NoSuchElementError", () => <NoRecipeFound />)
     .render()
 }
 

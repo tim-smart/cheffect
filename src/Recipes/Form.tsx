@@ -1,17 +1,12 @@
 import { RecipeFormSchema } from "@/domain/RecipeForm"
-import { FormDisplay } from "@inato-form/core"
-import * as Effect from "effect/Effect"
-import { ShadcnReactHookFormLayer } from "@/lib/InatoForm"
+import { FormDisplay } from "@/lib/Form"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash, X } from "lucide-react"
 import * as Arr from "effect/Array"
 import { Unit } from "@/domain/Recipe"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export const Display = FormDisplay.make(RecipeFormSchema).pipe(
-  Effect.provide(ShadcnReactHookFormLayer),
-  Effect.runSync,
-)
+export const Display = FormDisplay.make(RecipeFormSchema, Button)
 
 export function RecipeForm({
   initialValue,

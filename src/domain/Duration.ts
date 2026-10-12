@@ -1,11 +1,13 @@
 import { Duration } from "effect"
 import * as Schema from "effect/Schema"
+import * as SchemaTransformation from "effect/SchemaTransformation"
 
-export const DurationFromMinutes = Schema.transform(
-  Schema.Number,
-  Schema.DurationFromSelf,
-  {
-    decode: Duration.minutes,
-    encode: Duration.toMinutes,
-  },
+export const DurationFromMinutes = Schema.Number.pipe(
+  Schema.decodeTo(
+    Schema.Duration,
+    SchemaTransformation.transform({
+      decode: Duration.minutes,
+      encode: Duration.toMinutes,
+    }),
+  ),
 )

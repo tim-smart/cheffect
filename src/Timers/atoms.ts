@@ -2,7 +2,8 @@ import { nowAtom } from "@/atoms"
 import { Timer } from "@/domain/Timer"
 import { Store } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import { Atom, Result } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Data from "effect/Data"
@@ -16,7 +17,7 @@ export const activeTimers$ = queryDb({
 })
 
 export const activeTimersAtom = Store.makeQuery(activeTimers$).pipe(
-  Atom.map(Result.getOrElse(Array.empty<Timer>)),
+  Atom.map(AsyncResult.getOrElse(Array.empty<Timer>)),
 )
 
 export type TimerStatus = Data.TaggedEnum<{

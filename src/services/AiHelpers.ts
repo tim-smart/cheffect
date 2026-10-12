@@ -1,7 +1,8 @@
 import { ExtractedRecipe, Recipe } from "@/domain/Recipe"
-import { LanguageModel } from "@effect/ai"
+import * as LanguageModel from "effect/ai/LanguageModel"
 import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai"
-import * as FetchHttpClient from "@effect/platform/FetchHttpClient"
+import * as FetchHttpClient from "effect/http/FetchHttpClient"
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { CorsProxy } from "./CorsProxy"
@@ -11,45 +12,46 @@ import {
   GroceryItemList,
 } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
-import { Atom, Result } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { openAiApiKey } from "@/Settings"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
-import * as HttpClient from "@effect/platform/HttpClient"
+import * as HttpClient from "effect/http/HttpClient"
 import * as Schedule from "effect/Schedule"
 import { constTrue } from "effect/Function"
-import * as Prompt from "@effect/ai/Prompt"
+import * as Prompt from "effect/ai/Prompt"
 import * as Schema from "effect/Schema"
 
 export const isAiEnabledResultAtom = Atom.make((get) =>
-  Result.map(get(openAiApiKey.atom), Option.isSome),
+  AsyncResult.map(get(openAiApiKey.atom), Option.isSome),
 )
 export const isAiEnabledAtom = Atom.make((get) =>
   get(openAiApiKey.atom).pipe(
-    Result.map(Option.isSome),
-    Result.getOrElse(constTrue),
+    AsyncResult.map(Option.isSome),
+    AsyncResult.getOrElse(constTrue),
   ),
 )
 
 export const openAiClientLayer = Atom.make((get) => {
-  const apiKeyOption = Result.value(get(openAiApiKey.atom)).pipe(Option.flatten)
+  const apiKeyOption = AsyncResult.value(get(openAiApiKey.atom)).pipe(Option.flatten)
   if (Option.isNone(apiKeyOption)) {
     return Layer.effect(OpenAiClient.OpenAiClient, Effect.never)
   }
   return OpenAiClient.layer({
     apiKey: apiKeyOption.value,
     transformClient: HttpClient.retryTransient({
-      schedule: Schedule.exponential(500, 1.5).pipe(
-        Schedule.union(Schedule.spaced(10_000)),
-      ),
+      schedule: Schedule.min([
+        Schedule.exponential(500, 1.5),
+        Schedule.spaced(10_000),
+      ]),
     }),
   }).pipe(Layer.provide(FetchHttpClient.layer))
 })
 
-export class AiHelpers extends Effect.Service<AiHelpers>()("AiHelpers", {
-  dependencies: [CorsProxy.Default],
-  scoped: Effect.gen(function* () {
-    const model = yield* OpenAiLanguageModel.model("gpt-5.4")
+export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
+  make: Effect.gen(function* () {
+    const model = yield* Layer.build(OpenAiLanguageModel.model("gpt-5.4"))
     const proxy = yield* CorsProxy
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
@@ -196,10 +198,10 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
             new GroceryItem({
               ...prev,
               ...item,
-              recipeIds: Array.isNonEmptyArray(recipeIdsArray)
+              recipeIds: Array.isArrayNonEmpty(recipeIdsArray)
                 ? recipeIdsArray
                 : null,
-              updatedAt: DateTime.unsafeNow(),
+              updatedAt: DateTime.nowUnsafe(),
             }),
           )
         }
@@ -219,7 +221,11 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
     } as const
   }),
 }) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide(CorsProxy.layer),
+  )
+
   static runtime = Atom.runtime((get) =>
-    AiHelpers.Default.pipe(Layer.provideMerge(get(openAiClientLayer))),
+    AiHelpers.layer.pipe(Layer.provideMerge(get(openAiClientLayer))),
   )
 }

@@ -9,7 +9,8 @@ import {
 } from "@/livestore/queries"
 import { events } from "@/livestore/schema"
 import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
-import { Atom, Result } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
@@ -35,7 +36,7 @@ const fallbackAisleOrder = [...GroceryAisle.literals, "Other"]
 export const groceryCountAtom = Atom.make((get) => {
   const itemsResult = get(allGroceryItemsAtom)
   const orderResult = get(groceryAisleOrdersAtom)
-  const orderMap = Result.isSuccess(orderResult)
+  const orderMap = AsyncResult.isSuccess(orderResult)
     ? new Map(
         orderResult.value.map(({ aisle, sortOrder }) => [aisle, sortOrder]),
       )
@@ -47,7 +48,7 @@ export const groceryCountAtom = Atom.make((get) => {
     return index === -1 ? 1000 : index
   }
   return itemsResult.pipe(
-    Result.map((items) => {
+    AsyncResult.map((items) => {
       const aisles: Array<{ name: string; items: GroceryItem[] }> = []
       let total = 0
       let completed = 0
@@ -66,7 +67,7 @@ export const groceryCountAtom = Atom.make((get) => {
 })
 
 const runtime = Atom.runtime((get) =>
-  Layer.mergeAll(AiHelpers.Default, get(Store.layer)).pipe(
+  Layer.mergeAll(AiHelpers.layer, get(Store.layer)).pipe(
     Layer.provide(get(openAiClientLayer)),
   ),
 )

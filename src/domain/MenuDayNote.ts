@@ -1,4 +1,4 @@
-import { Model } from "@effect/sql"
+import * as Model from "effect/schema/Model"
 import * as Schema from "effect/Schema"
 import * as DateTime from "effect/DateTime"
 
@@ -9,11 +9,11 @@ export class MenuDayNote extends Model.Class<MenuDayNote>("MenuDayNote")({
   }),
   day: Schema.Number,
   note: Schema.String,
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
   ),
-  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("jsonCreate", "jsonUpdate"),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
   ),
 }) {
   static array = Schema.Array(MenuDayNote)
@@ -26,8 +26,8 @@ export class MenuDayNote extends Model.Class<MenuDayNote>("MenuDayNote")({
       menuId: input.menuId,
       day: input.day,
       note: input.note,
-      createdAt: DateTime.unsafeNow(),
-      updatedAt: DateTime.unsafeNow(),
+      createdAt: DateTime.nowUnsafe(),
+      updatedAt: DateTime.nowUnsafe(),
     })
   }
 }

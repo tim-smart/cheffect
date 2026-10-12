@@ -7,7 +7,8 @@ import { Recipe } from "@/domain/Recipe"
 import { mealPlanWeekStart } from "@/Settings"
 import { Store } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import { Atom, Result } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { queryDb, sql } from "@livestore/livestore"
 import * as DateTime from "effect/DateTime"
 import * as Option from "effect/Option"
@@ -129,12 +130,12 @@ export const seedDevRecipesAtom = Atom.make((get) => {
 
   if (mealPlanCount === 0 && availableRecipes.length > 0) {
     const weekStartsOn = get(mealPlanWeekStart.atom).pipe(
-      Result.value,
+      AsyncResult.value,
       Option.flatten,
       Option.getOrElse(() => 0 as const),
     )
     const today = new Date().getDay()
-    const startOfWeek = DateTime.unsafeNow().pipe(
+    const startOfWeek = DateTime.nowUnsafe().pipe(
       DateTime.setZone(DateTime.zoneMakeLocal()),
       DateTime.startOf("week"),
       DateTime.removeTime,

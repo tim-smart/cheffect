@@ -1,4 +1,4 @@
-import { Model } from "@effect/sql"
+import * as Model from "effect/schema/Model"
 import * as Schema from "effect/Schema"
 import { Ingredient, Recipe } from "./Recipe"
 import * as DateTime from "effect/DateTime"
@@ -6,7 +6,7 @@ import * as Struct from "effect/Struct"
 import { UnknownToXml } from "./Xml"
 import * as Csv from "@vanillaes/csv"
 
-export const GroceryAisle = Schema.Literal(
+export const GroceryAisle = Schema.Literals([
   "Bakery",
   "Baking Supplies",
   "Beverages",
@@ -22,18 +22,18 @@ export const GroceryAisle = Schema.Literal(
   "Produce",
   "Seafood",
   "Snacks",
-)
+])
 export type GroceryAisle = typeof GroceryAisle.Type
 
 export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
   id: Model.GeneratedByApp(Schema.String),
   list: Schema.NullOr(Schema.String)
-    .annotations({
+    .annotate({
       description:
         "The name of the grocery list to add this item to. Null for the default list. If it does not exist, it will be created.",
     })
     .pipe(
-      Model.FieldExcept("update", "jsonUpdate"),
+      Model.FieldExcept(["update", "jsonUpdate"]),
       Model.fieldEvolve({
         insert: (s) => Schema.optional(s),
       }),
@@ -45,20 +45,20 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
     Schema.NullOr(Schema.NonEmptyArray(Schema.String)),
     {
       select: () =>
-        Schema.NullOr(Schema.parseJson(Schema.NonEmptyArray(Schema.String))),
+        Schema.NullOr(Schema.fromJsonString(Schema.NonEmptyArray(Schema.String))),
     },
   ),
-  completed: Model.BooleanFromNumber,
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
+  completed: Schema.BooleanFromBit,
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
   ),
-  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("jsonCreate", "jsonUpdate"),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
   ),
 }) {
   static array = Schema.Array(GroceryItem)
   static xml = UnknownToXml.pipe(
-    Schema.compose(
+    Schema.decodeTo(
       Schema.Array(
         Schema.Struct({
           groceryItem: GroceryItem.json,
@@ -79,8 +79,8 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
       aisle: input.aisle ?? null,
       recipeIds: null,
       completed: false,
-      createdAt: DateTime.unsafeNow(),
-      updatedAt: DateTime.unsafeNow(),
+      createdAt: DateTime.nowUnsafe(),
+      updatedAt: DateTime.nowUnsafe(),
     })
   }
 
@@ -97,8 +97,8 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
       completed: false,
       recipeIds: recipe ? [recipe.id] : null,
       aisle: null,
-      createdAt: DateTime.unsafeNow(),
-      updatedAt: DateTime.unsafeNow(),
+      createdAt: DateTime.nowUnsafe(),
+      updatedAt: DateTime.nowUnsafe(),
     })
   }
 
@@ -114,8 +114,8 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
 }
 
 export const GroceryItemAi = Schema.Struct(
-  Struct.pick(GroceryItem.fields, "id", "name", "quantity", "aisle"),
-).annotations({
+  Struct.pick(GroceryItem.fields, ["id", "name", "quantity", "aisle"]),
+).annotate({
   description: "An item to be added to the grocery list",
 })
 
@@ -123,17 +123,17 @@ export const GroceryItemList = Schema.Struct({
   items: Schema.Array(
     Schema.Struct({
       ...GroceryItemAi.fields,
-      mergedIds: Schema.Array(Schema.String).annotations({
+      mergedIds: Schema.Array(Schema.String).annotate({
         description: "IDs of items that were merged into this one",
       }),
-    }).annotations({
+    }).annotate({
       description: "An item to be added to the grocery list",
     }),
   ),
 })
 
 const GroceryItemListXml = UnknownToXml.pipe(
-  Schema.compose(
+  Schema.decodeTo(
     Schema.Struct({
       groceryItems: Schema.Array(
         Schema.Struct({

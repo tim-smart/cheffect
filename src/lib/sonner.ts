@@ -15,17 +15,17 @@ export const withToast =
     ...args: Args
   ): Effect.Effect<A, E, R> => {
     const opts = options(...args)
-    return Effect.flatMap(Effect.fork(effect), (fiber) => {
+    return Effect.flatMap(Effect.forkChild(effect), (fiber) => {
       const toastId = toast.loading(opts.loading, {
         cancel: {
           label: "Cancel",
           onClick() {
-            fiber.unsafeInterruptAsFork(fiber.id())
+            fiber.interruptUnsafe(fiber.id)
           },
         },
       })
       fiber.addObserver((exit) => {
-        if (Exit.isInterrupted(exit)) {
+        if (Exit.hasInterrupts(exit)) {
           return toast.dismiss(toastId)
         }
         opts.onExit(exit, toastId)

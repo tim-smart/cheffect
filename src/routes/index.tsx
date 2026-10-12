@@ -4,7 +4,8 @@ import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { allRecipesAtom, searchSortByAtom } from "@/livestore/queries"
-import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtom, useAtomValue } from "@effect/atom-react"
 import { events } from "@/livestore/schema"
 import { SortBy } from "@/domain/Recipe"
 import { storeIdAtom, useCommit } from "@/livestore/atoms"
@@ -43,7 +44,7 @@ export default function CheffectHome() {
       </div>
 
       <div className="space-y-4">
-        {Result.builder(recipes)
+        {AsyncResult.builder(recipes)
           .onInitial(() => <RecipeListSkeleton />)
           .onSuccess((recipes) => <WrappedList recipes={recipes} />)
           .render()}

@@ -5,7 +5,9 @@ import {
   recipeByIdAtom,
   searchStateAtom,
 } from "@/livestore/queries"
-import { Atom, Result, useAtomValue } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtomValue } from "@effect/atom-react"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
@@ -30,7 +32,7 @@ import { toast } from "sonner"
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
-    Layer.provideMerge(AiHelpers.Default),
+    Layer.provideMerge(AiHelpers.layer),
     Layer.provideMerge(get(openAiClientLayer)),
     Layer.provideMerge(get(Store.layer)),
   ),
@@ -75,7 +77,7 @@ export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
           {
             id: toastId,
             cancel: undefined,
-            action: Array.isNonEmptyReadonlyArray(exit.value)
+            action: Array.isReadonlyArrayNonEmpty(exit.value)
               ? {
                   label: "View",
                   onClick() {
@@ -99,7 +101,7 @@ export const recipeFormByIdAtom = Atom.family((id: string) =>
   Atom.make(
     Effect.fnUntraced(function* (get) {
       const recipe = yield* get.result(recipeByIdAtom(id))
-      return [yield* Schema.encode(RecipeCreate)(recipe), recipe] as const
+      return [yield* Schema.encodeEffect(RecipeCreate)(recipe), recipe] as const
     }),
   ),
 )
@@ -145,7 +147,7 @@ export const recipeForDisplayAtom = Atom.family((id: string) =>
   Atom.make((get) => {
     const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
     return get(recipeByIdAtom(id)).pipe(
-      Result.map((original) => {
+      AsyncResult.map((original) => {
         const modified = Option.getOrUndefined(get(modifiedRecipeByIdAtom(id))!)
         const resolved =
           showOriginal || !modified
@@ -177,7 +179,7 @@ export const saveModifiedRecipeAtom = Atom.fn<string>()(
     const newRecipe = new Recipe({
       ...recipe,
       ...modified.value,
-      updatedAt: DateTime.unsafeNow(),
+      updatedAt: DateTime.nowUnsafe(),
     })
     store.commit(events.recipeUpdated(newRecipe))
     get.set(modifiedRecipeByIdAtom(id), Option.none())
@@ -195,8 +197,8 @@ export const newModifiedRecipeAtom = Atom.fn<string>()(
       ...recipe,
       ...modified.value,
       id: crypto.randomUUID(),
-      createdAt: DateTime.unsafeNow(),
-      updatedAt: DateTime.unsafeNow(),
+      createdAt: DateTime.nowUnsafe(),
+      updatedAt: DateTime.nowUnsafe(),
     })
     store.commit(events.recipeCreated(newRecipe))
     get.set(modifiedRecipeByIdAtom(id), Option.none())
@@ -206,10 +208,10 @@ export const newModifiedRecipeAtom = Atom.fn<string>()(
 )
 
 export const useSearchQuery = () =>
-  Result.getOrElse(
+  AsyncResult.getOrElse(
     useAtomValue(
       searchStateAtom,
-      Result.map((state) => state.query),
+      AsyncResult.map((state) => state.query),
     ),
     () => "",
   )
@@ -221,7 +223,7 @@ export const checkedIngredientsAtom = Atom.family((_recipeId: string) =>
 export const exportAtom = Store.runtime.fn<void>()(
   Effect.fnUntraced(function* (_, get) {
     const recipes = yield* get.result(allRecipesAtom)
-    const json = yield* Schema.encode(Recipe.arrayJson)(recipes)
+    const json = yield* Schema.encodeEffect(Recipe.arrayJson)(recipes)
     const file = new File(
       [JSON.stringify(json)],
       `cheffect-recipes-${new Date().toISOString()}.txt`,
@@ -237,7 +239,7 @@ export const importAtom = Store.runtime.fn<File>()(
   Effect.fnUntraced(function* (file) {
     const text = yield* Effect.promise(() => file.text())
     const json = JSON.parse(text)
-    const decoded = yield* Schema.decode(Recipe.arrayJson)(json)
+    const decoded = yield* Schema.decodeEffect(Recipe.arrayJson)(json)
     const store = yield* Store
     for (const r of decoded) {
       const recipe = new Recipe({
@@ -289,7 +291,7 @@ export const convertIngredientsAtom = AiHelpers.runtime.fn<Recipe>()(
 export const canConvertIngredientsAtom = Atom.make((get) => {
   const aiEnabled = get(isAiEnabledAtom)
   if (!aiEnabled) return false
-  const ocountry = get(aiCountry.atom).pipe(Result.value, Option.flatten)
+  const ocountry = get(aiCountry.atom).pipe(AsyncResult.value, Option.flatten)
   if (Option.isNone(ocountry)) return false
   return true
 })

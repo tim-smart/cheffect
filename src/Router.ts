@@ -1,6 +1,6 @@
 import { createRouter } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
-import { Atom } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
 
 export const router = createRouter({
   routeTree,

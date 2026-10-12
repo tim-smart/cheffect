@@ -3,7 +3,7 @@ import { MenuDayNote } from "@/domain/MenuDayNote"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { Recipe } from "@/domain/Recipe"
 import { Store } from "@/livestore/atoms"
-import { Atom } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
@@ -29,7 +29,9 @@ export const menuByIdAtom = Atom.family((menuId: string) => {
       },
     ),
   )
-  return Atom.make((get) => get.result(result).pipe(Effect.flatten))
+  return Atom.make((get) =>
+    get.result(result).pipe(Effect.flatMap(Effect.fromOption)),
+  )
 })
 
 export const menuEntries$ = (menuId: string) =>

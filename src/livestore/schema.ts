@@ -11,10 +11,11 @@ import {
   SortByValue,
   Step,
 } from "../domain/Recipe"
-import { Model } from "@effect/sql"
+import * as Model from "effect/schema/Model"
 import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import * as SchemaTransformation from "effect/SchemaTransformation"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { Timer } from "@/domain/Timer"
 
@@ -47,14 +48,14 @@ export const tables = {
       ...recipeColumns,
       ingredientScale: State.SQLite.real({ default: 1 }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       deletedAt: State.SQLite.integer({
         nullable: true,
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
     indexes: [
@@ -80,7 +81,7 @@ export const tables = {
       tag: State.SQLite.text({ nullable: false }),
       deletedAt: State.SQLite.integer({
         nullable: true,
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
   }),
@@ -91,7 +92,7 @@ export const tables = {
       url: State.SQLite.text({ nullable: false }),
       completedAt: State.SQLite.integer({
         nullable: true,
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
   }),
@@ -129,10 +130,10 @@ export const tables = {
       }),
       completed: State.SQLite.boolean({ default: false }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
     indexes: [
@@ -151,10 +152,10 @@ export const tables = {
         nullable: false,
       }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
   }),
@@ -166,7 +167,7 @@ export const tables = {
       aisle: State.SQLite.text({ nullable: false }),
       sortOrder: State.SQLite.integer({ nullable: false }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
     indexes: [
@@ -183,10 +184,10 @@ export const tables = {
       name: State.SQLite.text({ nullable: false }),
       days: State.SQLite.integer({ nullable: false }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
   }),
@@ -198,10 +199,10 @@ export const tables = {
       day: State.SQLite.integer({ nullable: false }),
       recipeId: State.SQLite.text({ nullable: false }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
     indexes: [
@@ -219,10 +220,10 @@ export const tables = {
       day: State.SQLite.integer({ nullable: false }),
       note: State.SQLite.text({ nullable: false }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
     indexes: [
@@ -242,10 +243,10 @@ export const tables = {
       }),
       note: State.SQLite.text({ nullable: false }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
     indexes: [
@@ -263,10 +264,10 @@ export const tables = {
         nullable: true,
       }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
   }),
@@ -283,7 +284,7 @@ export const tables = {
       id: State.SQLite.text({ primaryKey: true }),
       content: State.SQLite.text({ nullable: false }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
   }),
@@ -296,17 +297,17 @@ export const tables = {
         schema: Schema.DurationFromMillis,
       }),
       expiresAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       pausedRemaining: State.SQLite.integer({
         nullable: true,
         schema: Schema.DurationFromMillis,
       }),
       createdAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
       updatedAt: State.SQLite.integer({
-        schema: Schema.DateTimeUtcFromNumber,
+        schema: Schema.DateTimeUtcFromMillis,
       }),
     },
   }),
@@ -343,12 +344,12 @@ export const events = {
     schema: Schema.Struct({
       id: Schema.String,
       ingredientScale: Schema.Number,
-      updatedAt: Schema.DateTimeUtcFromNumber,
+      updatedAt: Schema.DateTimeUtcFromMillis,
     }),
   }),
   recipeDeleted: Events.synced({
     name: "v1.RecipeDeleted",
-    schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtc }),
+    schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtcFromString }),
   }),
   recipeExtractJobAdded: Events.synced({
     name: "v1.RecipeExtractJobAdded",
@@ -361,7 +362,7 @@ export const events = {
     name: "v1.RecipeExtractJobCompleted",
     schema: Schema.Struct({
       id: Schema.String,
-      completedAt: Schema.DateTimeUtc,
+      completedAt: Schema.DateTimeUtcFromString,
     }),
   }),
   recipeEditSet: Events.synced({
@@ -416,26 +417,26 @@ export const events = {
       list: Schema.NullOr(Schema.String),
       aisle: Schema.String,
       sortOrder: Schema.Number,
-      updatedAt: Schema.DateTimeUtcFromNumber,
+      updatedAt: Schema.DateTimeUtcFromMillis,
     }),
   }),
   groceryItemCleared: Events.synced({
     name: "v1.GroceryItemCleared",
-    schema: Schema.Union(
-      Schema.Void,
+    schema: Schema.Union([
       Schema.Struct({
         list: Schema.NullOr(Schema.String),
       }),
-    ),
+      Schema.Void,
+    ]),
   }),
   groceryItemClearedCompleted: Events.synced({
     name: "v1.GroceryItemClearedCompleted",
-    schema: Schema.Union(
-      Schema.Void,
+    schema: Schema.Union([
       Schema.Struct({
         list: Schema.NullOr(Schema.String),
       }),
-    ),
+      Schema.Void,
+    ]),
   }),
   groceryItemDeleted: Events.synced({
     name: "v1.GroceryItemDeleted",
@@ -459,7 +460,7 @@ export const events = {
       id: Schema.String,
       newDays: Schema.Number,
       day: Schema.Number,
-      updatedAt: Schema.DateTimeUtcFromNumber,
+      updatedAt: Schema.DateTimeUtcFromMillis,
     }),
   }),
   menuRemove: Events.synced({
@@ -475,7 +476,7 @@ export const events = {
     schema: Schema.Struct({
       id: Schema.String,
       day: Schema.Number,
-      updatedAt: Schema.DateTimeUtc,
+      updatedAt: Schema.DateTimeUtcFromString,
     }),
   }),
   menuEntryRemove: Events.synced({
@@ -510,8 +511,8 @@ export const events = {
     name: "v1.SettingsSet",
     schema: Schema.Struct({
       id: Schema.String,
-      value: Schema.Option(Schema.Unknown),
-      updatedAt: Schema.DateTimeUtc,
+      value: Schema.toCodecJson(Schema.Option(Schema.Unknown)),
+      updatedAt: Schema.DateTimeUtcFromString,
     }),
   }),
   searchStateSet: tables.searchState.set,
@@ -706,23 +707,27 @@ export const schema = makeSchema({ events, state })
 // ----
 
 // ensure Recipe model is assignable to the recipes table
-Schema.transform(tables.recipes.rowSchema, Schema.typeSchema(Recipe), {
-  strict: true,
-  decode: (row) =>
-    new Recipe({
-      ...row,
-      rating: row.rating != null ? Rating.make(row.rating) : null,
+tables.recipes.rowSchema.pipe(
+  Schema.decodeTo(
+    Schema.toType(Recipe),
+    SchemaTransformation.transform({
+      decode: (row) =>
+        new Recipe({
+          ...row,
+          rating: row.rating != null ? Rating.make(row.rating) : null,
+        }),
+      encode: (recipe) => recipe,
     }),
-  encode: (recipe) => recipe,
-})
+  ),
+)
 
 // ensure GroceryItem model is assignable to the table
-Schema.transform(
-  tables.groceryItems.rowSchema,
-  Schema.typeSchema(GroceryItem),
-  {
-    strict: true,
-    decode: (row) => new GroceryItem(row),
-    encode: (item) => item,
-  },
+tables.groceryItems.rowSchema.pipe(
+  Schema.decodeTo(
+    Schema.toType(GroceryItem),
+    SchemaTransformation.transform({
+      decode: (row) => new GroceryItem(row),
+      encode: (item) => item,
+    }),
+  ),
 )

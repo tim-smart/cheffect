@@ -33,13 +33,8 @@ import {
 import { exportRecipeAsHtml, exportRecipeAsYaml } from "@/Recipes/export"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
-import {
-  Result,
-  useAtom,
-  useAtomMount,
-  useAtomSet,
-  useAtomValue,
-} from "@effect-atom/atom-react"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtom, useAtomMount, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import * as BigDecimal from "effect/BigDecimal"
 import * as DateTime from "effect/DateTime"
@@ -70,6 +65,13 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
 
+const toggleHashSet =
+  <A,>(value: A) =>
+  (self: HashSet.HashSet<A>): HashSet.HashSet<A> =>
+    HashSet.has(self, value)
+      ? HashSet.remove(self, value)
+      : HashSet.add(self, value)
+
 export const Route = createFileRoute("/recipes/$id")({
   component: RouteComponent,
 })
@@ -77,11 +79,11 @@ export const Route = createFileRoute("/recipes/$id")({
 function RouteComponent() {
   const { id } = Route.useParams()
   const result = useAtomValue(recipeForDisplayAtom(id))
-  return Result.builder(result)
+  return AsyncResult.builder(result)
     .onSuccess(({ resolved, isModified }) => (
       <RecipeDetails recipe={resolved} modified={isModified} />
     ))
-    .onErrorTag("NoSuchElementException", () => <NoRecipeFound />)
+    .onErrorTag("NoSuchElementError", () => <NoRecipeFound />)
     .render()
 }
 
@@ -132,13 +134,13 @@ export function RecipeDetails({
   }, [currentStep, recipe.steps.length, stepElements])
 
   const toggleIngredient = (ingredientId: string) => {
-    setCheckedIngredients(HashSet.toggle(ingredientId))
+    setCheckedIngredients(toggleHashSet(ingredientId))
   }
 
   const [menuOpen, setMenuOpen] = useState(false)
 
   const handleStartTimer = (durationMs: number, label: string) => {
-    const now = DateTime.unsafeNow()
+    const now = DateTime.nowUnsafe()
     const duration = Duration.millis(durationMs)
     commit(
       events.timerAdded({
@@ -285,7 +287,7 @@ export function RecipeDetails({
                     commit(
                       events.recipeDeleted({
                         id: recipe.id,
-                        deletedAt: DateTime.unsafeNow(),
+                        deletedAt: DateTime.nowUnsafe(),
                       }),
                     )
                     return router.history.back()
@@ -521,7 +523,7 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
                   const denominator = yield* BigDecimal.fromString(parts[1])
                   return yield* BigDecimal.divide(numerator, denominator)
                 } else if (parts[0].trim() === "") {
-                  return yield* Option.some(BigDecimal.unsafeFromNumber(1))
+                  return yield* Option.some(BigDecimal.fromNumberUnsafe(1))
                 }
                 return yield* BigDecimal.fromString(parts[0])
               })
@@ -529,8 +531,8 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
                 commit(
                   events.recipeSetIngredientScale({
                     id: recipe.id,
-                    ingredientScale: BigDecimal.unsafeToNumber(scale.value),
-                    updatedAt: DateTime.unsafeNow(),
+                    ingredientScale: BigDecimal.toNumberUnsafe(scale.value),
+                    updatedAt: DateTime.nowUnsafe(),
                   }),
                 )
               }
@@ -563,7 +565,7 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setOriginals(HashSet.toggle(recipe.id))}
+          onClick={() => setOriginals(toggleHashSet(recipe.id))}
         >
           {showOriginal ? "Show modified" : "Show original"}
         </Button>

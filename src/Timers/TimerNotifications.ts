@@ -1,4 +1,5 @@
-import { Atom, Registry } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
@@ -20,9 +21,9 @@ declare global {
   }
 }
 
-export const TimerNotifications = Layer.scopedDiscard(
+export const TimerNotifications = Layer.effectDiscard(
   Effect.gen(function* () {
-    const registry = yield* Registry.AtomRegistry
+    const registry = yield* AtomRegistry.AtomRegistry
     const notifiedRef = yield* Ref.make<Map<string, Timer>>(new Map())
 
     const notify = (timerId: string, label: string) =>
@@ -75,7 +76,7 @@ export const TimerNotifications = Layer.scopedDiscard(
       FiberHandle.run(vibrateHandle, { onlyIfMissing: true }),
     )
 
-    yield* Registry.toStream(registry, timerUiStateAtom).pipe(
+    yield* AtomRegistry.toStream(registry, timerUiStateAtom).pipe(
       Stream.runForEach(
         Effect.fnUntraced(function* (timerStates) {
           const notified = yield* Ref.get(notifiedRef)

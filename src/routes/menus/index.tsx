@@ -9,20 +9,13 @@ import {
   Trash,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { FormBody, FormDisplay } from "@inato-form/core"
-import { TextInput } from "@inato-form/fields"
-import * as Effect from "effect/Effect"
-import { ShadcnReactHookFormLayer } from "@/lib/InatoForm"
+import { FormBody, FormDisplay } from "@/lib/Form"
+import { TextInput } from "@/lib/InatoForm"
 import { Menu } from "@/domain/Menu"
 import * as DateTime from "effect/DateTime"
 import { cn } from "@/lib/utils"
-import {
-  Atom,
-  useAtom,
-  useAtomSet,
-  useAtomSuspense,
-  useAtomValue,
-} from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import { useAtom, useAtomSet, useAtomSuspense, useAtomValue } from "@effect/atom-react"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { allMenusAtom, menuRecipeCountAtom } from "@/Menus/atoms"
@@ -233,10 +226,7 @@ const MenuFormSchema = FormBody.struct({
   name: TextInput.Required,
 })
 
-const Display = FormDisplay.make(MenuFormSchema).pipe(
-  Effect.provide(ShadcnReactHookFormLayer),
-  Effect.runSync,
-)
+const Display = FormDisplay.make(MenuFormSchema, Button)
 
 function MenuForm({
   className,
@@ -266,14 +256,12 @@ function MenuForm({
       onError={(error) => {
         console.error("Form submission error:", error)
       }}
-      onSubmit={(...args) => {
-        const [{ decoded }] = args
-        const controls = (args as any)[1]
+      onSubmit={({ decoded }, controls) => {
         const item = initialValue
           ? new Menu({
               ...initialValue,
               ...decoded,
-              updatedAt: DateTime.unsafeNow(),
+              updatedAt: DateTime.nowUnsafe(),
             })
           : Menu.fromForm(decoded)
         onSubmit(item)
