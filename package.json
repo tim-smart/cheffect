@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --import tsx --test test/*.test.ts"
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:e2e": "node --import tsx --test --test-force-exit test/e2e/*.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
