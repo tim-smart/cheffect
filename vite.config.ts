@@ -110,6 +110,8 @@ export default defineConfig({
   worker: { format: "es" },
 
   optimizeDeps: {
-    exclude: ["@livestore/wa-sqlite"],
+    // pre-bundling effect leaves the LiveStore workers with a separate copy
+    // of it in dev, and the store never finishes booting
+    exclude: ["@livestore/wa-sqlite", "effect"],
   },
 })
