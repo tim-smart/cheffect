@@ -9,7 +9,23 @@ import { createServer } from "vite"
 // `chromium` is not on the PATH.
 
 export const chromium = process.env.CHROMIUM_PATH ?? "chromium"
-export const hasChromium = spawnSync(chromium, ["--version"]).status === 0
+const browserCheck = spawnSync(chromium, ["--version"], {
+  encoding: "utf8",
+  timeout: 10_000,
+})
+export const hasChromium = browserCheck.status === 0
+if (
+  !hasChromium &&
+  (process.env.CHROMIUM_PATH !== undefined ||
+    process.env.E2E_REQUIRE_BROWSER === "1")
+) {
+  const reason =
+    browserCheck.error?.message ??
+    `exit ${browserCheck.status}, signal ${browserCheck.signal}: ${browserCheck.stderr.trim()}`
+  throw new Error(
+    `Browser preflight failed for ${JSON.stringify(chromium)}: ${reason}. Set CHROMIUM_PATH to an available browser executable.`,
+  )
+}
 
 const crashesDir = path.resolve("test-results/e2e-crashes")
 

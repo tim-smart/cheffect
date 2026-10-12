@@ -75,10 +75,11 @@ persisted. These are not run in CI. Run them by hand against a release build of
 Google Chrome before accepting changes to LiveStore, the store atoms or the edit
 and delete flows.
 
-If the browser can't be found, the tests are skipped instead of failing, and a
-skipped run says nothing about the app. Run them with this preflight, which
-stops if release Chrome is missing and fails unless every browser test ran and
-passed:
+For acceptance runs, set `E2E_REQUIRE_BROWSER=1` so a missing browser fails
+instead of skipping the tests. An explicitly set `CHROMIUM_PATH` also fails if
+the executable is unavailable or its `--version` check fails. Without either
+setting, a missing default `chromium` still skips the tests for local development;
+that is not an acceptance check.
 
 ```bash
 (
@@ -87,15 +88,9 @@ passed:
     echo "google-chrome-stable not found, not running the browser checks" >&2
     exit 1
   }
-  export CHROMIUM_PATH
+  export CHROMIUM_PATH E2E_REQUIRE_BROWSER=1
   "$CHROMIUM_PATH" --version
-  mkdir -p test-results
-  pnpm test:e2e 2>&1 | tee test-results/e2e.log
-  grep -qx "ℹ skipped 0" test-results/e2e.log || {
-    echo "some browser checks were skipped" >&2
-    exit 1
-  }
-  grep -qx "ℹ fail 0" test-results/e2e.log
+  pnpm test:e2e
 )
 ```
 
