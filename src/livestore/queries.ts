@@ -2,7 +2,8 @@ import { queryDb, sql } from "@livestore/livestore"
 import { tables } from "./schema"
 import { Recipe } from "@/domain/Recipe"
 import { Store } from "./atoms"
-import { Atom, Result } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
@@ -20,13 +21,13 @@ export const searchState$ = queryDb(tables.searchState.get())
 export const searchStateAtom = Store.makeQuery(searchState$)
 export const searchSortByAtom = Atom.map(searchStateAtom, (r) =>
   r.pipe(
-    Result.map((s) => s.sortBy),
-    Result.getOrElse(() => "title" as const),
+    AsyncResult.map((s) => s.sortBy),
+    AsyncResult.getOrElse(() => "title" as const),
   ),
 )
 
 export const mealPlanWeekAtom = Atom.make(
-  DateTime.unsafeNow().pipe(
+  DateTime.nowUnsafe().pipe(
     DateTime.setZone(DateTime.zoneMakeLocal()),
     DateTime.startOf("week"),
     DateTime.removeTime,
@@ -37,7 +38,7 @@ export const mealPlanWeekAdjustedAtom = Atom.make((get) => {
   const today = new Date().getDay()
   const selectedWeek = get(mealPlanWeekAtom)
   const weekStartsOn = get(mealPlanWeekStart.atom).pipe(
-    Result.value,
+    AsyncResult.value,
     Option.flatten,
     Option.getOrElse(() => 0 as const),
   )
@@ -94,7 +95,9 @@ export const recipeByIdAtom = Atom.family((id: string) => {
     ),
   )
 
-  return Atom.make((get) => get.result(result).pipe(Effect.flatten))
+  return Atom.make((get) =>
+    get.result(result).pipe(Effect.flatMap(Effect.fromOption)),
+  )
 })
 
 export const recipeTitleAtom = Atom.family((id: string) =>
@@ -309,7 +312,7 @@ export const mealPlanEntries$ = (startDay: DateTime.Utc) => {
       schema: MealPlanEntry.array,
     },
     {
-      deps: [startDay.epochMillis],
+      deps: [startDay.epochMilliseconds],
     },
   )
 }
@@ -332,7 +335,7 @@ export const mealPlanDayNotes$ = (startDay: DateTime.Utc) => {
       schema: MealPlanDayNote.array,
     },
     {
-      deps: [startDay.epochMillis],
+      deps: [startDay.epochMilliseconds],
     },
   )
 }
@@ -350,7 +353,7 @@ export const mealPlanDayNotesForDay$ = (day: DateTime.Utc) => {
       bindValues: [weekDay],
     },
     {
-      deps: [day.epochMillis],
+      deps: [day.epochMilliseconds],
     },
   )
 }

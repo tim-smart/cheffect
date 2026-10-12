@@ -1,17 +1,12 @@
 import { RecipeFormSchema } from "@/domain/RecipeForm"
-import { FormDisplay } from "@inato-form/core"
-import * as Effect from "effect/Effect"
-import { ShadcnReactHookFormLayer } from "@/lib/InatoForm"
+import { FormDisplay } from "@/lib/Form"
 import { Button } from "@/components/ui/button"
 import { Plus, Trash, X } from "lucide-react"
 import * as Arr from "effect/Array"
 import { Unit } from "@/domain/Recipe"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export const Display = FormDisplay.make(RecipeFormSchema).pipe(
-  Effect.provide(ShadcnReactHookFormLayer),
-  Effect.runSync,
-)
+export const Display = FormDisplay.make(RecipeFormSchema, Button)
 
 export function RecipeForm({
   initialValue,
@@ -20,7 +15,9 @@ export function RecipeForm({
 }: {
   initialValue?: typeof RecipeFormSchema.schema.Encoded
   variant?: "add" | "edit"
-  onSubmit: (decoded: typeof RecipeFormSchema.schema.Type) => void
+  onSubmit: (
+    decoded: typeof RecipeFormSchema.schema.Type,
+  ) => void | Promise<void>
 }) {
   return (
     <Display.Form
@@ -28,9 +25,7 @@ export function RecipeForm({
       onError={(error) => {
         console.error("Form submission error:", error)
       }}
-      onSubmit={({ decoded }) => {
-        onSubmit(decoded)
-      }}
+      onSubmit={({ decoded }) => onSubmit(decoded)}
     >
       <div className="flex flex-col gap-4 p-2 pt-8 max-w-lg mx-auto">
         <FormCard>

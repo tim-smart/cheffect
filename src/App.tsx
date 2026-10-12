@@ -1,7 +1,7 @@
 import { RouterProvider } from "@tanstack/react-router"
 import { useRegisterSW } from "virtual:pwa-register/react"
 import { router } from "./Router"
-import { useAtomMount, useAtomValue } from "@effect-atom/atom-react"
+import { useAtomMount, useAtomValue } from "@effect/atom-react"
 import { Store } from "./livestore/atoms"
 import { aiChatOpenAtom, installPromptAtom } from "./atoms"
 import { useLayoutEffect } from "react"

@@ -12,7 +12,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import * as DateTime from "effect/DateTime"
-import { Result, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtom, useAtomValue } from "@effect/atom-react"
 import {
   mealPlanDayNotesAtom,
   mealPlanEntriesAtom,
@@ -59,7 +60,7 @@ const dayNames = [
 export function MealPlanPage() {
   const commit = useCommit()
 
-  const today = DateTime.unsafeNow().pipe(
+  const today = DateTime.nowUnsafe().pipe(
     DateTime.setZone(DateTime.zoneMakeLocal()),
     DateTime.removeTime,
   )
@@ -80,8 +81,8 @@ export function MealPlanPage() {
 
   const weekEnd = DateTime.add(weekStart, { days: 6 })
   const isCurrentWeek =
-    DateTime.greaterThanOrEqualTo(today, weekStart) &&
-    DateTime.lessThanOrEqualTo(today, weekEnd)
+    DateTime.isGreaterThanOrEqualTo(today, weekStart) &&
+    DateTime.isLessThanOrEqualTo(today, weekEnd)
 
   const handlePreviousWeek = () => {
     setWeekStart(DateTime.subtract(weekStartRaw, { weeks: 1 }))
@@ -115,8 +116,8 @@ export function MealPlanPage() {
             <div className="flex items-center gap-2">
               <AddToGroceriesButton
                 recipes={entries.pipe(
-                  Result.map(Iterable.map((entry) => entry.recipe)),
-                  Result.getOrElse(() => []),
+                  AsyncResult.map(Iterable.map((entry) => entry.recipe)),
+                  AsyncResult.getOrElse(() => []),
                 )}
               />
               <DropdownMenu>
@@ -133,11 +134,14 @@ export function MealPlanPage() {
                       ) {
                         return
                       }
-                      const toRemove = Result.getOrElse(entries, () => [])
+                      const toRemove = AsyncResult.getOrElse(entries, () => [])
                       toRemove.forEach((entry) => {
                         commit(events.mealPlanRemove({ id: entry.id }))
                       })
-                      const notesToRemove = Result.getOrElse(dayNotes, () => [])
+                      const notesToRemove = AsyncResult.getOrElse(
+                        dayNotes,
+                        () => [],
+                      )
                       notesToRemove.forEach((note) => {
                         commit(events.mealPlanDayNoteRemove({ id: note.id }))
                       })
@@ -208,8 +212,8 @@ export function MealPlanPage() {
       <main className="max-w-lg mx-auto px-2 py-3" {...handlers}>
         <WeekList
           today={today}
-          entries={Result.getOrElse(entries, () => [])}
-          dayNotes={Result.getOrElse(dayNotes, () => [])}
+          entries={AsyncResult.getOrElse(entries, () => [])}
+          dayNotes={AsyncResult.getOrElse(dayNotes, () => [])}
           weekDays={weekDays}
           handleRemoveEntry={handleRemoveEntry}
         />
@@ -239,7 +243,7 @@ function WeekList({
     const existing = notesByDay.get(key)
     if (
       !existing ||
-      note.updatedAt.epochMillis > existing.updatedAt.epochMillis
+      note.updatedAt.epochMilliseconds > existing.updatedAt.epochMilliseconds
     ) {
       notesByDay.set(key, note)
     }
@@ -256,7 +260,7 @@ function WeekList({
 
         return (
           <DayListItem
-            key={date.epochMillis}
+            key={date.epochMilliseconds}
             date={date}
             dayEntries={dayEntries}
             dayNote={dayNote}
@@ -306,7 +310,7 @@ function DayListItem({
         events.mealPlanDayNoteUpdate({
           ...dayNote,
           note: trimmed,
-          updatedAt: DateTime.unsafeNow(),
+          updatedAt: DateTime.nowUnsafe(),
         }),
       )
       return

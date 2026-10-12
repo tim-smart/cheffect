@@ -1,0 +1,479 @@
+[
+  {
+    "type": "response.created",
+    "response": {
+      "id": "resp_1",
+      "object": "response",
+      "created_at": 1760000000,
+      "status": "in_progress",
+      "background": false,
+      "error": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "model": "gpt-5.4-2026-03-05",
+      "output": [],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": "in_memory",
+      "reasoning": {
+        "effort": "medium",
+        "summary": null
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text"
+        },
+        "verbosity": "medium"
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "type": "web_search",
+          "filters": null,
+          "search_context_size": "medium",
+          "user_location": {
+            "type": "approximate",
+            "city": null,
+            "country": "US",
+            "region": null,
+            "timezone": null
+          }
+        }
+      ],
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": null,
+      "user": null,
+      "metadata": {}
+    },
+    "sequence_number": 0
+  },
+  {
+    "type": "response.in_progress",
+    "response": {
+      "id": "resp_1",
+      "object": "response",
+      "created_at": 1760000000,
+      "status": "in_progress",
+      "background": false,
+      "error": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "model": "gpt-5.4-2026-03-05",
+      "output": [],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": "in_memory",
+      "reasoning": {
+        "effort": "medium",
+        "summary": null
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text"
+        },
+        "verbosity": "medium"
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "type": "web_search",
+          "filters": null,
+          "search_context_size": "medium",
+          "user_location": {
+            "type": "approximate",
+            "city": null,
+            "country": "US",
+            "region": null,
+            "timezone": null
+          }
+        }
+      ],
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": null,
+      "user": null,
+      "metadata": {}
+    },
+    "sequence_number": 1
+  },
+  {
+    "type": "response.output_item.added",
+    "output_index": 0,
+    "item": {
+      "id": "ws_1",
+      "type": "web_search_call",
+      "status": "in_progress"
+    },
+    "sequence_number": 2
+  },
+  {
+    "type": "response.web_search_call.in_progress",
+    "output_index": 0,
+    "item_id": "ws_1",
+    "sequence_number": 3
+  },
+  {
+    "type": "response.web_search_call.searching",
+    "output_index": 0,
+    "item_id": "ws_1",
+    "sequence_number": 4
+  },
+  {
+    "type": "response.web_search_call.completed",
+    "output_index": 0,
+    "item_id": "ws_1",
+    "sequence_number": 5
+  },
+  {
+    "type": "response.output_item.done",
+    "output_index": 0,
+    "item": {
+      "id": "ws_1",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "search",
+        "queries": ["autumn produce"],
+        "sources": [
+          {
+            "type": "url",
+            "url": "https://example.com/produce"
+          }
+        ]
+      }
+    },
+    "sequence_number": 6
+  },
+  {
+    "type": "response.output_item.added",
+    "output_index": 1,
+    "item": {
+      "id": "ws_2",
+      "type": "web_search_call",
+      "status": "in_progress"
+    },
+    "sequence_number": 7
+  },
+  {
+    "type": "response.web_search_call.in_progress",
+    "output_index": 1,
+    "item_id": "ws_2",
+    "sequence_number": 8
+  },
+  {
+    "type": "response.web_search_call.searching",
+    "output_index": 1,
+    "item_id": "ws_2",
+    "sequence_number": 9
+  },
+  {
+    "type": "response.web_search_call.completed",
+    "output_index": 1,
+    "item_id": "ws_2",
+    "sequence_number": 10
+  },
+  {
+    "type": "response.output_item.done",
+    "output_index": 1,
+    "item": {
+      "id": "ws_2",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "open_page"
+      }
+    },
+    "sequence_number": 11
+  },
+  {
+    "type": "response.output_item.added",
+    "output_index": 2,
+    "item": {
+      "id": "ws_3",
+      "type": "web_search_call",
+      "status": "in_progress"
+    },
+    "sequence_number": 12
+  },
+  {
+    "type": "response.web_search_call.in_progress",
+    "output_index": 2,
+    "item_id": "ws_3",
+    "sequence_number": 13
+  },
+  {
+    "type": "response.web_search_call.searching",
+    "output_index": 2,
+    "item_id": "ws_3",
+    "sequence_number": 14
+  },
+  {
+    "type": "response.web_search_call.completed",
+    "output_index": 2,
+    "item_id": "ws_3",
+    "sequence_number": 15
+  },
+  {
+    "type": "response.output_item.done",
+    "output_index": 2,
+    "item": {
+      "id": "ws_3",
+      "type": "web_search_call",
+      "status": "completed",
+      "action": {
+        "type": "find_in_page",
+        "url": "https://example.com/produce"
+      }
+    },
+    "sequence_number": 16
+  },
+  {
+    "type": "response.output_item.added",
+    "output_index": 3,
+    "item": {
+      "id": "ws_4",
+      "type": "web_search_call",
+      "status": "in_progress"
+    },
+    "sequence_number": 17
+  },
+  {
+    "type": "response.web_search_call.in_progress",
+    "output_index": 3,
+    "item_id": "ws_4",
+    "sequence_number": 18
+  },
+  {
+    "type": "response.web_search_call.searching",
+    "output_index": 3,
+    "item_id": "ws_4",
+    "sequence_number": 19
+  },
+  {
+    "type": "response.web_search_call.completed",
+    "output_index": 3,
+    "item_id": "ws_4",
+    "sequence_number": 20
+  },
+  {
+    "type": "response.output_item.done",
+    "output_index": 3,
+    "item": {
+      "id": "ws_4",
+      "type": "web_search_call",
+      "status": "completed"
+    },
+    "sequence_number": 21
+  },
+  {
+    "type": "response.output_item.added",
+    "output_index": 4,
+    "item": {
+      "id": "msg_1",
+      "type": "message",
+      "status": "in_progress",
+      "role": "assistant",
+      "content": []
+    },
+    "sequence_number": 22
+  },
+  {
+    "type": "response.content_part.added",
+    "item_id": "msg_1",
+    "output_index": 4,
+    "content_index": 0,
+    "part": {
+      "type": "output_text",
+      "annotations": [],
+      "logprobs": [],
+      "text": ""
+    },
+    "sequence_number": 23
+  },
+  {
+    "type": "response.output_text.delta",
+    "item_id": "msg_1",
+    "output_index": 4,
+    "content_index": 0,
+    "delta": "Pumpkins are ",
+    "logprobs": [],
+    "sequence_number": 24
+  },
+  {
+    "type": "response.output_text.delta",
+    "item_id": "msg_1",
+    "output_index": 4,
+    "content_index": 0,
+    "delta": "in season.",
+    "logprobs": [],
+    "sequence_number": 25
+  },
+  {
+    "type": "response.output_text.done",
+    "item_id": "msg_1",
+    "output_index": 4,
+    "content_index": 0,
+    "text": "Pumpkins are in season.",
+    "logprobs": [],
+    "sequence_number": 26
+  },
+  {
+    "type": "response.content_part.done",
+    "item_id": "msg_1",
+    "output_index": 4,
+    "content_index": 0,
+    "part": {
+      "type": "output_text",
+      "annotations": [],
+      "logprobs": [],
+      "text": "Pumpkins are in season."
+    },
+    "sequence_number": 27
+  },
+  {
+    "type": "response.output_item.done",
+    "output_index": 4,
+    "item": {
+      "id": "msg_1",
+      "type": "message",
+      "status": "completed",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "annotations": [],
+          "logprobs": [],
+          "text": "Pumpkins are in season."
+        }
+      ]
+    },
+    "sequence_number": 28
+  },
+  {
+    "type": "response.completed",
+    "response": {
+      "id": "resp_1",
+      "object": "response",
+      "created_at": 1760000000,
+      "status": "completed",
+      "background": false,
+      "error": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "model": "gpt-5.4-2026-03-05",
+      "output": [
+        {
+          "id": "ws_1",
+          "type": "web_search_call",
+          "status": "completed",
+          "action": {
+            "type": "search",
+            "queries": ["autumn produce"],
+            "sources": [
+              {
+                "type": "url",
+                "url": "https://example.com/produce"
+              }
+            ]
+          }
+        },
+        {
+          "id": "ws_2",
+          "type": "web_search_call",
+          "status": "completed",
+          "action": {
+            "type": "open_page"
+          }
+        },
+        {
+          "id": "ws_3",
+          "type": "web_search_call",
+          "status": "completed",
+          "action": {
+            "type": "find_in_page",
+            "url": "https://example.com/produce"
+          }
+        },
+        {
+          "id": "ws_4",
+          "type": "web_search_call",
+          "status": "completed"
+        },
+        {
+          "id": "msg_1",
+          "type": "message",
+          "status": "completed",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "annotations": [],
+              "logprobs": [],
+              "text": "Pumpkins are in season."
+            }
+          ]
+        }
+      ],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": "in_memory",
+      "reasoning": {
+        "effort": "medium",
+        "summary": null
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text"
+        },
+        "verbosity": "medium"
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "type": "web_search",
+          "filters": null,
+          "search_context_size": "medium",
+          "user_location": {
+            "type": "approximate",
+            "city": null,
+            "country": "US",
+            "region": null,
+            "timezone": null
+          }
+        }
+      ],
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 100,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 20,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 120
+      },
+      "user": null,
+      "metadata": {}
+    },
+    "sequence_number": 29
+  }
+]

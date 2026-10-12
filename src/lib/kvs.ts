@@ -1,8 +1,7 @@
 import { Store } from "@/livestore/atoms"
 import { events, tables } from "@/livestore/schema"
-import * as KeyValueStore from "@effect/platform/KeyValueStore"
+import * as KeyValueStore from "effect/persistence/KeyValueStore"
 import { queryDb } from "@livestore/livestore"
-import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 
@@ -15,7 +14,7 @@ export const layerKvsLivestore = Layer.effect(
       get: (key) =>
         Effect.sync(() => {
           const values = store.query(get$(key))
-          return Array.head(values)
+          return values[0]
         }),
       set: (key, value) =>
         Effect.sync(() => {

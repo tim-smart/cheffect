@@ -24,22 +24,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import {
-  Atom,
-  Result,
-  useAtom,
-  useAtomSet,
-  useAtomValue,
-} from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
-import { FormBody, FormDisplay } from "@inato-form/core"
-import { TextInput } from "@inato-form/fields"
+import { FormBody, FormDisplay } from "@/lib/Form"
 import {
   SelectWithLiteralsOrNull,
-  ShadcnReactHookFormLayer,
   TextInputOrNull,
+  TextInput,
 } from "@/lib/InatoForm"
-import * as Effect from "effect/Effect"
 import * as DateTime from "effect/DateTime"
 import {
   beautifyGroceriesAtom,
@@ -93,8 +87,8 @@ const arrayMove = <T,>(items: readonly T[], from: number, to: number): T[] => {
 
 function GroceryList() {
   const currentList = useAtomValue(groceryListStateAtom).pipe(
-    Result.map((state) => state.currentList),
-    Result.getOrElse(Function.constNull),
+    AsyncResult.map((state) => state.currentList),
+    AsyncResult.getOrElse(Function.constNull),
   )
   const result = useAtomValue(groceryCountAtom)
 
@@ -113,7 +107,7 @@ function GroceryList() {
     for (const { items } of result.value.aisles) {
       for (const item of items) {
         if (!item.completed) continue
-        const now = DateTime.unsafeNow()
+        const now = DateTime.nowUnsafe()
         commit(
           events.groceryItemAdded(
             new GroceryItem({
@@ -208,7 +202,7 @@ function GroceryList() {
         </div>
       </header>
 
-      {Result.builder(result)
+      {AsyncResult.builder(result)
         .onSuccess((state) => (
           <>
             <GroceryListList {...state} currentList={currentList} showForm />
@@ -231,13 +225,10 @@ function GroceryList() {
 const ItemFormSchema = FormBody.struct({
   name: TextInput.Required,
   quantity: TextInputOrNull,
-  aisle: SelectWithLiteralsOrNull(...GroceryAisle.literals),
+  aisle: SelectWithLiteralsOrNull(GroceryAisle.literals),
 })
 
-const Display = FormDisplay.make(ItemFormSchema).pipe(
-  Effect.provide(ShadcnReactHookFormLayer),
-  Effect.runSync,
-)
+const Display = FormDisplay.make(ItemFormSchema, Button)
 
 const aisleOptions = GroceryAisle.literals.map((value) => ({
   label: value,
@@ -280,14 +271,12 @@ function GroceryItemForm({
       onError={(error) => {
         console.error("Form submission error:", error)
       }}
-      onSubmit={(...args) => {
-        const [{ decoded }] = args
-        const controls = (args as any)[1]
+      onSubmit={({ decoded }, controls) => {
         const item = initialValue
           ? new GroceryItem({
               ...initialValue,
               ...decoded,
-              updatedAt: DateTime.unsafeNow(),
+              updatedAt: DateTime.nowUnsafe(),
             })
           : GroceryItem.fromForm(decoded, currentList)
         onSubmit(item)
@@ -405,7 +394,7 @@ function GroceryListList({
     const toIndex = aisles.findIndex(({ name }) => name === overId)
     if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return
     const nextOrder = arrayMove(aisles, fromIndex, toIndex)
-    const updatedAt = DateTime.unsafeNow()
+    const updatedAt = DateTime.nowUnsafe()
     nextOrder.forEach(({ name }, index) => {
       commit(
         events.groceryAisleOrderSet({
@@ -808,12 +797,12 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const [state, setState] = useAtom(groceryListStateAtom)
   const currentList = state.pipe(
-    Result.map((s) => s.currentList),
-    Result.getOrElse(() => null),
+    AsyncResult.map((s) => s.currentList),
+    AsyncResult.getOrElse(() => null),
   )
   const listNames = useAtomValue(
     groceryListNamesAtom,
-    Result.getOrElse(() => [null]),
+    AsyncResult.getOrElse(() => [null]),
   )
   const [inputValue, setInputValue] = useState("")
   const inputTrimmed = inputValue.trim()

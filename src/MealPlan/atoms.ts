@@ -21,7 +21,7 @@ export const addMenuToMealPlanAtom = Store.runtime.fn<{
       const existing = mealPlanNoteByDay.get(key)
       if (
         !existing ||
-        note.updatedAt.epochMillis > existing.updatedAt.epochMillis
+        note.updatedAt.epochMilliseconds > existing.updatedAt.epochMilliseconds
       ) {
         mealPlanNoteByDay.set(key, note)
       }
@@ -48,7 +48,7 @@ export const addMenuToMealPlanAtom = Store.runtime.fn<{
           events.mealPlanDayNoteUpdate({
             ...existing,
             note: note.note,
-            updatedAt: DateTime.unsafeNow(),
+            updatedAt: DateTime.nowUnsafe(),
           }),
         )
         continue

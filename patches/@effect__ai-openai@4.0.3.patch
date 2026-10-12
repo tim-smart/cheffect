@@ -1,0 +1,49 @@
+diff --git a/dist/OpenAiTool.js b/dist/OpenAiTool.js
+index 3fd3c02ea3b0d1e65d5904c702bec29c400557c6..8ce4ff1db46a3d82cf8574c80c030cfe49325eb4 100644
+--- a/dist/OpenAiTool.js
++++ b/dist/OpenAiTool.js
+@@ -281,12 +281,33 @@ export const Shell = /*#__PURE__*/Tool.providerDefined({
+     output: Generated.FunctionShellCallOutput.fields.output
+   })
+ });
++// The generated schema requires `url` and `pattern` on `find_in_page`
++// actions, but the API can omit them.
++const WebSearchAction = /*#__PURE__*/Schema.optionalKey(/*#__PURE__*/Schema.Union([/*#__PURE__*/Schema.Struct({
++  type: Schema.Literal("search"),
++  query: Schema.optionalKey(Schema.String),
++  queries: Schema.optionalKey(Schema.Array(Schema.String)),
++  sources: Schema.optionalKey(Schema.Array(Schema.Union([Schema.Struct({
++    type: Schema.Literal("url"),
++    url: Schema.String
++  }), Schema.Struct({
++    type: Schema.Literal("api"),
++    name: Schema.String
++  })])))
++}), /*#__PURE__*/Schema.Struct({
++  type: Schema.Literal("open_page"),
++  url: Schema.optionalKey(Schema.NullOr(Schema.String))
++}), /*#__PURE__*/Schema.Struct({
++  type: Schema.Literal("find_in_page"),
++  url: Schema.optionalKey(Schema.String),
++  pattern: Schema.optionalKey(Schema.String)
++})]));
+ const WebSearchSuccess = /*#__PURE__*/Schema.Struct({
+-  action: Generated.WebSearchToolCall.fields.action,
++  action: WebSearchAction,
+   status: /*#__PURE__*/Schema.Literal("completed")
+ });
+ const WebSearchFailure = /*#__PURE__*/Schema.Struct({
+-  action: Generated.WebSearchToolCall.fields.action,
++  action: WebSearchAction,
+   status: /*#__PURE__*/Schema.Literals(/*#__PURE__*/Generated.WebSearchToolCall.fields.status.literals.filter(status => status !== "completed"))
+ });
+ /**
+@@ -321,7 +342,7 @@ export const WebSearch = /*#__PURE__*/Tool.providerDefined({
+     search_context_size: Generated.WebSearchTool.fields.search_context_size
+   }),
+   parameters: /*#__PURE__*/Schema.Struct({
+-    action: Generated.WebSearchToolCall.fields.action
++    action: WebSearchAction
+   }),
+   success: WebSearchSuccess,
+   failure: WebSearchFailure

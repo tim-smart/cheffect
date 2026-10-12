@@ -1,17 +1,19 @@
 import { Button } from "@/components/ui/button"
 import { Recipe } from "@/domain/Recipe"
 import { RecipeInsert } from "@/domain/RecipeForm"
-import { useCommit } from "@/livestore/atoms"
+import { useCommitPersisted } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { recipeFormByIdAtom } from "@/Recipes/atoms"
 import { Display, RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
-import { Result, useAtomValue } from "@effect-atom/atom-react"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtomValue } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
 import { ArrowLeft, Save } from "lucide-react"
+import { useState } from "react"
 
 export const Route = createFileRoute("/edit/$id")({
   component: EditRecipeScreen,
@@ -20,28 +22,33 @@ export const Route = createFileRoute("/edit/$id")({
 function EditRecipeScreen() {
   const { id } = Route.useParams()
   const result = useAtomValue(recipeFormByIdAtom(id))
-  const commit = useCommit()
+  const commit = useCommitPersisted()
+  const [saving, setSaving] = useState(false)
   const formId = Display.Form.id
-  return Result.builder(result)
+  return AsyncResult.builder(result)
     .onWaiting(() => <RecipeFormSkeleton />)
     .onSuccess(([initialValue, recipe]) => (
       <div className="pb-content">
-        <Header recipe={recipe} formId={formId} />
+        <Header recipe={recipe} formId={formId} saving={saving} />
         <RecipeForm
           initialValue={initialValue}
           variant="edit"
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
+            if (saving) return
+            setSaving(true)
             const formRecipe = Schema.decodeSync(RecipeInsert)(data)
-            commit(
+            // history.back() can leave the document, so wait for the edit to
+            // be persisted first
+            await commit(
               events.recipeUpdated(
                 Recipe.update.make({
                   ...formRecipe,
                   id: recipe.id,
                   ingredientScale: recipe.ingredientScale,
-                  updatedAt: DateTime.unsafeNow(),
+                  updatedAt: DateTime.nowUnsafe(),
                 }),
               ),
-            )
+            ).finally(() => setSaving(false))
             if (router.history.length > 1) {
               return router.history.back()
             }
@@ -53,19 +60,21 @@ function EditRecipeScreen() {
         />
       </div>
     ))
-    .onErrorTag("NoSuchElementException", () => <NoRecipeFound />)
+    .onErrorTag("NoSuchElementError", () => <NoRecipeFound />)
     .render()
 }
 
 function Header({
   recipe,
   formId,
+  saving,
 }: {
   recipe: {
     readonly id: string
     readonly title: string
   }
   formId: string
+  saving: boolean
 }) {
   return (
     <header className="bg-background border-b border-border sticky top-0 z-10">
@@ -82,7 +91,13 @@ function Header({
           <h1 className="text-lg font-semibold  line-clamp-1 flex-1">
             {recipe.title}
           </h1>
-          <Button type="submit" form={formId} size="sm" variant="outline">
+          <Button
+            type="submit"
+            form={formId}
+            size="sm"
+            variant="outline"
+            disabled={saving}
+          >
             <Save />
             Save
           </Button>

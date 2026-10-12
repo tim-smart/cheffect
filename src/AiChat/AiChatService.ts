@@ -1,15 +1,17 @@
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
-import * as AiChat from "@effect/ai/Chat"
+import * as AiChat from "effect/ai/Chat"
 import * as Stream from "effect/Stream"
 import { OpenAiLanguageModel } from "@effect/ai-openai"
-import { Atom, Registry, Result } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Layer from "effect/Layer"
 import { openAiClientLayer } from "@/services/AiHelpers"
 import { pipe } from "effect"
 import * as Array from "effect/Array"
-import * as AiResponse from "@effect/ai/Response"
+import * as AiResponse from "effect/ai/Response"
 import * as Ref from "effect/Ref"
-import * as Chunk from "effect/Chunk"
 import { router } from "@/Router"
 import {
   allGroceryItems$,
@@ -33,14 +35,14 @@ import { MenuDayNote } from "@/domain/MenuDayNote"
 import { GroceryItem } from "@/domain/GroceryItem"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
-import * as Prompt from "@effect/ai/Prompt"
-import * as LanguageModel from "@effect/ai/LanguageModel"
+import * as Prompt from "effect/ai/Prompt"
+import * as LanguageModel from "effect/ai/LanguageModel"
 import { layerKvsLivestore } from "@/lib/kvs"
 import { Store } from "@/livestore/atoms"
 import { events, tables } from "@/livestore/schema"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Option from "effect/Option"
-import * as KeyValueStore from "@effect/platform/KeyValueStore"
+import * as KeyValueStore from "effect/persistence/KeyValueStore"
 import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
 import { Recipe } from "@/domain/Recipe"
@@ -55,7 +57,7 @@ import * as Duration from "effect/Duration"
 const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
     const store = yield* Store
-    const registry = yield* Registry.AtomRegistry
+    const registry = yield* AtomRegistry.AtomRegistry
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
         const recipes = store.query(searchRecipes$(query))
@@ -121,8 +123,8 @@ const ToolkitLayer = toolkit.toLayer(
           const newItem = new GroceryItem({
             ...groceryItem,
             id: crypto.randomUUID(),
-            createdAt: DateTime.unsafeNow(),
-            updatedAt: DateTime.unsafeNow(),
+            createdAt: DateTime.nowUnsafe(),
+            updatedAt: DateTime.nowUnsafe(),
             completed: false,
           })
           store.commit(events.groceryItemAdded(newItem))
@@ -145,7 +147,7 @@ const ToolkitLayer = toolkit.toLayer(
           events.groceryItemUpdated({
             ...existing.value,
             ...groceryItem,
-            updatedAt: DateTime.unsafeNow(),
+            updatedAt: DateTime.nowUnsafe(),
           }),
         )
         return { _tag: "Transient", value: null }
@@ -191,7 +193,7 @@ const ToolkitLayer = toolkit.toLayer(
                 ? (recipeIdsArray as [string, ...string[]])
                 : null,
             completed: target.value.completed,
-            updatedAt: DateTime.unsafeNow(),
+            updatedAt: DateTime.nowUnsafe(),
           }),
         )
         return { _tag: "Transient", value: null }
@@ -239,7 +241,7 @@ const ToolkitLayer = toolkit.toLayer(
               events.menuDayNoteUpdate({
                 ...existing,
                 note: trimmed,
-                updatedAt: DateTime.unsafeNow(),
+                updatedAt: DateTime.nowUnsafe(),
               }),
             )
           }
@@ -267,8 +269,8 @@ const ToolkitLayer = toolkit.toLayer(
         const newMenu = new Menu({
           ...menu,
           id: crypto.randomUUID(),
-          createdAt: DateTime.unsafeNow(),
-          updatedAt: DateTime.unsafeNow(),
+          createdAt: DateTime.nowUnsafe(),
+          updatedAt: DateTime.nowUnsafe(),
         })
         store.commit(events.menuAdd(newMenu))
         return {
@@ -287,8 +289,8 @@ const ToolkitLayer = toolkit.toLayer(
               menuId,
               recipeId: recipe.value.id,
               day: menuEntry.day,
-              createdAt: DateTime.unsafeNow(),
-              updatedAt: DateTime.unsafeNow(),
+              createdAt: DateTime.nowUnsafe(),
+              updatedAt: DateTime.nowUnsafe(),
             }),
           )
           return id
@@ -307,13 +309,13 @@ const ToolkitLayer = toolkit.toLayer(
       }),
       GetCurrentMealPlan: Effect.fnUntraced(function* () {
         const today = new Date().getDay()
-        const thisWeek = DateTime.unsafeNow().pipe(
+        const thisWeek = DateTime.nowUnsafe().pipe(
           DateTime.setZone(DateTime.zoneMakeLocal()),
           DateTime.startOf("week"),
           DateTime.removeTime,
         )
         const weekStartsOn = registry.get(mealPlanWeekStart.atom).pipe(
-          Result.value,
+          AsyncResult.value,
           Option.flatten,
           Option.getOrElse(() => 0 as const),
         )
@@ -328,7 +330,8 @@ const ToolkitLayer = toolkit.toLayer(
           const existing = latestNotes.get(key)
           if (
             !existing ||
-            note.updatedAt.epochMillis > existing.updatedAt.epochMillis
+            note.updatedAt.epochMilliseconds >
+              existing.updatedAt.epochMilliseconds
           ) {
             latestNotes.set(key, note)
           }
@@ -365,7 +368,7 @@ const ToolkitLayer = toolkit.toLayer(
               events.mealPlanDayNoteUpdate({
                 ...existing,
                 note: trimmed,
-                updatedAt: DateTime.unsafeNow(),
+                updatedAt: DateTime.nowUnsafe(),
               }),
             )
           }
@@ -429,7 +432,7 @@ const ToolkitLayer = toolkit.toLayer(
         const newEntry = new AiMemoryEntry({
           id: crypto.randomUUID(),
           content,
-          createdAt: DateTime.unsafeNow(),
+          createdAt: DateTime.nowUnsafe(),
         })
         store.commit(events.aiMemoryEntryAdded(newEntry))
         return {
@@ -452,7 +455,7 @@ const ToolkitLayer = toolkit.toLayer(
             value: null,
           }
         }
-        const now = DateTime.unsafeNow()
+        const now = DateTime.nowUnsafe()
         const timer = new Timer({
           id: crypto.randomUUID(),
           label,
@@ -476,20 +479,22 @@ const ToolkitLayer = toolkit.toLayer(
   }),
 )
 
-class AiChatService extends Effect.Service<AiChatService>()(
+class AiChatService extends Context.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
   {
-    dependencies: [layerKvsLivestore, ToolkitLayer],
-    scoped: Effect.gen(function* () {
+    make: Effect.gen(function* () {
       const modelString = Option.getOrElse(
         yield* Atom.getResult(openAiModel.atom),
         () => "gpt-5.4",
       )
-      const model = yield* OpenAiLanguageModel.model(modelString, {
-        reasoning: { effort: "medium" },
-      })
-      const registry = yield* Registry.AtomRegistry
-      const store = (yield* KeyValueStore.KeyValueStore).forSchema(
+      const model = yield* Layer.build(
+        OpenAiLanguageModel.model(modelString, {
+          reasoning: { effort: "medium" },
+        }),
+      )
+      const registry = yield* AtomRegistry.AtomRegistry
+      const store = KeyValueStore.toSchemaStore(
+        yield* KeyValueStore.KeyValueStore,
         Prompt.Prompt,
       )
       const livestore = yield* Store
@@ -646,17 +651,17 @@ ${MenuEntry.toXml(menuEntries)}`
             onSome: AiChat.fromPrompt,
           }),
         ),
-        Effect.orElse(() => AiChat.empty),
+        Effect.catch(() => AiChat.empty),
       )
       registry.set(currentPromptAtom, yield* Ref.get(chat.history))
 
-      yield* Registry.toStream(registry, persistenceUpdatesAtom).pipe(
+      yield* AtomRegistry.toStream(registry, persistenceUpdatesAtom).pipe(
         Stream.runForEach(
           Effect.fnUntraced(function* (json) {
             if (!json) return
             const history = Option.isNone(json)
               ? Prompt.empty
-              : yield* Schema.decode(Prompt.FromJson)(json.value)
+              : yield* Schema.decodeEffect(PromptJson)(json.value)
             yield* Ref.set(chat.history, history)
             registry.set(currentPromptAtom, history)
           }),
@@ -673,7 +678,7 @@ ${MenuEntry.toXml(menuEntries)}`
         }) {
           const message = yield* makeMessage(options)
           let history = (yield* Ref.get(chat.history)).pipe(
-            Prompt.merge([message]),
+            Prompt.concat([message]),
             Prompt.setSystem(yield* currentSystemPrompt),
           )
           let historyNoFiles = filterFileParts(history)
@@ -686,24 +691,24 @@ ${MenuEntry.toXml(menuEntries)}`
                 toolkit: tools,
                 toolChoice: "auto",
               }),
-              Stream.mapChunks((chunk) => {
+              Stream.mapArray((chunk) => {
                 parts.push(...chunk)
-                return Chunk.of(Prompt.fromResponseParts(parts))
+                return [Prompt.fromResponseParts(parts)] as const
               }),
               Stream.runForEach((response) => {
                 registry.set(
                   currentPromptAtom,
-                  Prompt.merge(historyNoFiles, response),
+                  Prompt.concat(historyNoFiles, response),
                 )
                 return Effect.void
               }),
             )
-            history = Prompt.merge(history, Prompt.fromResponseParts(parts))
+            history = Prompt.concat(history, Prompt.fromResponseParts(parts))
             historyNoFiles = filterFileParts(history)
             registry.set(currentPromptAtom, historyNoFiles)
             const errorPart = parts.findLast((part) => part.type === "error")
             if (errorPart) {
-              historyNoFiles = Prompt.merge(historyNoFiles, [
+              historyNoFiles = Prompt.concat(historyNoFiles, [
                 Prompt.makeMessage("assistant", {
                   content: [
                     Prompt.textPart({
@@ -743,20 +748,27 @@ ${MenuEntry.toXml(menuEntries)}`
           }),
         ),
         Effect.provide(model),
-        Effect.catchAllCause(Effect.logError),
+        Effect.catchCause(Effect.logError),
       )
 
       const clear = Ref.set(chat.history, Prompt.empty).pipe(
-        Effect.zipRight(store.remove("ai-history")),
+        Effect.andThen(store.remove("ai-history")),
       )
 
       return { send, clear } as const
     }),
   },
-) {}
+) {
+  static readonly layer = Layer.effect(this, this.make).pipe(
+    Layer.provide([layerKvsLivestore, ToolkitLayer]),
+  )
+}
+
+// Same JSON codec KeyValueStore.toSchemaStore uses for "ai-history"
+const PromptJson = Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt))
 
 const runtime = Atom.runtime((get) =>
-  AiChatService.Default.pipe(
+  AiChatService.layer.pipe(
     Layer.provide([get(openAiClientLayer), get(Store.layer)]),
   ),
 ).pipe(Atom.keepAlive)

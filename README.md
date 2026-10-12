@@ -58,6 +58,49 @@ services:
     restart: unless-stopped
 ```
 
+## Tests
+
+```bash
+pnpm test
+```
+
+Runs the unit tests: the LiveStore event wire-format fixtures and the regression
+tests for the patched Effect AI packages. CI runs them on every pull request.
+
+### Browser regression checks
+
+`pnpm test:e2e` starts the dev server and drives a browser over the DevTools
+protocol to check that edits and deletes made on a directly opened page are
+persisted. These are not run in CI. Run them by hand against a release build of
+Google Chrome before accepting changes to LiveStore, the store atoms or the edit
+and delete flows.
+
+For acceptance runs, set `E2E_REQUIRE_BROWSER=1` so a missing browser fails
+instead of skipping the tests. An explicitly set `CHROMIUM_PATH` also fails if
+the executable is unavailable or its `--version` check fails. Without either
+setting, a missing default `chromium` still skips the tests for local development;
+that is not an acceptance check.
+
+```bash
+(
+  set -euo pipefail
+  CHROMIUM_PATH=$(command -v google-chrome-stable) || {
+    echo "google-chrome-stable not found, not running the browser checks" >&2
+    exit 1
+  }
+  export CHROMIUM_PATH E2E_REQUIRE_BROWSER=1
+  "$CHROMIUM_PATH" --version
+  pnpm test:e2e
+)
+```
+
+With Nix, run it inside
+`NIXPKGS_ALLOW_UNFREE=1 nix shell --impure nixpkgs#google-chrome`.
+
+A `BrowserCrashError` is a browser failure, not a passing run. Its minidump is
+copied to `test-results/e2e-crashes/`. Rerun, and report the crash separately
+from assertion failures.
+
 ## License
 
 MIT License

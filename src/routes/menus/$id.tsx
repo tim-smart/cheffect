@@ -16,7 +16,7 @@ import * as Duration from "effect/Duration"
 import { SelectRecipeDrawer } from "@/Recipes/Drawer"
 import { router } from "@/Router"
 import * as Array from "effect/Array"
-import { useAtomSuspense, useAtomValue } from "@effect-atom/atom-react"
+import { useAtomSuspense, useAtomValue } from "@effect/atom-react"
 import { menuByIdAtom, menuDayNotesAtom, menuEntriesAtom } from "@/Menus/atoms"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
@@ -57,7 +57,7 @@ export function MenuDetailPage() {
       events.menuUpdate({
         ...menu,
         days,
-        updatedAt: DateTime.unsafeNow(),
+        updatedAt: DateTime.nowUnsafe(),
       }),
     )
   }
@@ -134,7 +134,7 @@ export function MenuDetailPage() {
               events.menuEntrySetDay({
                 id: entry.id,
                 day: targetDay,
-                updatedAt: DateTime.unsafeNow(),
+                updatedAt: DateTime.nowUnsafe(),
               }),
             )
           }}
@@ -228,7 +228,7 @@ function DayListItem({
         events.menuDayNoteUpdate({
           ...dayNote,
           note: trimmed,
-          updatedAt: DateTime.unsafeNow(),
+          updatedAt: DateTime.nowUnsafe(),
         }),
       )
       return
@@ -350,10 +350,10 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
     if (isDragging) {
       setDebouncedIsDragging(true)
     } else {
-      timeout = setTimeout(() => setDebouncedIsDragging(false), 100)
+      timeout = window.setTimeout(() => setDebouncedIsDragging(false), 100)
     }
     return () => {
-      if (timeout) clearTimeout(timeout)
+      if (timeout) window.clearTimeout(timeout)
     }
   }, [isDragging])
 

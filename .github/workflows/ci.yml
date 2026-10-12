@@ -27,6 +27,9 @@ jobs:
       - name: Type check
         run: pnpm tsc --noEmit
 
+      - name: Unit tests
+        run: pnpm test
+
       - name: Type check (cf)
         run: |
           cd cf

@@ -4,8 +4,9 @@ import { unstable_batchedUpdates } from "react-dom"
 import LiveStoreWorker from "./livestore.worker?worker"
 import LiveStoreWorkerNoSync from "./livestore-no-sync.worker?worker"
 import LiveStoreSharedWorker from "@livestore/adapter-web/shared-worker?sharedworker"
-import { AtomLivestore } from "@effect-atom/atom-livestore"
-import { Atom, useAtomSet } from "@effect-atom/atom-react"
+import * as AtomLivestore from "./AtomLivestore"
+import * as Atom from "effect/reactivity/Atom"
+import { useAtomSet } from "@effect/atom-react"
 import { kvsRuntime } from "@/atoms"
 import * as Schema from "effect/Schema"
 
@@ -50,3 +51,10 @@ export class Store extends AtomLivestore.Tag<Store>()("Store", (get) => ({
 })) {}
 
 export const useCommit = () => useAtomSet(Store.commit)
+
+/**
+ * Like `useCommit`, but the returned promise resolves once the event is
+ * persisted. Await it before navigating somewhere that may unload the page.
+ */
+export const useCommitPersisted = () =>
+  useAtomSet(Store.commitPersisted, { mode: "promise" })

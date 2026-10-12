@@ -1,4 +1,4 @@
-import { Model } from "@effect/sql"
+import * as Model from "effect/schema/Model"
 import * as Schema from "effect/Schema"
 import { Recipe } from "./Recipe"
 import * as DateTime from "effect/DateTime"
@@ -10,7 +10,7 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
     insert: Schema.String,
   }),
   recipe: Model.Field({
-    select: Schema.parseJson(Recipe),
+    select: Schema.fromJsonString(Recipe),
     json: Recipe,
   }),
   recipeId: Model.Field({
@@ -18,16 +18,16 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
     jsonCreate: Schema.String,
   }),
   day: Schema.Number,
-  createdAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("update", "jsonCreate", "jsonUpdate"),
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
   ),
-  updatedAt: Schema.DateTimeUtcFromNumber.pipe(
-    Model.FieldExcept("jsonCreate", "jsonUpdate"),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
   ),
 }) {
   static array = Schema.Array(MenuEntry)
   static xml = UnknownToXml.pipe(
-    Schema.compose(
+    Schema.decodeTo(
       Schema.Array(
         Schema.Struct({
           menuEntry: Schema.Struct({
@@ -47,8 +47,8 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
       menuId: input.menuId,
       recipeId: input.recipeId,
       day: input.day,
-      createdAt: DateTime.unsafeNow(),
-      updatedAt: DateTime.unsafeNow(),
+      createdAt: DateTime.nowUnsafe(),
+      updatedAt: DateTime.nowUnsafe(),
     })
   }
 

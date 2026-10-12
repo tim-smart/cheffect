@@ -14,7 +14,7 @@ import {
   mealPlanRecipesAtom,
   mealPlanRecipesQueryAtom,
 } from "@/livestore/queries"
-import { RegistryContext, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import { RegistryContext, useAtom, useAtomValue } from "@effect/atom-react"
 import React, { useContext, useState } from "react"
 import { RecipeList } from "./List"
 

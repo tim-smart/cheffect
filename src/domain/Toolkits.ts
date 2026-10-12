@@ -1,6 +1,8 @@
-import * as Tool from "@effect/ai/Tool"
-import * as Toolkit from "@effect/ai/Toolkit"
+import * as Tool from "effect/ai/Tool"
+import * as Toolkit from "effect/ai/Toolkit"
 import * as Schema from "effect/Schema"
+import * as SchemaTransformation from "effect/SchemaTransformation"
+import * as Struct from "effect/Struct"
 import { ExtractedRecipe, Recipe } from "./Recipe"
 import { GroceryItem } from "./GroceryItem"
 import { Menu } from "./Menu"
@@ -9,85 +11,71 @@ import { MenuDayNote } from "./MenuDayNote"
 import { MealPlanEntry } from "./MealPlanEntry"
 import { MealPlanDayNote } from "./MealPlanDayNote"
 import { OpenAiTool } from "@effect/ai-openai"
-import { Model } from "@effect/sql"
+import * as Model from "effect/schema/Model"
 
-export const TerminalResponse = <S extends Schema.Schema.Any>(
-  schema: S,
-): Schema.transform<
-  S,
-  Schema.TaggedStruct<"Terminal", { value: Schema.Schema<S["Type"]> }>
-> =>
-  Schema.transform(
-    schema,
-    Schema.TaggedStruct("Terminal", {
-      value: Schema.typeSchema(schema),
-    }),
-    {
-      decode: (value) => ({ _tag: "Terminal", value }) as const,
-      encode: ({ value }) => value,
-    },
-  )
+const taggedResponse =
+  <const Tag extends string>(tag: Tag) =>
+  <A, I>(schema: Schema.Codec<A, I>) =>
+    schema.pipe(
+      Schema.decodeTo(
+        Schema.Struct({
+          _tag: Schema.tag(tag),
+          value: Schema.toType(schema),
+        }),
+        SchemaTransformation.transform({
+          decode: (value: A) => ({ _tag: tag, value }),
+          encode: ({ value }) => value,
+        }),
+      ),
+    )
 
-export const TransientResponse = <S extends Schema.Schema.Any>(
-  schema: S,
-): Schema.transform<
-  S,
-  Schema.TaggedStruct<"Transient", { value: Schema.Schema<S["Type"]> }>
-> =>
-  Schema.transform(
-    schema,
-    Schema.TaggedStruct("Transient", {
-      value: Schema.typeSchema(schema),
-    }),
-    {
-      decode: (value) => ({ _tag: "Transient", value }) as const,
-      encode: ({ value }) => value,
-    },
-  )
+export const TerminalResponse = taggedResponse("Terminal")
+
+export const TransientResponse = taggedResponse("Transient")
 
 export class toolkit extends Toolkit.make(
   OpenAiTool.WebSearch({}),
   Tool.make("SearchRecipes", {
     description: "Search the users recipe database by title and ingredients",
-    parameters: {
+    parameters: Schema.Struct({
       query: Schema.String,
-    },
+    }),
     success: TransientResponse(Schema.Array(Recipe.json)),
   }),
   Tool.make("RecipeById", {
     description: "Get a recipe by its unique ID",
-    parameters: {
+    parameters: Schema.Struct({
       id: Schema.String,
-    },
+    }),
     success: TransientResponse(Schema.NullOr(Recipe.json)),
   }),
   Tool.make("CreateRecipe", {
     description:
       "Create a new recipe from the provided information. Returns the new recipe ID.",
-    parameters: {
+    parameters: Schema.Struct({
       recipe: ExtractedRecipe,
-    },
+    }),
     success: TransientResponse(Schema.Struct({ recipeId: Schema.String })),
   }),
   Tool.make("SuggestRecipeEdit", {
     description:
       "Suggest edits to an existing recipe. The recipe parameter must contain ALL fields from the original recipe, not just the changed fields. Copy all existing values and only modify the specific fields that need to change.",
-    parameters: {
+    parameters: Schema.Struct({
       recipeId: Schema.String,
       recipe: ExtractedRecipe,
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("ScaleRecipe", {
     description:
       "Scale the ingredients of an existing recipe by a given factor",
-    parameters: {
+    parameters: Schema.Struct({
       recipeId: Schema.String,
-      scale: Schema.Number.annotations({
+      scale: Schema.Number.annotate({
         description:
           "The factor by which to scale the recipe (e.g., 2.0 to double, 0.5 to halve).",
       }),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("GroceryListNames", {
@@ -97,48 +85,48 @@ export class toolkit extends Toolkit.make(
   }),
   Tool.make("GetGroceryList", {
     description: "Get the user's full grocery list",
-    parameters: {
-      list: Schema.NullOr(Schema.String).annotations({
+    parameters: Schema.Struct({
+      list: Schema.NullOr(Schema.String).annotate({
         description:
           "The name of the grocery list to retrieve. If null, retrieves the default list.",
       }),
-    },
+    }),
     success: TransientResponse(Schema.Array(GroceryItem.json)),
   }),
   Tool.make("AddGroceryItems", {
     description:
       "Add items to a grocery list. If the list is `null`, adds to the default list.",
-    parameters: {
+    parameters: Schema.Struct({
       groceryItems: Schema.Array(
-        GroceryItem.jsonCreate.pipe(Schema.omit("completed")),
+        GroceryItem.jsonCreate.mapFields(Struct.omit(["completed"])),
       ),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("UpdateGroceryItem", {
     description: "Update an existing grocery item's name, quantity, or aisle",
-    parameters: {
+    parameters: Schema.Struct({
       groceryItemId: Schema.String,
       groceryItem: GroceryItem.jsonUpdate,
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("MergeGroceryItems", {
     description:
       "Merge multiple grocery items into one. Combines quantities and keeps the first item, deleting the others.",
-    parameters: {
+    parameters: Schema.Struct({
       targetId: Schema.String,
       sourceIds: Schema.Array(Schema.String),
       mergedName: Schema.NullOr(Schema.String),
       mergedQuantity: Schema.NullOr(Schema.String),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("DeleteGroceryItem", {
     description: "Delete a grocery item from the list",
-    parameters: {
+    parameters: Schema.Struct({
       id: Schema.String,
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("GetMenus", {
@@ -147,25 +135,25 @@ export class toolkit extends Toolkit.make(
   }),
   Tool.make("CreateMenu", {
     description: "Create a new recipe from extracted recipe data",
-    parameters: {
-      menu: Menu.jsonCreate.pipe(Schema.omit("createdAt", "updatedAt")),
-    },
+    parameters: Schema.Struct({
+      menu: Menu.jsonCreate.mapFields(Struct.omit(["createdAt", "updatedAt"])),
+    }),
     success: TransientResponse(Menu.json),
   }),
   Tool.make("AddMenuEntries", {
     description: "Add recipes to a specific menu",
-    parameters: {
+    parameters: Schema.Struct({
       menuId: Schema.String,
       menuEntries: Schema.Array(MenuEntry.jsonCreate),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("GetMenuEntries", {
     description:
       "Get the recipes added to a specific menu along with existing menu day notes",
-    parameters: {
+    parameters: Schema.Struct({
       menuId: Schema.String,
-    },
+    }),
     success: TransientResponse(
       Schema.Struct({
         entries: Schema.Array(MenuEntry.json),
@@ -176,22 +164,22 @@ export class toolkit extends Toolkit.make(
   Tool.make("SetMenuDayNote", {
     description:
       "Create or update a note for a menu day. Pass an empty note to remove the existing note.",
-    parameters: {
+    parameters: Schema.Struct({
       menuId: Schema.String,
-      day: Schema.Number.annotations({
+      day: Schema.Number.annotate({
         description: "Menu day number to set the note for.",
       }),
-      note: Schema.String.annotations({
+      note: Schema.String.annotate({
         description: "Note content for the menu day (empty string removes it).",
       }),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("RemoveMenuEntry", {
     description: "Remove a recipe entry from a menu",
-    parameters: {
+    parameters: Schema.Struct({
       id: Schema.String,
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("GetCurrentMealPlan", {
@@ -207,58 +195,58 @@ export class toolkit extends Toolkit.make(
   Tool.make("SetMealPlanDayNote", {
     description:
       "Create or update a note for a meal plan day. Pass an empty note to remove the existing note.",
-    parameters: {
-      day: Model.Date.annotations({
+    parameters: Schema.Struct({
+      day: Model.Date.annotate({
         description: "Meal plan day date (YYYY-MM-DD format).",
       }),
-      note: Schema.String.annotations({
+      note: Schema.String.annotate({
         description:
           "Note content for the meal plan day (empty string removes it).",
       }),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("AddMealPlanEntries", {
     description: "Add entries to the user's meal plan",
-    parameters: {
+    parameters: Schema.Struct({
       mealPlanEntries: Schema.Array(
         Schema.Struct({
           recipeId: Schema.String,
-          day: Model.Date.annotations({
+          day: Model.Date.annotate({
             description:
               "The date for which to plan the meal (YYYY-MM-DD format). Time component is ignored.",
           }),
         }),
       ),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("RemoveMealPlanEntry", {
     description: "Remove an entry from the user's meal plan",
-    parameters: {
+    parameters: Schema.Struct({
       id: Schema.String,
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("ImportRecipeFromUrl", {
     description:
       "Import a recipe from a URL. Queues a background job to fetch the webpage and extract recipe information. Returns a jobId for tracking the extraction progress.",
-    parameters: {
+    parameters: Schema.Struct({
       url: Schema.String,
-    },
+    }),
     success: TerminalResponse(Schema.Struct({ jobId: Schema.String })),
   }),
   Tool.make("StartTimer", {
     description:
       "Start a countdown timer with a label and duration in minutes and/or seconds.",
-    parameters: {
-      label: Schema.String.annotations({
+    parameters: Schema.Struct({
+      label: Schema.String.annotate({
         description: "Short label for the timer, like 'Boil pasta'.",
       }),
-      duration: Schema.DurationFromMillis.annotations({
+      duration: Schema.DurationFromMillis.annotate({
         description: "Timer duration in milliseconds (positive number).",
       }),
-    },
+    }),
     success: TransientResponse(
       Schema.NullOr(
         Schema.Struct({
@@ -272,20 +260,20 @@ export class toolkit extends Toolkit.make(
   Tool.make("SaveLearning", {
     description:
       "Save absolutely any information discovered during the conversation that could benefit future interactions. This includes user preferences, dietary restrictions, allergies, cooking skill level, household size, favorite cuisines, ingredient dislikes, kitchen equipment available, and any other relevant details. Keep notes concise to prevent exceeding token limits. Consolidate related information into single entries when possible.",
-    parameters: {
-      content: Schema.String.annotations({
+    parameters: Schema.Struct({
+      content: Schema.String.annotate({
         description: "The note in markdown format.",
       }),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
   Tool.make("RemoveLearning", {
     description: "Forget previously saved learning note.",
-    parameters: {
-      id: Schema.String.annotations({
+    parameters: Schema.Struct({
+      id: Schema.String.annotate({
         description: "The ID of the learning note to remove.",
       }),
-    },
+    }),
     success: TransientResponse(Schema.Null),
   }),
 ) {}

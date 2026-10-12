@@ -1,4 +1,4 @@
-import { Atom } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
 import * as BrowserKeyValueStore from "@effect/platform-browser/BrowserKeyValueStore"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
@@ -38,10 +38,10 @@ export const screenWakeLockAtom = Atom.make(
 
 export const nowAtom = Atom.make((get) => {
   const handle = setInterval(() => {
-    get.setSelf(DateTime.unsafeNow())
+    get.setSelf(DateTime.nowUnsafe())
   }, 250)
   get.addFinalizer(() => {
     clearInterval(handle)
   })
-  return DateTime.unsafeNow()
+  return DateTime.nowUnsafe()
 })

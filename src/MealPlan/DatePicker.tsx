@@ -6,7 +6,8 @@ import {
 } from "@/components/ui/popover"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
-import { Result, useAtomSet, useAtomValue } from "@effect-atom/atom-react"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtomSet, useAtomValue } from "@effect/atom-react"
 import * as Data from "effect/Data"
 import * as DateTime from "effect/DateTime"
 import { useState } from "react"
@@ -38,7 +39,7 @@ export function MealPlanDatePicker({
   const commit = useCommit()
   const addMenu = useAtomSet(addMenuToMealPlanAtom)
   const weekStart = useAtomValue(mealPlanWeekStart.atom).pipe(
-    Result.value,
+    AsyncResult.value,
     Option.flatten,
     Option.getOrElse(() => 0 as const),
   )
@@ -66,7 +67,7 @@ export function MealPlanDatePicker({
           onSelect={(date) => {
             setOpen(false)
             if (!date) return
-            const day = DateTime.unsafeFromDate(date).pipe(
+            const day = DateTime.fromDateUnsafe(date).pipe(
               DateTime.setZone(DateTime.zoneMakeLocal()),
               DateTime.removeTime,
             )

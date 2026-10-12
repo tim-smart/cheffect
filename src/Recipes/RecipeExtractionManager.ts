@@ -3,14 +3,13 @@ import { Store } from "@/livestore/atoms"
 import { events, tables } from "@/livestore/schema"
 import { router } from "@/Router"
 import { AiHelpers } from "@/services/AiHelpers"
-import { Atom } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
 import { queryDb } from "@livestore/livestore"
 import * as Cause from "effect/Cause"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as FiberMap from "effect/FiberMap"
-import * as HashSet from "effect/HashSet"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
 import { toast } from "sonner"
@@ -23,7 +22,7 @@ const extractJobs = Store.makeQuery(
   ),
 )
 
-export const RecipeExtractionManager = Layer.scopedDiscard(
+export const RecipeExtractionManager = Layer.effectDiscard(
   Effect.gen(function* () {
     const ai = yield* AiHelpers
     const store = yield* Store
@@ -36,14 +35,14 @@ export const RecipeExtractionManager = Layer.scopedDiscard(
           Effect.onExit((exit) => {
             if (
               Exit.isFailure(exit) &&
-              !HashSet.has(Cause.interruptors(exit.cause), fiberId)
+              !Cause.interruptors(exit.cause).has(fiberId)
             ) {
               return Effect.void
             }
             store.commit(
               events.recipeExtractJobCompleted({
                 id: job.id,
-                completedAt: DateTime.unsafeNow(),
+                completedAt: DateTime.nowUnsafe(),
               }),
             )
             return Effect.void
@@ -96,4 +95,4 @@ export const RecipeExtractionManager = Layer.scopedDiscard(
       Effect.forkScoped,
     )
   }),
-).pipe(Layer.provide(AiHelpers.Default))
+).pipe(Layer.provide(AiHelpers.layer))

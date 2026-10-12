@@ -1,6 +1,7 @@
 import { Plus, Check, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Atom, useAtom, useAtomValue } from "@effect-atom/atom-react"
+import * as Atom from "effect/reactivity/Atom"
+import { useAtom, useAtomValue } from "@effect/atom-react"
 import { Store, useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import * as Effect from "effect/Effect"
