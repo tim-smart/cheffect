@@ -19,7 +19,9 @@ import * as RHF from "react-hook-form"
 // Paths
 // -----------------------------------------------------------------------------
 
-type Token = { readonly _tag: "String"; readonly value: string } | { readonly _tag: "Index" }
+type Token =
+  | { readonly _tag: "String"; readonly value: string }
+  | { readonly _tag: "Index" }
 
 class Path {
   private constructor(private readonly tokens: ReadonlyArray<Token>) {}
@@ -160,8 +162,7 @@ export const uncontrolled = <P extends object>(
     RHF.useFormState({ control, name })
     const { error } = getFieldState(name)
     const registered = register(name)
-    const extra: Partial<Pick<UncontrolledProps, "onChange" | "onBlur">> =
-      props
+    const extra: Partial<Pick<UncontrolledProps, "onChange" | "onBlur">> = props
     const overrides: Pick<UncontrolledProps, "onChange" | "onBlur" | "error"> =
       {
         onChange: (e) => {
@@ -242,9 +243,11 @@ export const FormBody = {
         defaultValue[key] = value.value
       }
     }
-    const schema: FormStruct<F>["schema"] = Schema.Struct(schemaFields as {
-      [K in keyof F]: FieldSchema<F[K]>
-    })
+    const schema: FormStruct<F>["schema"] = Schema.Struct(
+      schemaFields as {
+        [K in keyof F]: FieldSchema<F[K]>
+      },
+    )
     return {
       [StructTypeId]: StructTypeId,
       fields,
@@ -282,22 +285,21 @@ export type FieldDisplay<F> =
     ? React.FC<P> & { readonly useControls: () => FieldControls<S["Encoded"]> }
     : F extends FormStruct<infer Fs>
       ? StructDisplay<Fs>
-      : F extends { readonly [ArrayTypeId]: typeof ArrayTypeId; readonly field: infer E }
+      : F extends {
+            readonly [ArrayTypeId]: typeof ArrayTypeId
+            readonly field: infer E
+          }
         ? WithChildren & {
             readonly Fields: WithChildren
             readonly Element: FieldDisplay<E>
-            readonly useControls: () => ArrayControls<
-              FieldSchema<E>["Encoded"]
-            >
+            readonly useControls: () => ArrayControls<FieldSchema<E>["Encoded"]>
           }
         : never
 
 export type StructDisplay<F extends Fields> = {
   readonly [K in keyof F]: FieldDisplay<F[K]>
 } & {
-  readonly useControls: () => FieldControls<
-    FormStruct<F>["schema"]["Encoded"]
-  >
+  readonly useControls: () => FieldControls<FormStruct<F>["schema"]["Encoded"]>
 }
 
 const makeFieldControls = (path: Path) => ({
@@ -390,8 +392,7 @@ const makeDisplay = (field: AnyBodyField, path: Path): unknown => {
 type FormSchema = Schema.Codec<unknown, RHF.FieldValues>
 
 type Values<S extends FormSchema> =
-  | { readonly encoded: S["Encoded"] }
-  | { readonly unknown: unknown }
+  { readonly encoded: S["Encoded"] } | { readonly unknown: unknown }
 
 export interface FormComponentProps<S extends FormSchema> {
   readonly children: React.ReactNode
@@ -414,8 +415,9 @@ export interface FormComponentProps<S extends FormSchema> {
   readonly resetValues?: Values<S> | undefined
 }
 
-export interface FormComponent<S extends FormSchema>
-  extends React.FC<FormComponentProps<S>> {
+export interface FormComponent<S extends FormSchema> extends React.FC<
+  FormComponentProps<S>
+> {
   /**
    * The form element id, for submit buttons outside the form.
    */
@@ -424,7 +426,10 @@ export interface FormComponent<S extends FormSchema>
 
 const getValues =
   <S extends FormSchema>(schema: S) =>
-  (values: Values<S> | undefined, defaultValues: S["Encoded"]): S["Encoded"] => {
+  (
+    values: Values<S> | undefined,
+    defaultValues: S["Encoded"],
+  ): S["Encoded"] => {
     if (!values) return defaultValues
     if ("encoded" in values) {
       return values.encoded

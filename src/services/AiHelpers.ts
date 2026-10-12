@@ -34,7 +34,9 @@ export const isAiEnabledAtom = Atom.make((get) =>
 )
 
 export const openAiClientLayer = Atom.make((get) => {
-  const apiKeyOption = AsyncResult.value(get(openAiApiKey.atom)).pipe(Option.flatten)
+  const apiKeyOption = AsyncResult.value(get(openAiApiKey.atom)).pipe(
+    Option.flatten,
+  )
   if (Option.isNone(apiKeyOption)) {
     return Layer.effect(OpenAiClient.OpenAiClient, Effect.never)
   }

@@ -212,9 +212,7 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
   }
 }
 
-const DurationFromMinutesOrNull = Schema.NullOr(
-  DurationFromMinutes,
-).annotate({
+const DurationFromMinutesOrNull = Schema.NullOr(DurationFromMinutes).annotate({
   description: "A duration represented in minutes. Can be null if not set.",
 })
 

@@ -15,7 +15,12 @@ import { Menu } from "@/domain/Menu"
 import * as DateTime from "effect/DateTime"
 import { cn } from "@/lib/utils"
 import * as Atom from "effect/reactivity/Atom"
-import { useAtom, useAtomSet, useAtomSuspense, useAtomValue } from "@effect/atom-react"
+import {
+  useAtom,
+  useAtomSet,
+  useAtomSuspense,
+  useAtomValue,
+} from "@effect/atom-react"
 import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import { allMenusAtom, menuRecipeCountAtom } from "@/Menus/atoms"

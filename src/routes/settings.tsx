@@ -328,7 +328,9 @@ function SettingControl<S extends Schema.Codec<any, any>>({
   )
 }
 
-function SettingSelect<S extends Schema.Literals<ReadonlyArray<SchemaAST.LiteralValue>>>({
+function SettingSelect<
+  S extends Schema.Literals<ReadonlyArray<SchemaAST.LiteralValue>>,
+>({
   setting,
   options,
 }: {

@@ -34,7 +34,12 @@ import { exportRecipeAsHtml, exportRecipeAsYaml } from "@/Recipes/export"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { useAtom, useAtomMount, useAtomSet, useAtomValue } from "@effect/atom-react"
+import {
+  useAtom,
+  useAtomMount,
+  useAtomSet,
+  useAtomValue,
+} from "@effect/atom-react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import * as BigDecimal from "effect/BigDecimal"
 import * as DateTime from "effect/DateTime"

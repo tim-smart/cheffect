@@ -103,12 +103,13 @@ export const RecipeInsert = Schema.revealCodec(
   Schema.toType(RecipeFormSchema.schema).pipe(
     Schema.decodeTo(
       Schema.toType(Recipe),
-      SchemaTransformation.transform<Recipe, typeof RecipeFormSchema.schema.Type>(
-        {
-          decode: (input) => Recipe.make(decodeFromForm(input)),
-          encode: (recipe) => recipe,
-        },
-      ),
+      SchemaTransformation.transform<
+        Recipe,
+        typeof RecipeFormSchema.schema.Type
+      >({
+        decode: (input) => Recipe.make(decodeFromForm(input)),
+        encode: (recipe) => recipe,
+      }),
     ),
   ),
 )

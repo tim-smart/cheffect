@@ -330,7 +330,8 @@ const ToolkitLayer = toolkit.toLayer(
           const existing = latestNotes.get(key)
           if (
             !existing ||
-            note.updatedAt.epochMilliseconds > existing.updatedAt.epochMilliseconds
+            note.updatedAt.epochMilliseconds >
+              existing.updatedAt.epochMilliseconds
           ) {
             latestNotes.set(key, note)
           }

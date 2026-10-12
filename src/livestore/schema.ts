@@ -349,7 +349,10 @@ export const events = {
   }),
   recipeDeleted: Events.synced({
     name: "v1.RecipeDeleted",
-    schema: Schema.Struct({ id: Schema.String, deletedAt: Schema.DateTimeUtcFromString }),
+    schema: Schema.Struct({
+      id: Schema.String,
+      deletedAt: Schema.DateTimeUtcFromString,
+    }),
   }),
   recipeExtractJobAdded: Events.synced({
     name: "v1.RecipeExtractJobAdded",

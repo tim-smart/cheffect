@@ -45,7 +45,9 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
     Schema.NullOr(Schema.NonEmptyArray(Schema.String)),
     {
       select: () =>
-        Schema.NullOr(Schema.fromJsonString(Schema.NonEmptyArray(Schema.String))),
+        Schema.NullOr(
+          Schema.fromJsonString(Schema.NonEmptyArray(Schema.String)),
+        ),
     },
   ),
   completed: Schema.BooleanFromBit,

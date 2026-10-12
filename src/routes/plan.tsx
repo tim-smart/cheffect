@@ -138,7 +138,10 @@ export function MealPlanPage() {
                       toRemove.forEach((entry) => {
                         commit(events.mealPlanRemove({ id: entry.id }))
                       })
-                      const notesToRemove = AsyncResult.getOrElse(dayNotes, () => [])
+                      const notesToRemove = AsyncResult.getOrElse(
+                        dayNotes,
+                        () => [],
+                      )
                       notesToRemove.forEach((note) => {
                         commit(events.mealPlanDayNoteRemove({ id: note.id }))
                       })

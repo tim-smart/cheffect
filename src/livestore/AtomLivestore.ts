@@ -96,7 +96,9 @@ export const Tag =
         AsyncResult.map(get(store), (store) => {
           const q = typeof query === "function" ? query(get) : query
           get.addFinalizer(
-            store.subscribe(q, (value) => get.setSelf(AsyncResult.success(value))),
+            store.subscribe(q, (value) =>
+              get.setSelf(AsyncResult.success(value)),
+            ),
           )
           return store.query(q)
         }),
