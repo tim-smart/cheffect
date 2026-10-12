@@ -14,7 +14,7 @@ import {
 import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { openAiApiKey } from "@/Settings"
+import { openAiApiKey, openAiModel } from "@/Settings"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as HttpClient from "effect/http/HttpClient"
@@ -51,15 +51,27 @@ export const openAiClientLayer = Atom.make((get) => {
   }).pipe(Layer.provide(FetchHttpClient.layer))
 })
 
+export const openAiModelLayer = Atom.make((get) => {
+  const modelOption = AsyncResult.value(get(openAiModel.atom)).pipe(
+    Option.flatten,
+  )
+  if (Option.isNone(modelOption)) {
+    return Layer.effect(LanguageModel.LanguageModel, Effect.never)
+  }
+  return OpenAiLanguageModel.layer({
+    model: modelOption.value,
+    config: { reasoning: { effort: "medium" } },
+  })
+})
+
 export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
   make: Effect.gen(function* () {
-    const model = yield* Layer.build(OpenAiLanguageModel.model("gpt-5.4"))
+    const llm = yield* LanguageModel.LanguageModel
     const proxy = yield* CorsProxy
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
       url: string,
     ) {
-      const llm = yield* LanguageModel.LanguageModel
       yield* Effect.annotateCurrentSpan({ url })
       const html = yield* proxy.htmlStripped(url)
       const response = yield* llm.generateObject({
@@ -74,11 +86,10 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
       })
       yield* Effect.log(response.value)
       return response.value
-    }, Effect.provide(model))
+    })
 
     const recipesFromImages = Effect.fn("AiHelpers.recipeFromImages")(
       function* (fileList: FileList) {
-        const llm = yield* LanguageModel.LanguageModel
         const parts = yield* Effect.forEach(
           fileList,
           Effect.fnUntraced(function* (file) {
@@ -108,12 +119,10 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
         yield* Effect.log(response.value)
         return response.value.recipes
       },
-      Effect.provide(model),
     )
 
     const convertIngredients = Effect.fn("AiHelpers.convertIngredients")(
       function* (recipe: Recipe, country: string) {
-        const llm = yield* LanguageModel.LanguageModel
         const response = yield* llm.generateObject({
           prompt: [
             {
@@ -128,12 +137,10 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
         })
         return response.value
       },
-      Effect.provide(model),
     )
 
     const beautifyGroceries = Effect.fn("AiHelpers.beautifyGroceries")(
       function* (groceries: ReadonlyArray<GroceryItem>) {
-        const llm = yield* LanguageModel.LanguageModel
         const leftoverItems = new Map<string, GroceryItem>()
 
         for (const item of groceries) {
@@ -212,7 +219,6 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
 
         return { updated, removed, merges } as const
       },
-      Effect.provide(model),
     )
 
     return {
@@ -228,6 +234,9 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
   )
 
   static runtime = Atom.runtime((get) =>
-    AiHelpers.layer.pipe(Layer.provideMerge(get(openAiClientLayer))),
+    AiHelpers.layer.pipe(
+      Layer.provideMerge(get(openAiModelLayer)),
+      Layer.provideMerge(get(openAiClientLayer)),
+    ),
   )
 }
