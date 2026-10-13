@@ -42,6 +42,7 @@ import {
 import { Placeholder } from "@/components/placeholder"
 import { useEffect, useState } from "react"
 import { useSwipeable } from "react-swipeable"
+import { quantityFormatter } from "@/lib/quantity"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -427,7 +428,9 @@ function DayListItem({
                         onSome: (duration) => [Duration.format(duration)],
                       }),
                       ...(recipe.servings
-                        ? [`${recipe.servingsDisplay} servings`]
+                        ? [
+                            `${quantityFormatter.format(recipe.servingsDisplay!)} servings`,
+                          ]
                         : []),
                     ].join(" • ")}
                   </p>
