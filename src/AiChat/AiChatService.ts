@@ -47,7 +47,7 @@ import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
 import { Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
-import { aiCountry, mealPlanWeekStart, openAiModel } from "@/Settings"
+import { aiChatModel, aiCountry, mealPlanWeekStart } from "@/Settings"
 import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
 import { Menu } from "@/domain/Menu"
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
@@ -484,8 +484,8 @@ class AiChatService extends Context.Service<AiChatService>()(
   {
     make: Effect.gen(function* () {
       const modelString = Option.getOrElse(
-        yield* Atom.getResult(openAiModel.atom),
-        () => "gpt-5.4",
+        yield* Atom.getResult(aiChatModel.atom),
+        () => "gpt-6.1-sol",
       )
       const model = yield* Layer.build(
         OpenAiLanguageModel.model(modelString, {

@@ -23,6 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
 import {
+  aiChatModel,
   aiCountry,
   clearAiMemoryAtom,
   livestoreStoreId,
@@ -189,6 +190,19 @@ function SettingsPage() {
           >
             Create an OpenAI API key
           </a>
+          <SettingControl
+            setting={aiChatModel}
+            render={({ value, onChange, onBlur, onKeyDown }) => (
+              <Input
+                id={aiChatModel.name}
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={() => onBlur()}
+                onKeyDown={onKeyDown}
+              />
+            )}
+          />
           <SettingControl
             setting={openAiModel}
             render={({ value, onChange, onBlur, onKeyDown }) => (
