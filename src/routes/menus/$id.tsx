@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Placeholder } from "@/components/placeholder"
 import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
-import { cn } from "@/lib/utils"
+import { cn, quantityFormatter } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 
@@ -401,7 +401,11 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
               onNone: () => [],
               onSome: (duration) => [Duration.format(duration)],
             }),
-            ...(recipe.servings ? [`${recipe.servingsDisplay} servings`] : []),
+            ...(recipe.servings
+              ? [
+                  `${quantityFormatter.format(recipe.servingsDisplay!)} servings`,
+                ]
+              : []),
           ].join(" • ")}
         </p>
       </div>

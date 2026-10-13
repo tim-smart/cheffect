@@ -7,7 +7,7 @@ import { DurationFromMinutes } from "./Duration"
 import * as Predicate from "effect/Predicate"
 import { UnknownToXml } from "./Xml"
 import * as Struct from "effect/Struct"
-import Fraction from "fraction.js"
+import { quantityFormatter } from "@/lib/quantity"
 import { escapeHtml, escapeHtmlMultiline } from "@/lib/html"
 
 export const Unit = Schema.Literals([
@@ -119,8 +119,10 @@ export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
 ) {
   get quantityWithUnit(): string | null {
     if (this.quantity === null) return null
-    if (this.unit === null) return `${this.quantity}`
-    return `${this.quantity} ${this.unit}`
+    const quantity = quantityFormatter.format(this.quantity, this.unit)
+    if (this.unit === null) return quantity
+    const separator = unitNeedsSpace.has(this.unit) ? " " : ""
+    return `${quantity}${separator}${this.unit}`
   }
 
   id(groupIndex: number, ingredientIndex: number): string {
@@ -346,35 +348,14 @@ export const SortBy = [
 export const SortByValue = Schema.Literals(SortBy.map((s) => s.value))
 export type SortBy = (typeof SortBy)[number]["value"]
 
-const htmlNumberFormatter = new Intl.NumberFormat("en-US", {
-  style: "decimal",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-})
-
-const FRACTION_SIMPLIFICATION_TOLERANCE = 0.01
-
-const formatQuantity = (value: number, unit?: Unit | null): string => {
-  switch (unit) {
-    case "cup":
-    case "tsp":
-    case "tbsp":
-    case null: {
-      return new Fraction(value)
-        .simplify(FRACTION_SIMPLIFICATION_TOLERANCE)
-        .toFraction(true)
-    }
-    default: {
-      return htmlNumberFormatter.format(value)
-    }
-  }
-}
-
 const formatIngredient = (ingredient: Ingredient) => {
   if (ingredient.quantity === null) {
     return ingredient.name
   }
-  const quantity = formatQuantity(ingredient.quantity, ingredient.unit)
+  const quantity = quantityFormatter.format(
+    ingredient.quantity,
+    ingredient.unit,
+  )
   if (!ingredient.unit) {
     return `${quantity} ${ingredient.name}`
   }
