@@ -114,9 +114,13 @@ test(
       await browser.evaluate(
         `document.querySelector('textarea[placeholder="Type your message..."]').dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))`,
       )
-      await browser.waitFor(`window.__chatRequests.length > 1`)
+      // Failed requests may retry, so identify the new send by its message.
+      const secondChatRequest = `window.__chatRequests.find((request) =>
+        request.input?.some((message) => message.role === "user" &&
+          message.content?.some((part) => part.type === "input_text" && part.text === "Hello again chef")))`
+      await browser.waitFor(`!!(${secondChatRequest})`)
       assert.equal(
-        await browser.evaluate(`window.__chatRequests[1].model`),
+        await browser.evaluate(`(${secondChatRequest}).model`),
         "second-chat-model",
         "chat uses a changed model after the first request without reloading",
       )
