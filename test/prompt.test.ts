@@ -5,7 +5,7 @@ import * as Response from "effect/ai/Response"
 
 // AiChatService rebuilds the assistant message from the parts streamed so far
 // on every chunk, so text that has not ended yet must still be included.
-// Upstream drops it; patches/effect@4.0.3.patch fixes that.
+// effect dropped it before 4.0.4.
 
 const assistantTexts = (prompt: Prompt.Prompt) =>
   prompt.content.flatMap((message) =>
