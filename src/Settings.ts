@@ -135,6 +135,14 @@ export const openAiApiKey = new Setting({
   ),
 })
 
+export const aiChatModel = new Setting({
+  name: "aiChatModel",
+  label: "AI chat model",
+  schema: Schema.NonEmptyString,
+  schemaInput: OptionFromString,
+  initialValue: "gpt-6.1-sol",
+})
+
 export const openAiModel = new Setting({
   name: "openAiModel",
   label: "OpenAI Model",

@@ -2,7 +2,7 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as AiChat from "effect/ai/Chat"
 import * as Stream from "effect/Stream"
-import { OpenAiLanguageModel } from "@effect/ai-openai"
+import { OpenAiClient, OpenAiLanguageModel } from "@effect/ai-openai"
 import * as Atom from "effect/reactivity/Atom"
 import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
@@ -47,7 +47,7 @@ import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
 import { Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
-import { aiCountry, mealPlanWeekStart, openAiModel } from "@/Settings"
+import { aiChatModel, aiCountry, mealPlanWeekStart } from "@/Settings"
 import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
 import { Menu } from "@/domain/Menu"
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
@@ -483,15 +483,7 @@ class AiChatService extends Context.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
   {
     make: Effect.gen(function* () {
-      const modelString = Option.getOrElse(
-        yield* Atom.getResult(openAiModel.atom),
-        () => "gpt-5.4",
-      )
-      const model = yield* Layer.build(
-        OpenAiLanguageModel.model(modelString, {
-          reasoning: { effort: "medium" },
-        }),
-      )
+      const client = yield* OpenAiClient.OpenAiClient
       const registry = yield* AtomRegistry.AtomRegistry
       const store = KeyValueStore.toSchemaStore(
         yield* KeyValueStore.KeyValueStore,
@@ -676,6 +668,14 @@ ${MenuEntry.toXml(menuEntries)}`
           readonly text: string
           readonly files: FileList | null
         }) {
+          const modelString = Option.getOrElse(
+            yield* Atom.getResult(aiChatModel.atom),
+            () => "gpt-6.1-sol",
+          )
+          const model = yield* OpenAiLanguageModel.make({
+            model: modelString,
+            config: { reasoning: { effort: "medium" } },
+          }).pipe(Effect.provideService(OpenAiClient.OpenAiClient, client))
           const message = yield* makeMessage(options)
           let history = (yield* Ref.get(chat.history)).pipe(
             Prompt.concat([message]),
@@ -691,6 +691,7 @@ ${MenuEntry.toXml(menuEntries)}`
                 toolkit: tools,
                 toolChoice: "auto",
               }),
+              Stream.provideService(LanguageModel.LanguageModel, model),
               Stream.mapArray((chunk) => {
                 parts.push(...chunk)
                 return [Prompt.fromResponseParts(parts)] as const
@@ -747,7 +748,6 @@ ${MenuEntry.toXml(menuEntries)}`
             yield* Effect.orDie(store.set("ai-history", toPersist))
           }),
         ),
-        Effect.provide(model),
         Effect.catchCause(Effect.logError),
       )
 
