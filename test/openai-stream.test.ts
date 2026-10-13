@@ -18,8 +18,8 @@ import fixture from "./fixtures/openai-web-search-stream.json" with { type: "jso
 // Responses API streams that the chat must accept. They include web search
 // actions with missing fields, a web search call without an action, a
 // completed response without `incomplete_details` and the `in_memory` prompt
-// cache retention. v4 accepts most of these; patches/@effect__ai-openai@4.0.3.patch
-// covers `find_in_page` actions without `url` or `pattern`.
+// cache retention. v4 accepts most of these; patches/@effect__ai-openai@4.0.4.patch
+// covers `find_in_page` actions without `pattern`.
 
 const sse = fixture
   .map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
