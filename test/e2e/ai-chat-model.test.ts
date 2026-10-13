@@ -89,5 +89,36 @@ test(
         "chat-model-for-test",
         "chat uses the saved chat model, not the existing helper model",
       )
+
+      // Keep the same page session and initialized chat runtime while editing.
+      await browser.waitFor(
+        `document.querySelector('textarea[placeholder="Type your message..."]').closest("form").querySelector('button[type="submit"]').disabled`,
+      )
+      await browser.click(
+        `document.querySelector(".lucide-x").closest("button")`,
+      )
+      await setInput(chatInput, "second-chat-model")
+      await sleep(2000)
+      assert.equal(
+        await browser.evaluate(`(${chatInput}).value`),
+        "second-chat-model",
+      )
+      await browser.click(
+        `document.querySelector('[aria-label="Open AI Chat"]')`,
+      )
+      await browser.evaluate(`(() => {
+        const input = document.querySelector('textarea[placeholder="Type your message..."]')
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(input, "Hello again chef")
+        input.dispatchEvent(new Event("input", { bubbles: true }))
+      })()`)
+      await browser.evaluate(
+        `document.querySelector('textarea[placeholder="Type your message..."]').dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))`,
+      )
+      await browser.waitFor(`window.__chatRequests.length > 1`)
+      assert.equal(
+        await browser.evaluate(`window.__chatRequests[1].model`),
+        "second-chat-model",
+        "chat uses a changed model after the first request without reloading",
+      )
     }),
 )
