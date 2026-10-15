@@ -35,7 +35,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Placeholder } from "@/components/placeholder"
-import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core"
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+} from "@dnd-kit/core"
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -124,7 +129,7 @@ export function MenuDetailPage() {
             if (!("vibrate" in navigator)) return
             navigator.vibrate(3)
           }}
-          onDragEnd={(event) => {
+          onDragEnd={(event: DragEndEvent) => {
             const { active, over } = event
             const targetDay = over?.id as number | undefined
             if (targetDay === undefined) return

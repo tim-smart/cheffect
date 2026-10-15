@@ -432,7 +432,7 @@ function SettingCombobox<S extends Schema.Codec<any, any>>({
                       <CommandItem
                         key={framework.value}
                         value={framework.value}
-                        onSelect={(currentValue) => {
+                        onSelect={(currentValue: string) => {
                           onBlur(currentValue === value ? "" : currentValue)
                           setOpen(false)
                         }}

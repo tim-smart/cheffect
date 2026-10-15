@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import clsx from "clsx"
 import { Placeholder } from "@/components/placeholder"
 import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual"
+import type { MouseEvent } from "react"
 
 export function RecipeList({
   recipes,
@@ -109,7 +110,7 @@ function RecipeCard({
       className="block bg-card active:bg-card/50 transition-colors"
       onClick={
         onSelect
-          ? (e) => {
+          ? (e: MouseEvent<HTMLAnchorElement>) => {
               e.preventDefault()
               onSelect(recipe)
             }

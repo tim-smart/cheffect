@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
-    "@effect/ai-openai": "4.0.4",
-    "@effect/atom-react": "4.0.4",
-    "@effect/platform-browser": "4.0.4",
+    "@effect/ai-openai": "4.0.5",
+    "@effect/atom-react": "4.0.5",
+    "@effect/platform-browser": "4.0.5",
     "@hookform/resolvers": "^5.9.1",
     "@livestore/adapter-web": "0.0.0-snapshot-3cb74e62017c463f49323d296ba73450efc60007",
     "@livestore/devtools-vite": "0.0.0-snapshot-3cb74e62017c463f49323d296ba73450efc60007",
@@ -50,7 +50,7 @@
     "cmdk": "^1.1.1",
     "country-data-list": "^1.6.3",
     "date-fns": "^4.4.0",
-    "effect": "4.0.4",
+    "effect": "4.0.5",
     "embla-carousel-react": "^8.6.0",
     "fraction.js": "^5.3.4",
     "jstoxml": "^7.1.1",
@@ -103,16 +103,13 @@
       "workerd"
     ],
     "overrides": {
-      "@effect/opentelemetry": "4.0.4",
-      "@effect/platform-browser": "4.0.4",
-      "@effect/platform-bun": "4.0.4",
-      "@effect/platform-node": "4.0.4",
-      "@effect/platform-node-shared": "4.0.4",
-      "@effect/vitest": "4.0.4",
-      "effect": "4.0.4"
-    },
-    "patchedDependencies": {
-      "@effect/ai-openai@4.0.4": "patches/@effect__ai-openai@4.0.4.patch"
+      "@effect/opentelemetry": "4.0.5",
+      "@effect/platform-browser": "4.0.5",
+      "@effect/platform-bun": "4.0.5",
+      "@effect/platform-node": "4.0.5",
+      "@effect/platform-node-shared": "4.0.5",
+      "@effect/vitest": "4.0.5",
+      "effect": "4.0.5"
     }
   },
   "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad"

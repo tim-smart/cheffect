@@ -24,6 +24,10 @@
     "plugins": [
       {
         "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          "unstableApiUsage": "off",
+          "experimentalApiUsage": "off"
+        },
         "namespaceImportPackages": ["effect", "@effect/platform-browser"]
       }
     ],

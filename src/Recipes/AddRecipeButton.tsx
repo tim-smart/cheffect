@@ -7,13 +7,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
+import type { AtomRegistry } from "effect/reactivity/AtomRegistry"
 import { RegistryContext, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { createRecipeAtom, extractRuntime, recipeFromImagesAtom } from "./atoms"
 import { useContext, useRef } from "react"
 import { router } from "@/Router"
 
 export function AddRecipeButton({ small = false }: { small?: boolean }) {
-  const registry = useContext(RegistryContext)
+  const registry = useContext<AtomRegistry>(RegistryContext)
   const canExtract = AsyncResult.isSuccess(useAtomValue(extractRuntime))
   const createFromImage = useAtomSet(recipeFromImagesAtom)
   const fileInputRef = useRef<HTMLInputElement>(null)
