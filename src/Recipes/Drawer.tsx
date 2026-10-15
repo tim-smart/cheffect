@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Recipe } from "@/domain/Recipe"
+import type { AtomRegistry } from "effect/reactivity/AtomRegistry"
 import {
   mealPlanRecipesAtom,
   mealPlanRecipesQueryAtom,
@@ -26,7 +27,7 @@ export function SelectRecipeDrawer({
   onSelect: (recipe: Recipe) => void
 }) {
   const [open, setOpen] = useState(false)
-  const registry = useContext(RegistryContext)
+  const registry = useContext<AtomRegistry>(RegistryContext)
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
     null,
   )

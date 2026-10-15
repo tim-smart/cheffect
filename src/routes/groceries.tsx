@@ -69,6 +69,8 @@ import {
   pointerWithin,
   useDraggable,
   useDroppable,
+  type DragOverEvent,
+  type DragEndEvent,
 } from "@dnd-kit/core"
 
 export const Route = createFileRoute("/groceries")({
@@ -429,7 +431,7 @@ function GroceryListList({
         onDragStart={() => {
           lastOverId.current = null
         }}
-        onDragOver={(event) => {
+        onDragOver={(event: DragOverEvent) => {
           if (!canReorder) return
           const overId = String(event?.over?.id ?? "")
           if (!overId || lastOverId.current === overId) return
@@ -438,7 +440,7 @@ function GroceryListList({
             navigator.vibrate(3)
           }
         }}
-        onDragEnd={(event) => {
+        onDragEnd={(event: DragEndEvent) => {
           if (!canReorder) return
           const { active, over } = event
           if (!over) return
@@ -762,8 +764,10 @@ function NameAutoComplete() {
                 key={name}
                 className="justify-between"
                 onSelect={setName}
-                onPointerDown={(e) => e.preventDefault()}
-                onPointerUp={(e) => {
+                onPointerDown={(e: React.PointerEvent<HTMLDivElement>) =>
+                  e.preventDefault()
+                }
+                onPointerUp={(e: React.PointerEvent<HTMLDivElement>) => {
                   e.preventDefault()
                   onClick(name)
                 }}
@@ -821,7 +825,7 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
             placeholder="Search or create list..."
             value={inputValue}
             onValueChange={setInputValue}
-            onKeyDown={(e) => {
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
               if (e.key === "Enter") {
                 if (inputTrimmed.length === 0) return
                 setState({ currentList: inputTrimmed })
