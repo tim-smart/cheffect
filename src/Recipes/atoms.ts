@@ -4,7 +4,6 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
-import * as Stream from "effect/Stream"
 import { RecipeExtractionManager } from "./RecipeExtractionManager"
 import {
   AiHelpers,
@@ -12,14 +11,7 @@ import {
   openAiClientLayer,
 } from "@/services/AiHelpers"
 import * as HashSet from "effect/HashSet"
-import {
-  ExtractedRecipe,
-  Recipe,
-  RecipeEdit,
-  RecipeId,
-  RecipeIdFromString,
-  SortByValue,
-} from "@/domain/Recipe"
+import { Recipe, RecipeId, RecipeIdFromString } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
 import { router } from "@/Router"
 import * as Array from "effect/Array"
@@ -28,14 +20,30 @@ import { aiCountry } from "@/Settings"
 import { withToast } from "@/lib/sonner"
 import * as Exit from "effect/Exit"
 import { toast } from "sonner"
-import { writeEvent, writeEventAtom } from "@/EventLog"
+import { writeEvent } from "@/EventLog"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
-import { kvsRuntime } from "@/lib/atom"
 import { generateUuidBytes } from "@/lib/Id"
-import { findRecipe, findRecipeEdit, RecipeRepo, searchRecipes } from "./Repo"
-import { importRecipesAtom, liveRecipesAtom, recipesRuntime } from "./runtime"
+import { RecipeRepo, searchRecipes } from "./Repo"
+import {
+  importRecipesAtom,
+  liveRecipesAtom,
+  modifiedRecipeByIdAtom,
+  recipeByIdAtom,
+  recipesAtom,
+  recipesRuntime,
+  showOriginalRecipeAtom,
+} from "./runtime"
 
-export { recipesRuntime }
+export {
+  allRecipesAtom,
+  recipeSearchQueryAtom,
+  recipeSortByAtom,
+  modifiedRecipeByIdAtom,
+  recipeByIdAtom,
+  recipeForDisplayAtom,
+  recipesRuntime,
+  showOriginalRecipeAtom,
+} from "./runtime"
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
@@ -47,31 +55,6 @@ export const extractRuntime = Atom.runtime((get) =>
 
 // Reads
 
-const recipesAtom = recipesRuntime
-  .atom(RecipeRepo.useSync((_) => _.stream).pipe(Stream.unwrap))
-  .pipe(Atom.keepAlive)
-
-const recipeEditsAtom = recipesRuntime
-  .atom(RecipeRepo.useSync((_) => _.editsStream).pipe(Stream.unwrap))
-  .pipe(Atom.keepAlive)
-
-export const recipeSearchQueryAtom = Atom.make("").pipe(Atom.keepAlive)
-
-export const recipeSortByAtom = Atom.kvs({
-  runtime: kvsRuntime,
-  key: "cheffect:recipeSortBy",
-  schema: SortByValue,
-  defaultValue: () => "title" as const,
-})
-
-export const allRecipesAtom = Atom.make((get) => {
-  const query = get(recipeSearchQueryAtom)
-  const sortBy = get(recipeSortByAtom)
-  return AsyncResult.map(get(recipesAtom), (recipes) =>
-    searchRecipes(recipes, { query, sortBy }),
-  )
-})
-
 export const mealPlanRecipesQueryAtom = Atom.make("")
 
 export const mealPlanRecipesAtom = Atom.make((get) => {
@@ -80,14 +63,6 @@ export const mealPlanRecipesAtom = Atom.make((get) => {
     searchRecipes(recipes, { query, sortBy: "title" }),
   )
 })
-
-// A recipe by the id string in a route or a reference. Soft-deleted recipes
-// are still found; `None` when the recipe is missing, e.g. not synced yet.
-export const recipeByIdAtom = Atom.family((id: string) =>
-  Atom.make((get) =>
-    AsyncResult.map(get(recipesAtom), (recipes) => findRecipe(recipes, id)),
-  ),
-)
 
 export const recipeTitleAtom = Atom.family((id: string) =>
   Atom.make((get) =>
@@ -166,72 +141,6 @@ export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
     })),
   ),
   { concurrent: true },
-)
-
-export const showOriginalRecipeAtom = Atom.make(HashSet.empty<string>())
-
-// The AI's suggested edit to a recipe, kept beside the recipe until it is
-// saved or discarded. Writing `None` removes it.
-export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
-  Atom.writable(
-    (get) =>
-      AsyncResult.map(get(recipeEditsAtom), (edits) =>
-        findRecipeEdit(edits, id),
-      ),
-    (ctx, modified: Option.Option<ExtractedRecipe>) => {
-      const recipeId = recipeIdFromString(id)
-      ctx.set(
-        writeEventAtom,
-        Option.match(modified, {
-          onNone: () => ({
-            event: "RecipeEditRemove" as const,
-            payload: { id: recipeId },
-          }),
-          onSome: (modified) => ({
-            event: "RecipeEditSet" as const,
-            payload: RecipeEdit.make({
-              id: recipeId,
-              title: modified.title,
-              imageUrl: modified.imageUrl,
-              prepTime: modified.prepTime,
-              cookingTime: modified.cookingTime,
-              servings: modified.servings,
-              ingredients: modified.ingredients,
-              steps: modified.steps,
-              sourceName: modified.sourceName,
-            }),
-          }),
-        }),
-      )
-    },
-  ),
-)
-
-export const recipeForDisplayAtom = Atom.family((id: string) =>
-  Atom.make((get) => {
-    const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
-    const modified = get(modifiedRecipeByIdAtom(id)).pipe(
-      AsyncResult.value,
-      Option.flatten,
-    )
-    return AsyncResult.map(
-      get(recipeByIdAtom(id)),
-      Option.map((original) => {
-        const resolved =
-          showOriginal || Option.isNone(modified)
-            ? original
-            : new Recipe({
-                ...original,
-                ...modified.value,
-              })
-        return {
-          original,
-          resolved,
-          isModified: Option.isSome(modified),
-        } as const
-      }),
-    )
-  }),
 )
 
 export const discardModifiedRecipeAtom = recipesRuntime.fn<string>()(
