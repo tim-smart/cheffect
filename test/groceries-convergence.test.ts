@@ -27,7 +27,8 @@ import {
 // (TIM-248): `GroceryItemAdded` creates, `GroceryItemUpdated` and
 // `GroceryItemToggled` patch under last-writer-wins and do nothing when the
 // item is missing, and `GroceryItemDeleted` hard-deletes, so a late update
-// can't bring an item back.
+// can't bring an item back. `GroceryItemsDeleted` hard-deletes only the ids
+// its writer saw, so an item added concurrently survives the clear.
 //
 // Ingredient aisles and aisle orders have reusable keys: a set upserts under
 // last-writer-wins, and a remove leaves a tombstone (`deleted: 1`) that only a
@@ -41,6 +42,7 @@ const {
   GroceryItemUpdated,
   GroceryItemToggled,
   GroceryItemDeleted,
+  GroceryItemsDeleted,
   IngredientAisleSet,
   IngredientAisleRemoved,
   GroceryAisleOrderSet,
@@ -51,11 +53,14 @@ const carrots = Schema.decodeSync(GroceryItemIdFromString)(carrotsIdString)
 const milk = Schema.decodeSync(GroceryItemIdFromString)(
   "0193c7a0-1b2c-4def-8123-c0ffee000002",
 )
+const bread = Schema.decodeSync(GroceryItemIdFromString)(
+  "0193c7a0-1b2c-4def-8123-c0ffee000003",
+)
 type ItemId = typeof carrots
 
-const added = (id: ItemId, name: string) =>
+const added = (id: ItemId, name: string, msecs = 1000) =>
   makeEntry({
-    msecs: 1000,
+    msecs,
     event: GroceryItemAdded,
     payload: GroceryItem.insert.make({
       id,
@@ -65,8 +70,8 @@ const added = (id: ItemId, name: string) =>
       aisle: null,
       recipeIds: null,
       completed: false,
-      createdAt: DateTime.makeUnsafe(1000),
-      updatedAt: DateTime.makeUnsafe(1000),
+      createdAt: DateTime.makeUnsafe(msecs),
+      updatedAt: DateTime.makeUnsafe(msecs),
     }),
   })
 
@@ -93,6 +98,9 @@ const toggled = (msecs: number, id: ItemId, completed: boolean) =>
 
 const deleted = (msecs: number, id: ItemId) =>
   makeEntry({ msecs, event: GroceryItemDeleted, payload: { id } })
+
+const cleared = (msecs: number, ids: readonly [ItemId, ...Array<ItemId>]) =>
+  makeEntry({ msecs, event: GroceryItemsDeleted, payload: { ids } })
 
 const aisleSet = (msecs: number, name: string, aisle: GroceryAisle) =>
   makeEntry({ msecs, event: IngredientAisleSet, payload: { name, aisle } })
@@ -148,6 +156,8 @@ test("the Groceries group is in the catalogue, keyed by the id string, the norma
   ]) {
     assert.equal(entry.primaryKey, carrotsIdString, entry.event)
   }
+  // Every clear shares one fixed key.
+  assert.equal(cleared(2000, [carrots, milk]).primaryKey, "groceryItems")
   assert.equal(aisleSet(1000, " Carrots ", "Produce").primaryKey, "carrots")
   assert.equal(aisleRemoved(1000, "CARROTS").primaryKey, "carrots")
   assert.equal(
@@ -197,6 +207,26 @@ test("a deleted grocery item stays deleted, with updates and toggles either side
   assert.deepEqual(pick(only(groceryItems), ["id", "name"]), {
     id: milk,
     name: "Milk",
+  })
+})
+
+test("a clear deletes the items it saw and none added concurrently, whatever arrives first", async () => {
+  const { groceryItems } = await converge({
+    layer: makeLayer,
+    read,
+    setup: [added(carrots, "Carrots"), added(milk, "Milk")],
+    concurrent: [
+      toggled(2000, carrots, true),
+      // Added on another device before the clear, but never seen by it.
+      added(bread, "Bread", 2500),
+      cleared(3000, [carrots, milk]),
+      // An update from a device that hadn't seen the clear yet.
+      updated(4000, milk, { name: "Oat milk", completed: false }),
+    ],
+  })
+  assert.deepEqual(pick(only(groceryItems), ["id", "name"]), {
+    id: bread,
+    name: "Bread",
   })
 })
 
