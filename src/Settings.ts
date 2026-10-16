@@ -4,6 +4,7 @@ import * as SchemaTransformation from "effect/SchemaTransformation"
 import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
 import {
   events,
+  LegacyGroceryItem,
   LegacyMealPlanDayNote,
   LegacyMenu,
   LegacyRecipe,
@@ -17,7 +18,6 @@ import { kvsRuntime } from "./atoms"
 import * as Function from "effect/Function"
 import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
-import { exportGroceryItems$ } from "./livestore/queries"
 import { Recipe, RecipeId, RecipeIdFromString } from "./domain/Recipe"
 import { generateUuidBytes, uuidString } from "./lib/Id"
 import { importRecipesAtom, liveRecipesAtom } from "./Recipes/runtime"
@@ -37,6 +37,15 @@ import { MenuDayNoteId, MenuDayNoteIdFromString } from "./domain/MenuDayNote"
 import { MenuEntryId, MenuEntryIdFromString } from "./domain/MenuEntry"
 import type { StoredMenuDayNote, StoredMenuEntry } from "./Menus/Repo"
 import { exportMenusAtom, importMenusAtom } from "./Menus/runtime"
+import {
+  GroceryItem,
+  GroceryItemId,
+  GroceryItemIdFromString,
+} from "./domain/GroceryItem"
+import {
+  exportGroceryItemsAtom,
+  importGroceryItemsAtom,
+} from "./Groceries/runtime"
 import { eventLogAtom, writeEventAtom } from "./EventLog"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
@@ -287,9 +296,19 @@ export const exportAllAtom = Store.runtime.fn<void>()(
     }
 
     // groceries
-    const allGroceryItems = store.query(exportGroceryItems$)
-    for (const item of allGroceryItems) {
-      out.push(events.groceryItemAdded(item))
+    const groceryItems = yield* get.setResult(exportGroceryItemsAtom, undefined)
+    for (const item of groceryItems) {
+      out.push(
+        events.groceryItemAdded(
+          LegacyGroceryItem.insert.make({
+            ...item,
+            id: item.idString,
+            recipeIds: item.recipeIds
+              ? Array.map(item.recipeIds, uuidString)
+              : null,
+          }),
+        ),
+      )
     }
 
     // meal plan
@@ -360,8 +379,8 @@ export const exportAllAtom = Store.runtime.fn<void>()(
   }),
 )
 
-// Recipes, the meal plan and menus in the file go to the EventLog, everything
-// else to LiveStore until its module moves over.
+// Recipes, groceries, the meal plan and menus in the file go to the EventLog,
+// everything else to LiveStore until its module moves over.
 const recipeFromLegacy = (legacy: typeof LegacyRecipe.insert.Type) =>
   new Recipe({
     ...legacy,
@@ -399,6 +418,25 @@ const mealPlanDayNoteFromLegacy = (
       () => MealPlanDayNoteId.make(generateUuidBytes()),
     ),
   })
+
+// A recipe id that isn't a UUID can never join with a recipe, so it is
+// dropped from the item.
+const groceryItemFromLegacy = (
+  legacy: typeof LegacyGroceryItem.insert.Type,
+) => {
+  const recipeIds = (legacy.recipeIds ?? []).flatMap((id) =>
+    Option.toArray(Schema.decodeOption(RecipeIdFromString)(id)),
+  )
+  return new GroceryItem({
+    ...legacy,
+    id: Option.getOrElse(
+      Schema.decodeOption(GroceryItemIdFromString)(legacy.id),
+      () => GroceryItemId.make(generateUuidBytes()),
+    ),
+    list: legacy.list ?? null,
+    recipeIds: Array.isArrayNonEmpty(recipeIds) ? recipeIds : null,
+  })
+}
 
 // A menu id that isn't a UUID gets a new one, the same for the menu and every
 // entry and note that names it.
@@ -453,6 +491,7 @@ export const importAllAtom = Store.runtime.fn<File>()(
     const events = Schema.decodeSync(ExportEventsJson)(text)
     const store = yield* Store
     const recipes = Array.empty<Recipe>()
+    const groceryItems = Array.empty<GroceryItem>()
     const mealPlanEntries = Array.empty<PlannedEntry>()
     const mealPlanNotes = Array.empty<MealPlanDayNote>()
     const menus = Array.empty<Menu>()
@@ -462,6 +501,10 @@ export const importAllAtom = Store.runtime.fn<File>()(
     for (const event of events) {
       if (event.name === "v1.RecipeCreated") {
         recipes.push(recipeFromLegacy(event.args))
+        continue
+      }
+      if (event.name === "v1.GroceryItemAdded") {
+        groceryItems.push(groceryItemFromLegacy(event.args))
         continue
       }
       if (event.name === "v1.MealPlanAdd") {
@@ -494,6 +537,7 @@ export const importAllAtom = Store.runtime.fn<File>()(
       }
     }
     yield* get.setResult(importRecipesAtom, recipes)
+    yield* get.setResult(importGroceryItemsAtom, groceryItems)
     yield* get.setResult(importMealPlanAtom, {
       entries: mealPlanEntries,
       notes: mealPlanNotes,

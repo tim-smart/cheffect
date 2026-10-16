@@ -4,15 +4,11 @@ import { GroceryItem } from "@/domain/GroceryItem"
 import { Menu } from "@/domain/Menu"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { mealPlanWeekStart } from "@/Settings"
-import { Store } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { queryDb, sql } from "@livestore/livestore"
 import * as DateTime from "effect/DateTime"
 import * as Option from "effect/Option"
 import * as Effect from "effect/Effect"
-import * as Schema from "effect/Schema"
 import { writeEvent } from "@/EventLog"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { recipesRuntime } from "@/Recipes/runtime"
@@ -22,23 +18,8 @@ import { MealPlanRepo } from "@/MealPlan/Repo"
 import { mealPlanRuntime } from "@/MealPlan/runtime"
 import { MenuRepo } from "@/Menus/Repo"
 import { menusRuntime } from "@/Menus/runtime"
-
-const CountSchema = Schema.Array(
-  Schema.Struct({
-    count: Schema.Number,
-  }),
-)
-
-const groceryCount$ = queryDb(
-  {
-    query: sql`SELECT COUNT(*) as count FROM grocery_items`,
-    schema: CountSchema,
-  },
-  {
-    label: "devGrocerySeedCount",
-    map: (rows) => rows[0]?.count ?? 0,
-  },
-)
+import { GroceryRepo } from "@/Groceries/Repo"
+import { addGroceryItem, groceriesRuntime } from "@/Groceries/runtime"
 
 // Recipes are read through the repo and written through the EventLog. The
 // result is the recipes the other seeds reference.
@@ -119,26 +100,21 @@ const seededMenusAtom = menusRuntime.atom(
   }),
 )
 
+// Grocery items on the default list, read through the repo and written
+// through the EventLog, once the recipes are seeded.
+const seededGroceriesAtom = groceriesRuntime.atom(
+  Effect.fnUntraced(function* (get) {
+    yield* get.result(seededRecipesAtom)
+    const repo = yield* GroceryRepo
+    if ((yield* repo.items).length > 0) return
+    for (const item of seedGroceryItems) {
+      yield* addGroceryItem(GroceryItem.fromForm(item, null))
+    }
+  }),
+)
+
 export const seedDevRecipesAtom = Atom.make((get) => {
   get(seededMealPlanAtom)
   get(seededMenusAtom)
-  const store = get(Store.storeUnsafe)
-  if (!store) return
-  const seeded = get(seededRecipesAtom)
-  if (!AsyncResult.isSuccess(seeded)) return
-  const groceryCount = store.query(groceryCount$)
-
-  if (groceryCount === 0) {
-    for (const item of seedGroceryItems) {
-      const groceryItem = GroceryItem.fromForm(
-        {
-          name: item.name,
-          quantity: item.quantity,
-          aisle: item.aisle,
-        },
-        null,
-      )
-      store.commit(events.groceryItemAdded(groceryItem))
-    }
-  }
+  get(seededGroceriesAtom)
 })

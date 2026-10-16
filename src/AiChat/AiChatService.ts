@@ -13,11 +13,13 @@ import * as Array from "effect/Array"
 import * as AiResponse from "effect/ai/Response"
 import * as Ref from "effect/Ref"
 import { router } from "@/Router"
+import { groceryItemsAtom } from "@/Groceries/atoms"
+import { GroceryRepo } from "@/Groceries/Repo"
 import {
-  allGroceryItems$,
-  allGroceryItemsArrayAtom,
-  groceryListNames$,
-} from "@/livestore/queries"
+  addGroceryItem,
+  groceriesRuntime,
+  updateGroceryItem,
+} from "@/Groceries/runtime"
 import { mealPlanEntriesAtom } from "@/MealPlan/atoms"
 import { latestNoteByDay, MealPlanRepo } from "@/MealPlan/Repo"
 import { mealPlanRuntime } from "@/MealPlan/runtime"
@@ -26,7 +28,8 @@ import { MenuRepo } from "@/Menus/Repo"
 import { menusRuntime } from "@/Menus/runtime"
 import { MenuEntry, MenuEntryIdFromString } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
-import { GroceryItem } from "@/domain/GroceryItem"
+import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
+import type { RecipeId } from "@/domain/Recipe"
 import {
   MealPlanEntry,
   MealPlanEntryId,
@@ -70,11 +73,16 @@ const ToolkitLayer = toolkit.toLayer(
     const mealPlan = yield* MealPlanRepo
     const menus = yield* MenuRepo
     const extractJobs = yield* RecipeExtractJobRepo
+    const groceries = yield* GroceryRepo
     const context = yield* Effect.context<
-      EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
+      EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb | GroceryRepo
     >()
     const write = (payload: EventPayload) =>
       writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
+    const addItem = (item: GroceryItem) =>
+      addGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
+    const updateItem = (item: GroceryItem) =>
+      updateGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
         const found = yield* recipes
@@ -131,28 +139,28 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       GroceryListNames: Effect.fnUntraced(function* () {
-        const names = store.query(groceryListNames$)
+        const names = yield* groceries.listNames.pipe(Effect.orDie)
         return { _tag: "Transient", value: names }
       }),
       GetGroceryList: Effect.fnUntraced(function* ({ list }) {
-        const items = store.query(allGroceryItems$(list))
+        const items = yield* groceries.list(list).pipe(Effect.orDie)
         return {
           _tag: "Transient",
           value: items,
         }
       }),
       AddGroceryItems: Effect.fnUntraced(function* ({ groceryItems }) {
-        groceryItems.map((groceryItem) => {
-          const newItem = new GroceryItem({
-            ...groceryItem,
-            id: crypto.randomUUID(),
-            createdAt: DateTime.nowUnsafe(),
-            updatedAt: DateTime.nowUnsafe(),
-            completed: false,
-          })
-          store.commit(events.groceryItemAdded(newItem))
-          return newItem
-        })
+        for (const groceryItem of groceryItems) {
+          yield* addItem(
+            new GroceryItem({
+              ...groceryItem,
+              id: GroceryItemId.make(generateUuidBytes()),
+              createdAt: DateTime.nowUnsafe(),
+              updatedAt: DateTime.nowUnsafe(),
+              completed: false,
+            }),
+          )
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -162,12 +170,12 @@ const ToolkitLayer = toolkit.toLayer(
         groceryItem,
         groceryItemId,
       }) {
-        const existing = store.query(groceryItemById$(groceryItemId))
+        const existing = yield* groceries.byId(groceryItemId).pipe(Effect.orDie)
         if (Option.isNone(existing)) {
           return { _tag: "Transient", value: null }
         }
-        store.commit(
-          events.groceryItemUpdated({
+        yield* updateItem(
+          new GroceryItem({
             ...existing.value,
             ...groceryItem,
             updatedAt: DateTime.nowUnsafe(),
@@ -181,48 +189,52 @@ const ToolkitLayer = toolkit.toLayer(
         mergedName,
         mergedQuantity,
       }) {
-        const target = store.query(groceryItemById$(targetId))
+        const target = yield* groceries.byId(targetId).pipe(Effect.orDie)
         if (Option.isNone(target)) {
           return { _tag: "Transient", value: null }
         }
 
-        // Collect all recipeIds from merged items
-        const allRecipeIds = new Set<string>()
-        if (target.value.recipeIds) {
-          target.value.recipeIds.forEach((id) => allRecipeIds.add(id))
-        }
+        // Collect all recipeIds from merged items, by id string
+        const allRecipeIds = new Map<string, RecipeId>()
+        const collectRecipeIds = (item: GroceryItem) =>
+          item.recipeIds?.forEach((id) => allRecipeIds.set(uuidString(id), id))
+        collectRecipeIds(target.value)
 
         // Delete source items and collect their recipeIds
         for (const sourceId of sourceIds) {
-          const source = store.query(groceryItemById$(sourceId))
+          const source = yield* groceries.byId(sourceId).pipe(Effect.orDie)
           if (Option.isSome(source)) {
-            if (source.value.recipeIds) {
-              source.value.recipeIds.forEach((id) => allRecipeIds.add(id))
-            }
-            store.commit(events.groceryItemDeleted({ id: sourceId }))
+            collectRecipeIds(source.value)
+            yield* write({
+              event: "GroceryItemDeleted",
+              payload: { id: source.value.id },
+            })
           }
         }
 
         // Update target with merged info
-        const recipeIdsArray = globalThis.Array.from(allRecipeIds)
-        store.commit(
-          events.groceryItemUpdated({
-            id: targetId,
+        const recipeIdsArray = globalThis.Array.from(allRecipeIds.values())
+        yield* updateItem(
+          new GroceryItem({
+            ...target.value,
             name: mergedName ?? target.value.name,
             quantity: mergedQuantity ?? target.value.quantity,
-            aisle: target.value.aisle,
-            recipeIds:
-              recipeIdsArray.length > 0
-                ? (recipeIdsArray as [string, ...string[]])
-                : null,
-            completed: target.value.completed,
+            recipeIds: Array.isArrayNonEmpty(recipeIdsArray)
+              ? recipeIdsArray
+              : null,
             updatedAt: DateTime.nowUnsafe(),
           }),
         )
         return { _tag: "Transient", value: null }
       }),
       DeleteGroceryItem: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.groceryItemDeleted({ id }))
+        const item = yield* groceries.byId(id).pipe(Effect.orDie)
+        if (Option.isSome(item)) {
+          yield* write({
+            event: "GroceryItemDeleted",
+            payload: { id: item.value.id },
+          })
+        }
         return { _tag: "Transient", value: null }
       }),
       GetMenus: Effect.fnUntraced(function* () {
@@ -644,7 +656,7 @@ When converting ingredient units, **do not** change the following units:
 - cups
 `
         } else if (location.pathname === "/groceries") {
-          const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
+          const items = yield* Atom.getResult(groceryItemsAtom)
           return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
@@ -827,6 +839,7 @@ const runtime = Atom.runtime((get) =>
       get(Store.layer),
       get(mealPlanRuntime.layer),
       get(menusRuntime.layer),
+      get(groceriesRuntime.layer),
     ]),
   ),
 ).pipe(Atom.keepAlive)
@@ -858,20 +871,6 @@ export const clearAtom = runtime.fn<void>()(
     get.set(currentPromptAtom, Prompt.empty)
   }),
 )
-
-const groceryItemById$ = (id: string) =>
-  queryDb(
-    {
-      query: sql`SELECT * FROM grocery_items WHERE id = ?`,
-      schema: GroceryItem.array,
-      bindValues: [id],
-    },
-    {
-      label: "AiChatService.groceryItemById",
-      deps: [id],
-      map: Array.head,
-    },
-  )
 
 const aiMemoryEntries$ = queryDb({
   query: sql`SELECT * FROM ai_memory_entries ORDER BY createdAt DESC`,

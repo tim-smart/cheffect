@@ -1,183 +1,178 @@
-import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
-import { Store } from "@/livestore/atoms"
-import {
-  allGroceryItemsArrayAtom,
-  allGroceryItemsAtom,
-  groceryAisleOrdersAtom,
-  pantryGroceryItemNames$,
-  PANTRY_GROCERY_LIST_NAME,
-} from "@/livestore/queries"
-import { events } from "@/livestore/schema"
-import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { queryDb, sql } from "@livestore/livestore"
-import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import * as Schema from "effect/Schema"
+import * as Option from "effect/Option"
+import * as Stream from "effect/Stream"
+import {
+  GroceryAisle,
+  GroceryItem,
+  PANTRY_GROCERY_LIST_NAME,
+} from "@/domain/GroceryItem"
+import { writeEvent } from "@/EventLog"
+import { compareText } from "@/lib/text"
+import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
+import { groceryCurrentListAtom } from "./currentList"
+import {
+  aisleOrder,
+  autocomplete,
+  GroceryRepo,
+  learnedAisle,
+  listItems,
+  listNames,
+} from "./Repo"
+import { addGroceryItem, groceriesRuntime, updateGroceryItem } from "./runtime"
 
-export const groceryItemAddAtom = Atom.fnSync<GroceryItem>()((item, get) => {
-  const store = get(Store.storeUnsafe)!
-  if (!item.aisle) {
-    const maybePrevItem = store.query(previousGroceryAisle$(item.name))
-    if (maybePrevItem._tag === "Some") {
-      item = new GroceryItem({
-        ...item,
-        aisle: maybePrevItem.value.aisle,
-      })
-    }
-  }
-  store.commit(events.groceryItemAdded(item))
+// Reads
+
+const itemsAtom = groceriesRuntime
+  .atom(GroceryRepo.useSync((_) => _.itemsStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+const aislesAtom = groceriesRuntime
+  .atom(GroceryRepo.useSync((_) => _.aislesStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+const aisleOrdersAtom = groceriesRuntime
+  .atom(GroceryRepo.useSync((_) => _.aisleOrdersStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+// The current list's items, by name.
+export const groceryItemsAtom = Atom.make((get) => {
+  const list = get(groceryCurrentListAtom)
+  return AsyncResult.map(get(itemsAtom), (items) => listItems(items, list))
 })
+
+export const groceryListNamesAtom = Atom.make((get) =>
+  AsyncResult.map(get(itemsAtom), listNames),
+)
 
 const fallbackAisleOrder = [...GroceryAisle.literals, "Other"]
 
+// The current list's items grouped by aisle, in the list's aisle order. Items
+// without an aisle go under "Other", after the named aisles unless the list
+// has moved it.
 export const groceryCountAtom = Atom.make((get) => {
-  const itemsResult = get(allGroceryItemsAtom)
-  const orderResult = get(groceryAisleOrdersAtom)
-  const orderMap = AsyncResult.isSuccess(orderResult)
-    ? new Map(
-        orderResult.value.map(({ aisle, sortOrder }) => [aisle, sortOrder]),
-      )
-    : new Map<string, number>()
+  const list = get(groceryCurrentListAtom)
+  const orderMap = get(aisleOrdersAtom).pipe(
+    AsyncResult.map((orders) => aisleOrder(orders, list)),
+    AsyncResult.getOrElse((): ReadonlyMap<string, number> => new Map()),
+  )
   const getOrder = (name: string) => {
     const stored = orderMap.get(name)
     if (stored !== undefined) return stored
     const index = fallbackAisleOrder.indexOf(name)
     return index === -1 ? 1000 : index
   }
-  return itemsResult.pipe(
+  return get(groceryItemsAtom).pipe(
     AsyncResult.map((items) => {
-      const aisles: Array<{ name: string; items: GroceryItem[] }> = []
-      let total = 0
+      const byAisle = new Map<string, Array<GroceryItem>>()
       let completed = 0
-      items.forEach((items, aisle) => {
-        total += items.length
-        completed += items.filter((item) => item.completed).length
-        aisles.push({ name: aisle, items })
-      })
-      aisles.sort(({ name: a }, { name: b }) => {
-        const orderDiff = getOrder(a) - getOrder(b)
-        return orderDiff !== 0 ? orderDiff : a.localeCompare(b)
-      })
-      return { total, completed, aisles }
+      for (const item of items) {
+        if (item.completed) completed++
+        const aisle = item.aisle ?? "Other"
+        const existing = byAisle.get(aisle)
+        if (existing) {
+          existing.push(item)
+        } else {
+          byAisle.set(aisle, [item])
+        }
+      }
+      const aisles = Array.from(byAisle, ([name, items]) => ({ name, items }))
+      aisles.sort(
+        ({ name: a }, { name: b }) =>
+          getOrder(a) - getOrder(b) || compareText(a, b),
+      )
+      return { total: items.length, completed, aisles }
     }),
   )
 })
 
-const runtime = Atom.runtime((get) =>
-  Layer.mergeAll(AiHelpers.layer, get(Store.layer)).pipe(
+// Autocomplete for the item name field, from the learned ingredient names.
+export const groceryNameAtom = Atom.make("")
+
+export const groceryNameAutoCompleteAtom = Atom.make((get) => {
+  const query = get(groceryNameAtom)
+  return get(aislesAtom).pipe(
+    AsyncResult.map((aisles) => autocomplete(aisles, query)),
+    AsyncResult.getOrElse((): ReadonlyArray<string> => []),
+  )
+})
+
+// Writes
+
+// An item added without an aisle takes the one learned for its name.
+export const groceryItemAddAtom = groceriesRuntime.fn<GroceryItem>()(
+  Effect.fnUntraced(function* (item) {
+    if (item.aisle === null) {
+      const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
+      const aisle = learnedAisle(aisles, item.name)
+      if (Option.isSome(aisle)) {
+        item = new GroceryItem({ ...item, aisle: aisle.value })
+      }
+    }
+    yield* addGroceryItem(item)
+  }),
+)
+
+// A user's own edit, which always teaches the item's aisle.
+export const groceryItemEditAtom = groceriesRuntime.fn<{
+  readonly item: GroceryItem
+  readonly previousName: string
+}>()(({ item, previousName }) =>
+  updateGroceryItem(item, { previousName, userInitiated: true }),
+)
+
+const beautifyRuntime = Atom.runtime((get) =>
+  Layer.mergeAll(AiHelpers.layer, get(groceriesRuntime.layer)).pipe(
     Layer.provide(get(openAiClientLayer)),
   ),
 )
 
-export const beautifyGroceriesAtom = runtime
+export const beautifyGroceriesAtom = beautifyRuntime
   .fn<void>()(
     Effect.fnUntraced(function* (_, get) {
-      const store = yield* Store
-      const currentItems = yield* get.result(allGroceryItemsArrayAtom)
+      const repo = yield* GroceryRepo
+      const currentItems = yield* repo.list(get(groceryCurrentListAtom))
       yield* Effect.log("Beautifying groceries...", currentItems)
       if (currentItems.length === 0) return
-      const previousItems = new Map<string, GroceryItem>()
-      for (const item of currentItems) {
-        previousItems.set(item.id, item)
-      }
-      const pantryItemNames = new Set(store.query(pantryGroceryItemNames$))
+      const previousItems = new Map(
+        currentItems.map((item) => [item.idString, item]),
+      )
+      const pantryItemNames = yield* repo.pantryNames
+      const aisles = yield* repo.aisles
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
       for (const item of removed) {
-        store.commit(events.groceryItemDeleted({ id: item.id }))
+        yield* writeEvent({
+          event: "GroceryItemDeleted",
+          payload: { id: item.id },
+        })
       }
       for (const item of updated) {
-        const prev = previousItems.get(item.id)
+        const prev = previousItems.get(item.idString)
+        const renamed = prev !== undefined && item.name !== prev.name
+        // A renamed item that turns out to be in the pantry goes.
         if (
-          prev?.list !== PANTRY_GROCERY_LIST_NAME &&
-          prev?.name &&
-          item.name !== prev.name &&
+          renamed &&
+          prev.list !== PANTRY_GROCERY_LIST_NAME &&
           pantryItemNames.has(item.nameNormalized)
         ) {
-          store.commit(events.groceryItemDeleted({ id: item.id }))
+          yield* writeEvent({
+            event: "GroceryItemDeleted",
+            payload: { id: item.id },
+          })
           continue
         }
         let nextItem = item
-        if (prev?.name && item.name !== prev.name) {
-          const maybePrevItem = store.query(previousGroceryAisle$(item.name))
-          if (maybePrevItem._tag === "Some") {
-            nextItem = new GroceryItem({
-              ...item,
-              aisle: maybePrevItem.value.aisle,
-            })
+        if (renamed) {
+          const aisle = learnedAisle(aisles, item.name)
+          if (Option.isSome(aisle)) {
+            nextItem = new GroceryItem({ ...item, aisle: aisle.value })
           }
         }
-        store.commit(
-          events.groceryItemUpdated({
-            ...nextItem,
-            previousName: prev?.name,
-          }),
-        )
+        yield* updateGroceryItem(nextItem, { previousName: prev?.name })
       }
     }),
   )
   .pipe(Atom.keepAlive)
-
-export const previousGroceryAisle$ = (name: string) => {
-  const nameNormalized = name.trim().toLowerCase()
-  return queryDb(
-    {
-      query: sql`select name, aisle from ingredient_aisles where name = ?`,
-      bindValues: [nameNormalized],
-      schema: NameAndAisle,
-    },
-    { deps: [name], map: Array.head },
-  )
-}
-
-const groceryItemNames$ = (name: string) => {
-  const nameNormalized = name.trim().toLowerCase()
-  return queryDb(
-    {
-      query: sql`
-        select name
-        from ingredient_aisles
-        where name LIKE '%' || ? || '%'`,
-      bindValues: [nameNormalized],
-      schema: NameOnly,
-    },
-    { deps: [name] },
-  )
-}
-
-const NameAndAisle = Schema.Array(
-  Schema.Struct({
-    name: Schema.String,
-    aisle: GroceryAisle,
-  }),
-)
-
-const NameOnly = Schema.Array(
-  Schema.Struct({
-    name: Schema.String,
-  }),
-)
-
-export const groceryNameAtom = Atom.make("")
-
-export const groceryNameAutoCompleteAtom = Atom.make((get) => {
-  const store = get(Store.storeUnsafe)
-  if (!store) return []
-  const name = get(groceryNameAtom).trim().toLowerCase()
-  if (name.length < 2) return []
-  get.addFinalizer(
-    store.subscribe(groceryItemNames$(name), (results) => {
-      const out = []
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i]
-        out.push(result.name)
-        if (out.length === 10) break
-      }
-      get.setSelf<Array<string>>(out)
-    }),
-  )
-  return Array.empty<string>()
-})
