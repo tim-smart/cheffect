@@ -52,8 +52,7 @@ export const recipeEditsAtom = recipesRuntime
   .atom(RecipeRepo.useSync((_) => _.editsStream).pipe(Stream.unwrap))
   .pipe(Atom.keepAlive)
 
-// Load both tables on the list, before opening a recipe can show its original
-// while the saved AI edit is still being read. Direct loads wait for both too.
+// Recipe details wait for both tables so pending edits never expose the original.
 export const recipeSnapshotsAtom = Atom.make((get) =>
   AsyncResult.all({
     recipes: get(recipesAtom),
@@ -71,9 +70,11 @@ export const recipeSortByAtom = Atom.kvs({
 })
 
 export const allRecipesAtom = Atom.make((get) => {
+  // Preload edits for navigation without tying list loading or errors to them.
+  get(recipeEditsAtom)
   const query = get(recipeSearchQueryAtom)
   const sortBy = get(recipeSortByAtom)
-  return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes }) =>
+  return AsyncResult.map(get(recipesAtom), (recipes) =>
     searchRecipes(recipes, { query, sortBy }),
   )
 })
