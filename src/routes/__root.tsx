@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import { router } from "@/Router"
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router"
+import {
+  createRootRoute,
+  Link,
+  Outlet,
+  useLocation,
+} from "@tanstack/react-router"
 import {
   BookOpen,
   Calendar,
@@ -14,6 +19,12 @@ import {
 
 export const Route = createRootRoute({
   component: () => {
+    // Recipe pages belong to the Recipes tab, so it stays active rather than
+    // fading out when a recipe opens. Reads the same location as `Link`, so
+    // both update in the same render.
+    const onRecipePage = useLocation({
+      select: (location) => /^\/(recipes|edit)\//.test(location.pathname),
+    })
     return (
       <div>
         <header className="bg-background border-b border-border sticky top-0 z-10">
@@ -58,9 +69,15 @@ export const Route = createRootRoute({
               to="/"
               className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
               activeProps={{ className: "text-primary bg-primary-muted" }}
-              inactiveProps={{
-                className: "text-muted-foreground active:bg-muted",
-              }}
+              inactiveProps={
+                onRecipePage
+                  ? {
+                      className: "text-primary bg-primary-muted",
+                      "aria-current": "page",
+                      "data-status": "active",
+                    }
+                  : { className: "text-muted-foreground active:bg-muted" }
+              }
             >
               <ChefHat className="w-6 h-6 mb-1" />
               <span className="text-xs font-medium">Recipes</span>
