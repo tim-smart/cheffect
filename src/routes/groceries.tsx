@@ -47,12 +47,11 @@ import * as DateTime from "effect/DateTime"
 import {
   beautifyGroceriesAtom,
   groceryCountAtom,
-  groceryItemAddAtom,
-  groceryItemEditAtom,
   groceryListNamesAtom,
   groceryNameAtom,
   groceryNameAutoCompleteAtom,
 } from "@/Groceries/atoms"
+import { groceryItemAddAtom, groceryItemEditAtom } from "@/Groceries/runtime"
 import { Skeleton } from "@/components/ui/skeleton"
 import { groceryCurrentListAtom } from "@/Groceries/currentList"
 import { recipeTitleAtom } from "@/Recipes/atoms"

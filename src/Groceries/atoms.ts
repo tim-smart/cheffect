@@ -21,7 +21,7 @@ import {
   listItems,
   listNames,
 } from "./Repo"
-import { addGroceryItem, groceriesRuntime, updateGroceryItem } from "./runtime"
+import { groceriesRuntime, updateGroceryItem } from "./runtime"
 
 // Reads
 
@@ -100,28 +100,6 @@ export const groceryNameAutoCompleteAtom = Atom.make((get) => {
 })
 
 // Writes
-
-// An item added without an aisle takes the one learned for its name.
-export const groceryItemAddAtom = groceriesRuntime.fn<GroceryItem>()(
-  Effect.fnUntraced(function* (item) {
-    if (item.aisle === null) {
-      const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
-      const aisle = learnedAisle(aisles, item.name)
-      if (Option.isSome(aisle)) {
-        item = new GroceryItem({ ...item, aisle: aisle.value })
-      }
-    }
-    yield* addGroceryItem(item)
-  }),
-)
-
-// A user's own edit, which always teaches the item's aisle.
-export const groceryItemEditAtom = groceriesRuntime.fn<{
-  readonly item: GroceryItem
-  readonly previousName: string
-}>()(({ item, previousName }) =>
-  updateGroceryItem(item, { previousName, userInitiated: true }),
-)
 
 const beautifyRuntime = Atom.runtime((get) =>
   Layer.mergeAll(AiHelpers.layer, get(groceriesRuntime.layer)).pipe(
