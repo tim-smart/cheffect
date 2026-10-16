@@ -82,6 +82,7 @@
     "@types/react-dom": "^19.3.0",
     "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "fake-indexeddb": "6.2.5",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",

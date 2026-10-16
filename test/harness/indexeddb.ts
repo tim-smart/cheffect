@@ -1,0 +1,50 @@
+import "fake-indexeddb/auto"
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb"
+import * as IndexedDb from "@effect/platform-browser/IndexedDb"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+
+// Every case gets its own IDBFactory, so nothing leaks between cases. The
+// EventJournal's IndexedDB implementation reaches for the `indexedDB` global
+// rather than the IndexedDb service, so the fresh factory is installed there
+// as well. Cases in one file run one after another, which keeps that safe.
+export const freshIndexedDb = (): IndexedDb.IndexedDb => {
+  const indexedDB = new IDBFactory()
+  ;(globalThis as any).indexedDB = indexedDB
+  return IndexedDb.make({ indexedDB, IDBKeyRange })
+}
+
+export const layerFreshIndexedDb = Layer.sync(
+  IndexedDb.IndexedDb,
+  freshIndexedDb,
+)
+
+// Counts the records a *separate* connection sees, the way the next page load
+// would open the database. Used to check that an awaited write is on disk.
+export const countRecords = (
+  indexedDB: IDBFactory,
+  database: string,
+  store: string,
+): Effect.Effect<number, Error> =>
+  Effect.callback<number, Error>((resume) => {
+    const open = indexedDB.open(database)
+    open.onerror = () => resume(Effect.fail(new Error(String(open.error))))
+    open.onsuccess = () => {
+      const db = open.result
+      try {
+        const request = db
+          .transaction(store, "readonly")
+          .objectStore(store)
+          .count()
+        request.onerror = () =>
+          resume(Effect.fail(new Error(String(request.error))))
+        request.onsuccess = () => {
+          db.close()
+          resume(Effect.succeed(request.result))
+        }
+      } catch (error) {
+        db.close()
+        resume(Effect.fail(new Error(String(error))))
+      }
+    }
+  })
