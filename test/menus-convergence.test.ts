@@ -33,10 +33,13 @@ import {
 // removes hard-delete, so a late update can't bring a row back. A day note
 // add on an existing row merges under last-writer-wins.
 //
-// The menu cascades are the one place a handler writes beyond its own row:
-// `MenuRemove` deletes the menu's entries and notes, and a `MenuUpdate` that
-// shrinks `days` deletes the entries and notes on the days it drops. Menu
-// days are numbered from 1, so shrinking to 5 days keeps day 5.
+// `MenuRemove` is the one handler that writes beyond its own row: it deletes
+// the menu's entries and notes through the `menuId` index. A `MenuUpdate`
+// that shrinks `days` is a plain patch. The writer emits `MenuEntryRemove`
+// and `MenuDayNoteRemove` for the entries and notes it can see past the new
+// last day (TIM-248 rules 6 and 7), so a concurrent write it never saw
+// survives, past the last day where reads don't show it. Menu days are
+// numbered from 1, so shrinking to 5 days keeps day 5.
 //
 // The first add of a row is delivered before the permuted entries: nothing
 // can move or remove a row its device hasn't received. No recipe is ever
@@ -448,7 +451,21 @@ test("entries and notes added to a menu concurrently with its remove never show"
   assert.deepEqual(state.menuDayNotes, [])
 })
 
-test("shrinking a menu removes the entries and notes on the days it drops, with writes to them either side", async () => {
+// A shrink as its writer emits it: the update, then a remove for each entry
+// and note it saw past the new last day.
+const shrunk = (msecs: number, days: number) =>
+  menuUpdated(msecs, winter, { name: "Winter warmers", days })
+
+const days = (state: { readonly menus: ReadonlyArray<Row> }) =>
+  byId(state.menus).map((row) => pick(row, ["id", "days"]))
+
+const entryDays = (state: { readonly menuEntries: ReadonlyArray<Row> }) =>
+  byId(state.menuEntries).map((row) => pick(row, ["id", "day"]))
+
+const noteDays = (state: { readonly menuDayNotes: ReadonlyArray<Row> }) =>
+  byId(state.menuDayNotes).map((row) => pick(row, ["id", "day", "note"]))
+
+test("shrinking a menu removes the entries and notes its writer saw on the dropped days, and keeps the new last day", async () => {
   const state = await converge({
     layer: makeLayer,
     read,
@@ -457,38 +474,138 @@ test("shrinking a menu removes the entries and notes on the days it drops, with 
       menuAdded(summer, "Summer"),
       added(1000, soup, winter, 2),
       added(1000, stew, winter, 6),
-      // Another menu's entry on a dropped day is untouched.
+      // Another menu's entry past winter's new last day is untouched.
       added(1000, pie, summer, 7),
       noteAdded(1000, firstNote, winter, 3, "Leftovers"),
       noteAdded(1000, secondNote, winter, 6, "Takeaway"),
     ],
     concurrent: [
-      menuUpdated(2000, winter, { name: "Winter warmers", days: 5 }),
+      shrunk(2000, 5),
+      removed(2000, stew),
+      noteRemoved(2000, secondNote),
       // Onto the new last day, which stays.
       moved(2500, soup, 5),
-      // Within the dropped days.
-      moved(1500, stew, 7),
       noteUpdated(3000, firstNote, 3, "Pizza"),
-      noteUpdated(2500, secondNote, 6, "Curry"),
     ],
   })
-  assert.deepEqual(
-    byId(state.menus).map((row) => pick(row, ["id", "days"])),
-    [
-      { id: summer, days: 7 },
-      { id: winter, days: 5 },
+  assert.deepEqual(days(state), [
+    { id: summer, days: 7 },
+    { id: winter, days: 5 },
+  ])
+  assert.deepEqual(entryDays(state), [
+    { id: pie, day: 7 },
+    { id: soup, day: 5 },
+  ])
+  assert.deepEqual(noteDays(state), [{ id: firstNote, day: 3, note: "Pizza" }])
+})
+
+test("an entry or note on a dropped day stays removed when a concurrent edit moves it onto a kept day", async () => {
+  const state = await converge({
+    layer: makeLayer,
+    read,
+    setup: [
+      menuAdded(winter, "Winter warmers"),
+      added(1000, stew, winter, 6),
+      noteAdded(1000, secondNote, winter, 6, "Takeaway"),
     ],
-  )
-  assert.deepEqual(
-    byId(state.menuEntries).map((row) => pick(row, ["id", "menuId", "day"])),
-    [
-      { id: pie, menuId: summer, day: 7 },
-      { id: soup, menuId: winter, day: 5 },
+    concurrent: [
+      shrunk(2000, 5),
+      removed(2000, stew),
+      noteRemoved(2000, secondNote),
+      // Newer than the removes, from a device that hadn't seen the shrink.
+      // The delete still wins.
+      moved(2500, stew, 4),
+      noteUpdated(2500, secondNote, 4, "Curry"),
     ],
-  )
-  assert.deepEqual(pick(only(state.menuDayNotes), ["id", "day", "note"]), {
-    id: firstNote,
-    day: 3,
-    note: "Pizza",
   })
+  assert.deepEqual(days(state), [{ id: winter, days: 5 }])
+  assert.deepEqual(state.menuEntries, [])
+  assert.deepEqual(state.menuDayNotes, [])
+})
+
+test("an entry or note moved onto a dropped day concurrently with the shrink stays there", async () => {
+  const state = await converge({
+    layer: makeLayer,
+    read,
+    setup: [
+      menuAdded(winter, "Winter warmers"),
+      added(1000, soup, winter, 2),
+      noteAdded(1000, firstNote, winter, 3, "Leftovers"),
+    ],
+    concurrent: [
+      // The writer saw nothing past day 5, so it emits no removes.
+      shrunk(2000, 5),
+      // Older and newer than the shrink: neither is deleted.
+      moved(1500, soup, 7),
+      noteUpdated(2500, firstNote, 6, "Curry"),
+    ],
+  })
+  assert.deepEqual(days(state), [{ id: winter, days: 5 }])
+  assert.deepEqual(entryDays(state), [{ id: soup, day: 7 }])
+  assert.deepEqual(noteDays(state), [{ id: firstNote, day: 6, note: "Curry" }])
+})
+
+test("an entry or note added on a dropped day concurrently with the shrink stays there", async () => {
+  const state = await converge({
+    layer: makeLayer,
+    read,
+    setup: [menuAdded(winter, "Winter warmers")],
+    concurrent: [
+      shrunk(2000, 5),
+      // Older and newer than the shrink: neither is deleted.
+      added(1500, stew, winter, 6),
+      noteAdded(2500, lateNote, winter, 7, "Curry"),
+    ],
+  })
+  assert.deepEqual(days(state), [{ id: winter, days: 5 }])
+  assert.deepEqual(entryDays(state), [{ id: stew, day: 6 }])
+  assert.deepEqual(noteDays(state), [{ id: lateNote, day: 7, note: "Curry" }])
+})
+
+test("two concurrent shrinks apply both writers' removes, and the newest days wins", async () => {
+  const state = await converge({
+    layer: makeLayer,
+    read,
+    setup: [
+      menuAdded(winter, "Winter warmers"),
+      added(1000, soup, winter, 3),
+      added(1000, stew, winter, 4),
+      added(1000, pie, winter, 6),
+    ],
+    concurrent: [
+      shrunk(2000, 3),
+      removed(2000, stew),
+      removed(2000, pie),
+      shrunk(3000, 5),
+      removed(3000, pie),
+    ],
+  })
+  // Day 4 shows empty: the older shrink removed what was on it.
+  assert.deepEqual(days(state), [{ id: winter, days: 5 }])
+  assert.deepEqual(entryDays(state), [{ id: soup, day: 3 }])
+})
+
+test("a shrink concurrent with removing the menu leaves nothing of the menu", async () => {
+  const state = await converge({
+    layer: makeLayer,
+    read,
+    setup: [
+      menuAdded(winter, "Winter warmers"),
+      menuAdded(summer, "Summer"),
+      added(1000, soup, winter, 2),
+      added(1000, stew, winter, 6),
+      added(1000, salad, summer, 1),
+      noteAdded(1000, firstNote, winter, 6, "Takeaway"),
+    ],
+    concurrent: [
+      shrunk(3000, 5),
+      removed(3000, stew),
+      noteRemoved(3000, firstNote),
+      // Older than the shrink, which can't bring the menu back.
+      menuRemoved(2500, winter),
+    ],
+  })
+  assert.deepEqual(days(state), [{ id: summer, days: 7 }])
+  assert.deepEqual(entryDays(state), [{ id: salad, day: 1 }])
+  assert.deepEqual(state.menuDayNotes, [])
 })
