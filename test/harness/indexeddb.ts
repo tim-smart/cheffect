@@ -65,3 +65,34 @@ export const rawRequest = <A>(
       resume(Effect.fail(new Error(String(transaction.error))))
     transaction.oncomplete = () => resume(Effect.succeed(request.result))
   })
+
+// Every record in a store as a *separate* connection reads it: the encoded
+// rows, hidden fields included, in key order. Convergence tests compare these
+// so they check what is on disk rather than what a repo decodes.
+export const readRecords = (
+  indexedDB: IDBFactory,
+  database: string,
+  store: string,
+): Effect.Effect<ReadonlyArray<Record<string, unknown>>, Error> =>
+  Effect.callback<ReadonlyArray<Record<string, unknown>>, Error>((resume) => {
+    const open = indexedDB.open(database)
+    open.onerror = () => resume(Effect.fail(new Error(String(open.error))))
+    open.onsuccess = () => {
+      const db = open.result
+      try {
+        const request = db
+          .transaction(store, "readonly")
+          .objectStore(store)
+          .getAll()
+        request.onerror = () =>
+          resume(Effect.fail(new Error(String(request.error))))
+        request.onsuccess = () => {
+          db.close()
+          resume(Effect.succeed(request.result))
+        }
+      } catch (error) {
+        db.close()
+        resume(Effect.fail(new Error(String(error))))
+      }
+    }
+  })
