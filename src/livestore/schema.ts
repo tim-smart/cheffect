@@ -1,5 +1,5 @@
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
-import { GroceryAisle, GroceryItem } from "../domain/GroceryItem"
+import { GroceryAisle } from "../domain/GroceryItem"
 import { Rating } from "../domain/Rating"
 import {
   DurationField,
@@ -93,6 +93,42 @@ export class LegacyMenuDayNote extends Model.Class<LegacyMenuDayNote>(
     Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
   ),
 }) {}
+
+// The grocery item events as LiveStore wrote them: string ids, recipe ids as
+// strings, and `completed` as a bit. Frozen here now that the domain
+// `GroceryItem` lives on EventLog, so old event logs and exports still decode.
+export class LegacyGroceryItem extends Model.Class<LegacyGroceryItem>(
+  "LegacyGroceryItem",
+)({
+  id: Model.GeneratedByApp(Schema.String),
+  list: Schema.NullOr(Schema.String).pipe(
+    Model.FieldExcept(["update", "jsonUpdate"]),
+    Model.fieldEvolve({
+      insert: (s) => Schema.optional(s),
+    }),
+  ),
+  name: Schema.String,
+  quantity: Schema.NullOr(Schema.String),
+  aisle: Schema.NullOr(GroceryAisle),
+  recipeIds: Model.fieldEvolve(
+    Schema.NullOr(Schema.NonEmptyArray(Schema.String)),
+    {
+      select: () =>
+        Schema.NullOr(
+          Schema.fromJsonString(Schema.NonEmptyArray(Schema.String)),
+        ),
+    },
+  ),
+  completed: Schema.BooleanFromBit,
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
+  ),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
+  ),
+}) {
+  static array = Schema.Array(LegacyGroceryItem)
+}
 
 // The recipe events as LiveStore wrote them: string ids, and ingredients and
 // steps as JSON strings. Frozen here now that the domain `Recipe` lives on
@@ -509,12 +545,12 @@ export const events = {
   }),
   groceryItemAdded: Events.synced({
     name: "v1.GroceryItemAdded",
-    schema: GroceryItem.insert,
+    schema: LegacyGroceryItem.insert,
   }),
   groceryItemUpdated: Events.synced({
     name: "v1.GroceryItemUpdated",
     schema: Schema.Struct({
-      ...GroceryItem.update.fields,
+      ...LegacyGroceryItem.update.fields,
       previousName: Schema.optional(Schema.String),
       userInitiated: Schema.optional(Schema.Boolean),
     }),
@@ -836,12 +872,12 @@ tables.recipes.rowSchema.pipe(
   ),
 )
 
-// ensure GroceryItem model is assignable to the table
+// ensure LegacyGroceryItem model is assignable to the table
 tables.groceryItems.rowSchema.pipe(
   Schema.decodeTo(
-    Schema.toType(GroceryItem),
+    Schema.toType(LegacyGroceryItem),
     SchemaTransformation.transform({
-      decode: (row) => new GroceryItem(row),
+      decode: (row) => new LegacyGroceryItem(row),
       encode: (item) => item,
     }),
   ),

@@ -7,6 +7,11 @@ import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import * as IndexedDbDatabase from "@effect/platform-browser/IndexedDbDatabase"
 import type * as IndexedDbTable from "@effect/platform-browser/IndexedDbTable"
 import * as IndexedDbVersion from "@effect/platform-browser/IndexedDbVersion"
+import {
+  GroceryAisleOrdersTable,
+  GroceryItemsTable,
+  IngredientAislesTable,
+} from "./Groceries/Table"
 import { MealPlanDayNotesTable, MealPlanTable } from "./MealPlan/Table"
 import { MenuDayNotesTable, MenuEntriesTable, MenusTable } from "./Menus/Table"
 import { RecipeExtractJobsTable } from "./RecipeExtractJobs/Table"
@@ -30,6 +35,9 @@ export class V1 extends IndexedDbVersion.make(
   MenusTable,
   MenuEntriesTable,
   MenuDayNotesTable,
+  GroceryItemsTable,
+  IngredientAislesTable,
+  GroceryAisleOrdersTable,
 ) {}
 
 export class Database extends IndexedDbDatabase.make(
@@ -47,6 +55,9 @@ export class Database extends IndexedDbDatabase.make(
     yield* api.createIndex("menuEntries", "menuId")
     yield* api.createObjectStore("menuDayNotes")
     yield* api.createIndex("menuDayNotes", "menuId")
+    yield* api.createObjectStore("groceryItems")
+    yield* api.createObjectStore("ingredientAisles")
+    yield* api.createObjectStore("groceryAisleOrders")
   }),
 ) {}
 

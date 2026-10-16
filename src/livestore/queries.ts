@@ -1,8 +1,8 @@
 import { queryDb, sql } from "@livestore/livestore"
 import { Store } from "./atoms"
+import { LegacyGroceryItem } from "./schema"
 import * as Atom from "effect/reactivity/Atom"
 import * as Array from "effect/Array"
-import { GroceryItem } from "@/domain/GroceryItem"
 import { groceryCurrentListAtom } from "@/Groceries/currentList"
 import * as Schema from "effect/Schema"
 import { flow } from "effect"
@@ -49,14 +49,17 @@ const allGroceryItemsByList = Atom.family((list: string | null) =>
           FROM grocery_items
           WHERE ${list ? "list = ?" : "list IS NULL"}
           ORDER BY aisle, name COLLATE NOCASE ASC`,
-        schema: GroceryItem.array,
+        schema: LegacyGroceryItem.array,
         bindValues: list ? [list] : [],
       },
       {
         deps: [list ?? "null"],
         label: `allGroceryItems`,
         map: (items) => {
-          const aisles = new Map<string, Array.NonEmptyArray<GroceryItem>>()
+          const aisles = new Map<
+            string,
+            Array.NonEmptyArray<LegacyGroceryItem>
+          >()
           for (const item of items) {
             const aisle = item.aisle ?? "Other"
             const existing = aisles.get(aisle)
@@ -90,7 +93,7 @@ export const allGroceryItems$ = (list: null | string) =>
         FROM grocery_items
         WHERE ${list ? "list = ?" : "list IS NULL"}
         ORDER BY name COLLATE NOCASE ASC`,
-      schema: GroceryItem.array,
+      schema: LegacyGroceryItem.array,
       bindValues: list ? [list] : [],
     },
     {
@@ -103,7 +106,7 @@ export const exportGroceryItems$ = queryDb({
   query: sql`
     SELECT *
     FROM grocery_items`,
-  schema: GroceryItem.array,
+  schema: LegacyGroceryItem.array,
 })
 
 const allGroceryItemsArrayByList = Atom.family((list: string | null) =>
