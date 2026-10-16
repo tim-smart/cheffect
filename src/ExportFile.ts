@@ -24,7 +24,6 @@ import { Recipe, RecipeEdit, RecipeIdFromString } from "./domain/Recipe"
 import { Timer, TimerIdFromString } from "./domain/Timer"
 import { CheffectEvents, durabilityBarrier } from "./EventLog"
 import { QueryBuilder } from "./IndexedDb"
-import { RecipeEvents } from "./Recipes/Events"
 import { eventFields } from "./lib/eventFields"
 import { isLive } from "./lib/Lww"
 import { SettingsEvents } from "./Settings/Events"
@@ -55,12 +54,6 @@ export const ExportEvent = Schema.Union([
       ...fields,
       id: RecipeIdFromString,
     })),
-  ),
-  exportEvent(
-    "RecipeSetIngredientScale",
-    RecipeEvents.events.RecipeSetIngredientScale.payload.mapFields(
-      (fields) => ({ ...fields, id: RecipeIdFromString }),
-    ),
   ),
   exportEvent(
     "RecipeEditSet",
@@ -141,9 +134,9 @@ export const ExportFileJson = Schema.fromJsonString(ExportFile)
 // Read straight from the tables, so an active search can't narrow it and it
 // works offline before the remote connects. Leaves out soft-deleted recipes,
 // tombstones, chat history, extract jobs and the API key. The sync key and
-// server URL live in localStorage and never get here. `RecipeCreated` starts
-// every recipe at scale 1, so a scaled recipe also gets its
-// `RecipeSetIngredientScale`.
+// server URL live in localStorage and never get here. Each row is the fewest
+// events that carry it: a recipe is one `RecipeCreated`, so its ingredient
+// scale isn't kept.
 
 const excludedSettings = new Set(["openAiApiKey"])
 
@@ -163,15 +156,7 @@ export const exportAll: Effect.Effect<
 
   const recipeFields = eventFields(Recipe.insert)
   for (const row of yield* db.from("recipes").select()) {
-    if (row.deletedAt !== null) continue
-    add("RecipeCreated", recipeFields(row))
-    if (row.ingredientScale !== 1) {
-      add("RecipeSetIngredientScale", {
-        id: row.id,
-        ingredientScale: row.ingredientScale,
-        updatedAt: row.updatedAt,
-      })
-    }
+    if (row.deletedAt === null) add("RecipeCreated", recipeFields(row))
   }
   const editFields = eventFields(RecipeEdit)
   for (const row of yield* db.from("recipeEdits").select()) {
@@ -238,8 +223,6 @@ export const exportAll: Effect.Effect<
 //   from rows it has never had (TIM-248 rule 4).
 // - Sets on natural keys (drafts, aisles, aisle orders, settings) are always
 //   written, so they overwrite what is here as the newest entries.
-// - A recipe's scale is written only with its `RecipeCreated` from this
-//   import, so it never changes a recipe this device already had.
 //
 // A crash part way leaves a partial import, fixed by importing again.
 
@@ -276,16 +259,11 @@ export const importAll = Effect.fnUntraced(function* (
       entryKey(entry.event, entry.primaryKey),
     ),
   )
-  const createdRecipes = new Set<string>()
   for (const { tag, payload } of file.events) {
-    const primaryKey = primaryKeys.get(tag)!(payload)
-    if (tag === "RecipeSetIngredientScale") {
-      if (!createdRecipes.has(primaryKey)) continue
-    } else if (!naturalKeyTags.has(tag)) {
-      const key = entryKey(tag, primaryKey)
+    if (!naturalKeyTags.has(tag)) {
+      const key = entryKey(tag, primaryKeys.get(tag)!(payload))
       if (seen.has(key)) continue
       seen.add(key)
-      if (tag === "RecipeCreated") createdRecipes.add(primaryKey)
     }
     // The file's events are a subset of the catalogue's, as for `writeEvent`.
     const write: Effect.Effect<unknown, EventJournal.EventJournalError> =

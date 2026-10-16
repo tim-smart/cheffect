@@ -188,29 +188,15 @@ test("an export leaves out deleted recipes, removed drafts, the API key and chat
   assert.deepEqual(state.aiChatTurns, [])
 })
 
-test("a recipe's ingredient scale survives export and import", async () => {
+// Export writes the fewest events that carry the data: one create per recipe.
+// The ingredient scale isn't exported, so a scaled recipe is still just its
+// `RecipeCreated`.
+test("an export has one RecipeCreated per recipe and no scale events", async () => {
   const exported = await exportAfter([sample("RecipeCreated"), scaled(2)])
-  const state = await run(
-    Effect.gen(function* () {
-      yield* importAll(exported)
-      return yield* snapshot
-    }),
+  assert.deepEqual(
+    JSON.parse(exported).events.map((event: ExportEvent) => event.tag),
+    ["RecipeCreated"],
   )
-  assert.equal(state.recipes[0].ingredientScale, 2)
-})
-
-test("importing leaves the scale of a recipe this device already has alone", async () => {
-  const exported = await exportAfter([sample("RecipeCreated"), scaled(2)])
-  // Scaled through an edit, so this device has no scale event of its own for
-  // the import to collide with.
-  const state = await runSeeded(
-    seed([
-      sample("RecipeCreated"),
-      { event: "RecipeUpdated", payload: { ...recipe, ingredientScale: 3 } },
-    ]),
-    importAll(exported).pipe(Effect.andThen(snapshot)),
-  )
-  assert.equal(state.recipes[0].ingredientScale, 3)
 })
 
 const parsed = JSON.parse(file)
