@@ -168,13 +168,13 @@ const MenuReactivity = EventLog.groupReactivity(MenuEvents, {
   MenuDayNoteRemove: ["menuDayNotes"],
 })
 
-// `MenuRemove` is a remove of the menu row only. The entries and notes it
-// cascades to are found through the table at replay time, so their own
-// entries are all replayed.
+// `MenuRemove` deletes the menu's entries and notes through their `menuId`,
+// which a day note Add can change, so it's a `keep` without a table. The
+// menu's own entries before it are replayed too.
 const MenuCompaction = Compaction.layer(MenuEvents, {
   MenuAdd: () => Compaction.create("menus"),
   MenuUpdate: (payload) => Compaction.patch("menus", menuUpdate(payload)),
-  MenuRemove: ({ id }) => Compaction.remove("menus", [uuidString(id)]),
+  MenuRemove: () => Compaction.keep(),
   MenuEntryAdd: () => Compaction.create("menuEntries"),
   MenuEntrySetDay: (payload) =>
     Compaction.patch("menuEntries", entryDay(payload)),

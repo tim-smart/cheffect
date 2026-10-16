@@ -24,11 +24,11 @@ import * as EventLog from "effect/eventlog/EventLog"
 //   missing.
 // - `remove` hard-deletes the rows with the given keys.
 // - `keep` is anything else, such as a tombstone, and is always replayed.
-//   Without a table it may touch any row.
+//   Without a table it may read or write any row, so nothing before it is
+//   skipped because of anything after it.
 //
-// A handler reads other rows only to delete them, through a field no patch
-// writes (`menuId`). Walking the batch in entry order, an entry is skipped
-// when:
+// A handler that reads other rows is a `keep` without a table. Walking the
+// batch in entry order, an entry is skipped when:
 //
 // - a later entry hard-deletes its row, so whatever the entry did is gone
 //   with the row.
@@ -118,7 +118,7 @@ const compact = (
       case "Keep": {
         replayed.push(entry)
         if (replay.table === undefined) {
-          for (const state of rows.values()) state.nextIsSet = false
+          rows.clear()
         } else {
           row(replay.table, entry.primaryKey).nextIsSet = false
         }
