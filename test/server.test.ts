@@ -132,5 +132,20 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
       asset.headers.get("cache-control"),
       "public, max-age=31536000, immutable",
     )
+
+    for (const path of ["/sw.js", "/manifest.webmanifest"]) {
+      const response = yield* get(path)
+      assert.equal(response.status, 200, path)
+      assert.equal(
+        yield* Effect.promise(() => response.text()),
+        yield* Effect.promise(() => readFile(`${root}${path}`, "utf8")),
+        path,
+      )
+      assert.equal(response.headers.get("cache-control"), "no-cache", path)
+    }
+
+    const missing = yield* get("/assets/missing.js")
+    assert.equal(missing.status, 404)
+    assert.equal(missing.headers.get("cache-control"), null)
   }).pipe(Effect.provide(ServerLayer), Effect.runPromise)
 })

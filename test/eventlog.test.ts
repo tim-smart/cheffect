@@ -120,6 +120,27 @@ test("sync connects only when it is enabled and a server URL is set", () => {
   }
 })
 
+test("sync falls back to the default URL only when enabled and no URL is set", () => {
+  const defaultUrl = Option.some("wss://app.example.com/sync")
+  const cases = [
+    { enabled: true, url: Option.none(), expected: defaultUrl },
+    { enabled: true, url: Option.some("   "), expected: defaultUrl },
+    {
+      enabled: true,
+      url: Option.some("wss://custom.example.com/custom-sync"),
+      expected: Option.some("wss://custom.example.com/custom-sync"),
+    },
+    { enabled: false, url: Option.none(), expected: Option.none() },
+  ]
+  for (const { enabled, url, expected } of cases) {
+    assert.deepEqual(
+      resolveSyncUrl({ enabled, url, defaultUrl }),
+      expected,
+      JSON.stringify({ enabled, url }),
+    )
+  }
+})
+
 test("the durability barrier spans the cheffect tables and the journal's entries store", async () => {
   const layer = QueryBuilder.layer.pipe(
     Layer.provideMerge(layerDatabase),
