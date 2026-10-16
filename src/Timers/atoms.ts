@@ -1,24 +1,26 @@
 import { nowAtom } from "@/atoms"
-import { Timer } from "@/domain/Timer"
-import { Store } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import type { Timer, TimerId } from "@/domain/Timer"
+import { eventLogAtom, writeEvent } from "@/EventLog"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Data from "effect/Data"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
+import { TimerRepo } from "./Repo"
 
-export const activeTimers$ = queryDb({
-  query: sql`select * from timers order by createdAt asc`,
-  schema: Timer.array,
-})
+// The repo shares the EventLog runtime's query builder and Reactivity, so
+// handler writes reload its snapshot.
+const timersRuntime = Atom.runtime((get) =>
+  TimerRepo.layer.pipe(Layer.provideMerge(get(eventLogAtom.layer))),
+).pipe(Atom.keepAlive)
 
-export const activeTimersAtom = Store.makeQuery(activeTimers$).pipe(
-  Atom.map(AsyncResult.getOrElse(Array.empty<Timer>)),
-)
+export const activeTimersAtom = timersRuntime
+  .atom(TimerRepo.useSync((_) => _.stream).pipe(Stream.unwrap))
+  .pipe(Atom.map(AsyncResult.getOrElse(Array.empty<Timer>)), Atom.keepAlive)
 
 export type TimerStatus = Data.TaggedEnum<{
   Running: {
@@ -65,31 +67,29 @@ export const timerUiStateAtom = Atom.make((get) => {
   })
 })
 
-export const dismissTimerAtom = Store.runtime.fn<string>()(
-  Effect.fnUntraced(function* (timerId) {
-    const store = yield* Store
-    store.commit(events.timerDeleted({ id: timerId }))
+// Pause, resume and add-time compute from this device's snapshot and write
+// the whole timer; the handler keeps only the running state.
+
+export const dismissTimerAtom = timersRuntime.fn<TimerId>()((id) =>
+  writeEvent({ event: "TimerDeleted", payload: { id } }),
+)
+
+export const toggleTimerAtom = timersRuntime.fn<Timer>()((timer) =>
+  writeEvent({
+    event: "TimerUpdated",
+    payload: timer.pausedRemaining ? timer.resume() : timer.pause(),
   }),
 )
 
-export const toggleTimerAtom = Store.runtime.fn<Timer>()(
-  Effect.fnUntraced(function* (timer) {
-    const store = yield* Store
-    store.commit(
-      events.timerUpdate(
-        timer.pausedRemaining ? timer.resume() : timer.pause(),
-      ),
-    )
-  }),
-)
-
-export const addTimerDurationAtom = Store.runtime.fn<{
+export const addTimerDurationAtom = timersRuntime.fn<{
   timer: Timer
   duration: Duration.Duration
 }>()(
   Effect.fnUntraced(function* ({ timer, duration }) {
-    const store = yield* Store
     const now = yield* DateTime.now
-    store.commit(events.timerUpdate(timer.add(now, duration)))
+    yield* writeEvent({
+      event: "TimerUpdated",
+      payload: timer.add(now, duration),
+    })
   }),
 )

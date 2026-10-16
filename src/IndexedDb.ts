@@ -9,6 +9,8 @@ import type * as IndexedDbTable from "@effect/platform-browser/IndexedDbTable"
 import * as IndexedDbVersion from "@effect/platform-browser/IndexedDbVersion"
 import { RecipeExtractJobsTable } from "./RecipeExtractJobs/Table"
 import { RecipeEditsTable, RecipesTable } from "./Recipes/Table"
+import { SettingsTable } from "./Settings/Table"
+import { TimersTable } from "./Timers/Table"
 
 export const databaseName = "cheffect"
 
@@ -19,6 +21,8 @@ export class V1 extends IndexedDbVersion.make(
   RecipeExtractJobsTable,
   RecipesTable,
   RecipeEditsTable,
+  SettingsTable,
+  TimersTable,
 ) {}
 
 export class Database extends IndexedDbDatabase.make(
@@ -27,6 +31,8 @@ export class Database extends IndexedDbDatabase.make(
     yield* api.createObjectStore("recipeExtractJobs")
     yield* api.createObjectStore("recipes")
     yield* api.createObjectStore("recipeEdits")
+    yield* api.createObjectStore("settings")
+    yield* api.createObjectStore("timers")
   }),
 ) {}
 

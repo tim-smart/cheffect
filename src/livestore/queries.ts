@@ -1,5 +1,4 @@
 import { queryDb, sql } from "@livestore/livestore"
-import { tables } from "./schema"
 import { Recipe } from "@/domain/Recipe"
 import { Store } from "./atoms"
 import * as Atom from "effect/reactivity/Atom"
@@ -10,6 +9,7 @@ import * as DateTime from "effect/DateTime"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { mealPlanWeekStart } from "@/Settings"
+import { groceryCurrentListAtom } from "@/Groceries/currentList"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { flow } from "effect"
@@ -37,19 +37,6 @@ export const mealPlanWeekAdjustedAtom = Atom.make((get) => {
   })
 })
 
-export const groceryListState$ = queryDb(tables.groceryListState.get())
-export const groceryListStateAtom = Atom.writable(
-  Store.makeQuery(groceryListState$).read,
-  (
-    ctx,
-    newValue: {
-      currentList: null | string
-    },
-  ) => {
-    ctx.get(Store.storeUnsafe!)?.commit(tables.groceryListState.set(newValue))
-  },
-)
-
 const GroceryAisleOrderRow = Schema.Array(
   Schema.Struct({
     aisle: Schema.String,
@@ -57,62 +44,70 @@ const GroceryAisleOrderRow = Schema.Array(
   }),
 )
 
-export const groceryAisleOrders$ = queryDb(
-  (get) => {
-    const state = get(groceryListState$)
-    return {
-      query: sql`
-        SELECT aisle, sortOrder
-        FROM grocery_aisle_orders
-        WHERE ${state.currentList ? "list = ?" : "list IS NULL"}
-        ORDER BY sortOrder ASC`,
-      schema: GroceryAisleOrderRow,
-      bindValues: state.currentList ? [state.currentList] : [],
-    }
-  },
-  {
-    label: "groceryAisleOrders",
-  },
+const groceryAisleOrdersByList = Atom.family((list: string | null) =>
+  Store.makeQuery(
+    queryDb(
+      {
+        query: sql`
+          SELECT aisle, sortOrder
+          FROM grocery_aisle_orders
+          WHERE ${list ? "list = ?" : "list IS NULL"}
+          ORDER BY sortOrder ASC`,
+        schema: GroceryAisleOrderRow,
+        bindValues: list ? [list] : [],
+      },
+      {
+        deps: [list ?? "null"],
+        label: "groceryAisleOrders",
+      },
+    ),
+  ),
 )
 
-export const groceryAisleOrdersAtom = Store.makeQuery(groceryAisleOrders$)
+export const groceryAisleOrdersAtom = Atom.make((get) =>
+  get(groceryAisleOrdersByList(get(groceryCurrentListAtom))),
+)
 
-export const allGroceryItemsAtom = Store.makeQuery(
-  queryDb(
-    (get) => {
-      const state = get(groceryListState$)
-      return {
+const allGroceryItemsByList = Atom.family((list: string | null) =>
+  Store.makeQuery(
+    queryDb(
+      {
         query: sql`
           SELECT *
           FROM grocery_items
-          WHERE ${state.currentList ? "list = ?" : "list IS NULL"}
+          WHERE ${list ? "list = ?" : "list IS NULL"}
           ORDER BY aisle, name COLLATE NOCASE ASC`,
         schema: GroceryItem.array,
-        bindValues: state.currentList ? [state.currentList] : [],
-      }
-    },
-    {
-      label: `allGroceryItems`,
-      map: (items) => {
-        const aisles = new Map<string, Array.NonEmptyArray<GroceryItem>>()
-        for (const item of items) {
-          const aisle = item.aisle ?? "Other"
-          const existing = aisles.get(aisle)
-          if (existing) {
-            existing.push(item)
-          } else {
-            aisles.set(aisle, [item])
-          }
-        }
-        if (aisles.has("Other")) {
-          const other = aisles.get("Other")!
-          aisles.delete("Other")
-          aisles.set("Other", other)
-        }
-        return aisles
+        bindValues: list ? [list] : [],
       },
-    },
+      {
+        deps: [list ?? "null"],
+        label: `allGroceryItems`,
+        map: (items) => {
+          const aisles = new Map<string, Array.NonEmptyArray<GroceryItem>>()
+          for (const item of items) {
+            const aisle = item.aisle ?? "Other"
+            const existing = aisles.get(aisle)
+            if (existing) {
+              existing.push(item)
+            } else {
+              aisles.set(aisle, [item])
+            }
+          }
+          if (aisles.has("Other")) {
+            const other = aisles.get("Other")!
+            aisles.delete("Other")
+            aisles.set("Other", other)
+          }
+          return aisles
+        },
+      },
+    ),
   ),
+)
+
+export const allGroceryItemsAtom = Atom.make((get) =>
+  get(allGroceryItemsByList(get(groceryCurrentListAtom))),
 )
 
 export const allGroceryItems$ = (list: null | string) =>
@@ -139,24 +134,13 @@ export const exportGroceryItems$ = queryDb({
   schema: GroceryItem.array,
 })
 
-export const allGroceryItemsCurrent$ = queryDb(
-  (get) => {
-    const state = get(groceryListState$)
-    return {
-      query: sql`
-        SELECT *
-        FROM grocery_items
-        WHERE ${state.currentList ? "list = ?" : "list IS NULL"}
-        ORDER BY name COLLATE NOCASE ASC`,
-      schema: GroceryItem.array,
-      bindValues: state.currentList ? [state.currentList] : [],
-    }
-  },
-  {
-    label: `allGroceryItemsArrayCurrent`,
-  },
+const allGroceryItemsArrayByList = Atom.family((list: string | null) =>
+  Store.makeQuery(allGroceryItems$(list)),
 )
-export const allGroceryItemsArrayAtom = Store.makeQuery(allGroceryItemsCurrent$)
+
+export const allGroceryItemsArrayAtom = Atom.make((get) =>
+  get(allGroceryItemsArrayByList(get(groceryCurrentListAtom))),
+)
 
 export const groceryListNames$ = queryDb(
   {

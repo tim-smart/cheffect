@@ -117,5 +117,43 @@
     "tag": "RecipeEditRemove",
     "json": { "id": "AZPHoBssTe+BI0VniavN7w==" },
     "bytes": "FyCAro3OGxABk8egGyxN74EjRWeJq83v"
+  },
+  {
+    "tag": "SettingsSet",
+    "json": {
+      "id": "aiCountry",
+      "value": "{\"_tag\":\"Some\",\"value\":\"NZ\"}"
+    },
+    "bytes": "MiCAro3OGwlhaUNvdW50cnnQvNqXIRx7Il90YWciOiJTb21lIiwidmFsdWUiOiJOWiJ9"
+  },
+  {
+    "tag": "TimerAdded",
+    "json": {
+      "id": "AZPHoBssTe+BI/7cuph2VA==",
+      "label": "Carrot soup",
+      "duration": 2400000,
+      "expiresAt": 1760002400000,
+      "pausedRemaining": 1500000,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    },
+    "bytes": "XSDxiJmGC4CA5oK5ZunQn+gXgPykAoCujc4bEAGTx6AbLE3vgSP+3LqYdlSo3MeCPAUEwI23AbHlu9FdgPyKhblmqduFhnGAgOaCuWbo/+KlewtDYXJyb3Qgc291cA=="
+  },
+  {
+    "tag": "TimerUpdated",
+    "json": {
+      "id": "AZPHoBssTe+BI/7cuph2VA==",
+      "label": "Carrot soup",
+      "duration": 2400000,
+      "expiresAt": 1760002400000,
+      "pausedRemaining": 1500000,
+      "updatedAt": 1760000600000
+    },
+    "bytes": "UiDp0J/oF4D8pAKAro3OGxABk8egGyxN74Ej/ty6mHZUqNzHgjwFBMCNtwGx5bvRXYD8ioW5ZqnbhYZxgJ+vg7lm6P/ipXsLQ2Fycm90IHNvdXA="
+  },
+  {
+    "tag": "TimerDeleted",
+    "json": { "id": "AZPHoBssTe+BI/7cuph2VA==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74Ej/ty6mHZU"
   }
 ]

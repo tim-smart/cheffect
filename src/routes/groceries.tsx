@@ -46,9 +46,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   groceryListNamesAtom,
-  groceryListStateAtom,
   PANTRY_GROCERY_LIST_NAME,
 } from "@/livestore/queries"
+import { groceryCurrentListAtom } from "@/Groceries/currentList"
 import { recipeTitleAtom } from "@/Recipes/atoms"
 import { cn } from "@/lib/utils"
 import { isAiEnabledAtom } from "@/services/AiHelpers"
@@ -59,7 +59,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import * as Function from "effect/Function"
 import {
   Popover,
   PopoverContent,
@@ -89,10 +88,7 @@ const arrayMove = <T,>(items: readonly T[], from: number, to: number): T[] => {
 }
 
 function GroceryList() {
-  const currentList = useAtomValue(groceryListStateAtom).pipe(
-    AsyncResult.map((state) => state.currentList),
-    AsyncResult.getOrElse(Function.constNull),
-  )
+  const currentList = useAtomValue(groceryCurrentListAtom)
   const result = useAtomValue(groceryCountAtom)
 
   const commit = useCommit()
@@ -805,11 +801,7 @@ function NameAutoComplete() {
 
 function ListCombobox({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
-  const [state, setState] = useAtom(groceryListStateAtom)
-  const currentList = state.pipe(
-    AsyncResult.map((s) => s.currentList),
-    AsyncResult.getOrElse(() => null),
-  )
+  const [currentList, setCurrentList] = useAtom(groceryCurrentListAtom)
   const listNames = useAtomValue(
     groceryListNamesAtom,
     AsyncResult.getOrElse(() => [null]),
@@ -834,7 +826,7 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
             onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
               if (e.key === "Enter") {
                 if (inputTrimmed.length === 0) return
-                setState({ currentList: inputTrimmed })
+                setCurrentList(inputTrimmed)
                 setOpen(false)
                 setInputValue("")
               }
@@ -847,7 +839,7 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
                 !hasInputList && (
                   <CommandItem
                     onPointerUp={() => {
-                      setState({ currentList: inputTrimmed })
+                      setCurrentList(inputTrimmed)
                       setOpen(false)
                       setInputValue("")
                     }}
@@ -859,7 +851,7 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
                 <CommandItem
                   key={list ?? "default"}
                   onPointerUp={() => {
-                    setState({ currentList: list })
+                    setCurrentList(list)
                     setOpen(false)
                   }}
                 >

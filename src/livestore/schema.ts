@@ -17,7 +17,22 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
-import { Timer } from "@/domain/Timer"
+
+// The timer events as LiveStore wrote them, with string ids. Frozen here now
+// that the domain `Timer` lives on EventLog, so old event logs still decode.
+class LegacyTimer extends Model.Class<LegacyTimer>("LegacyTimer")({
+  id: Model.GeneratedByApp(Schema.String),
+  label: Schema.String,
+  duration: Schema.DurationFromMillis,
+  expiresAt: Schema.DateTimeUtcFromMillis,
+  pausedRemaining: Schema.NullOr(Schema.DurationFromMillis),
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
+  ),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
+  ),
+}) {}
 
 // The recipe events as LiveStore wrote them: string ids, and ingredients and
 // steps as JSON strings. Frozen here now that the domain `Recipe` lives on
@@ -587,11 +602,11 @@ export const events = {
   }),
   timerAdded: Events.synced({
     name: "v1.TimerAdded",
-    schema: Timer.insert,
+    schema: LegacyTimer.insert,
   }),
   timerUpdate: Events.synced({
     name: "v1.TimerUpdated",
-    schema: Timer.update,
+    schema: LegacyTimer.update,
   }),
   timerDeleted: Events.synced({
     name: "v1.TimerDeleted",

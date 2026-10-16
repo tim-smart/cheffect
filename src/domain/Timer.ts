@@ -4,9 +4,20 @@ import * as Duration from "effect/Duration"
 import * as Equal from "effect/Equal"
 import * as Hash from "effect/Hash"
 import * as Schema from "effect/Schema"
+import { UuidBytes, UuidFromString, uuidString } from "@/lib/Id"
+
+export const TimerId = UuidBytes("TimerId")
+export type TimerId = typeof TimerId.Type
+export const TimerIdFromString = UuidFromString(TimerId)
 
 export class Timer extends Model.Class<Timer>("Timer")({
-  id: Model.GeneratedByApp(Schema.String),
+  // UUID bytes in storage and events, the canonical string in JSON.
+  id: Model.Field({
+    select: TimerId,
+    insert: TimerId,
+    update: TimerId,
+    json: TimerIdFromString,
+  }),
   label: Schema.String,
   duration: Schema.DurationFromMillis,
   expiresAt: Schema.DateTimeUtcFromMillis,
@@ -18,18 +29,22 @@ export class Timer extends Model.Class<Timer>("Timer")({
     Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
   ),
 }) {
-  static array = Schema.Array(Timer);
+  static array = Schema.Array(Timer)
+
+  get idString(): string {
+    return uuidString(this.id)
+  }
 
   [Equal.symbol](that: Timer) {
-    return this.id === that.id
+    return this.idString === that.idString
   }
 
   [Hash.symbol]() {
-    return Hash.string(this.id)
+    return Hash.string(this.idString)
   }
 
   notificationTag(): string {
-    return `timer-${this.id}`
+    return `timer-${this.idString}`
   }
 
   remainingAt(now: DateTime.Utc): Duration.Duration {

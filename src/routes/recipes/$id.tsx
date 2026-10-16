@@ -14,8 +14,8 @@ import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useWrite } from "@/EventLog"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import { Timer, TimerId } from "@/domain/Timer"
+import { generateUuidBytes } from "@/lib/Id"
 import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
@@ -107,7 +107,6 @@ export function RecipeDetails({
   // Keep screen awake while viewing recipe
   useAtomMount(screenWakeLockAtom)
 
-  const commit = useCommit()
   const write = useWrite()
 
   const ingredients = useMemo(() => recipe.ingredientsDisplay, [recipe])
@@ -155,9 +154,10 @@ export function RecipeDetails({
   const handleStartTimer = (durationMs: number, label: string) => {
     const now = DateTime.nowUnsafe()
     const duration = Duration.millis(durationMs)
-    commit(
-      events.timerAdded({
-        id: crypto.randomUUID(),
+    write({
+      event: "TimerAdded",
+      payload: Timer.insert.make({
+        id: TimerId.make(generateUuidBytes()),
         label,
         duration,
         expiresAt: DateTime.addDuration(now, duration),
@@ -165,7 +165,7 @@ export function RecipeDetails({
         createdAt: now,
         updatedAt: now,
       }),
-    )
+    })
   }
 
   const handleDurationKeyDown = (

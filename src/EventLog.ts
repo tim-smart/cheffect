@@ -23,6 +23,10 @@ import { useAtomSet } from "@effect/atom-react"
 import { kvsRuntime } from "./lib/atom"
 import { RecipesLayer } from "./Recipes"
 import { RecipeEvents } from "./Recipes/Events"
+import { SettingsLayer } from "./Settings/Handlers"
+import { SettingsEvents } from "./Settings/Events"
+import { TimersLayer } from "./Timers"
+import { TimerEvents } from "./Timers/Events"
 import { withWebLock } from "./lib/WebLock"
 import { QueryBuilder, layerIndexedDb, tableNames } from "./IndexedDb"
 
@@ -31,7 +35,11 @@ import { QueryBuilder, layerIndexedDb, tableNames } from "./IndexedDb"
 // One EventGroup per module. Each module stage adds its group here and its
 // handlers to `EventLogLayer`.
 
-export const CheffectEvents = EventLog.schema(RecipeEvents)
+export const CheffectEvents = EventLog.schema(
+  RecipeEvents,
+  SettingsEvents,
+  TimerEvents,
+)
 
 export type EventPayload =
   (typeof CheffectEvents.groups)[number] extends EventGroup.EventGroup<
@@ -161,7 +169,10 @@ export const syncUrlAtom = Atom.make((get) =>
 
 // Layers and atoms
 
-const EventLogLayer = EventLog.layer(CheffectEvents, RecipesLayer).pipe(
+const EventLogLayer = EventLog.layer(
+  CheffectEvents,
+  Layer.mergeAll(RecipesLayer, SettingsLayer, TimersLayer),
+).pipe(
   Layer.provide(EventJournal.layerIndexedDb({ database: journalDatabaseName })),
   Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),
 )

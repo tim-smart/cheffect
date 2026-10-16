@@ -33,7 +33,7 @@ export function TimerList() {
   return (
     <div className="flex flex-wrap items-center justify-end gap-3">
       {visibleTimers.map((timerState) => (
-        <TimerCircle key={timerState.timer.id} timerState={timerState} />
+        <TimerCircle key={timerState.timer.idString} timerState={timerState} />
       ))}
       {hiddenCount > 0 ? (
         <div className="flex h-12 min-w-12 items-center justify-center rounded-full bg-card text-xs font-semibold text-foreground shadow-lg ring-1 ring-border">

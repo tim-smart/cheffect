@@ -3,14 +3,11 @@ import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
 import { events, LegacyRecipe, tables } from "./livestore/schema"
-import { queryDb, sql } from "@livestore/livestore"
-import { flow } from "effect"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { kvsRuntime } from "./atoms"
-import * as DateTime from "effect/DateTime"
 import * as Function from "effect/Function"
 import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
@@ -18,30 +15,38 @@ import { exportGroceryItems$ } from "./livestore/queries"
 import { Recipe, RecipeId, RecipeIdFromString } from "./domain/Recipe"
 import { generateUuidBytes } from "./lib/Id"
 import { importRecipesAtom, liveRecipesAtom } from "./Recipes/runtime"
+import { eventLogAtom, writeEventAtom } from "./EventLog"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
+import { SettingsRepo } from "./Settings/Repo"
 
+// Every setting's encoded value, kept live from the `settings` snapshot.
+const settingsRuntime = Atom.runtime((get) =>
+  SettingsRepo.layer.pipe(Layer.provideMerge(get(eventLogAtom.layer))),
+).pipe(Atom.keepAlive)
+
+const settingValuesAtom = settingsRuntime
+  .atom(SettingsRepo.useSync((_) => _.stream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+// A setting's value is its encoded `Option` as a JSON string. A cleared
+// setting, or one that no longer decodes, reads as `None` and falls back to
+// the initial value.
 const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
   const schema: Schema.Codec<S["Type"], S["Encoded"]> = setting.schema
-  const optionSchema = Schema.Option(schema)
-  const read = Store.makeQuery(
-    queryDb(
-      {
-        query: sql`SELECT value FROM settings WHERE id = ? AND value IS NOT NULL`,
-        bindValues: [setting.name],
-        schema: Schema.Array(
-          Schema.Struct({
-            value: Schema.OptionFromNullOr(Schema.fromJsonString(schema)),
-          }),
-        ),
-      },
-      {
-        map: flow(
-          Array.head,
-          Option.flatMap((row) => row.value),
-          setting.initialValue
-            ? Option.orElse(() => Option.some(setting.initialValue!))
-            : Function.identity,
-        ),
-      },
+  const valueSchema = Schema.fromJsonString(
+    Schema.toCodecJson(Schema.Option(schema)),
+  )
+  const decodeValue = Schema.decodeUnknownOption(valueSchema)
+  const read = Atom.make((get) =>
+    AsyncResult.map(get(settingValuesAtom), (values) =>
+      Option.fromUndefinedOr(values.get(setting.name)).pipe(
+        Option.flatMap(decodeValue),
+        Option.flatten,
+        setting.initialValue
+          ? Option.orElse(() => Option.some(setting.initialValue!))
+          : Function.identity,
+      ),
     ),
   )
 
@@ -71,15 +76,13 @@ const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
       return result
     },
     (ctx, newValue: Option.Option<S["Type"]>) => {
-      const value = Schema.encodeSync(optionSchema)(newValue)
-      ctx.set(
-        Store.commit,
-        events.settingsSet({
+      ctx.set(writeEventAtom, {
+        event: "SettingsSet",
+        payload: {
           id: setting.name,
-          value,
-          updatedAt: DateTime.nowUnsafe(),
-        }),
-      )
+          value: Schema.encodeSync(valueSchema)(newValue),
+        },
+      })
       if (cacheAtom) {
         ctx.set(cacheAtom, newValue)
       }
