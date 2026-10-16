@@ -21,6 +21,7 @@ import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import { IndexedDbQueryError } from "@effect/platform-browser/IndexedDbQueryBuilder"
 import { useAtomSet } from "@effect/atom-react"
 import { kvsRuntime } from "./lib/atom"
+import { withWebLock } from "./lib/WebLock"
 import { QueryBuilder, layerIndexedDb, tableNames } from "./IndexedDb"
 
 // Events
@@ -60,7 +61,7 @@ export const storeId: StoreId = StoreId.make("default")
 
 // Identity, server URL and Enable Sync
 //
-// All three live in localStorage. The identity string is stored as-is under
+// All three use schema-backed settings in localStorage. The identity lives under
 // `cheffect:identity`, generated on the first launch before the EventLog
 // layer builds. Whoever has it can read and write all data; it is shown
 // masked in Settings (stage 9).
@@ -71,18 +72,25 @@ export const syncEnabledKey = "cheffect:syncEnabled"
 
 export const loadOrCreateIdentity: Effect.Effect<
   EventLog.Identity["Service"],
-  KeyValueStore.KeyValueStoreError,
+  KeyValueStore.KeyValueStoreError | Schema.SchemaError,
   KeyValueStore.KeyValueStore | EventLogEncryption.EventLogEncryption
-> = Effect.gen(function* () {
-  const kvs = yield* KeyValueStore.KeyValueStore
-  const stored = yield* kvs.get(identityKey)
-  if (stored !== undefined) {
-    return EventLog.decodeIdentityString(stored)
-  }
-  const identity = yield* EventLog.makeIdentity
-  yield* kvs.set(identityKey, EventLog.encodeIdentityString(identity))
-  return identity
-})
+> = withWebLock(
+  identityKey,
+  Effect.gen(function* () {
+    // Read inside the lock: another tab may have initialized while we waited.
+    const kvs = KeyValueStore.toSchemaStore(
+      yield* KeyValueStore.KeyValueStore,
+      Schema.String,
+    )
+    const stored = yield* kvs.get(identityKey)
+    if (Option.isSome(stored)) {
+      return EventLog.decodeIdentityString(stored.value)
+    }
+    const identity = yield* EventLog.makeIdentity
+    yield* kvs.set(identityKey, EventLog.encodeIdentityString(identity))
+    return identity
+  }),
+)
 
 const IdentityLayer = Layer.effect(
   EventLog.Identity,
@@ -93,6 +101,25 @@ const IdentityLayer = Layer.effect(
     EventLogEncryption.layerSubtle,
   ]),
 )
+
+// Initialization completes before Atom.kvs reads, so it never generates or
+// persists a competing default identity. Changing the setting takes effect on
+// the next launch, before EventLog is built.
+const identitySettingsRuntime = Atom.runtime(
+  IdentityLayer.pipe(
+    Layer.provideMerge(BrowserKeyValueStore.layerLocalStorage),
+  ),
+)
+
+export const identityAtom = Atom.kvs({
+  runtime: identitySettingsRuntime,
+  key: identityKey,
+  schema: Schema.String,
+  mode: "async",
+  defaultValue: (): string => {
+    throw new Error("Identity setting missing after initialization")
+  },
+})
 
 export const syncServerUrlAtom = Atom.kvs({
   runtime: kvsRuntime,
@@ -157,11 +184,6 @@ export const eventLogAtom = Atom.runtime(
 )
 
 export const clientAtom = eventLogAtom.atom(EventLogClient)
-export const identityAtom = eventLogAtom.atom(
-  Effect.gen(function* () {
-    return yield* EventLog.Identity
-  }),
-)
 
 export const remoteAtom = Atom.runtime((get) =>
   Effect.gen(function* () {

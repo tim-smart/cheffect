@@ -1,5 +1,6 @@
 import * as Deferred from "effect/Deferred"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
 import * as PubSub from "effect/PubSub"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/reactivity/Reactivity"
@@ -30,12 +31,13 @@ export const makeSnapshot = Effect.fnUntraced(function* <
   const reactivity = yield* Reactivity.Reactivity
   const scope = yield* Effect.scope
 
-  const loaded = yield* Deferred.make<
-    void,
+  type State = Exit.Exit<
+    ReadonlyArray<Row>,
     IndexedDbQueryBuilder.IndexedDbQueryError
-  >()
-  const updates = yield* PubSub.unbounded<ReadonlyArray<Row>>()
-  let latest: ReadonlyArray<Row> = []
+  >
+  const loaded = yield* Deferred.make<void>()
+  const updates = yield* PubSub.unbounded<State>()
+  let latest: State = Exit.succeed([])
   let started = false
 
   const start = Effect.suspend(() => {
@@ -45,15 +47,16 @@ export const makeSnapshot = Effect.fnUntraced(function* <
       Array<Row>,
       IndexedDbQueryBuilder.IndexedDbQueryError
     >
-    return reactivity.stream([table], load).pipe(
-      Stream.runForEach((rows) => {
-        latest = rows
+    // Errors are snapshot states, not worker failures. Keep the invalidation
+    // subscription alive so the next reload can recover.
+    return reactivity.stream([table], Effect.exit(load)).pipe(
+      Stream.runForEach((state) => {
+        latest = state
         return Deferred.succeed(loaded, undefined).pipe(
-          Effect.andThen(PubSub.publish(updates, rows)),
+          Effect.andThen(PubSub.publish(updates, state)),
         )
       }),
       Effect.tapCause(Effect.logError),
-      Effect.catchCause((cause) => Deferred.failCause(loaded, cause)),
       Effect.forkIn(scope),
       Effect.asVoid,
     )
@@ -61,7 +64,7 @@ export const makeSnapshot = Effect.fnUntraced(function* <
 
   const current = start.pipe(
     Effect.andThen(Deferred.await(loaded)),
-    Effect.map(() => latest),
+    Effect.flatMap(() => latest),
   )
 
   const stream = Stream.unwrap(
@@ -70,8 +73,10 @@ export const makeSnapshot = Effect.fnUntraced(function* <
       const subscription = yield* PubSub.subscribe(updates)
       yield* Deferred.await(loaded)
       return Stream.concat(
-        Stream.succeed(latest),
-        Stream.fromSubscription(subscription),
+        Stream.fromEffect(latest),
+        Stream.fromSubscription(subscription).pipe(
+          Stream.mapEffect((state) => state),
+        ),
       )
     }),
   )
