@@ -130,6 +130,27 @@ const read = Effect.gen(function* () {
   }
 })
 
+test("the newest write to each grocery item field wins across updates and toggles", async () => {
+  const { groceryItems } = await converge({
+    layer: makeLayer,
+    read,
+    setup: [added(carrots, "Carrots"), added(milk, "Milk")],
+    concurrent: [
+      updated(2000, carrots, { name: "Leeks", completed: false }),
+      toggled(3000, carrots, true),
+      updated(2500, carrots, { name: "Baby leeks", completed: false }),
+    ],
+  })
+  // An update never moves an item to another list.
+  assert.deepEqual(
+    groceryItems.map((row) => pick(row, ["name", "completed", "list"])),
+    [
+      { name: "Baby leeks", completed: true, list: "Weekend" },
+      { name: "Milk", completed: false, list: "Weekend" },
+    ],
+  )
+})
+
 test("a deleted grocery item stays deleted, with updates and toggles either side of the delete", async () => {
   const { groceryItems } = await converge({
     layer: makeLayer,

@@ -183,6 +183,37 @@ const read = Effect.gen(function* () {
   }
 })
 
+// A day note Add on a row that exists merges under last-writer-wins, unlike
+// other creates, so two devices importing the same file still agree.
+test("a re-added menu day note merges with concurrent updates under last-writer-wins", async () => {
+  const { menuDayNotes } = await converge({
+    layer: makeLayer,
+    read,
+    setup: [
+      menuAdded(winter, "Winter warmers"),
+      noteAdded(1000, firstNote, winter, 1, "Leftovers"),
+      noteAdded(1000, secondNote, winter, 5, "Takeaway"),
+    ],
+    concurrent: [
+      // A newer add of an existing note writes its fields...
+      noteUpdated(2000, firstNote, 1, "Pizza"),
+      noteAdded(3000, firstNote, winter, 2, "Tacos"),
+      // ...and an older one loses to a newer update.
+      noteAdded(2500, secondNote, winter, 5, "Fish and chips"),
+      noteUpdated(3500, secondNote, 4, "Curry"),
+    ],
+  })
+  assert.deepEqual(
+    menuDayNotes
+      .map((row) => pick(row, ["id", "day", "note"]))
+      .sort((a, b) => Number(a.day) - Number(b.day)),
+    [
+      { id: firstNote, day: 2, note: "Tacos" },
+      { id: secondNote, day: 4, note: "Curry" },
+    ],
+  )
+})
+
 test("removing a menu removes its entries and notes, with writes to them either side of the remove", async () => {
   const state = await converge({
     layer: makeLayer,

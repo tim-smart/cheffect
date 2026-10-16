@@ -1,5 +1,6 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
+import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
@@ -12,12 +13,34 @@ import { AiChatLayer } from "@/AiChat/Handlers"
 import { AiChatRepo } from "@/AiChat/Repo"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { AiChatTurnIdFromString } from "@/domain/AiChatTurn"
+import {
+  AiMemoryEntry,
+  AiMemoryEntryIdFromString,
+} from "@/domain/AiMemoryEntry"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry, makeFakeRemote, testIdentity } from "./harness/eventlog"
+import {
+  type MakeLayer,
+  converge,
+  pick,
+  readTable,
+} from "./harness/convergence"
 
-// History is the turns sorted by entry time, with the turn id as the
-// tiebreak, so every device reads the same conversation whatever order the
-// turns arrived in.
+// The two AI clears delete only the ids their writer saw, so a memory entry
+// or chat turn added concurrently on another device survives. History is the
+// turns sorted by entry time, with the turn id as the tiebreak, so every
+// device reads the same conversation whatever order the turns arrived in.
+
+const {
+  AIMemoryEntryAdded,
+  AIMemoryEntriesRemoved,
+  AiChatTurnAdded,
+  AiChatTurnsRemoved,
+} = AiChatEvents.events
+
+const memoryId = Schema.decodeSync(AiMemoryEntryIdFromString)
+const peanuts = memoryId("0193c7a0-1b2c-4def-8123-a10000000001")
+const metric = memoryId("0193c7a0-1b2c-4def-8123-a10000000002")
 
 const turnId = Schema.decodeSync(AiChatTurnIdFromString)
 const firstTurn = turnId("0193c7a0-1b2c-4def-8123-a20000000001")
@@ -26,13 +49,30 @@ const thirdTurn = turnId("0193c7a0-1b2c-4def-8123-a20000000003")
 
 const PromptJson = Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt))
 
+const memoryAdded = (msecs: number, id: typeof peanuts, content: string) =>
+  makeEntry({
+    msecs,
+    event: AIMemoryEntryAdded,
+    payload: AiMemoryEntry.insert.make({
+      id,
+      content,
+      createdAt: DateTime.makeUnsafe(msecs),
+    }),
+  })
+
+const memoriesRemoved = (msecs: number, ids: readonly [typeof peanuts]) =>
+  makeEntry({ msecs, event: AIMemoryEntriesRemoved, payload: { ids } })
+
 // A turn holding a single user message, so history order reads off the text.
 const turnAdded = (msecs: number, id: typeof firstTurn, text: string) =>
   makeEntry({
     msecs,
-    event: AiChatEvents.events.AiChatTurnAdded,
+    event: AiChatTurnAdded,
     payload: { id, prompt: Schema.encodeSync(PromptJson)(Prompt.make(text)) },
   })
+
+const turnsRemoved = (msecs: number, ids: readonly [typeof firstTurn]) =>
+  makeEntry({ msecs, event: AiChatTurnsRemoved, payload: { ids } })
 
 const userTexts = (prompt: Prompt.Prompt) =>
   prompt.content.flatMap((message) =>
@@ -43,10 +83,7 @@ const userTexts = (prompt: Prompt.Prompt) =>
       : [],
   )
 
-const makeLayer = (
-  identity: EventLog.Identity["Service"],
-  remote: Layer.Layer<never, never, EventLog.Registry>,
-) => {
+const makeLayer: MakeLayer = (identity, remote) => {
   const eventLog = EventLog.layer(
     EventLog.schema(AiChatEvents),
     AiChatLayer,
@@ -54,16 +91,46 @@ const makeLayer = (
     Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
     Layer.provide(Layer.succeed(EventLog.Identity, identity)),
   )
-  return AiChatRepo.layer.pipe(
-    Layer.provideMerge(
-      Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))),
-    ),
+  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
     Layer.provideMerge(QueryBuilder.layer),
     Layer.provideMerge(layerDatabase),
     Layer.provideMerge(Reactivity.layer),
     Layer.provideMerge(layerFreshIndexedDb),
   )
 }
+
+const read = Effect.gen(function* () {
+  return {
+    aiMemoryEntries: yield* readTable("aiMemoryEntries"),
+    aiChatTurns: yield* readTable("aiChatTurns"),
+  }
+})
+
+test("each AI clear deletes the rows it saw and none added concurrently, whatever arrives first", async () => {
+  const state = await converge({
+    layer: makeLayer,
+    read,
+    setup: [
+      memoryAdded(1000, peanuts, "Allergic to peanuts"),
+      turnAdded(1000, firstTurn, "one"),
+    ],
+    concurrent: [
+      memoriesRemoved(3000, [peanuts]),
+      // Added on another device before the clears, but never seen by them.
+      memoryAdded(2500, metric, "Prefers metric units"),
+      turnsRemoved(3000, [firstTurn]),
+      turnAdded(2500, secondTurn, "two"),
+    ],
+  })
+  assert.deepEqual(
+    state.aiMemoryEntries.map((row) => pick(row, ["id"])),
+    [{ id: metric }],
+  )
+  assert.deepEqual(
+    state.aiChatTurns.map((row) => pick(row, ["id"])),
+    [{ id: secondTurn }],
+  )
+})
 
 test("history is the turns in entry-time order, with the turn id breaking ties", async () => {
   const identity = await Effect.runPromise(testIdentity)
@@ -79,7 +146,11 @@ test("history is the turns in entry-time order, with the turn id breaking ties",
       return yield* AiChatRepo.use((repo) => repo.history)
     }).pipe(
       Effect.timeout("5 seconds"),
-      Effect.provide(makeLayer(identity, remote.layer)),
+      Effect.provide(
+        AiChatRepo.layer.pipe(
+          Layer.provideMerge(makeLayer(identity, remote.layer)),
+        ),
+      ),
     )
   }).pipe(Effect.runPromise)
   assert.deepEqual(userTexts(history), ["one", "two", "three"])
