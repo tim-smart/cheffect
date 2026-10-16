@@ -1,7 +1,7 @@
 import * as Data from "effect/Data"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
+import { Store } from "./livestore/atoms"
 import {
   events,
   LegacyAiMemoryEntry,
@@ -16,7 +16,6 @@ import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { kvsRuntime } from "./atoms"
 import * as Function from "effect/Function"
-import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
 import { Recipe, RecipeId, RecipeIdFromString } from "./domain/Recipe"
 import { generateUuidBytes, uuidString } from "./lib/Id"
@@ -212,33 +211,6 @@ export const mealPlanWeekStart = new Setting({
     () => 0 as const,
   ),
   cached: true,
-})
-
-export const livestoreStoreId = new Setting({
-  name: "livestoreStoreId",
-  label: "LiveStore Store ID",
-  schema: Schema.NonEmptyString,
-  schemaInput: OptionFromString,
-  atomOverride: makeResultOptionAtom(storeIdAtom),
-})
-
-export const livestoreSyncEnabled = new Setting({
-  name: "livestoreSyncEnabled",
-  label: "Enable Sync",
-  schema: Schema.Boolean,
-  schemaInput: AsSome(
-    Schema.String.pipe(
-      Schema.decodeTo(
-        Schema.Boolean,
-        SchemaTransformation.transform({
-          decode: (s) => s === "true",
-          encode: (b) => (b ? "true" : "false"),
-        }),
-      ),
-    ),
-    Function.constFalse,
-  ),
-  atomOverride: makeResultOptionAtom(syncEnabledAtom),
 })
 
 const ExportEvents = Schema.Array(

@@ -20,14 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { clearAiMemoryAtom } from "@/AiChat/runtime"
+import { SyncSettings } from "@/Sync/SyncSettings"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
 import {
   aiChatModel,
   aiCountry,
-  livestoreStoreId,
-  livestoreSyncEnabled,
   mealPlanWeekStart,
   openAiApiKey,
   Setting,
@@ -54,7 +52,6 @@ import {
   MoreVertical,
   Settings,
   Share,
-  Share2,
 } from "lucide-react"
 import { useRef, useState } from "react"
 import { cn } from "@/lib/utils"
@@ -240,39 +237,8 @@ function SettingsPage() {
           <SettingSelect setting={mealPlanWeekStart} options={weekDayOptions} />
         </SettingSection>
 
-        <SettingSection title="Sync Settings">
-          <SettingCheckbox setting={livestoreSyncEnabled} />
-          <SettingControl
-            setting={livestoreStoreId}
-            render={({ value, onChange, onBlur, onKeyDown }) => (
-              <div className="flex items-center gap-1">
-                <Input
-                  id={livestoreStoreId.name}
-                  type="password"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  onBlur={() => onBlur()}
-                  onKeyDown={onKeyDown}
-                />
-                <Button
-                  className="size-8.5"
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
-                    const url = new URL(window.location.href)
-                    url.pathname = "/"
-                    url.searchParams.set("invite_id", value)
-                    navigator.share({
-                      title: "Cheffect recipe manager invite",
-                      url: url.toString(),
-                    })
-                  }}
-                >
-                  <Share2 />
-                </Button>
-              </div>
-            )}
-          />
+        <SettingSection title="Sync">
+          <SyncSettings />
         </SettingSection>
       </main>
     </div>
@@ -369,25 +335,6 @@ function SettingSelect<
             </SelectGroup>
           </SelectContent>
         </Select>
-      )}
-    />
-  )
-}
-
-function SettingCheckbox<S extends Schema.Codec<any, any>>({
-  setting,
-}: {
-  setting: Setting<S>
-}) {
-  return (
-    <SettingControl
-      setting={setting}
-      render={({ value, onBlur }) => (
-        <Switch
-          id={setting.name}
-          checked={value === "true"}
-          onCheckedChange={(checked) => onBlur(checked ? "true" : "false")}
-        />
       )}
     />
   )

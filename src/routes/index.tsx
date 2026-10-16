@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -6,7 +5,6 @@ import { Input } from "@/components/ui/input"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { useAtom, useAtomValue } from "@effect/atom-react"
 import { type Recipe, SortBy } from "@/domain/Recipe"
-import { storeIdAtom } from "@/livestore/atoms"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -20,16 +18,6 @@ import {
   recipeSortByAtom,
 } from "@/Recipes/atoms"
 import { RecipeList } from "@/Recipes/List"
-
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -51,8 +39,6 @@ export default function CheffectHome() {
           .onSuccess((recipes) => <WrappedList recipes={recipes} />)
           .render()}
       </div>
-
-      <InviteIdChecker />
     </div>
   )
 }
@@ -146,47 +132,3 @@ function RecipeListSkeleton() {
 //     </div>
 //   )
 // }
-
-const invitesSeen = new Set<string>()
-
-function InviteIdChecker() {
-  const [open, setOpen] = useState(true)
-  const [storeId, setStoreId] = useAtom(storeIdAtom)
-
-  const inviteId = new URLSearchParams(window.location.search).get("invite_id")
-
-  if (!inviteId || inviteId === storeId || invitesSeen.has(inviteId))
-    return null
-
-  return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(nextOpen: boolean) => {
-        if (!nextOpen) invitesSeen.add(inviteId)
-        setOpen(nextOpen)
-      }}
-    >
-      <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Accept invitation</AlertDialogTitle>
-          <AlertDialogDescription>
-            Someone has shared their recipe collection with you.
-            <br />
-            Once you "Accept", all data will be replaced with the shared data.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction
-            onClick={() => {
-              console.log("Accepting invite", inviteId)
-              setStoreId(inviteId)
-              window.location.reload()
-            }}
-          >
-            Accept
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
-}

@@ -1,3 +1,5 @@
+// First, so a share link leaves the address bar before the router reads it.
+import "./Sync/atoms"
 import React from "react"
 import ReactDOM from "react-dom/client"
 import App from "./App.tsx"

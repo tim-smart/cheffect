@@ -9,7 +9,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as DateTime from "effect/DateTime"
 import * as Option from "effect/Option"
 import * as Effect from "effect/Effect"
-import { writeEvent } from "@/EventLog"
+import { syncEnabledAtom, writeEvent } from "@/EventLog"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { recipesRuntime } from "@/Recipes/runtime"
 import { MealPlanEntryId } from "@/domain/MealPlanEntry"
@@ -113,7 +113,10 @@ const seededGroceriesAtom = groceriesRuntime.atom(
   }),
 )
 
+// A device with sync on is filling up from its collection, so seeding it
+// would upload the seed into that collection.
 export const seedDevRecipesAtom = Atom.make((get) => {
+  if (get(syncEnabledAtom)) return
   get(seededMealPlanAtom)
   get(seededMenusAtom)
   get(seededGroceriesAtom)

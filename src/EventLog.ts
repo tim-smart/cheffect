@@ -1,8 +1,10 @@
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import * as Scope from "effect/Scope"
 import type * as Event from "effect/eventlog/Event"
 import type * as EventGroup from "effect/eventlog/EventGroup"
 import * as EventJournal from "effect/eventlog/EventJournal"
@@ -36,7 +38,12 @@ import { SettingsEvents } from "./Settings/Events"
 import { TimersLayer } from "./Timers"
 import { TimerEvents } from "./Timers/Events"
 import { withWebLock } from "./lib/WebLock"
-import { QueryBuilder, layerIndexedDb, tableNames } from "./IndexedDb"
+import {
+  QueryBuilder,
+  layerIndexedDb,
+  setDatabaseBlocked,
+  tableNames,
+} from "./IndexedDb"
 
 // Events
 //
@@ -85,8 +92,8 @@ export const storeId: StoreId = StoreId.make("default")
 //
 // All three use schema-backed settings in localStorage. The identity lives under
 // `cheffect:identity`, generated on the first launch before the EventLog
-// layer builds. Whoever has it can read and write all data; it is shown
-// masked in Settings (stage 9).
+// layer builds. Whoever has it can read and write all data; Settings shows
+// it masked, as the "Sync key".
 
 export const identityKey = "cheffect:identity"
 export const syncServerUrlKey = "cheffect:syncServerUrl"
@@ -184,11 +191,83 @@ export const defaultSyncServerUrl = (): Option.Option<string> =>
       )
     : Option.none()
 
-export const syncUrlAtom = Atom.make((get) =>
+// The server this device syncs with once sync is on: the setting, or the
+// default. Share links carry it, and Enable Sync needs one.
+export const serverUrlAtom = Atom.make((get) =>
   resolveSyncUrl({
-    enabled: get(syncEnabledAtom),
+    enabled: true,
     url: get(syncServerUrlAtom),
     defaultUrl: defaultSyncServerUrl(),
+  }),
+)
+
+export const syncUrlAtom = Atom.make((get) =>
+  get(syncEnabledAtom) ? get(serverUrlAtom) : Option.none(),
+)
+
+const syncServerProtocols = new Set(["ws:", "wss:", "http:", "https:"])
+
+// A server URL as typed into Settings or carried by a share link: `ws(s)`, or
+// `http(s)` mapped to `ws(s)`. Anything else isn't a sync server.
+export const parseSyncServerUrl = (input: string): Option.Option<string> => {
+  const trimmed = input.trim()
+  return Option.liftThrowable((url: string) => new URL(url))(trimmed).pipe(
+    Option.filter(
+      (url) => syncServerProtocols.has(url.protocol) && url.host !== "",
+    ),
+    Option.map(() => trimmed.replace(/^http(s?):/i, "ws$1:")),
+  )
+}
+
+// Journal
+//
+// Effect's IndexedDB journal, except that `destroy` waits for the deletion.
+// Effect's own `destroy` only requests it, and the journal's open connection
+// holds it back until the page unloads. A join writes the new identity right
+// after, so a crash in between would leave the old entries to upload into the
+// joined collection. The connection gets its own scope so `destroy` can close
+// it first. Another tab's journal can still hold the deletion back, so that
+// shows the "close other tabs" screen.
+
+const deleteJournal = Effect.callback<void, EventJournal.EventJournalError>(
+  (resume) => {
+    const request = indexedDB.deleteDatabase(journalDatabaseName)
+    request.onblocked = () => setDatabaseBlocked(true)
+    request.onsuccess = () => {
+      setDatabaseBlocked(false)
+      resume(Effect.void)
+    }
+    request.onerror = () => {
+      setDatabaseBlocked(false)
+      resume(
+        Effect.fail(
+          new EventJournal.EventJournalError({
+            method: "destroy",
+            cause: request.error,
+          }),
+        ),
+      )
+    }
+  },
+)
+
+export const layerJournal: Layer.Layer<
+  EventJournal.EventJournal,
+  EventJournal.EventJournalError
+> = Layer.effect(
+  EventJournal.EventJournal,
+  Effect.gen(function* () {
+    const scope = yield* Scope.make()
+    yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void))
+    const journal = yield* EventJournal.makeIndexedDb({
+      database: journalDatabaseName,
+    }).pipe(Scope.provide(scope))
+    return EventJournal.EventJournal.of({
+      ...journal,
+      destroy: Scope.close(scope, Exit.void).pipe(
+        Effect.andThen(deleteJournal),
+      ),
+    })
   }),
 )
 
@@ -206,7 +285,7 @@ const EventLogLayer = EventLog.layer(
     AiChatLayer,
   ),
 ).pipe(
-  Layer.provide(EventJournal.layerIndexedDb({ database: journalDatabaseName })),
+  Layer.provideMerge(layerJournal),
   Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),
 )
 

@@ -8,11 +8,14 @@ import { useLayoutEffect } from "react"
 import { timerNotificationsAtom } from "./Timers/TimerNotifications"
 import { seedDevRecipesAtom } from "@/dev/seedDevRecipes"
 import { DatabaseBlockedScreen } from "@/components/DatabaseBlocked"
+import { remoteAtom } from "@/EventLog"
+import { JoinLinkPrompt } from "@/Sync/JoinLinkPrompt"
 
 export default function App() {
   useAtomMount(Store.runtime)
   useAtomMount(installPromptAtom)
   useAtomMount(timerNotificationsAtom)
+  useAtomMount(remoteAtom)
 
   useRegisterSW({
     immediate: true,
@@ -22,6 +25,7 @@ export default function App() {
     <>
       {import.meta.env.DEV ? <DevSeedRecipesMount /> : null}
       <RouterProvider router={router} />
+      <JoinLinkPrompt />
       <DatabaseBlockedScreen />
       <DisableScroll />
       <SystemTheme />
