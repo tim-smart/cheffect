@@ -2,7 +2,13 @@ import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import * as Prompt from "effect/ai/Prompt"
 import type { EventPayload } from "@/EventLog"
+import { AiChatTurnIdFromString } from "@/domain/AiChatTurn"
+import {
+  AiMemoryEntry,
+  AiMemoryEntryIdFromString,
+} from "@/domain/AiMemoryEntry"
 import { GroceryItem, GroceryItemIdFromString } from "@/domain/GroceryItem"
 import {
   MealPlanDayNote,
@@ -102,6 +108,65 @@ const groceryItemId = Schema.decodeSync(GroceryItemIdFromString)(
 
 const otherGroceryItemId = Schema.decodeSync(GroceryItemIdFromString)(
   "0193c7a0-1b2c-4def-8123-c0ffee000002",
+)
+
+const aiMemoryEntryId = Schema.decodeSync(AiMemoryEntryIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a1000000000a",
+)
+const otherAiMemoryEntryId = Schema.decodeSync(AiMemoryEntryIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a1000000000b",
+)
+
+const aiChatTurnId = Schema.decodeSync(AiChatTurnIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a2000000000a",
+)
+const otherAiChatTurnId = Schema.decodeSync(AiChatTurnIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a2000000000b",
+)
+
+// A finished turn's messages as a JSON string, file parts stripped: the
+// question, a tool call and its result, and the answer (TIM-254).
+const aiChatTurnPrompt = Schema.encodeSync(
+  Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt)),
+)(
+  Prompt.make([
+    {
+      role: "user",
+      content: [{ type: "text", text: "What can I make with carrots?" }],
+    },
+    {
+      role: "assistant",
+      content: [
+        {
+          type: "tool-call",
+          id: "call_1",
+          name: "SearchRecipes",
+          params: { query: "carrot" },
+        },
+      ],
+    },
+    {
+      role: "tool",
+      content: [
+        {
+          type: "tool-result",
+          id: "call_1",
+          name: "SearchRecipes",
+          isFailure: false,
+          result: [
+            {
+              id: "0193c7a0-1b2c-4def-8123-456789abcdef",
+              title: "Carrot soup",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      role: "assistant",
+      content: [{ type: "text", text: "You could make carrot soup." }],
+    },
+  ]),
 )
 
 export const eventSamples: ReadonlyArray<EventPayload> = [
@@ -309,5 +374,29 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "GroceryAisleOrderSet",
     payload: { list: "Weekend", aisle: "Produce", sortOrder: 2, updatedAt },
+  },
+  {
+    event: "AIMemoryEntryAdded",
+    payload: AiMemoryEntry.insert.make({
+      id: aiMemoryEntryId,
+      content: "Prefers metric units",
+      createdAt,
+    }),
+  },
+  {
+    event: "AIMemoryEntryRemove",
+    payload: { id: aiMemoryEntryId },
+  },
+  {
+    event: "AIMemoryEntriesRemoved",
+    payload: { ids: [aiMemoryEntryId, otherAiMemoryEntryId] },
+  },
+  {
+    event: "AiChatTurnAdded",
+    payload: { id: aiChatTurnId, prompt: aiChatTurnPrompt },
+  },
+  {
+    event: "AiChatTurnsRemoved",
+    payload: { ids: [aiChatTurnId, otherAiChatTurnId] },
   },
 ]
