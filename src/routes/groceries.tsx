@@ -22,8 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import * as Arr from "effect/Array"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Option from "effect/Option"
@@ -93,13 +92,20 @@ function GroceryList() {
   const currentList = useAtomValue(groceryCurrentListAtom)
   const result = useAtomValue(groceryCountAtom)
 
-  // Clearing waits on `GroceryItemsDeleted` (TIM-266) and still commits the
-  // LiveStore events until then.
-  const commit = useCommit()
   const write = useWrite()
-  const clearCompleted = () => {
-    commit(events.groceryItemClearedCompleted({ list: currentList }))
+
+  // A clear deletes the items this device shows, so an item added on another
+  // device at the same time survives it.
+  const clearShown = (shown: (item: GroceryItem) => boolean) => {
+    if (result._tag !== "Success") return
+    const ids = result.value.aisles.flatMap(({ items }) =>
+      items.filter(shown).map((item) => item.id),
+    )
+    if (!Arr.isArrayNonEmpty(ids)) return
+    write({ event: "GroceryItemsDeleted", payload: { ids } })
   }
+
+  const clearCompleted = () => clearShown((item) => item.completed)
 
   const moveCompletedTargetList =
     currentList === PANTRY_GROCERY_LIST_NAME ? null : PANTRY_GROCERY_LIST_NAME
@@ -128,9 +134,7 @@ function GroceryList() {
     }
   }
 
-  const clearAll = () => {
-    commit(events.groceryItemCleared({ list: currentList }))
-  }
+  const clearAll = () => clearShown(() => true)
 
   const total = result._tag === "Success" ? result.value.total : 0
   const completed = result._tag === "Success" ? result.value.completed : 0

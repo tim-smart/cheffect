@@ -40,6 +40,13 @@ export const GroceryEvents = EventGroup.empty
     payload: Schema.Struct({ id: GroceryItemId }),
   })
   .add({
+    tag: "GroceryItemsDeleted",
+    // A fixed key: the payload has no list, and clears never need to be told
+    // apart from each other (approved on TIM-266).
+    primaryKey: () => "groceryItems",
+    payload: Schema.Struct({ ids: Schema.NonEmptyArray(GroceryItemId) }),
+  })
+  .add({
     tag: "IngredientAisleSet",
     primaryKey: ({ name }) => normalizeIngredientName(name),
     payload: IngredientAisle,

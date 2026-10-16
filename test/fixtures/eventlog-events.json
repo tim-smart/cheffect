@@ -337,5 +337,10 @@
       "updatedAt": 1760000600000
     },
     "bytes": "LSCIiOu+BggFV2Vla2VuZJniwNIQBLiW1otaB1Byb2R1Y2Wp24WGcYCfr4O5Zg=="
+  },
+  {
+    "tag": "GroceryItemsDeleted",
+    "json": { "ids": ["AZPHoBssTe+BI8D/7gAAAQ==", "AZPHoBssTe+BI8D/7gAAAg=="] },
+    "bytes": "KiDI1vizQCMCEAGTx6AbLE3vgSPA/+4AAAEQAZPHoBssTe+BI8D/7gAAAg=="
   }
 ]

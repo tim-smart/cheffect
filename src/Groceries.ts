@@ -15,7 +15,8 @@ import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 // Handlers converge whatever order remote entries arrive in (TIM-248): an add
 // inserts only when the item is missing, updates and toggles patch under
 // last-writer-wins and do nothing when the item is missing, and a delete
-// hard-deletes, so a late update can't bring an item back.
+// hard-deletes, so a late update can't bring an item back. A clear deletes
+// only the ids its writer saw, so an item added concurrently survives it.
 //
 // Ingredient aisles and aisle orders have reusable keys, so a set upserts
 // under last-writer-wins and a remove leaves a tombstone that only a newer set
@@ -92,6 +93,14 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
       .handle("GroceryItemDeleted", ({ payload }) =>
         items.delete().equals(payload.id).pipe(Effect.orDie),
       )
+      .handle("GroceryItemsDeleted", ({ payload }) =>
+        Effect.forEach(payload.ids, (id) => items.delete().equals(id), {
+          discard: true,
+        }).pipe(
+          db.withTransaction({ tables: ["groceryItems"], mode: "readwrite" }),
+          Effect.orDie,
+        ),
+      )
       .handle("IngredientAisleSet", ({ payload, entry }) =>
         Effect.gen(function* () {
           const name = normalizeIngredientName(payload.name)
@@ -136,6 +145,7 @@ const GroceryReactivity = EventLog.groupReactivity(GroceryEvents, {
   GroceryItemUpdated: ["groceryItems"],
   GroceryItemToggled: ["groceryItems"],
   GroceryItemDeleted: ["groceryItems"],
+  GroceryItemsDeleted: ["groceryItems"],
   IngredientAisleSet: ["ingredientAisles"],
   IngredientAisleRemoved: ["ingredientAisles"],
   GroceryAisleOrderSet: ["groceryAisleOrders"],
