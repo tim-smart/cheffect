@@ -1,3 +1,4 @@
+import type * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
@@ -5,7 +6,9 @@ import { Menu, type MenuId } from "./domain/Menu"
 import { MenuDayNote, type MenuDayNoteId } from "./domain/MenuDayNote"
 import { MenuEntry, type MenuEntryId } from "./domain/MenuEntry"
 import { QueryBuilder } from "./IndexedDb"
+import * as Compaction from "./lib/Compaction"
 import { eventFields } from "./lib/eventFields"
+import { uuidString } from "./lib/Id"
 import { applyLww, stampAll } from "./lib/Lww"
 import { MenuEvents } from "./Menus/Events"
 
@@ -26,6 +29,33 @@ import { MenuEvents } from "./Menus/Events"
 const menuFields = eventFields(Menu.insert)
 const entryFields = eventFields(MenuEntry.insert)
 const noteFields = eventFields(MenuDayNote.insert)
+
+const menuUpdate = ({ name, days, updatedAt }: typeof Menu.update.Type) => ({
+  name,
+  days,
+  updatedAt,
+})
+
+const entryDay = ({
+  day,
+  updatedAt,
+}: {
+  readonly day: number
+  readonly updatedAt: DateTime.Utc
+}) => ({
+  day,
+  updatedAt,
+})
+
+const noteUpdate = ({
+  day,
+  note,
+  updatedAt,
+}: typeof MenuDayNote.update.Type) => ({
+  day,
+  note,
+  updatedAt,
+})
 
 const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
   Effect.gen(function* () {
@@ -66,15 +96,7 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
         Effect.gen(function* () {
           const row = yield* menuRow(payload.id)
           if (row === undefined) return
-          const next = applyLww(
-            row,
-            {
-              name: payload.name,
-              days: payload.days,
-              updatedAt: payload.updatedAt,
-            },
-            entry,
-          )
+          const next = applyLww(row, menuUpdate(payload), entry)
           if (next !== row) yield* menus.upsert(next)
         }).pipe(Effect.orDie),
       )
@@ -101,11 +123,7 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
         Effect.gen(function* () {
           const row = yield* entryRow(payload.id)
           if (row === undefined) return
-          const next = applyLww(
-            row,
-            { day: payload.day, updatedAt: payload.updatedAt },
-            entry,
-          )
+          const next = applyLww(row, entryDay(payload), entry)
           if (next !== row) yield* entries.upsert(next)
         }).pipe(Effect.orDie),
       )
@@ -128,15 +146,7 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
         Effect.gen(function* () {
           const row = yield* noteRow(payload.id)
           if (row === undefined) return
-          const next = applyLww(
-            row,
-            {
-              day: payload.day,
-              note: payload.note,
-              updatedAt: payload.updatedAt,
-            },
-            entry,
-          )
+          const next = applyLww(row, noteUpdate(payload), entry)
           if (next !== row) yield* notes.upsert(next)
         }).pipe(Effect.orDie),
       )
@@ -158,4 +168,28 @@ const MenuReactivity = EventLog.groupReactivity(MenuEvents, {
   MenuDayNoteRemove: ["menuDayNotes"],
 })
 
-export const MenusLayer = Layer.mergeAll(MenuHandlers, MenuReactivity)
+// `MenuRemove` is a remove of the menu row only. The entries and notes it
+// cascades to are found through the table at replay time, so their own
+// entries are all replayed.
+const MenuCompaction = Compaction.layer(MenuEvents, {
+  MenuAdd: () => Compaction.create("menus"),
+  MenuUpdate: (payload) => Compaction.patch("menus", menuUpdate(payload)),
+  MenuRemove: ({ id }) => Compaction.remove("menus", [uuidString(id)]),
+  MenuEntryAdd: () => Compaction.create("menuEntries"),
+  MenuEntrySetDay: (payload) =>
+    Compaction.patch("menuEntries", entryDay(payload)),
+  MenuEntryRemove: ({ id }) =>
+    Compaction.remove("menuEntries", [uuidString(id)]),
+  MenuDayNoteAdd: (payload) =>
+    Compaction.set("menuDayNotes", noteFields(payload)),
+  MenuDayNoteUpdate: (payload) =>
+    Compaction.patch("menuDayNotes", noteUpdate(payload)),
+  MenuDayNoteRemove: ({ id }) =>
+    Compaction.remove("menuDayNotes", [uuidString(id)]),
+})
+
+export const MenusLayer = Layer.mergeAll(
+  MenuHandlers,
+  MenuReactivity,
+  MenuCompaction,
+)

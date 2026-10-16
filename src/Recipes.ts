@@ -5,6 +5,7 @@ import type * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import type { RecipeId } from "./domain/Recipe"
 import { QueryBuilder } from "./IndexedDb"
+import * as Compaction from "./lib/Compaction"
 import { eventFields } from "./lib/eventFields"
 import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 import { RecipeEvents } from "./Recipes/Events"
@@ -116,4 +117,21 @@ const RecipesReactivity = EventLog.groupReactivity(RecipeEvents, {
   RecipeEditRemove: ["recipeEdits"],
 })
 
-export const RecipesLayer = Layer.mergeAll(RecipesHandlers, RecipesReactivity)
+const RecipesCompaction = Compaction.layer(RecipeEvents, {
+  RecipeCreated: () => Compaction.create("recipes"),
+  RecipeUpdated: (payload) =>
+    Compaction.patch("recipes", updatedFields(payload)),
+  RecipeSetIngredientScale: (payload) =>
+    Compaction.patch("recipes", scaleFields(payload)),
+  RecipeDeleted: (payload) =>
+    Compaction.patch("recipes", deletedFields(payload)),
+  RecipeEditSet: (payload) =>
+    Compaction.set("recipeEdits", editFields(payload)),
+  RecipeEditRemove: () => Compaction.keep("recipeEdits"),
+})
+
+export const RecipesLayer = Layer.mergeAll(
+  RecipesHandlers,
+  RecipesReactivity,
+  RecipesCompaction,
+)

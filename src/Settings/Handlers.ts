@@ -2,6 +2,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import { QueryBuilder } from "@/IndexedDb"
+import * as Compaction from "@/lib/Compaction"
 import { applyLww, stampAll } from "@/lib/Lww"
 import { SettingsEvents } from "./Events"
 
@@ -36,7 +37,14 @@ const SettingsReactivity = EventLog.groupReactivity(SettingsEvents, {
   SettingsSet: ["settings"],
 })
 
+// An insert also stamps `id`, which no event writes afterwards, so a skipped
+// set only changes which entry that unused stamp names.
+const SettingsCompaction = Compaction.layer(SettingsEvents, {
+  SettingsSet: ({ value }) => Compaction.set("settings", { value }),
+})
+
 export const SettingsLayer = Layer.mergeAll(
   SettingsHandlers,
   SettingsReactivity,
+  SettingsCompaction,
 )

@@ -7,7 +7,9 @@ import {
 } from "./domain/MealPlanDayNote"
 import type { MealPlanEntryId } from "./domain/MealPlanEntry"
 import { QueryBuilder } from "./IndexedDb"
+import * as Compaction from "./lib/Compaction"
 import { eventFields } from "./lib/eventFields"
+import { uuidString } from "./lib/Id"
 import { applyLww, stampAll } from "./lib/Lww"
 import { MealPlanEvents } from "./MealPlan/Events"
 
@@ -18,6 +20,16 @@ import { MealPlanEvents } from "./MealPlan/Events"
 // add on an existing row (a re-import) merges under last-writer-wins.
 
 const noteFields = eventFields(MealPlanDayNote.insert)
+
+const noteUpdate = ({
+  day,
+  note,
+  updatedAt,
+}: typeof MealPlanDayNote.update.Type) => ({
+  day,
+  note,
+  updatedAt,
+})
 
 const MealPlanHandlers = EventLog.group(MealPlanEvents, (handlers) =>
   Effect.gen(function* () {
@@ -74,15 +86,7 @@ const MealPlanHandlers = EventLog.group(MealPlanEvents, (handlers) =>
         Effect.gen(function* () {
           const row = yield* noteRow(payload.id)
           if (row === undefined) return
-          const next = applyLww(
-            row,
-            {
-              day: payload.day,
-              note: payload.note,
-              updatedAt: payload.updatedAt,
-            },
-            entry,
-          )
+          const next = applyLww(row, noteUpdate(payload), entry)
           if (next !== row) yield* notes.upsert(next)
         }).pipe(Effect.orDie),
       )
@@ -101,7 +105,20 @@ const MealPlanReactivity = EventLog.groupReactivity(MealPlanEvents, {
   MealPlanDayNoteRemove: ["mealPlanDayNotes"],
 })
 
+const MealPlanCompaction = Compaction.layer(MealPlanEvents, {
+  MealPlanAdd: () => Compaction.create("mealPlan"),
+  MealPlanSetDay: ({ day }) => Compaction.patch("mealPlan", { day }),
+  MealPlanRemove: ({ id }) => Compaction.remove("mealPlan", [uuidString(id)]),
+  MealPlanDayNoteAdd: (payload) =>
+    Compaction.set("mealPlanDayNotes", noteFields(payload)),
+  MealPlanDayNoteUpdate: (payload) =>
+    Compaction.patch("mealPlanDayNotes", noteUpdate(payload)),
+  MealPlanDayNoteRemove: ({ id }) =>
+    Compaction.remove("mealPlanDayNotes", [uuidString(id)]),
+})
+
 export const MealPlanLayer = Layer.mergeAll(
   MealPlanHandlers,
   MealPlanReactivity,
+  MealPlanCompaction,
 )

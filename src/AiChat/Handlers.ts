@@ -3,7 +3,9 @@ import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 import { QueryBuilder } from "@/IndexedDb"
+import * as Compaction from "@/lib/Compaction"
 import { eventFields } from "@/lib/eventFields"
+import { uuidString } from "@/lib/Id"
 import { AiChatEvents } from "./Events"
 
 // Handlers converge whatever order remote entries arrive in: an add inserts
@@ -74,4 +76,21 @@ const AiChatReactivity = EventLog.groupReactivity(AiChatEvents, {
   AiChatTurnsRemoved: ["aiChatTurns"],
 })
 
-export const AiChatLayer = Layer.mergeAll(AiChatHandlers, AiChatReactivity)
+// Nothing here overwrites a row, so the only entries skipped are those for
+// rows a later remove deletes.
+const AiChatCompaction = Compaction.layer(AiChatEvents, {
+  AIMemoryEntryAdded: () => Compaction.create("aiMemoryEntries"),
+  AIMemoryEntryRemove: ({ id }) =>
+    Compaction.remove("aiMemoryEntries", [uuidString(id)]),
+  AIMemoryEntriesRemoved: ({ ids }) =>
+    Compaction.remove("aiMemoryEntries", ids.map(uuidString)),
+  AiChatTurnAdded: () => Compaction.create("aiChatTurns"),
+  AiChatTurnsRemoved: ({ ids }) =>
+    Compaction.remove("aiChatTurns", ids.map(uuidString)),
+})
+
+export const AiChatLayer = Layer.mergeAll(
+  AiChatHandlers,
+  AiChatReactivity,
+  AiChatCompaction,
+)

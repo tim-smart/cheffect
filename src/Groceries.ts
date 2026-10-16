@@ -1,15 +1,21 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
-import { groceryAisleOrderKey } from "./domain/GroceryAisleOrder"
+import {
+  type GroceryAisleOrder,
+  groceryAisleOrderKey,
+} from "./domain/GroceryAisleOrder"
 import {
   GroceryItem,
   type GroceryItemId,
   normalizeIngredientName,
 } from "./domain/GroceryItem"
+import type { IngredientAisle } from "./domain/IngredientAisle"
 import { GroceryEvents } from "./Groceries/Events"
 import { QueryBuilder } from "./IndexedDb"
+import * as Compaction from "./lib/Compaction"
 import { eventFields } from "./lib/eventFields"
+import { uuidString } from "./lib/Id"
 import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 
 // Handlers converge whatever order remote entries arrive in: an add
@@ -24,6 +30,35 @@ import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 // emits `IngredientAisleSet` and `IngredientAisleRemoved` itself.
 
 const itemFields = eventFields(GroceryItem.insert)
+
+const itemUpdate = ({
+  name,
+  quantity,
+  aisle,
+  recipeIds,
+  completed,
+  updatedAt,
+}: typeof GroceryItem.update.Type) => ({
+  name,
+  quantity,
+  aisle,
+  recipeIds,
+  completed,
+  updatedAt,
+})
+
+const aisleFields = ({ name, aisle }: typeof IngredientAisle.Type) => ({
+  name: normalizeIngredientName(name),
+  aisle,
+})
+
+const aisleOrderFields = (order: typeof GroceryAisleOrder.Type) => ({
+  id: groceryAisleOrderKey(order.list, order.aisle),
+  list: order.list,
+  aisle: order.aisle,
+  sortOrder: order.sortOrder,
+  updatedAt: order.updatedAt,
+})
 
 const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
   Effect.gen(function* () {
@@ -67,18 +102,7 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
         Effect.gen(function* () {
           const row = yield* itemRow(payload.id)
           if (row === undefined) return
-          const next = applyLww(
-            row,
-            {
-              name: payload.name,
-              quantity: payload.quantity,
-              aisle: payload.aisle,
-              recipeIds: payload.recipeIds,
-              completed: payload.completed,
-              updatedAt: payload.updatedAt,
-            },
-            entry,
-          )
+          const next = applyLww(row, itemUpdate(payload), entry)
           if (next !== row) yield* items.upsert(next)
         }).pipe(Effect.orDie),
       )
@@ -103,11 +127,9 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
       )
       .handle("IngredientAisleSet", ({ payload, entry }) =>
         Effect.gen(function* () {
-          const name = normalizeIngredientName(payload.name)
-          const row = yield* aisleRow(name)
-          yield* aisles.upsert(
-            lwwSet(row, { name, aisle: payload.aisle }, entry),
-          )
+          const fields = aisleFields(payload)
+          const row = yield* aisleRow(fields.name)
+          yield* aisles.upsert(lwwSet(row, fields, entry))
         }).pipe(Effect.orDie),
       )
       .handle("IngredientAisleRemoved", ({ payload, entry }) =>
@@ -120,21 +142,9 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
       )
       .handle("GroceryAisleOrderSet", ({ payload, entry }) =>
         Effect.gen(function* () {
-          const id = groceryAisleOrderKey(payload.list, payload.aisle)
-          const row = yield* aisleOrderRow(id)
-          yield* aisleOrders.upsert(
-            lwwSet(
-              row,
-              {
-                id,
-                list: payload.list,
-                aisle: payload.aisle,
-                sortOrder: payload.sortOrder,
-                updatedAt: payload.updatedAt,
-              },
-              entry,
-            ),
-          )
+          const fields = aisleOrderFields(payload)
+          const row = yield* aisleOrderRow(fields.id)
+          yield* aisleOrders.upsert(lwwSet(row, fields, entry))
         }).pipe(Effect.orDie),
       )
   }),
@@ -151,4 +161,25 @@ const GroceryReactivity = EventLog.groupReactivity(GroceryEvents, {
   GroceryAisleOrderSet: ["groceryAisleOrders"],
 })
 
-export const GroceriesLayer = Layer.mergeAll(GroceryHandlers, GroceryReactivity)
+const GroceryCompaction = Compaction.layer(GroceryEvents, {
+  GroceryItemAdded: () => Compaction.create("groceryItems"),
+  GroceryItemUpdated: (payload) =>
+    Compaction.patch("groceryItems", itemUpdate(payload)),
+  GroceryItemToggled: ({ completed }) =>
+    Compaction.patch("groceryItems", { completed }),
+  GroceryItemDeleted: ({ id }) =>
+    Compaction.remove("groceryItems", [uuidString(id)]),
+  GroceryItemsDeleted: ({ ids }) =>
+    Compaction.remove("groceryItems", ids.map(uuidString)),
+  IngredientAisleSet: (payload) =>
+    Compaction.set("ingredientAisles", aisleFields(payload)),
+  IngredientAisleRemoved: () => Compaction.keep("ingredientAisles"),
+  GroceryAisleOrderSet: (payload) =>
+    Compaction.set("groceryAisleOrders", aisleOrderFields(payload)),
+})
+
+export const GroceriesLayer = Layer.mergeAll(
+  GroceryHandlers,
+  GroceryReactivity,
+  GroceryCompaction,
+)

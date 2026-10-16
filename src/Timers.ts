@@ -1,9 +1,11 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
-import type { TimerId } from "./domain/Timer"
+import type { Timer, TimerId } from "./domain/Timer"
 import { QueryBuilder } from "./IndexedDb"
+import * as Compaction from "./lib/Compaction"
 import { eventFields } from "./lib/eventFields"
+import { uuidString } from "./lib/Id"
 import { applyLww, stampAll } from "./lib/Lww"
 import { TimerEvents } from "./Timers/Events"
 
@@ -13,6 +15,18 @@ import { TimerEvents } from "./Timers/Events"
 // a dismiss hard-deletes, so a late update can't bring the timer back.
 
 const addedFields = eventFields(TimerEvents.events.TimerAdded.payload)
+
+// A whole Timer can come in, createdAt included; only the running state
+// changes.
+const runningState = ({
+  duration,
+  expiresAt,
+  pausedRemaining,
+}: typeof Timer.update.Type) => ({
+  duration,
+  expiresAt,
+  pausedRemaining,
+})
 
 const TimersHandlers = EventLog.group(TimerEvents, (handlers) =>
   Effect.gen(function* () {
@@ -37,15 +51,7 @@ const TimersHandlers = EventLog.group(TimerEvents, (handlers) =>
         Effect.gen(function* () {
           const row = yield* timerRow(payload.id)
           if (row === undefined) return
-          const next = applyLww(
-            row,
-            {
-              duration: payload.duration,
-              expiresAt: payload.expiresAt,
-              pausedRemaining: payload.pausedRemaining,
-            },
-            entry,
-          )
+          const next = applyLww(row, runningState(payload), entry)
           if (next !== row) yield* timers.upsert(next)
         }).pipe(Effect.orDie),
       )
@@ -61,4 +67,14 @@ const TimersReactivity = EventLog.groupReactivity(TimerEvents, {
   TimerDeleted: ["timers"],
 })
 
-export const TimersLayer = Layer.mergeAll(TimersHandlers, TimersReactivity)
+const TimersCompaction = Compaction.layer(TimerEvents, {
+  TimerAdded: () => Compaction.create("timers"),
+  TimerUpdated: (payload) => Compaction.patch("timers", runningState(payload)),
+  TimerDeleted: ({ id }) => Compaction.remove("timers", [uuidString(id)]),
+})
+
+export const TimersLayer = Layer.mergeAll(
+  TimersHandlers,
+  TimersReactivity,
+  TimersCompaction,
+)
