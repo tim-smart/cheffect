@@ -3,6 +3,7 @@ import * as Duration from "effect/Duration"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import type { EventPayload } from "@/EventLog"
+import { GroceryItem, GroceryItemIdFromString } from "@/domain/GroceryItem"
 import {
   MealPlanDayNote,
   MealPlanDayNoteIdFromString,
@@ -93,6 +94,13 @@ const menuEntryId = Schema.decodeSync(MenuEntryIdFromString)(
 )
 const menuDayNoteId = Schema.decodeSync(MenuDayNoteIdFromString)(
   "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8",
+)
+
+const groceryItemId = Schema.decodeSync(GroceryItemIdFromString)(
+  "0193c7a0-1b2c-4def-8123-c0ffee000001",
+)
+const otherGroceryItemId = Schema.decodeSync(GroceryItemIdFromString)(
+  "0193c7a0-1b2c-4def-8123-c0ffee000002",
 )
 
 export const eventSamples: ReadonlyArray<EventPayload> = [
@@ -250,5 +258,55 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "MenuDayNoteRemove",
     payload: { id: menuDayNoteId },
+  },
+  {
+    event: "GroceryItemAdded",
+    payload: GroceryItem.insert.make({
+      id: groceryItemId,
+      list: "Weekend",
+      name: "Carrots",
+      quantity: "500 g",
+      aisle: "Produce",
+      recipeIds: [recipeId],
+      completed: false,
+      createdAt,
+      updatedAt: createdAt,
+    }),
+  },
+  {
+    event: "GroceryItemUpdated",
+    payload: GroceryItem.update.make({
+      id: groceryItemId,
+      name: "Baby carrots",
+      quantity: "1 kg",
+      aisle: "Produce",
+      recipeIds: [recipeId],
+      completed: true,
+      updatedAt,
+    }),
+  },
+  {
+    event: "GroceryItemToggled",
+    payload: { id: groceryItemId, completed: true },
+  },
+  {
+    event: "GroceryItemDeleted",
+    payload: { id: groceryItemId },
+  },
+  {
+    event: "GroceryItemsDeleted",
+    payload: { ids: [groceryItemId, otherGroceryItemId] },
+  },
+  {
+    event: "IngredientAisleSet",
+    payload: { name: "carrots", aisle: "Produce" },
+  },
+  {
+    event: "IngredientAisleRemoved",
+    payload: { name: "carrots" },
+  },
+  {
+    event: "GroceryAisleOrderSet",
+    payload: { list: "Weekend", aisle: "Produce", sortOrder: 2, updatedAt },
   },
 ]
