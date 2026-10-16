@@ -6,6 +6,7 @@ import {
   Recipe,
   RecipeEdit,
   RecipeIdFromString,
+  SortByValue,
 } from "@/domain/Recipe"
 import * as HashSet from "effect/HashSet"
 import * as Option from "effect/Option"
@@ -14,7 +15,8 @@ import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { eventLogAtom, writeEvent, writeEventAtom } from "@/EventLog"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
-import { findRecipe, findRecipeEdit, RecipeRepo } from "./Repo"
+import { findRecipe, findRecipeEdit, RecipeRepo, searchRecipes } from "./Repo"
+import { kvsRuntime } from "@/lib/atom"
 
 // The repos share the EventLog runtime's query builder and Reactivity, so
 // handler writes reload their snapshots. Kept apart from `atoms.ts` so modules
@@ -58,6 +60,23 @@ export const recipeSnapshotsAtom = Atom.make((get) =>
     edits: get(recipeEditsAtom),
   }),
 )
+
+export const recipeSearchQueryAtom = Atom.make("").pipe(Atom.keepAlive)
+
+export const recipeSortByAtom = Atom.kvs({
+  runtime: kvsRuntime,
+  key: "cheffect:recipeSortBy",
+  schema: SortByValue,
+  defaultValue: () => "title" as const,
+})
+
+export const allRecipesAtom = Atom.make((get) => {
+  const query = get(recipeSearchQueryAtom)
+  const sortBy = get(recipeSortByAtom)
+  return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes }) =>
+    searchRecipes(recipes, { query, sortBy }),
+  )
+})
 
 // A recipe by the id string in a route or a reference. Soft-deleted recipes
 // are still found; `None` when the recipe is missing, e.g. not synced yet.

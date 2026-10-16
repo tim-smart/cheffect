@@ -11,12 +11,7 @@ import {
   openAiClientLayer,
 } from "@/services/AiHelpers"
 import * as HashSet from "effect/HashSet"
-import {
-  Recipe,
-  RecipeId,
-  RecipeIdFromString,
-  SortByValue,
-} from "@/domain/Recipe"
+import { Recipe, RecipeId, RecipeIdFromString } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
 import { router } from "@/Router"
 import * as Array from "effect/Array"
@@ -27,7 +22,6 @@ import * as Exit from "effect/Exit"
 import { toast } from "sonner"
 import { writeEvent } from "@/EventLog"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
-import { kvsRuntime } from "@/lib/atom"
 import { generateUuidBytes } from "@/lib/Id"
 import { RecipeRepo, searchRecipes } from "./Repo"
 import {
@@ -36,12 +30,14 @@ import {
   modifiedRecipeByIdAtom,
   recipeByIdAtom,
   recipesAtom,
-  recipeSnapshotsAtom,
   recipesRuntime,
   showOriginalRecipeAtom,
 } from "./runtime"
 
 export {
+  allRecipesAtom,
+  recipeSearchQueryAtom,
+  recipeSortByAtom,
   modifiedRecipeByIdAtom,
   recipeByIdAtom,
   recipeForDisplayAtom,
@@ -58,23 +54,6 @@ export const extractRuntime = Atom.runtime((get) =>
 ).pipe(Atom.keepAlive)
 
 // Reads
-
-export const recipeSearchQueryAtom = Atom.make("").pipe(Atom.keepAlive)
-
-export const recipeSortByAtom = Atom.kvs({
-  runtime: kvsRuntime,
-  key: "cheffect:recipeSortBy",
-  schema: SortByValue,
-  defaultValue: () => "title" as const,
-})
-
-export const allRecipesAtom = Atom.make((get) => {
-  const query = get(recipeSearchQueryAtom)
-  const sortBy = get(recipeSortByAtom)
-  return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes }) =>
-    searchRecipes(recipes, { query, sortBy }),
-  )
-})
 
 export const mealPlanRecipesQueryAtom = Atom.make("")
 
