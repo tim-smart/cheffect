@@ -5,6 +5,7 @@ import { IDBFactory, IDBKeyRange } from "fake-indexeddb"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
@@ -20,6 +21,7 @@ import {
   journalDatabaseName,
   layerJournal,
   loadOrCreateIdentity,
+  parseSyncServerUrl,
   storeId,
   syncEnabledKey,
   syncServerUrlKey,
@@ -27,6 +29,7 @@ import {
 import { QueryBuilder, databaseName, layerDatabase } from "@/IndexedDb"
 import { RecipesLayer } from "@/Recipes"
 import { RecipeEvents } from "@/Recipes/Events"
+import { RecipeIdFromString } from "@/domain/Recipe"
 import { join, makeShareLink, parseJoinInput } from "@/Sync/Join"
 import { eventSamples } from "./fixtures/event-samples"
 import { testIdentity } from "./harness/eventlog"
@@ -50,6 +53,10 @@ const recipeCreated = eventSamples.find(
 )!
 
 const CheffectRecipes = EventLog.schema(RecipeEvents)
+
+const lateRecipeId = Schema.decodeSync(RecipeIdFromString)(
+  "0193c7a0-1b2c-4def-8123-0000000000aa",
+)
 
 // The values `Atom.kvs` reads, through the same schema stores.
 const settings = (kvs: KeyValueStore.KeyValueStore) => ({
@@ -129,13 +136,29 @@ class InjectedFailure extends Error {}
 
 // Fails the `failAt`-th storage write the join makes, before it happens, and
 // records the device as it stood at that moment. `ops` lists every write the
-// join got to, in order.
+// join got to, in order. `interleave` starts an effect alongside the join,
+// just before the write it names.
 const makeFaults = (failAt: number | undefined) => {
   const ops: Array<string> = []
   let crashState: Effect.Effect<DeviceState, unknown> | undefined
   let crashed: DeviceState | undefined
+  let interleave:
+    { readonly at: number; readonly effect: Effect.Effect<void> } | undefined
+  const fibers: Array<Fiber.Fiber<void>> = []
+  const start = Effect.suspend(() => {
+    const effect = interleave?.effect
+    interleave = undefined
+    return effect === undefined
+      ? Effect.void
+      : Effect.forkDetach(effect).pipe(
+          Effect.map((fiber) => {
+            fibers.push(fiber)
+          }),
+        )
+  })
   const step = <E>(op: string, fail: (cause: unknown) => E) =>
     Effect.gen(function* () {
+      if (ops.length === interleave?.at) yield* start
       if (ops.length === failAt) {
         crashed = yield* crashState!.pipe(Effect.orDie)
         return yield* Effect.fail(fail(new InjectedFailure(op)))
@@ -148,6 +171,23 @@ const makeFaults = (failAt: number | undefined) => {
     onCrash: (read: Effect.Effect<DeviceState, unknown>) => {
       crashState = read
     },
+    interleave: (at: number, effect: Effect.Effect<void>) => {
+      interleave = { at, effect }
+    },
+    // Starts the interleaved effect if the join finished before reaching it,
+    // then gives it a moment to finish. Whatever is still waiting by then is
+    // waiting for the reload, and is stopped.
+    settle: start.pipe(
+      Effect.andThen(
+        Effect.suspend(() =>
+          fibers.length === 0
+            ? Effect.void
+            : Effect.sleep("200 millis").pipe(
+                Effect.andThen(Fiber.interruptAll(fibers)),
+              ),
+        ),
+      ),
+    ),
     crashed: () => crashed,
   }
 }
@@ -232,15 +272,29 @@ interface JoinRun {
   readonly before: DeviceState
   readonly crashed: DeviceState | undefined
   readonly after: DeviceState
+  // The identity a tab that launched during the join came up with, if it got
+  // that far.
+  readonly launched: Option.Option<string>
   readonly kvs: KeyValueStore.KeyValueStore
 }
 
 // One device with a recipe written through the real Recipes handlers, on its
 // old identity and server, then a join to a new collection with the
 // `failAt`-th storage write failing.
+//
+// `during` starts something else just before the join's `at`-th write, or
+// after the join returns when it makes fewer, and lets it run alongside:
+//
+// - "write": the old EventLog writes another recipe, like a remote handler,
+//   a timer or another tab that is still running.
+// - "launch": another tab starts up and loads its identity.
 const runJoin = (options: {
   readonly failAt: number | undefined
   readonly identity?: (newIdentity: string) => string
+  readonly during?: {
+    readonly at: number
+    readonly run: "write" | "launch"
+  }
 }): Promise<JoinRun> => {
   const factory = makeFactory()
   return Effect.gen(function* () {
@@ -285,6 +339,32 @@ const runJoin = (options: {
     const before = yield* readState(factory, kvs)
     const faults = makeFaults(options.failAt)
     faults.onCrash(readState(factory, kvs))
+    let launched: Option.Option<string> = Option.none()
+    if (options.during?.run === "write") {
+      // Whether the write is refused doesn't matter, only what it leaves.
+      faults.interleave(
+        options.during.at,
+        Context.get(context, EventLog.EventLog)
+          .write({
+            schema: CheffectRecipes,
+            event: "RecipeCreated",
+            payload: { ...recipeCreated.payload, id: lateRecipeId } as any,
+          })
+          .pipe(Effect.ignore),
+      )
+    } else if (options.during?.run === "launch") {
+      faults.interleave(
+        options.during.at,
+        loadOrCreateIdentity.pipe(
+          Effect.map((identity) => {
+            launched = Option.some(EventLog.encodeIdentityString(identity))
+          }),
+          Effect.provideService(KeyValueStore.KeyValueStore, kvs),
+          Effect.provide(EventLogEncryption.layerSubtle),
+          Effect.ignore,
+        ),
+      )
+    }
 
     const identity = options.identity?.(newIdentity) ?? newIdentity
     const exit = yield* join({ identity, serverUrl: newServerUrl }).pipe(
@@ -311,6 +391,7 @@ const runJoin = (options: {
       Effect.timeout("5 seconds"),
       Effect.exit,
     )
+    yield* faults.settle
 
     return {
       oldIdentity: EventLog.encodeIdentityString(oldIdentity),
@@ -320,6 +401,7 @@ const runJoin = (options: {
       before,
       crashed: faults.crashed(),
       after: yield* readState(factory, kvs),
+      launched,
       kvs,
     }
   }).pipe(
@@ -403,6 +485,77 @@ test("a join that dies at any storage step never leaves the new identity next to
       oldIdentity: run.oldIdentity,
       when: `after "${op}" failed`,
     })
+  }
+})
+
+// Effect's EventLog makes every local write and every remote replay under the
+// journal's Web Lock, which every tab shares; the identity loads under its own
+// Web Lock. The join has to hold both until the page reloads.
+
+test("a write from the old collection during the join never lands next to the new identity", async () => {
+  const complete = await runJoin({ failAt: undefined })
+  assert.ok(Exit.isSuccess(complete.exit), String(complete.exit))
+
+  for (let at = 0; at <= complete.ops.length; at++) {
+    const when = complete.ops[at] ?? "the reload"
+    const run = await runJoin({
+      failAt: undefined,
+      during: { at, run: "write" },
+    })
+    assert.ok(Exit.isSuccess(run.exit), `${when}: ${String(run.exit)}`)
+    assertSafe(run.after, {
+      oldIdentity: run.oldIdentity,
+      when: `old write starting before "${when}"`,
+    })
+  }
+})
+
+test("a tab that launches during the join never comes up on the old identity", async () => {
+  const complete = await runJoin({ failAt: undefined })
+  assert.ok(Exit.isSuccess(complete.exit), String(complete.exit))
+
+  for (let at = 0; at <= complete.ops.length; at++) {
+    const when = complete.ops[at] ?? "the reload"
+    const run = await runJoin({
+      failAt: undefined,
+      during: { at, run: "launch" },
+    })
+    assert.ok(Exit.isSuccess(run.exit), `${when}: ${String(run.exit)}`)
+    assert.notEqual(
+      Option.getOrUndefined(run.launched),
+      run.oldIdentity,
+      `a tab launching before "${when}" loaded the old identity`,
+    )
+  }
+})
+
+// The WebSocket constructor throws on any fragment, an empty one included, so
+// such a server could never connect. A share link carrying one would wipe the
+// device and leave it unable to sync.
+test("a server URL with a fragment is refused, in Settings and in share links", async () => {
+  const identity = EventLog.encodeIdentityString(
+    await Effect.runPromise(testIdentity),
+  )
+  for (const serverUrl of [
+    "wss://sync.example.com/sync#frag",
+    "wss://sync.example.com/sync#",
+    "https://sync.example.com/sync#frag",
+  ]) {
+    assert.deepEqual(
+      parseSyncServerUrl(serverUrl),
+      Option.none(),
+      `Settings saved ${serverUrl}`,
+    )
+    const link = makeShareLink({
+      appUrl: "https://cheffect.example.com/",
+      identity,
+      serverUrl,
+    })
+    assert.deepEqual(
+      parseJoinInput(link),
+      Option.none(),
+      `a share link with ${serverUrl} was accepted`,
+    )
   }
 })
 
