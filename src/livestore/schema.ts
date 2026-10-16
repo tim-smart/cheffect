@@ -1,4 +1,3 @@
-import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 import { GroceryAisle } from "../domain/GroceryItem"
 import { Rating } from "../domain/Rating"
 import {
@@ -13,6 +12,17 @@ import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
+
+// The AI memory events as LiveStore wrote them, with string ids. Frozen here
+// now that the domain `AiMemoryEntry` lives on EventLog, so old event logs and
+// exports still decode.
+export class LegacyAiMemoryEntry extends Model.Class<LegacyAiMemoryEntry>(
+  "LegacyAiMemoryEntry",
+)({
+  id: Model.GeneratedByApp(Schema.String),
+  content: Schema.String,
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(Model.FieldExcept(["update"])),
+}) {}
 
 // The timer events as LiveStore wrote them, with string ids. Frozen here now
 // that the domain `Timer` lives on EventLog, so old event logs still decode.
@@ -686,7 +696,7 @@ export const events = {
   }),
   aiMemoryEntryAdded: Events.synced({
     name: "v1.AIMemoryEntryAdded",
-    schema: AiMemoryEntry.insert,
+    schema: LegacyAiMemoryEntry.insert,
   }),
   aiMemoryEntryRemove: Events.synced({
     name: "v1.AIMemoryEntryRemove",

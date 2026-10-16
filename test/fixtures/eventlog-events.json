@@ -342,5 +342,37 @@
     "tag": "GroceryItemsDeleted",
     "json": { "ids": ["AZPHoBssTe+BI8D/7gAAAQ==", "AZPHoBssTe+BI8D/7gAAAg=="] },
     "bytes": "KiDI1vizQCMCEAGTx6AbLE3vgSPA/+4AAAEQAZPHoBssTe+BI8D/7gAAAg=="
+  },
+  {
+    "tag": "AIMemoryEntryAdded",
+    "json": {
+      "id": "AZPHoBssTe+BI6EAAAAACg==",
+      "content": "Prefers metric units",
+      "createdAt": 1760000000000
+    },
+    "bytes": "PCDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSOhAAAAAAqQvNivSBRQcmVmZXJzIG1ldHJpYyB1bml0cw=="
+  },
+  {
+    "tag": "AIMemoryEntryRemove",
+    "json": { "id": "AZPHoBssTe+BI6EAAAAACg==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74EjoQAAAAAK"
+  },
+  {
+    "tag": "AIMemoryEntriesRemoved",
+    "json": { "ids": ["AZPHoBssTe+BI6EAAAAACg==", "AZPHoBssTe+BI6EAAAAACw=="] },
+    "bytes": "KiDI1vizQCMCEAGTx6AbLE3vgSOhAAAAAAoQAZPHoBssTe+BI6EAAAAACw=="
+  },
+  {
+    "tag": "AiChatTurnAdded",
+    "json": {
+      "id": "AZPHoBssTe+BI6IAAAAACg==",
+      "prompt": "{\"content\":[{\"options\":{},\"role\":\"user\",\"content\":\"What can I make with carrots?\"},{\"options\":{},\"role\":\"assistant\",\"content\":[{\"options\":{},\"type\":\"tool-call\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"params\":{\"query\":\"carrot\"},\"providerExecuted\":false}]},{\"options\":{},\"role\":\"tool\",\"content\":[{\"options\":{},\"type\":\"tool-result\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"isFailure\":false,\"result\":[{\"id\":\"0193c7a0-1b2c-4def-8123-456789abcdef\",\"title\":\"Carrot soup\"}],\"providerExecuted\":false}]},{\"options\":{},\"role\":\"assistant\",\"content\":\"You could make carrot soup.\"}]}"
+    },
+    "bytes": "0gQggK6NzhsQAZPHoBssTe+BI6IAAAAACtiTyflvtAR7ImNvbnRlbnQiOlt7Im9wdGlvbnMiOnt9LCJyb2xlIjoidXNlciIsImNvbnRlbnQiOiJXaGF0IGNhbiBJIG1ha2Ugd2l0aCBjYXJyb3RzPyJ9LHsib3B0aW9ucyI6e30sInJvbGUiOiJhc3Npc3RhbnQiLCJjb250ZW50IjpbeyJvcHRpb25zIjp7fSwidHlwZSI6InRvb2wtY2FsbCIsImlkIjoiY2FsbF8xIiwibmFtZSI6IlNlYXJjaFJlY2lwZXMiLCJwYXJhbXMiOnsicXVlcnkiOiJjYXJyb3QifSwicHJvdmlkZXJFeGVjdXRlZCI6ZmFsc2V9XX0seyJvcHRpb25zIjp7fSwicm9sZSI6InRvb2wiLCJjb250ZW50IjpbeyJvcHRpb25zIjp7fSwidHlwZSI6InRvb2wtcmVzdWx0IiwiaWQiOiJjYWxsXzEiLCJuYW1lIjoiU2VhcmNoUmVjaXBlcyIsImlzRmFpbHVyZSI6ZmFsc2UsInJlc3VsdCI6W3siaWQiOiIwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy00NTY3ODlhYmNkZWYiLCJ0aXRsZSI6IkNhcnJvdCBzb3VwIn1dLCJwcm92aWRlckV4ZWN1dGVkIjpmYWxzZX1dfSx7Im9wdGlvbnMiOnt9LCJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IllvdSBjb3VsZCBtYWtlIGNhcnJvdCBzb3VwLiJ9XX0="
+  },
+  {
+    "tag": "AiChatTurnsRemoved",
+    "json": { "ids": ["AZPHoBssTe+BI6IAAAAACg==", "AZPHoBssTe+BI6IAAAAACw=="] },
+    "bytes": "KiDI1vizQCMCEAGTx6AbLE3vgSOiAAAAAAoQAZPHoBssTe+BI6IAAAAACw=="
   }
 ]

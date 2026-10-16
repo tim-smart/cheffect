@@ -21,6 +21,8 @@ import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import { IndexedDbQueryError } from "@effect/platform-browser/IndexedDbQueryBuilder"
 import { useAtomSet } from "@effect/atom-react"
 import { kvsRuntime } from "./lib/atom"
+import { AiChatEvents } from "./AiChat/Events"
+import { AiChatLayer } from "./AiChat/Handlers"
 import { GroceriesLayer } from "./Groceries"
 import { GroceryEvents } from "./Groceries/Events"
 import { MealPlanLayer } from "./MealPlan"
@@ -48,6 +50,7 @@ export const CheffectEvents = EventLog.schema(
   MealPlanEvents,
   MenuEvents,
   GroceryEvents,
+  AiChatEvents,
 )
 
 export type EventPayload =
@@ -187,6 +190,7 @@ const EventLogLayer = EventLog.layer(
     MealPlanLayer,
     MenusLayer,
     GroceriesLayer,
+    AiChatLayer,
   ),
 ).pipe(
   Layer.provide(EventJournal.layerIndexedDb({ database: journalDatabaseName })),

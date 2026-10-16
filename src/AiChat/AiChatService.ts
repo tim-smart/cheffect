@@ -38,12 +38,7 @@ import {
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import * as Prompt from "effect/ai/Prompt"
 import * as LanguageModel from "effect/ai/LanguageModel"
-import { layerKvsLivestore } from "@/lib/kvs"
-import { Store } from "@/livestore/atoms"
-import { events, tables } from "@/livestore/schema"
-import { queryDb, sql } from "@livestore/livestore"
 import * as Option from "effect/Option"
-import * as KeyValueStore from "effect/persistence/KeyValueStore"
 import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
 import * as EventLog from "effect/eventlog/EventLog"
@@ -61,13 +56,19 @@ import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { generateUuidBytes, uuidString } from "@/lib/Id"
 import { type EventPayload, writeEvent } from "@/EventLog"
 import { Menu, MenuId } from "@/domain/Menu"
-import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
+import {
+  AiMemoryEntry,
+  AiMemoryEntryId,
+  AiMemoryEntryIdFromString,
+} from "@/domain/AiMemoryEntry"
+import { AiChatTurnId, PromptJson } from "@/domain/AiChatTurn"
+import { AiChatRepo } from "./Repo"
+import { aiChatRuntime } from "./runtime"
 import { Timer, TimerId } from "@/domain/Timer"
 import * as Duration from "effect/Duration"
 
 const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
-    const store = yield* Store
     const registry = yield* AtomRegistry.AtomRegistry
     const recipes = yield* RecipeRepo
     const mealPlan = yield* MealPlanRepo
@@ -488,19 +489,27 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       SaveLearning: Effect.fnUntraced(function* ({ content }) {
-        const newEntry = new AiMemoryEntry({
-          id: crypto.randomUUID(),
-          content,
-          createdAt: DateTime.nowUnsafe(),
+        yield* write({
+          event: "AIMemoryEntryAdded",
+          payload: new AiMemoryEntry({
+            id: AiMemoryEntryId.make(generateUuidBytes()),
+            content,
+            createdAt: DateTime.nowUnsafe(),
+          }),
         })
-        store.commit(events.aiMemoryEntryAdded(newEntry))
         return {
           _tag: "Transient",
           value: null,
         }
       }),
       RemoveLearning: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.aiMemoryEntryRemove({ id }))
+        const entryId = Schema.decodeOption(AiMemoryEntryIdFromString)(id)
+        if (Option.isSome(entryId)) {
+          yield* write({
+            event: "AIMemoryEntryRemove",
+            payload: { id: entryId.value },
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -544,11 +553,12 @@ class AiChatService extends Context.Service<AiChatService>()(
     make: Effect.gen(function* () {
       const client = yield* OpenAiClient.OpenAiClient
       const registry = yield* AtomRegistry.AtomRegistry
-      const store = KeyValueStore.toSchemaStore(
-        yield* KeyValueStore.KeyValueStore,
-        Prompt.Prompt,
-      )
-      const livestore = yield* Store
+      const repo = yield* AiChatRepo
+      const context = yield* Effect.context<
+        EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
+      >()
+      const write = (payload: EventPayload) =>
+        writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
       const baseSystemPrompt = `You are a professional chef working for Cheffect. Your goal is to assist users in working with recipes, creating meal plan menus, and answering any cooking-related questions they may have.
 
 You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary. Avoid asking follow-up questions and instead provide direct answers or suggestions. You are a short, sharp and direct chef. "Yes chef!" is a good motto to follow.
@@ -587,7 +597,7 @@ If you are able, always provide links to relevant sections of the app instead of
 `
 
       const currentSystemPrompt = Effect.gen(function* () {
-        const memoryEntries = livestore.query(aiMemoryEntries$)
+        const memoryEntries = yield* repo.memoryEntries.pipe(Effect.orDie)
         const memoryPrompt =
           memoryEntries.length > 0
             ? `## Learning notes
@@ -596,7 +606,7 @@ The following are notes from previous interactions with the user. They must be c
 
 ${memoryEntries
   .map(
-    (entry) => `#### Learning ID: ${entry.id}
+    (entry) => `#### Learning ID: ${entry.idString}
 
 ${entry.content}`,
   )
@@ -701,32 +711,54 @@ ${MenuEntry.toXml(entries)}`
         return baseSystemPrompt + memoryPrompt + "\n\n" + currentTimeAndCountry
       })
 
-      const chat = yield* store.get("ai-history").pipe(
-        Effect.flatMap(
-          Option.match({
-            onNone: () => AiChat.empty,
-            onSome: AiChat.fromPrompt,
-          }),
-        ),
+      // History is the `aiChatTurns` snapshot, so turns from other devices
+      // and clears show up here too. While a reply streams, the snapshot only
+      // replaces the history the next message builds on, not what's shown.
+      const chat = yield* repo.history.pipe(
+        Effect.flatMap(AiChat.fromPrompt),
         Effect.catch(() => AiChat.empty),
       )
       registry.set(currentPromptAtom, yield* Ref.get(chat.history))
+      let sending = false
 
-      yield* AtomRegistry.toStream(registry, persistenceUpdatesAtom).pipe(
-        Stream.runForEach(
-          Effect.fnUntraced(function* (json) {
-            if (!json) return
-            const history = Option.isNone(json)
-              ? Prompt.empty
-              : yield* Schema.decodeEffect(PromptJson)(json.value)
+      yield* repo.historyStream.pipe(
+        Stream.runForEach((history) =>
+          Effect.gen(function* () {
             yield* Ref.set(chat.history, history)
-            registry.set(currentPromptAtom, history)
+            if (!sending) registry.set(currentPromptAtom, history)
           }),
         ),
+        Effect.tapCause(Effect.logError),
         Effect.forkScoped,
       )
 
       const tools = yield* toolkit
+
+      // The messages shown since the send began become one turn, finished or
+      // interrupted. File parts are already stripped from what's shown.
+      let previous = Prompt.empty
+      let shown = Prompt.empty
+      const show = (prompt: Prompt.Prompt) => {
+        shown = prompt
+        registry.set(currentPromptAtom, prompt)
+      }
+
+      const saveTurn = Effect.gen(function* () {
+        // A send that failed before it started has no turn to save.
+        if (!sending) return
+        sending = false
+        const messages = shown.content.slice(previous.content.length)
+        if (messages.length === 0) return
+        yield* write({
+          event: "AiChatTurnAdded",
+          payload: {
+            id: AiChatTurnId.make(generateUuidBytes()),
+            prompt: Schema.encodeSync(PromptJson)(
+              Prompt.fromMessages(messages),
+            ),
+          },
+        })
+      })
 
       const send = Effect.fnUntraced(
         function* (options: {
@@ -742,12 +774,15 @@ ${MenuEntry.toXml(entries)}`
             config: { reasoning: { effort: "medium" } },
           }).pipe(Effect.provideService(OpenAiClient.OpenAiClient, client))
           const message = yield* makeMessage(options)
-          let history = (yield* Ref.get(chat.history)).pipe(
+          previous = yield* Ref.get(chat.history)
+          shown = previous
+          sending = true
+          let history = previous.pipe(
             Prompt.concat([message]),
             Prompt.setSystem(yield* currentSystemPrompt),
           )
           let historyNoFiles = filterFileParts(history)
-          registry.set(currentPromptAtom, historyNoFiles)
+          show(historyNoFiles)
           let parts = Array.empty<AiResponse.AnyPart>()
           while (true) {
             yield* pipe(
@@ -762,16 +797,13 @@ ${MenuEntry.toXml(entries)}`
                 return [Prompt.fromResponseParts(parts)] as const
               }),
               Stream.runForEach((response) => {
-                registry.set(
-                  currentPromptAtom,
-                  Prompt.concat(historyNoFiles, response),
-                )
+                show(Prompt.concat(historyNoFiles, response))
                 return Effect.void
               }),
             )
             history = Prompt.concat(history, Prompt.fromResponseParts(parts))
             historyNoFiles = filterFileParts(history)
-            registry.set(currentPromptAtom, historyNoFiles)
+            show(historyNoFiles)
             const errorPart = parts.findLast((part) => part.type === "error")
             if (errorPart) {
               historyNoFiles = Prompt.concat(historyNoFiles, [
@@ -783,7 +815,7 @@ ${MenuEntry.toXml(entries)}`
                   ],
                 }),
               ])
-              registry.set(currentPromptAtom, historyNoFiles)
+              show(historyNoFiles)
               break
             }
             const response = new LanguageModel.GenerateTextResponse<
@@ -806,37 +838,33 @@ ${MenuEntry.toXml(entries)}`
             break
           }
         },
-        Effect.ensuring(
-          Effect.gen(function* () {
-            const toPersist = registry.get(currentPromptAtom)
-            yield* Ref.set(chat.history, toPersist)
-            yield* Effect.orDie(store.set("ai-history", toPersist))
-          }),
-        ),
+        Effect.ensuring(saveTurn),
         Effect.catchCause(Effect.logError),
       )
 
-      const clear = Ref.set(chat.history, Prompt.empty).pipe(
-        Effect.andThen(store.remove("ai-history")),
-      )
+      // Removes the turns this device can see, so a turn from another device
+      // that hasn't synced yet survives the clear (TIM-254).
+      const clear = Effect.gen(function* () {
+        const ids = yield* repo.turnIds.pipe(Effect.orDie)
+        yield* Ref.set(chat.history, Prompt.empty)
+        if (!Array.isArrayNonEmpty(ids)) return
+        yield* write({ event: "AiChatTurnsRemoved", payload: { ids } })
+      })
 
       return { send, clear } as const
     }),
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide([layerKvsLivestore, ToolkitLayer]),
+    Layer.provide(ToolkitLayer),
   )
 }
-
-// Same JSON codec KeyValueStore.toSchemaStore uses for "ai-history"
-const PromptJson = Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt))
 
 const runtime = Atom.runtime((get) =>
   AiChatService.layer.pipe(
     Layer.provide([
       get(openAiClientLayer),
-      get(Store.layer),
+      get(aiChatRuntime.layer),
       get(mealPlanRuntime.layer),
       get(menusRuntime.layer),
       get(groceriesRuntime.layer),
@@ -846,12 +874,6 @@ const runtime = Atom.runtime((get) =>
 
 export const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
   Atom.keepAlive,
-)
-
-const persistenceUpdatesAtom = Store.makeQueryUnsafe(
-  queryDb(tables.keyValues.select("value").where({ key: "ai-history" }), {
-    map: Array.head,
-  }),
 )
 
 export const sendAtom = runtime.fn<{
@@ -871,11 +893,6 @@ export const clearAtom = runtime.fn<void>()(
     get.set(currentPromptAtom, Prompt.empty)
   }),
 )
-
-const aiMemoryEntries$ = queryDb({
-  query: sql`SELECT * FROM ai_memory_entries ORDER BY createdAt DESC`,
-  schema: AiMemoryEntry.array,
-})
 
 export const isVisualMessage = (
   message: Prompt.Message,

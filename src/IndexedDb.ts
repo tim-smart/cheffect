@@ -7,6 +7,7 @@ import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import * as IndexedDbDatabase from "@effect/platform-browser/IndexedDbDatabase"
 import type * as IndexedDbTable from "@effect/platform-browser/IndexedDbTable"
 import * as IndexedDbVersion from "@effect/platform-browser/IndexedDbVersion"
+import { AiChatTurnsTable, AiMemoryEntriesTable } from "./AiChat/Table"
 import {
   GroceryAisleOrdersTable,
   GroceryItemsTable,
@@ -38,6 +39,8 @@ export class V1 extends IndexedDbVersion.make(
   GroceryItemsTable,
   IngredientAislesTable,
   GroceryAisleOrdersTable,
+  AiMemoryEntriesTable,
+  AiChatTurnsTable,
 ) {}
 
 export class Database extends IndexedDbDatabase.make(
@@ -58,6 +61,8 @@ export class Database extends IndexedDbDatabase.make(
     yield* api.createObjectStore("groceryItems")
     yield* api.createObjectStore("ingredientAisles")
     yield* api.createObjectStore("groceryAisleOrders")
+    yield* api.createObjectStore("aiMemoryEntries")
+    yield* api.createObjectStore("aiChatTurns")
   }),
 ) {}
 

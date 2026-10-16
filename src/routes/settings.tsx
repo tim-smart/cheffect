@@ -21,11 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { clearAiMemoryAtom } from "@/AiChat/runtime"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
 import {
   aiChatModel,
   aiCountry,
-  clearAiMemoryAtom,
   livestoreStoreId,
   livestoreSyncEnabled,
   mealPlanWeekStart,

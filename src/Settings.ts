@@ -4,11 +4,11 @@ import * as SchemaTransformation from "effect/SchemaTransformation"
 import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
 import {
   events,
+  LegacyAiMemoryEntry,
   LegacyGroceryItem,
   LegacyMealPlanDayNote,
   LegacyMenu,
   LegacyRecipe,
-  tables,
 } from "./livestore/schema"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
@@ -50,6 +50,12 @@ import { eventLogAtom, writeEventAtom } from "./EventLog"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
 import { SettingsRepo } from "./Settings/Repo"
+import {
+  AiMemoryEntry,
+  AiMemoryEntryId,
+  AiMemoryEntryIdFromString,
+} from "./domain/AiMemoryEntry"
+import { exportAiMemoryAtom, importAiMemoryAtom } from "./AiChat/runtime"
 
 // Every setting's encoded value, kept live from the `settings` snapshot.
 const settingsRuntime = Atom.runtime((get) =>
@@ -235,13 +241,6 @@ export const livestoreSyncEnabled = new Setting({
   atomOverride: makeResultOptionAtom(syncEnabledAtom),
 })
 
-export const clearAiMemoryAtom = Atom.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const store = get(Store.storeUnsafe)!
-    store.commit(events.aiMemoryClear())
-  }),
-)
-
 const ExportEvents = Schema.Array(
   Schema.Union([
     Schema.Struct({
@@ -280,9 +279,8 @@ const ExportEvents = Schema.Array(
 )
 const ExportEventsJson = Schema.fromJsonString(ExportEvents)
 
-export const exportAllAtom = Store.runtime.fn<void>()(
+export const exportAllAtom = Atom.fn<void>()(
   Effect.fnUntraced(function* (_, get) {
-    const store = yield* Store
     const out = Array.empty<(typeof ExportEvents.Type)[number]>()
 
     // recipes
@@ -364,9 +362,13 @@ export const exportAllAtom = Store.runtime.fn<void>()(
     }
 
     // AI memory
-    const aiMemoryEntries = store.query(tables.aiMemoryEntries)
+    const aiMemoryEntries = yield* get.setResult(exportAiMemoryAtom, undefined)
     for (const entry of aiMemoryEntries) {
-      out.push(events.aiMemoryEntryAdded(entry))
+      out.push(
+        events.aiMemoryEntryAdded(
+          LegacyAiMemoryEntry.insert.make({ ...entry, id: entry.idString }),
+        ),
+      )
     }
 
     const json = Schema.encodeSync(ExportEventsJson)(out)
@@ -379,8 +381,8 @@ export const exportAllAtom = Store.runtime.fn<void>()(
   }),
 )
 
-// Recipes, groceries, the meal plan and menus in the file go to the EventLog,
-// everything else to LiveStore until its module moves over.
+// Recipes, groceries, the meal plan, menus and AI memory in the file go to
+// the EventLog, everything else to LiveStore until its module moves over.
 const recipeFromLegacy = (legacy: typeof LegacyRecipe.insert.Type) =>
   new Recipe({
     ...legacy,
@@ -437,6 +439,17 @@ const groceryItemFromLegacy = (
     recipeIds: Array.isArrayNonEmpty(recipeIds) ? recipeIds : null,
   })
 }
+
+const aiMemoryEntryFromLegacy = (
+  legacy: typeof LegacyAiMemoryEntry.insert.Type,
+) =>
+  new AiMemoryEntry({
+    ...legacy,
+    id: Option.getOrElse(
+      Schema.decodeOption(AiMemoryEntryIdFromString)(legacy.id),
+      () => AiMemoryEntryId.make(generateUuidBytes()),
+    ),
+  })
 
 // A menu id that isn't a UUID gets a new one, the same for the menu and every
 // entry and note that names it.
@@ -497,6 +510,7 @@ export const importAllAtom = Store.runtime.fn<File>()(
     const menus = Array.empty<Menu>()
     const menuEntries = Array.empty<StoredMenuEntry>()
     const menuNotes = Array.empty<StoredMenuDayNote>()
+    const aiMemoryEntries = Array.empty<AiMemoryEntry>()
     const menuId = makeMenuIdFromLegacy()
     for (const event of events) {
       if (event.name === "v1.RecipeCreated") {
@@ -529,6 +543,10 @@ export const importAllAtom = Store.runtime.fn<File>()(
         menuNotes.push(menuDayNoteFromLegacy(event.args, menuId))
         continue
       }
+      if (event.name === "v1.AIMemoryEntryAdded") {
+        aiMemoryEntries.push(aiMemoryEntryFromLegacy(event.args))
+        continue
+      }
       // @effect-diagnostics-next-line tryCatchInEffectGen:off
       try {
         store.commit(event)
@@ -547,5 +565,6 @@ export const importAllAtom = Store.runtime.fn<File>()(
       entries: menuEntries,
       notes: menuNotes,
     })
+    yield* get.setResult(importAiMemoryAtom, aiMemoryEntries)
   }),
 )
