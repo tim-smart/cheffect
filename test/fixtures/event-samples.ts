@@ -8,6 +8,9 @@ import {
   MealPlanDayNoteIdFromString,
 } from "@/domain/MealPlanDayNote"
 import { MealPlanEntryIdFromString } from "@/domain/MealPlanEntry"
+import { Menu, MenuIdFromString } from "@/domain/Menu"
+import { MenuDayNote, MenuDayNoteIdFromString } from "@/domain/MenuDayNote"
+import { MenuEntry, MenuEntryIdFromString } from "@/domain/MenuEntry"
 import { Rating } from "@/domain/Rating"
 import {
   Ingredient,
@@ -81,6 +84,16 @@ const mealPlanDayNoteId = Schema.decodeSync(MealPlanDayNoteIdFromString)(
 // Meal plan days are dates without a time.
 const monday = DateTime.makeUnsafe("2025-10-13")
 const tuesday = DateTime.makeUnsafe("2025-10-14")
+
+const menuId = Schema.decodeSync(MenuIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
+)
+const menuEntryId = Schema.decodeSync(MenuEntryIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f7",
+)
+const menuDayNoteId = Schema.decodeSync(MenuDayNoteIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8",
+)
 
 export const eventSamples: ReadonlyArray<EventPayload> = [
   {
@@ -171,5 +184,71 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "MealPlanDayNoteRemove",
     payload: { id: mealPlanDayNoteId },
+  },
+  {
+    event: "MenuAdd",
+    payload: Menu.insert.make({
+      id: menuId,
+      name: "Winter warmers",
+      days: 7,
+      createdAt,
+      updatedAt: createdAt,
+    }),
+  },
+  {
+    event: "MenuUpdate",
+    payload: Menu.update.make({
+      id: menuId,
+      name: "Winter favourites",
+      days: 5,
+      updatedAt,
+    }),
+  },
+  {
+    event: "MenuRemove",
+    payload: { id: menuId },
+  },
+  {
+    event: "MenuEntryAdd",
+    payload: MenuEntry.insert.make({
+      id: menuEntryId,
+      menuId,
+      recipeId,
+      day: 1,
+      createdAt,
+      updatedAt: createdAt,
+    }),
+  },
+  {
+    event: "MenuEntrySetDay",
+    payload: { id: menuEntryId, day: 3, updatedAt },
+  },
+  {
+    event: "MenuEntryRemove",
+    payload: { id: menuEntryId },
+  },
+  {
+    event: "MenuDayNoteAdd",
+    payload: MenuDayNote.insert.make({
+      id: menuDayNoteId,
+      menuId,
+      day: 2,
+      note: "Make extra for lunches",
+      createdAt,
+      updatedAt: createdAt,
+    }),
+  },
+  {
+    event: "MenuDayNoteUpdate",
+    payload: MenuDayNote.update.make({
+      id: menuDayNoteId,
+      day: 2,
+      note: "Freeze half",
+      updatedAt,
+    }),
+  },
+  {
+    event: "MenuDayNoteRemove",
+    payload: { id: menuDayNoteId },
   },
 ]
