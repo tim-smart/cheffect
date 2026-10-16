@@ -175,6 +175,13 @@ const launchBrowser = async (profile: string) => {
       )
     }
   }
+  /** Emulates a phone screen of the given size, in CSS pixels. */
+  const setViewport = (width: number, height: number) =>
+    sendOrCrash(
+      "Emulation.setDeviceMetricsOverride",
+      { width, height, deviceScaleFactor: 1, mobile: true },
+      `setViewport(${width}, ${height})`,
+    )
   const close = async () => {
     ws.close()
     const killGroup = (signal: NodeJS.Signals) => {
@@ -193,7 +200,7 @@ const launchBrowser = async (profile: string) => {
     // let the rest of the process group release the profile
     killGroup("SIGKILL")
   }
-  return { evaluate, waitFor, navigate, click, close }
+  return { evaluate, waitFor, navigate, click, setViewport, close }
 }
 
 export type Browser = Awaited<ReturnType<typeof launchBrowser>>
