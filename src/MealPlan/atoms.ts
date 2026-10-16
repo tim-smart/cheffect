@@ -8,7 +8,7 @@ import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntryId } from "@/domain/MealPlanEntry"
 import { writeEvent } from "@/EventLog"
 import { generateUuidBytes } from "@/lib/Id"
-import { menuDayNotesAtom, menuEntriesAtom } from "@/Menus/atoms"
+import { menuByIdAtom } from "@/Menus/atoms"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { mealPlanWeekStart } from "@/Settings"
 import { latestNoteByDay, MealPlanRepo, weekEntries, weekNotes } from "./Repo"
@@ -75,8 +75,11 @@ export const addMenuToMealPlanAtom = mealPlanRuntime.fn<{
   readonly startDate: DateTime.Utc
 }>()(
   Effect.fnUntraced(function* ({ menuId, startDate }, get) {
-    const entries = get(menuEntriesAtom(menuId))!
-    const dayNotes = get(menuDayNotesAtom(menuId)) ?? []
+    // Only what the menu shows: entries and notes past its last day stay off
+    // the plan.
+    const menu = yield* get.result(menuByIdAtom(menuId))
+    if (Option.isNone(menu)) return
+    const { entries, notes: dayNotes } = menu.value
     const mealPlanNoteByDay = latestNoteByDay(
       yield* MealPlanRepo.use((repo) => repo.notes),
     )

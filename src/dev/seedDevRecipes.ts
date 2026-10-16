@@ -3,7 +3,6 @@ import { seedRecipes } from "./seedRecipes"
 import { GroceryItem } from "@/domain/GroceryItem"
 import { Menu } from "@/domain/Menu"
 import { MenuEntry } from "@/domain/MenuEntry"
-import { Recipe } from "@/domain/Recipe"
 import { mealPlanWeekStart } from "@/Settings"
 import { Store } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
@@ -21,6 +20,8 @@ import { MealPlanEntryId } from "@/domain/MealPlanEntry"
 import { generateUuidBytes } from "@/lib/Id"
 import { MealPlanRepo } from "@/MealPlan/Repo"
 import { mealPlanRuntime } from "@/MealPlan/runtime"
+import { MenuRepo } from "@/Menus/Repo"
+import { menusRuntime } from "@/Menus/runtime"
 
 const CountSchema = Schema.Array(
   Schema.Struct({
@@ -35,17 +36,6 @@ const groceryCount$ = queryDb(
   },
   {
     label: "devGrocerySeedCount",
-    map: (rows) => rows[0]?.count ?? 0,
-  },
-)
-
-const menuCount$ = queryDb(
-  {
-    query: sql`SELECT COUNT(*) as count FROM menus`,
-    schema: CountSchema,
-  },
-  {
-    label: "devMenuSeedCount",
     map: (rows) => rows[0]?.count ?? 0,
   },
 )
@@ -105,15 +95,38 @@ const seededMealPlanAtom = mealPlanRuntime.atom(
   }),
 )
 
+// A menu read through the repo and written through the EventLog: five of the
+// seeded recipes over its first five days.
+const seededMenusAtom = menusRuntime.atom(
+  Effect.fnUntraced(function* (get) {
+    const recipes = yield* get.result(seededRecipesAtom)
+    const repo = yield* MenuRepo
+    if (recipes.length === 0 || (yield* repo.all).length > 0) return
+    const menu = Menu.fromForm({ name: "Weeknight Rotation" })
+    yield* writeEvent({ event: "MenuAdd", payload: menu })
+    const menuDays = [1, 2, 3, 4, 5]
+    for (const [index, day] of menuDays.entries()) {
+      const recipe = recipes[index % recipes.length]
+      yield* writeEvent({
+        event: "MenuEntryAdd",
+        payload: MenuEntry.fromForm({
+          menuId: menu.id,
+          recipeId: recipe.id,
+          day,
+        }),
+      })
+    }
+  }),
+)
+
 export const seedDevRecipesAtom = Atom.make((get) => {
   get(seededMealPlanAtom)
+  get(seededMenusAtom)
   const store = get(Store.storeUnsafe)
   if (!store) return
   const seeded = get(seededRecipesAtom)
   if (!AsyncResult.isSuccess(seeded)) return
-  const availableRecipes: ReadonlyArray<Recipe> = seeded.value
   const groceryCount = store.query(groceryCount$)
-  const menuCount = store.query(menuCount$)
 
   if (groceryCount === 0) {
     for (const item of seedGroceryItems) {
@@ -126,24 +139,6 @@ export const seedDevRecipesAtom = Atom.make((get) => {
         null,
       )
       store.commit(events.groceryItemAdded(groceryItem))
-    }
-  }
-
-  if (menuCount === 0 && availableRecipes.length > 0) {
-    const menu = Menu.fromForm({ name: "Weeknight Rotation" })
-    store.commit(events.menuAdd(menu))
-    const menuDays = [1, 2, 3, 4, 5]
-    for (const [index, day] of menuDays.entries()) {
-      const recipe = availableRecipes[index % availableRecipes.length]
-      store.commit(
-        events.menuEntryAdd(
-          MenuEntry.fromForm({
-            menuId: menu.id,
-            recipeId: recipe.idString,
-            day,
-          }),
-        ),
-      )
     }
   }
 })

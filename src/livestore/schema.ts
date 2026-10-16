@@ -1,8 +1,5 @@
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 import { GroceryAisle, GroceryItem } from "../domain/GroceryItem"
-import { Menu } from "../domain/Menu"
-import { MenuEntry } from "../domain/MenuEntry"
-import { MenuDayNote } from "../domain/MenuDayNote"
 import { Rating } from "../domain/Rating"
 import {
   DurationField,
@@ -41,6 +38,53 @@ export class LegacyMealPlanDayNote extends Model.Class<LegacyMealPlanDayNote>(
 )({
   id: Model.GeneratedByApp(Schema.String),
   day: Model.Date,
+  note: Schema.String,
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
+  ),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
+  ),
+}) {}
+
+// The menu events as LiveStore wrote them, with string ids. Frozen here now
+// that the domain menu models live on EventLog, so old event logs and exports
+// still decode.
+export class LegacyMenu extends Model.Class<LegacyMenu>("LegacyMenu")({
+  id: Model.GeneratedByApp(Schema.String),
+  name: Schema.String,
+  days: Schema.Number,
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(Model.FieldExcept(["update"])),
+  updatedAt: Schema.DateTimeUtcFromMillis,
+}) {}
+
+export class LegacyMenuEntry extends Model.Class<LegacyMenuEntry>(
+  "LegacyMenuEntry",
+)({
+  id: Model.GeneratedByApp(Schema.String),
+  menuId: Model.Field({
+    insert: Schema.String,
+  }),
+  recipeId: Model.Field({
+    insert: Schema.String,
+  }),
+  day: Schema.Number,
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
+  ),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
+  ),
+}) {}
+
+export class LegacyMenuDayNote extends Model.Class<LegacyMenuDayNote>(
+  "LegacyMenuDayNote",
+)({
+  id: Model.GeneratedByApp(Schema.String),
+  menuId: Model.Field({
+    insert: Schema.String,
+  }),
+  day: Schema.Number,
   note: Schema.String,
   createdAt: Schema.DateTimeUtcFromMillis.pipe(
     Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
@@ -519,11 +563,11 @@ export const events = {
   }),
   menuAdd: Events.synced({
     name: "v1.MenuAdd",
-    schema: Menu.insert,
+    schema: LegacyMenu.insert,
   }),
   menuUpdate: Events.synced({
     name: "v1.MenuUpdate",
-    schema: Menu.update,
+    schema: LegacyMenu.update,
   }),
   menuDayRemove: Events.synced({
     name: "v1.MenuDayRemove",
@@ -540,7 +584,7 @@ export const events = {
   }),
   menuEntryAdd: Events.synced({
     name: "v1.MenuEntryAdd",
-    schema: MenuEntry.insert,
+    schema: LegacyMenuEntry.insert,
   }),
   menuEntrySetDay: Events.synced({
     name: "v1.MenuEntrySetDay",
@@ -556,11 +600,11 @@ export const events = {
   }),
   menuDayNoteAdd: Events.synced({
     name: "v1.MenuDayNoteAdd",
-    schema: MenuDayNote.insert,
+    schema: LegacyMenuDayNote.insert,
   }),
   menuDayNoteUpdate: Events.synced({
     name: "v1.MenuDayNoteUpdate",
-    schema: MenuDayNote.update,
+    schema: LegacyMenuDayNote.update,
   }),
   menuDayNoteRemove: Events.synced({
     name: "v1.MenuDayNoteRemove",

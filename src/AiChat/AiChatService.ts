@@ -21,14 +21,10 @@ import {
 import { mealPlanEntriesAtom } from "@/MealPlan/atoms"
 import { latestNoteByDay, MealPlanRepo } from "@/MealPlan/Repo"
 import { mealPlanRuntime } from "@/MealPlan/runtime"
-import {
-  allMenus$,
-  menuByIdAtom,
-  menuDayNotes$,
-  menuEntries$,
-  menuEntriesAtom,
-} from "@/Menus/atoms"
-import { MenuEntry } from "@/domain/MenuEntry"
+import { menuByIdAtom } from "@/Menus/atoms"
+import { MenuRepo } from "@/Menus/Repo"
+import { menusRuntime } from "@/Menus/runtime"
+import { MenuEntry, MenuEntryIdFromString } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { GroceryItem } from "@/domain/GroceryItem"
 import {
@@ -61,7 +57,7 @@ import { RecipeRepo } from "@/Recipes/Repo"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { generateUuidBytes, uuidString } from "@/lib/Id"
 import { type EventPayload, writeEvent } from "@/EventLog"
-import { Menu } from "@/domain/Menu"
+import { Menu, MenuId } from "@/domain/Menu"
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 import { Timer, TimerId } from "@/domain/Timer"
 import * as Duration from "effect/Duration"
@@ -72,6 +68,7 @@ const ToolkitLayer = toolkit.toLayer(
     const registry = yield* AtomRegistry.AtomRegistry
     const recipes = yield* RecipeRepo
     const mealPlan = yield* MealPlanRepo
+    const menus = yield* MenuRepo
     const extractJobs = yield* RecipeExtractJobRepo
     const context = yield* Effect.context<
       EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
@@ -229,31 +226,45 @@ const ToolkitLayer = toolkit.toLayer(
         return { _tag: "Transient", value: null }
       }),
       GetMenus: Effect.fnUntraced(function* () {
-        const menus = store.query(allMenus$)
+        const all = yield* menus.all.pipe(Effect.orDie)
         return {
           _tag: "Transient",
-          value: menus,
+          value: all,
         }
       }),
       GetMenuEntries: Effect.fnUntraced(function* ({ menuId }) {
-        const entries = store.query(menuEntries$(menuId))
-        const notes = store.query(menuDayNotes$(menuId))
+        const menu = yield* menus.byId(menuId).pipe(Effect.orDie)
         return {
           _tag: "Transient",
           value: {
-            entries,
-            menuDayNotes: notes,
+            entries: Option.match(menu, {
+              onNone: () => [],
+              onSome: (menu) => menu.entries,
+            }),
+            menuDayNotes: Option.match(menu, {
+              onNone: () => [],
+              onSome: (menu) => menu.notes,
+            }),
           },
         }
       }),
       SetMenuDayNote: Effect.fnUntraced(function* ({ menuId, day, note }) {
-        const notes = store.query(menuDayNotes$(menuId))
-        let existing = notes.find((n) => n.day === day)
+        const menu = yield* menus.byId(menuId).pipe(Effect.orDie)
+        if (Option.isNone(menu)) {
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+        const existing = menu.value.notes.find((n) => n.day === day)
 
         const trimmed = note.trim()
         if (trimmed.length === 0) {
           if (existing) {
-            store.commit(events.menuDayNoteRemove({ id: existing.id }))
+            yield* write({
+              event: "MenuDayNoteRemove",
+              payload: { id: existing.id },
+            })
           }
           return {
             _tag: "Transient",
@@ -263,13 +274,14 @@ const ToolkitLayer = toolkit.toLayer(
 
         if (existing) {
           if (existing.note !== trimmed) {
-            store.commit(
-              events.menuDayNoteUpdate({
+            yield* write({
+              event: "MenuDayNoteUpdate",
+              payload: {
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
-              }),
-            )
+              },
+            })
           }
           return {
             _tag: "Transient",
@@ -277,15 +289,14 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
 
-        store.commit(
-          events.menuDayNoteAdd(
-            MenuDayNote.fromForm({
-              menuId,
-              day,
-              note: trimmed,
-            }),
-          ),
-        )
+        yield* write({
+          event: "MenuDayNoteAdd",
+          payload: MenuDayNote.fromForm({
+            menuId: menu.value.menu.id,
+            day,
+            note: trimmed,
+          }),
+        })
         return {
           _tag: "Transient",
           value: null,
@@ -294,32 +305,37 @@ const ToolkitLayer = toolkit.toLayer(
       CreateMenu: Effect.fnUntraced(function* ({ menu }) {
         const newMenu = new Menu({
           ...menu,
-          id: crypto.randomUUID(),
+          id: MenuId.make(generateUuidBytes()),
           createdAt: DateTime.nowUnsafe(),
           updatedAt: DateTime.nowUnsafe(),
         })
-        store.commit(events.menuAdd(newMenu))
+        yield* write({ event: "MenuAdd", payload: newMenu })
         return {
           _tag: "Transient",
           value: newMenu,
         }
       }),
       AddMenuEntries: Effect.fnUntraced(function* ({ menuId, menuEntries }) {
+        const menu = yield* menus.byId(menuId).pipe(Effect.orDie)
+        if (Option.isNone(menu)) {
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
         for (const menuEntry of menuEntries) {
           const recipe = yield* recipes
             .byId(menuEntry.recipeId)
             .pipe(Effect.orDie)
           if (Option.isNone(recipe)) continue
-          store.commit(
-            events.menuEntryAdd({
-              id: crypto.randomUUID(),
-              menuId,
-              recipeId: recipe.value.idString,
+          yield* write({
+            event: "MenuEntryAdd",
+            payload: MenuEntry.fromForm({
+              menuId: menu.value.menu.id,
+              recipeId: recipe.value.id,
               day: menuEntry.day,
-              createdAt: DateTime.nowUnsafe(),
-              updatedAt: DateTime.nowUnsafe(),
             }),
-          )
+          })
         }
         return {
           _tag: "Transient",
@@ -327,7 +343,13 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       RemoveMenuEntry: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.menuEntryRemove({ id }))
+        const entryId = Schema.decodeOption(MenuEntryIdFromString)(id)
+        if (Option.isSome(entryId)) {
+          yield* write({
+            event: "MenuEntryRemove",
+            payload: { id: entryId.value },
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -647,10 +669,10 @@ The user is currently browsing their list of menus.
 ${currentTimeAndCountry}`
         } else if (location.pathname.startsWith("/menus/")) {
           const id = location.pathname.split("/")[2]
-          const menu = yield* Atom.getResult(menuByIdAtom(id))
-          const menuEntries = (yield* Atom.get(menuEntriesAtom(id)))!
-
-          return `${baseSystemPrompt}${memoryPrompt}
+          const found = yield* Atom.getResult(menuByIdAtom(id))
+          if (Option.isSome(found)) {
+            const { menu, entries } = found.value
+            return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
 
@@ -660,7 +682,8 @@ Here are the details of the menu and its entries:
 
 ${menu.toXml()}
 
-${MenuEntry.toXml(menuEntries)}`
+${MenuEntry.toXml(entries)}`
+          }
         }
 
         return baseSystemPrompt + memoryPrompt + "\n\n" + currentTimeAndCountry
@@ -803,6 +826,7 @@ const runtime = Atom.runtime((get) =>
       get(openAiClientLayer),
       get(Store.layer),
       get(mealPlanRuntime.layer),
+      get(menusRuntime.layer),
     ]),
   ),
 ).pipe(Atom.keepAlive)

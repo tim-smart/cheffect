@@ -23,6 +23,8 @@ import { useAtomSet } from "@effect/atom-react"
 import { kvsRuntime } from "./lib/atom"
 import { MealPlanLayer } from "./MealPlan"
 import { MealPlanEvents } from "./MealPlan/Events"
+import { MenusLayer } from "./Menus"
+import { MenuEvents } from "./Menus/Events"
 import { RecipesLayer } from "./Recipes"
 import { RecipeEvents } from "./Recipes/Events"
 import { SettingsLayer } from "./Settings/Handlers"
@@ -42,6 +44,7 @@ export const CheffectEvents = EventLog.schema(
   SettingsEvents,
   TimerEvents,
   MealPlanEvents,
+  MenuEvents,
 )
 
 export type EventPayload =
@@ -174,7 +177,13 @@ export const syncUrlAtom = Atom.make((get) =>
 
 const EventLogLayer = EventLog.layer(
   CheffectEvents,
-  Layer.mergeAll(RecipesLayer, SettingsLayer, TimersLayer, MealPlanLayer),
+  Layer.mergeAll(
+    RecipesLayer,
+    SettingsLayer,
+    TimersLayer,
+    MealPlanLayer,
+    MenusLayer,
+  ),
 ).pipe(
   Layer.provide(EventJournal.layerIndexedDb({ database: journalDatabaseName })),
   Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),

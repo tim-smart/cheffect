@@ -200,5 +200,84 @@
     "tag": "MealPlanDayNoteRemove",
     "json": { "id": "AZPHoBssTe+BI7qYdlQyEA==" },
     "bytes": "FyCAro3OGxABk8egGyxN74Ejuph2VDIQ"
+  },
+  {
+    "tag": "MenuAdd",
+    "json": {
+      "id": "AZPHoBssTe+BI6Gyw9Tl9g==",
+      "name": "Winter warmers",
+      "days": 7,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    },
+    "bytes": "RyDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSOhssPU5faw3rfORg5XaW50ZXIgd2FybWVyc6nbhYZxgIDmgrlm0ai6pHsO"
+  },
+  {
+    "tag": "MenuUpdate",
+    "json": {
+      "id": "AZPHoBssTe+BI6Gyw9Tl9g==",
+      "name": "Winter favourites",
+      "days": 5,
+      "updatedAt": 1760000600000
+    },
+    "bytes": "PyCAro3OGxABk8egGyxN74EjobLD1OX2sN63zkYRV2ludGVyIGZhdm91cml0ZXOp24WGcYCfr4O5ZtGouqR7Cg=="
+  },
+  {
+    "tag": "MenuRemove",
+    "json": { "id": "AZPHoBssTe+BI6Gyw9Tl9g==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74EjobLD1OX2"
+  },
+  {
+    "tag": "MenuEntryAdd",
+    "json": {
+      "id": "AZPHoBssTe+BI6Gyw9Tl9w==",
+      "menuId": "AZPHoBssTe+BI6Gyw9Tl9g==",
+      "recipeId": "AZPHoBssTe+BI0VniavN7w==",
+      "day": 1,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    },
+    "bytes": "XyCQkq7LBRABk8egGyxN74EjRWeJq83v8YiZhguAgOaCuWaAro3OGxABk8egGyxN74EjobLD1OX3uPnH0zAQAZPHoBssTe+BI6Gyw9Tl9qnbhYZxgIDmgrlm6Z/kk3IC"
+  },
+  {
+    "tag": "MenuEntrySetDay",
+    "json": {
+      "id": "AZPHoBssTe+BI6Gyw9Tl9w==",
+      "day": 3,
+      "updatedAt": 1760000600000
+    },
+    "bytes": "KCCAro3OGxABk8egGyxN74EjobLD1OX3qduFhnGAn6+DuWbpn+STcgY="
+  },
+  {
+    "tag": "MenuEntryRemove",
+    "json": { "id": "AZPHoBssTe+BI6Gyw9Tl9w==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74EjobLD1OX3"
+  },
+  {
+    "tag": "MenuDayNoteAdd",
+    "json": {
+      "id": "AZPHoBssTe+BI6Gyw9Tl+A==",
+      "menuId": "AZPHoBssTe+BI6Gyw9Tl9g==",
+      "day": 2,
+      "note": "Make extra for lunches",
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    },
+    "bytes": "ZSDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSOhssPU5fi4+cfTMBABk8egGyxN74EjobLD1OX26MPB5kgWTWFrZSBleHRyYSBmb3IgbHVuY2hlc6nbhYZxgIDmgrlm6Z/kk3IE"
+  },
+  {
+    "tag": "MenuDayNoteUpdate",
+    "json": {
+      "id": "AZPHoBssTe+BI6Gyw9Tl+A==",
+      "day": 2,
+      "note": "Freeze half",
+      "updatedAt": 1760000600000
+    },
+    "bytes": "OSCAro3OGxABk8egGyxN74EjobLD1OX46MPB5kgLRnJlZXplIGhhbGap24WGcYCfr4O5Zumf5JNyBA=="
+  },
+  {
+    "tag": "MenuDayNoteRemove",
+    "json": { "id": "AZPHoBssTe+BI6Gyw9Tl+A==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74EjobLD1OX4"
   }
 ]
