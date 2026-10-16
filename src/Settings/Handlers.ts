@@ -8,8 +8,8 @@ import { SettingsEvents } from "./Events"
 // A setting's key is its name, so `SettingsSet` is an upsert: it inserts the
 // row when it's missing and otherwise patches `value` under last-writer-wins.
 //
-// The handlers live here rather than in `src/Settings.ts`, which still pulls
-// in LiveStore for export and import.
+// The handlers live here rather than in `src/Settings.ts`, which imports
+// `src/EventLog.ts` and so can't be imported by it.
 
 const SettingsHandlers = EventLog.group(SettingsEvents, (handlers) =>
   Effect.gen(function* () {

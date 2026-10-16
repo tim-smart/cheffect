@@ -31,7 +31,7 @@ import { layerFreshIndexedDb } from "./harness/indexeddb"
 // Every grocery submission is written: one made while an earlier one is still
 // writing, one made while the groceries runtime is still building, and one
 // whose component unmounts straight after. The atoms live next to the
-// runtime, away from the AI and LiveStore imports that can't load in node.
+// runtime, away from the AI imports that can't load in node.
 
 // The app's EventLog runtime on fake-indexeddb, with the Groceries handlers.
 const layer = EventLogClient.layer.pipe(
