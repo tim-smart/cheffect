@@ -7,6 +7,7 @@ import { aiChatOpenAtom, installPromptAtom } from "./atoms"
 import { useLayoutEffect } from "react"
 import { timerNotificationsAtom } from "./Timers/TimerNotifications"
 import { seedDevRecipesAtom } from "@/dev/seedDevRecipes"
+import { DatabaseBlockedScreen } from "@/components/DatabaseBlocked"
 
 export default function App() {
   useAtomMount(Store.runtime)
@@ -21,6 +22,7 @@ export default function App() {
     <>
       {import.meta.env.DEV ? <DevSeedRecipesMount /> : null}
       <RouterProvider router={router} />
+      <DatabaseBlockedScreen />
       <DisableScroll />
       <SystemTheme />
     </>

@@ -1,10 +1,9 @@
 import * as Atom from "effect/reactivity/Atom"
-import * as BrowserKeyValueStore from "@effect/platform-browser/BrowserKeyValueStore"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import { toast } from "sonner"
 
-export const kvsRuntime = Atom.runtime(BrowserKeyValueStore.layerLocalStorage)
+export { kvsRuntime } from "./lib/atom"
 
 export const installPromptAtom = Atom.make((get) => {
   const onBeforeInstallPrompt = (e: any) => {
