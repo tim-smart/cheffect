@@ -50,6 +50,15 @@ export const recipeEditsAtom = recipesRuntime
   .atom(RecipeRepo.useSync((_) => _.editsStream).pipe(Stream.unwrap))
   .pipe(Atom.keepAlive)
 
+// Load both tables on the list, before opening a recipe can show its original
+// while the saved AI edit is still being read. Direct loads wait for both too.
+export const recipeSnapshotsAtom = Atom.make((get) =>
+  AsyncResult.all({
+    recipes: get(recipesAtom),
+    edits: get(recipeEditsAtom),
+  }),
+)
+
 // A recipe by the id string in a route or a reference. Soft-deleted recipes
 // are still found; `None` when the recipe is missing, e.g. not synced yet.
 export const recipeByIdAtom = Atom.family((id: string) =>
@@ -102,13 +111,9 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
 export const recipeForDisplayAtom = Atom.family((id: string) =>
   Atom.make((get) => {
     const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
-    const modified = get(modifiedRecipeByIdAtom(id)).pipe(
-      AsyncResult.value,
-      Option.flatten,
-    )
-    return AsyncResult.map(
-      get(recipeByIdAtom(id)),
-      Option.map((original) => {
+    return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes, edits }) => {
+      const modified = findRecipeEdit(edits, id)
+      return Option.map(findRecipe(recipes, id), (original) => {
         const resolved =
           showOriginal || Option.isNone(modified)
             ? original
@@ -121,7 +126,7 @@ export const recipeForDisplayAtom = Atom.family((id: string) =>
           resolved,
           isModified: Option.isSome(modified),
         } as const
-      }),
-    )
+      })
+    })
   }),
 )

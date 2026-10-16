@@ -36,6 +36,7 @@ import {
   modifiedRecipeByIdAtom,
   recipeByIdAtom,
   recipesAtom,
+  recipeSnapshotsAtom,
   recipesRuntime,
   showOriginalRecipeAtom,
 } from "./runtime"
@@ -70,7 +71,7 @@ export const recipeSortByAtom = Atom.kvs({
 export const allRecipesAtom = Atom.make((get) => {
   const query = get(recipeSearchQueryAtom)
   const sortBy = get(recipeSortByAtom)
-  return AsyncResult.map(get(recipesAtom), (recipes) =>
+  return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes }) =>
     searchRecipes(recipes, { query, sortBy }),
   )
 })
