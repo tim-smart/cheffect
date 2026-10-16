@@ -2,8 +2,11 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
+import "fake-indexeddb/auto"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
 import * as EventGroup from "effect/eventlog/EventGroup"
@@ -15,7 +18,17 @@ import * as NetAddress from "effect/net/NetAddress"
 import * as RpcClient from "effect/rpc/RpcClient"
 import * as RpcSerialization from "effect/rpc/RpcSerialization"
 import * as Socket from "effect/socket/Socket"
-import { storeId } from "@/EventLog"
+import {
+  eventLogAtom,
+  identityKey,
+  remoteAtom,
+  storeId,
+  syncEnabledAtom,
+  syncServerUrlAtom,
+  writeEventAtom,
+} from "@/EventLog"
+import { QueryBuilder } from "@/IndexedDb"
+import { eventSamples } from "./fixtures/event-samples"
 import * as Server from "../server/Server"
 import { testIdentity } from "./harness/eventlog"
 
@@ -148,4 +161,70 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
     assert.equal(missing.status, 404)
     assert.equal(missing.headers.get("cache-control"), null)
   }).pipe(Effect.provide(ServerLayer), Effect.runPromise)
+})
+
+// The app's own sync atoms against two servers. Changing the server URL
+// rebuilds `remoteAtom` against the new server, which gets this device's whole
+// journal: nothing is wiped, reloaded or re-keyed (TIM-255).
+
+// The browser globals the app's layers read: `window.indexedDB`, from
+// fake-indexeddb, and `localStorage`.
+;(globalThis as any).window ??= globalThis
+const storage = new Map<string, string>()
+;(globalThis as any).localStorage ??= {
+  getItem: (key: string) => storage.get(key) ?? null,
+  setItem: (key: string, value: string) => void storage.set(key, value),
+  removeItem: (key: string) => void storage.delete(key),
+  clear: () => storage.clear(),
+  key: (index: number) => Array.from(storage.keys())[index] ?? null,
+  get length() {
+    return storage.size
+  },
+}
+
+const appEntries = eventLogAtom.atom(
+  EventLog.EventLog.use((log) => log.entries),
+)
+const appRecipes = eventLogAtom.atom(
+  QueryBuilder.use((db) => db.from("recipes").select()),
+)
+
+test("changing the server URL uploads this device's journal to the new server and keeps its data", async () => {
+  await Effect.gen(function* () {
+    const first = yield* Layer.build(ServerLayer).pipe(
+      Effect.flatMap((context) => serverPort.pipe(Effect.provide(context))),
+    )
+    const second = yield* Layer.build(ServerLayer).pipe(
+      Effect.flatMap((context) => serverPort.pipe(Effect.provide(context))),
+    )
+    const urlOf = (port: number) => `ws://localhost:${port}/sync`
+
+    const registry = AtomRegistry.make()
+    yield* Effect.addFinalizer(() => Effect.sync(() => registry.dispose()))
+    registry.set(syncServerUrlAtom, Option.some(urlOf(first)))
+    registry.set(syncEnabledAtom, true)
+    registry.mount(remoteAtom)
+
+    registry.set(
+      writeEventAtom,
+      eventSamples.find((sample) => sample.event === "RecipeCreated")!,
+    )
+    yield* AtomRegistry.getResult(registry, writeEventAtom, {
+      suspendOnWaiting: true,
+    })
+    const [written] = yield* AtomRegistry.getResult(registry, appEntries)
+    const identityString = localStorage.getItem(identityKey)!
+    const identity = EventLog.decodeIdentityString(JSON.parse(identityString))
+
+    const onFirst = yield* Layer.build(makeClient(urlOf(first), identity))
+    yield* waitForEntry(written).pipe(Effect.provide(onFirst))
+
+    registry.set(syncServerUrlAtom, Option.some(urlOf(second)))
+    const onSecond = yield* Layer.build(makeClient(urlOf(second), identity))
+    yield* waitForEntry(written).pipe(Effect.provide(onSecond))
+
+    assert.equal(localStorage.getItem(identityKey), identityString)
+    const recipes = yield* AtomRegistry.getResult(registry, appRecipes)
+    assert.equal(recipes.length, 1)
+  }).pipe(Effect.timeout("10 seconds"), Effect.scoped, Effect.runPromise)
 })

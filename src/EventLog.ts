@@ -183,9 +183,10 @@ export const resolveSyncUrl = (options: {
 }
 
 // Only the combined Docker image sets `VITE_SYNC_SAME_ORIGIN`: its sync server
-// is on the same origin as the app, at `/sync`.
+// is on the same origin as the app, at `/sync`. Outside Vite (node tests)
+// `import.meta.env` is undefined.
 export const defaultSyncServerUrl = (): Option.Option<string> =>
-  import.meta.env.VITE_SYNC_SAME_ORIGIN === "true"
+  import.meta.env?.VITE_SYNC_SAME_ORIGIN === "true"
     ? Option.some(
         `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/sync`,
       )
@@ -315,7 +316,10 @@ export const clientAtom = eventLogAtom.atom(EventLogClient)
 export const remoteAtom = Atom.runtime((get) =>
   Effect.gen(function* () {
     const url = yield* get.some(syncUrlAtom)
-    return EventLogRemote.layerEncrypted.pipe(
+    // The new remote is built before the old one is released, and the shared
+    // MemoMap would hand the old one back, still on the old server. The
+    // Registry stays shared so the remote registers with the EventLog.
+    return Layer.fresh(EventLogRemote.layerEncrypted).pipe(
       Layer.provide(EventLog.layerRegistry),
       Layer.provide(
         RpcClient.layerProtocolSocket({ retryTransientErrors: true }),
