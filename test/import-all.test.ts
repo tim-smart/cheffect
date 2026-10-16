@@ -4,8 +4,9 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import type * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
-import { writeEvent } from "@/EventLog"
-import { ExportFile, ExportFileJson, importAll } from "@/ExportFile"
+import { type EventPayload, writeEvent } from "@/EventLog"
+import { ExportFile, ExportFileJson, exportAll, importAll } from "@/ExportFile"
+import { Recipe, RecipeIdFromString } from "@/domain/Recipe"
 import { eventSamples } from "./fixtures/event-samples"
 import { journalEntries, layerCheffect, snapshot } from "./harness/cheffect"
 
@@ -103,6 +104,75 @@ test("a grocery item deleted after the export stays deleted when the file is imp
   )
   assert.deepEqual(deleted.groceryItems, [])
   assert.deepStrictEqual(reimported, deleted)
+})
+
+// Export reads this device's tables; importing its file builds the device it
+// is shared to. Each `run` is a separate device.
+
+const exportAfter = (events: ReadonlyArray<EventPayload>) =>
+  run(
+    Effect.gen(function* () {
+      for (const event of events) yield* writeEvent(event)
+      return Schema.encodeSync(ExportFileJson)(yield* exportAll)
+    }),
+  )
+
+const recipe = sample("RecipeCreated").payload as typeof Recipe.insert.Type
+const otherRecipeId = Schema.decodeSync(RecipeIdFromString)(
+  "0193c7a0-1b2c-4def-8123-0123456789ab",
+)
+const scaled = (ingredientScale: number): EventPayload => ({
+  event: "RecipeSetIngredientScale",
+  payload: { id: recipe.id, ingredientScale, updatedAt: recipe.updatedAt },
+})
+
+test("an export leaves out deleted recipes, removed drafts, the API key and chat history", async () => {
+  const exported = await exportAfter([
+    sample("RecipeCreated"),
+    { event: "RecipeCreated", payload: { ...recipe, id: otherRecipeId } },
+    {
+      event: "RecipeDeleted",
+      payload: { id: otherRecipeId, deletedAt: recipe.updatedAt },
+    },
+    sample("RecipeEditSet"),
+    sample("RecipeEditRemove"),
+    {
+      event: "SettingsSet",
+      payload: { id: "openAiApiKey", value: '{"_tag":"Some","value":"sk-1"}' },
+    },
+    sample("AiChatTurnAdded"),
+  ])
+  const state = await run(
+    Effect.gen(function* () {
+      yield* importAll(exported)
+      return yield* snapshot
+    }),
+  )
+  assert.deepEqual(
+    state.recipes.map((row) => row.title),
+    [recipe.title],
+  )
+  assert.deepEqual(state.recipeEdits, [])
+  assert.deepEqual(state.settings, [])
+  assert.deepEqual(state.aiChatTurns, [])
+})
+
+test("importing leaves the scale of a recipe this device already has alone", async () => {
+  const exported = await exportAfter([sample("RecipeCreated"), scaled(2)])
+  const state = await run(
+    Effect.gen(function* () {
+      // Scaled through an edit, so this device has no scale event of its own
+      // for the import to collide with.
+      yield* writeEvent(sample("RecipeCreated"))
+      yield* writeEvent({
+        event: "RecipeUpdated",
+        payload: { ...recipe, ingredientScale: 3 },
+      })
+      yield* importAll(exported)
+      return yield* snapshot
+    }),
+  )
+  assert.equal(state.recipes[0].ingredientScale, 3)
 })
 
 const parsed = JSON.parse(file)
