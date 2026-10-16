@@ -24,12 +24,11 @@ import {
   readTable,
 } from "./harness/convergence"
 
-// The Menus handlers converge whatever order remote entries arrive in
-// (TIM-248). `MenuRemove` is the one handler that writes beyond its own row:
-// it deletes the menu's entries and notes through the `menuId` index. A
-// `MenuUpdate` that shrinks `days` is a plain patch; its writer emits removes
-// for the entries and notes it can see past the new last day (TIM-248 rules 6
-// and 7).
+// The Menus handlers converge whatever order remote entries arrive in.
+// `MenuRemove` is the one handler that writes beyond its own row: it deletes
+// the menu's entries and notes through the `menuId` index. A `MenuUpdate`
+// that shrinks `days` is a plain patch; its writer emits removes for the
+// entries and notes it can see past the new last day.
 //
 // The first add of a row is delivered before the permuted entries: nothing
 // can move or remove a row its device hasn't received. No recipe is ever

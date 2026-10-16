@@ -22,8 +22,8 @@ import {
   readTable,
 } from "./harness/convergence"
 
-// The Groceries handlers converge whatever order remote entries arrive in
-// (TIM-248): `GroceryItemAdded` creates, `GroceryItemUpdated` and
+// The Groceries handlers converge whatever order remote entries arrive in:
+// `GroceryItemAdded` creates, `GroceryItemUpdated` and
 // `GroceryItemToggled` patch under last-writer-wins and do nothing when the
 // item is missing, and `GroceryItemDeleted` hard-deletes, so a late update
 // can't bring an item back. `GroceryItemsDeleted` hard-deletes only the ids

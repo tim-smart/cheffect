@@ -32,7 +32,7 @@ import { eventSamples } from "./fixtures/event-samples"
 import * as Server from "../server/Server"
 import { testIdentity } from "./harness/eventlog"
 
-// The combined image's server (TIM-259): one process serves the front end
+// The combined image's server: one process serves the front end
 // build and the encrypted EventLog server on `/sync`. `server/main.ts` reads
 // `PORT` and `DATABASE_PATH` and launches this same layer.
 
@@ -165,7 +165,7 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
 
 // The app's own sync atoms against two servers. Changing the server URL
 // rebuilds `remoteAtom` against the new server, which gets this device's whole
-// journal: nothing is wiped, reloaded or re-keyed (TIM-255).
+// journal: nothing is wiped, reloaded or re-keyed.
 
 // The browser globals the app's layers read: `window.indexedDB`, from
 // fake-indexeddb, and `localStorage`.

@@ -21,7 +21,7 @@ import { eventSamples } from "../fixtures/event-samples"
 import { testIdentity } from "../harness/eventlog"
 import { hasChromium, sleep, withSeededApp } from "./harness"
 
-// Opening a share link (TIM-255, TIM-258): the app strips the fragment and
+// Opening a share link: the app strips the fragment and
 // shows the join dialog; accepting wipes the seeded data, stores the identity
 // and server URL, turns sync on and pulls the joined collection from the
 // combined image's sync server.

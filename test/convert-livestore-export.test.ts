@@ -14,7 +14,7 @@ import { uuidString } from "@/lib/Id"
 import oldExport from "./fixtures/livestore-export.json" with { type: "json" }
 import { layerCheffect, snapshot } from "./harness/cheffect"
 
-// The conversion CLI (TIM-256, TIM-258) turns an old LiveStore "Export all
+// The conversion CLI turns an old LiveStore "Export all
 // data" file into the new export format. `livestore-export.json` is the
 // create events of the old wire fixture, as Effect 3 encoded them, with the
 // fixture's placeholder ids swapped for UUIDs as real exports have.

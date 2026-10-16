@@ -26,7 +26,7 @@ import {
 import { testIdentity } from "./harness/eventlog"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 
-// The meal plan joins its entries with the recipes snapshot (TIM-251): an
+// The meal plan joins its entries with the recipes snapshot: an
 // entry whose recipe is missing (not synced yet, or never) is hidden, and one
 // whose recipe is soft-deleted still shows.
 

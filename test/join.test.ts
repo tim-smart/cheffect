@@ -35,7 +35,7 @@ import { eventSamples } from "./fixtures/event-samples"
 import { testIdentity } from "./harness/eventlog"
 import { countRecords } from "./harness/indexeddb"
 
-// Joining another collection (TIM-255, TIM-258). The join wipes the device,
+// Joining another collection. The join wipes the device,
 // then clears the per-collection keys, then writes the new identity, server
 // URL and Enable Sync. These tests fail each storage step in turn: whatever
 // step a crash lands on, the device must never hold the new identity next to

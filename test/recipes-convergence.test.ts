@@ -33,7 +33,7 @@ import {
 // the `deletedAt` field under the same rule.
 //
 // A `RecipeCreated` is delivered before the permuted entries, not among them.
-// An update does nothing when the row is missing (TIM-248 rule 3), and nothing
+// An update does nothing when the row is missing, and nothing
 // can edit a recipe its device hasn't received, so the server sequence always
 // puts the create first.
 

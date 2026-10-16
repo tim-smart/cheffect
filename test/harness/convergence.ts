@@ -9,7 +9,7 @@ import { makeFakeRemote, testIdentity } from "./eventlog"
 import { readRecords } from "./indexeddb"
 import { everyOrder } from "./orders"
 
-// The scenario runner for module convergence tests (TIM-258): real tables and
+// The scenario runner for module convergence tests: real tables and
 // handlers, entries through a fake remote, every ordering on a fresh database.
 
 export type Row = Record<string, unknown>

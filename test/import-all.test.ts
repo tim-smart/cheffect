@@ -12,7 +12,7 @@ import { eventSamples } from "./fixtures/event-samples"
 import { journalEntries, layerCheffect, snapshot } from "./harness/cheffect"
 import { makeEntry, makeFakeRemote } from "./harness/eventlog"
 
-// "Import all data" (TIM-256, TIM-258). Import validates the whole file before
+// "Import all data". Import validates the whole file before
 // it writes anything, then replays the events as ordinary writes, so it merges
 // rather than restores: importing a file twice gives the state importing it
 // once does, and a hard-deleted row stays deleted.
@@ -76,7 +76,7 @@ test("importing the same file twice gives the state importing it once does", asy
   assert.deepStrictEqual(twice, once)
 })
 
-// Grocery items hard-delete (TIM-248 rule 4), so once the row is gone the
+// Grocery items hard-delete, so once the row is gone the
 // handler can't tell a re-import's `GroceryItemAdded` from a first one.
 test("a grocery item deleted after the export stays deleted when the file is imported again", async () => {
   const { deleted, reimported } = await run(
