@@ -36,12 +36,13 @@ import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import * as Prompt from "effect/ai/Prompt"
 import * as LanguageModel from "effect/ai/LanguageModel"
-import { layerKvs } from "@/lib/kvs"
+import { layerKvsLivestore } from "@/lib/kvs"
 import { Store } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import { events, tables } from "@/livestore/schema"
 import { queryDb, sql } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as KeyValueStore from "effect/persistence/KeyValueStore"
+import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
 import * as EventLog from "effect/eventlog/EventLog"
 import type * as IndexedDb from "@effect/platform-browser/IndexedDb"
@@ -668,6 +669,20 @@ ${MenuEntry.toXml(menuEntries)}`
       )
       registry.set(currentPromptAtom, yield* Ref.get(chat.history))
 
+      yield* AtomRegistry.toStream(registry, persistenceUpdatesAtom).pipe(
+        Stream.runForEach(
+          Effect.fnUntraced(function* (json) {
+            if (!json) return
+            const history = Option.isNone(json)
+              ? Prompt.empty
+              : yield* Schema.decodeEffect(PromptJson)(json.value)
+            yield* Ref.set(chat.history, history)
+            registry.set(currentPromptAtom, history)
+          }),
+        ),
+        Effect.forkScoped,
+      )
+
       const tools = yield* toolkit
 
       const send = Effect.fnUntraced(
@@ -767,9 +782,12 @@ ${MenuEntry.toXml(menuEntries)}`
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide([layerKvs, ToolkitLayer]),
+    Layer.provide([layerKvsLivestore, ToolkitLayer]),
   )
 }
+
+// Same JSON codec KeyValueStore.toSchemaStore uses for "ai-history"
+const PromptJson = Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt))
 
 const runtime = Atom.runtime((get) =>
   AiChatService.layer.pipe(
@@ -783,6 +801,12 @@ const runtime = Atom.runtime((get) =>
 
 export const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
   Atom.keepAlive,
+)
+
+const persistenceUpdatesAtom = Store.makeQueryUnsafe(
+  queryDb(tables.keyValues.select("value").where({ key: "ai-history" }), {
+    map: Array.head,
+  }),
 )
 
 export const sendAtom = runtime.fn<{
