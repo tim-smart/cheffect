@@ -73,17 +73,21 @@ has no default sync server; users enter one in Settings.
 pnpm test
 ```
 
-Runs the unit tests: the LiveStore event wire-format fixtures, the regression
-tests for the patched Effect AI packages, and an integration test that starts
-the server and syncs two clients through it. CI runs them on every pull request.
+Runs the unit tests: the EventLog event wire-format fixtures, the handler
+convergence tests on `fake-indexeddb`, the conversion CLI and import tests, the
+regression tests for the patched Effect AI packages, and an integration test
+that starts the server and syncs two clients through it. CI runs them on every
+pull request.
 
 ### Browser regression checks
 
 `pnpm test:e2e` starts the dev server and drives a browser over the DevTools
-protocol to check that edits and deletes made on a directly opened page are
-persisted. These are not run in CI. Run them by hand against a release build of
-Google Chrome before accepting changes to LiveStore, the store atoms or the edit
-and delete flows.
+protocol. It checks that edits and deletes made on a directly opened page are
+persisted, that a share link joins another collection, the AI chat model
+setting and scaled quantity formatting. CI runs them on
+every pull request against `google-chrome-stable`. Run them by hand before
+accepting changes to the EventLog write path, the store atoms, the join flow or
+the edit and delete flows.
 
 For acceptance runs, set `E2E_REQUIRE_BROWSER=1` so a missing browser fails
 instead of skipping the tests. An explicitly set `CHROMIUM_PATH` also fails if

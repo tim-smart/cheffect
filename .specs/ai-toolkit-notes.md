@@ -23,16 +23,16 @@ existing day notes in the tool responses so the AI can reference them directly.
 
 ## Data Sources
 
-- Menu day notes: LiveStore queries in `src/Menus/atoms.ts` (prefer existing queries; add new ones only if required).
-- Meal plan day notes: LiveStore queries in `src/livestore/queries.ts` (prefer existing queries; add new ones only if required).
+- Menu day notes: `MenuRepo` in `src/Menus/Repo.ts` (prefer existing reads; add new ones only if required).
+- Meal plan day notes: `MealPlanRepo` in `src/MealPlan/Repo.ts` (prefer existing reads; add new ones only if required).
 
 ## Behavior
 
 - When the AI calls `GetMenuEntries`, the response includes `menuDayNotes` with
-  the latest note for each menu day from LiveStore queries.
+  the latest note for each menu day from `MenuRepo`.
 - When the AI calls `GetCurrentMealPlan`, the response includes
-  `mealPlanDayNotes` with the latest note for each meal plan day from LiveStore
-  queries.
+  `mealPlanDayNotes` with the latest note for each meal plan day from
+  `MealPlanRepo`.
 - When the AI calls `SetMenuDayNote`, the note for the provided menu day is
   created if missing or updated if already present. If the note is set to an
   empty string, remove the note for that day.
