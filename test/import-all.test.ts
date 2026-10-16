@@ -2,13 +2,15 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import type * as Layer from "effect/Layer"
+import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
-import { type EventPayload, writeEvent } from "@/EventLog"
+import type * as EventJournal from "effect/eventlog/EventJournal"
+import { CheffectEvents, type EventPayload, writeEvent } from "@/EventLog"
 import { ExportFile, ExportFileJson, exportAll, importAll } from "@/ExportFile"
 import { Recipe, RecipeIdFromString } from "@/domain/Recipe"
 import { eventSamples } from "./fixtures/event-samples"
 import { journalEntries, layerCheffect, snapshot } from "./harness/cheffect"
+import { makeEntry, makeFakeRemote } from "./harness/eventlog"
 
 // "Import all data" (TIM-256, TIM-258). Import validates the whole file before
 // it writes anything, then replays the events as ordinary writes, so it merges
@@ -108,13 +110,42 @@ test("a grocery item deleted after the export stays deleted when the file is imp
 
 // Export reads this device's tables; importing its file builds the device it
 // is shared to. Each `run` is a separate device.
+//
+// Seeds arrive as another device's entries a millisecond apart, so
+// last-writer-wins applies them in the order listed. Writes made one after
+// another can share a millisecond, and then their order is random.
+
+const catalogue = CheffectEvents.groups.flatMap((group) =>
+  Object.values(group.events),
+)
+
+const seed = (events: ReadonlyArray<EventPayload>) =>
+  events.map(({ event, payload }, i) =>
+    makeEntry({
+      msecs: 1_000 + i,
+      event: catalogue.find((e) => e.tag === event)!,
+      payload: payload as any,
+    }),
+  )
+
+const runSeeded = <A, E>(
+  entries: ReadonlyArray<EventJournal.Entry>,
+  effect: Effect.Effect<A, E, Layer.Success<typeof layerCheffect>>,
+) =>
+  Effect.gen(function* () {
+    const remote = yield* makeFakeRemote
+    return yield* remote
+      .deliver(entries)
+      .pipe(
+        Effect.andThen(effect),
+        Effect.provide(remote.layer.pipe(Layer.provideMerge(layerCheffect))),
+      )
+  }).pipe(Effect.timeout("10 seconds"), Effect.runPromise)
 
 const exportAfter = (events: ReadonlyArray<EventPayload>) =>
-  run(
-    Effect.gen(function* () {
-      for (const event of events) yield* writeEvent(event)
-      return Schema.encodeSync(ExportFileJson)(yield* exportAll)
-    }),
+  runSeeded(
+    seed(events),
+    exportAll.pipe(Effect.map(Schema.encodeSync(ExportFileJson))),
   )
 
 const recipe = sample("RecipeCreated").payload as typeof Recipe.insert.Type
@@ -170,18 +201,14 @@ test("a recipe's ingredient scale survives export and import", async () => {
 
 test("importing leaves the scale of a recipe this device already has alone", async () => {
   const exported = await exportAfter([sample("RecipeCreated"), scaled(2)])
-  const state = await run(
-    Effect.gen(function* () {
-      // Scaled through an edit, so this device has no scale event of its own
-      // for the import to collide with.
-      yield* writeEvent(sample("RecipeCreated"))
-      yield* writeEvent({
-        event: "RecipeUpdated",
-        payload: { ...recipe, ingredientScale: 3 },
-      })
-      yield* importAll(exported)
-      return yield* snapshot
-    }),
+  // Scaled through an edit, so this device has no scale event of its own for
+  // the import to collide with.
+  const state = await runSeeded(
+    seed([
+      sample("RecipeCreated"),
+      { event: "RecipeUpdated", payload: { ...recipe, ingredientScale: 3 } },
+    ]),
+    importAll(exported).pipe(Effect.andThen(snapshot)),
   )
   assert.equal(state.recipes[0].ingredientScale, 3)
 })
