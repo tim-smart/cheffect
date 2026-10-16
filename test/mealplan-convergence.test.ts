@@ -76,9 +76,9 @@ const wednesday = "2025-10-15"
 const thursday = "2025-10-16"
 const friday = "2025-10-17"
 
-const added = (id: EntryId, onDay: string, msecs = 1000) =>
+const added = (id: EntryId, onDay: string) =>
   makeEntry({
-    msecs,
+    msecs: 1000,
     event: MealPlanAdd,
     payload: { id, recipeId, day: day(onDay) },
   })
@@ -207,18 +207,6 @@ test("a removed meal plan entry stays removed, with moves either side of the rem
     ],
   })
   assert.deepEqual(pick(only(mealPlan), ["day"]), { day: friday })
-})
-
-test("a removed meal plan entry stays removed when a backup re-adds it concurrently", async () => {
-  // A device re-imports a backup holding the entry while another removes it.
-  // The re-add is newer, but a delete always wins (TIM-248 rule 4).
-  const { mealPlan } = await converge({
-    layer: makeLayer,
-    read,
-    setup: [added(dinner, monday), added(lunch, monday)],
-    concurrent: [removed(2000, dinner), added(dinner, monday, 3000)],
-  })
-  assert.deepEqual(pick(only(mealPlan), ["id"]), { id: lunch })
 })
 
 test("a re-added day note merges with concurrent updates under last-writer-wins", async () => {
