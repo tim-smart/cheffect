@@ -157,6 +157,17 @@ test("an export leaves out deleted recipes, removed drafts, the API key and chat
   assert.deepEqual(state.aiChatTurns, [])
 })
 
+test("a recipe's ingredient scale survives export and import", async () => {
+  const exported = await exportAfter([sample("RecipeCreated"), scaled(2)])
+  const state = await run(
+    Effect.gen(function* () {
+      yield* importAll(exported)
+      return yield* snapshot
+    }),
+  )
+  assert.equal(state.recipes[0].ingredientScale, 2)
+})
+
 test("importing leaves the scale of a recipe this device already has alone", async () => {
   const exported = await exportAfter([sample("RecipeCreated"), scaled(2)])
   const state = await run(
