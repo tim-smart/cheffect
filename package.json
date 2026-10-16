@@ -6,7 +6,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && pnpm build:server",
+    "build:server": "esbuild server/main.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist-server/main.mjs --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "start": "node dist-server/main.mjs",
     "preview": "vite preview",
     "test": "node --import tsx --test test/*.test.ts",
     "test:e2e": "node --import tsx --test --test-concurrency=1 --test-force-exit test/e2e/*.test.ts"
@@ -74,14 +76,18 @@
   },
   "devDependencies": {
     "@effect/language-service": "^0.87.4",
+    "@effect/platform-node": "4.0.5",
+    "@effect/sql-sqlite-node": "4.0.5",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-devtools": "^1.167.2",
     "@tanstack/router-plugin": "^1.168.43",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "esbuild": "^0.28.2",
     "fake-indexeddb": "6.2.5",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
@@ -95,8 +101,7 @@
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1",
     "workbox-strategies": "^7.4.1",
-    "workbox-window": "^7.4.1",
-    "wrangler": "^4.149.0"
+    "workbox-window": "^7.4.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

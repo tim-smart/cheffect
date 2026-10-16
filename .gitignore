@@ -2,7 +2,7 @@ node_modules/
 .DS_Store
 .direnv/
 dist/
-.wrangler/
+dist-server/
 .env
 package-lock.json
 .lalph/

@@ -8,55 +8,64 @@
 - Convert ingredient quantities for different countries using AI
 - Smart grocery list organization and merging with AI
 - AI chat assistant for cooking help
-- Optionally sync your data across devices (powered by
-  [LiveStore](https://livestore.dev) & [Cloudflare
-  Workers](https://workers.cloudflare.com/))
+- Optionally sync your data across devices, end-to-end encrypted
 
 <img src="/public/screenshots/android.jpg" alt="Cheffect Screenshot" width="300" />
 
 ## Docker Deployment
 
-You can self-host Cheffect using Docker. The Docker image serves the static web application using nginx.
+You can self-host Cheffect using Docker. The image runs one Node process that
+serves the web app and an encrypted sync server on the same origin, at `/sync`.
+Apps loaded from it sync to that server by default once sync is turned on.
 
 ### Building the Docker Image
-
-Build the image with the default sync server (`wss://cheffect-sync.timsmart.workers.dev`):
 
 ```bash
 docker build -t cheffect .
 ```
 
-Or build with a custom sync server URL:
-
-```bash
-docker build --build-arg VITE_SYNC_SERVER_URL=wss://your-sync-server.example.com -t cheffect .
-```
-
 ### Running the Container
 
-Run with the default sync server:
-
 ```bash
-docker run -d -p 8080:80 --name cheffect cheffect
+docker run -d -p 8080:8080 -v cheffect-data:/data --name cheffect cheffect
 ```
 
 The application will be available at http://localhost:8080
 
+The sync database is stored at `/data/cheffect-sync.db`. Set `PORT` (default
+`8080`) or `DATABASE_PATH` to change either.
+
 ### Docker Compose Example
 
 ```yaml
-version: "3.8"
-
 services:
   cheffect:
-    build:
-      context: .
-      args:
-        VITE_SYNC_SERVER_URL: wss://your-sync-server.example.com
+    build: .
     ports:
-      - "8080:80"
+      - "8080:8080"
+    volumes:
+      - cheffect-data:/data
     restart: unless-stopped
+
+volumes:
+  cheffect-data:
 ```
+
+### Operating the sync server
+
+- **Run a single instance.** Live updates between devices go through the
+  process's memory, so two containers sharing a database won't see each other's
+  writes until clients reconnect.
+- **The server is open.** Anyone who can reach it can store data on it. It only
+  ever sees encrypted entries, so the risk is disk use. If it faces the internet,
+  put it behind your own reverse proxy, VPN or authentication.
+- **Backups are optional.** If the volume is lost, the server starts with a new
+  identity and every device uploads its full history again on its next sync.
+- **Compression** isn't built in. A reverse proxy in front can add it.
+
+Without Docker, `pnpm build` produces the same two parts: the web app in `dist/`
+and the server in `dist-server/main.mjs` (`pnpm start`). A plain `pnpm build`
+has no default sync server; users enter one in Settings.
 
 ## Tests
 
@@ -64,8 +73,9 @@ services:
 pnpm test
 ```
 
-Runs the unit tests: the LiveStore event wire-format fixtures and the regression
-tests for the patched Effect AI packages. CI runs them on every pull request.
+Runs the unit tests: the LiveStore event wire-format fixtures, the regression
+tests for the patched Effect AI packages, and an integration test that starts
+the server and syncs two clients through it. CI runs them on every pull request.
 
 ### Browser regression checks
 

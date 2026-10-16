@@ -158,24 +158,37 @@ export const syncEnabledAtom = Atom.kvs({
 })
 
 // The URL to connect to, or none. Sync needs both the toggle and a URL, so a
-// first launch never touches the network. `http(s)` is accepted and mapped to
-// `ws(s)`; otherwise the URL is used as typed.
+// first launch never touches the network. A blank setting falls back to
+// `defaultUrl`. `http(s)` is accepted and mapped to `ws(s)`; otherwise the URL
+// is used as typed.
 export const resolveSyncUrl = (options: {
   readonly enabled: boolean
   readonly url: Option.Option<string>
+  readonly defaultUrl?: Option.Option<string>
 }): Option.Option<string> => {
   if (!options.enabled) return Option.none()
-  return Option.flatMap(options.url, (url) => {
-    const trimmed = url.trim()
-    if (trimmed === "") return Option.none()
-    return Option.some(trimmed.replace(/^http(s?):/i, "ws$1:"))
-  })
+  const url = options.url.pipe(
+    Option.map((url) => url.trim()),
+    Option.filter((url) => url !== ""),
+    Option.orElse(() => options.defaultUrl ?? Option.none()),
+  )
+  return Option.map(url, (url) => url.replace(/^http(s?):/i, "ws$1:"))
 }
+
+// Only the combined Docker image sets `VITE_SYNC_SAME_ORIGIN`: its sync server
+// is on the same origin as the app, at `/sync`.
+export const defaultSyncServerUrl = (): Option.Option<string> =>
+  import.meta.env.VITE_SYNC_SAME_ORIGIN === "true"
+    ? Option.some(
+        `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/sync`,
+      )
+    : Option.none()
 
 export const syncUrlAtom = Atom.make((get) =>
   resolveSyncUrl({
     enabled: get(syncEnabledAtom),
     url: get(syncServerUrlAtom),
+    defaultUrl: defaultSyncServerUrl(),
   }),
 )
 

@@ -30,11 +30,5 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
-      - name: Type check (cf)
-        run: |
-          cd cf
-          pnpm install
-          pnpm tsc --noEmit
-
       - name: Prettier check
         run: pnpm prettier --check src
