@@ -6,8 +6,8 @@ import * as Option from "effect/Option"
 import { tryWebLock, withWebLock } from "@/lib/WebLock"
 
 // Each extraction job runs under its own Web Lock, so a job is only ever
-// worked on by one tab. Outside a browser (here) the helper falls back to
-// in-process locks, which is what these cases exercise.
+// worked on by one tab. Node ships `navigator.locks`, so this runs the real
+// Web Locks path; the in-process fallback only exists for runtimes without it.
 
 test("tryWebLock yields none while the name is held and runs once it is free", async () => {
   const program = Effect.gen(function* () {

@@ -3,6 +3,7 @@ import * as assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
+import * as Schema from "effect/Schema"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventLogEncryption from "effect/eventlog/EventLogEncryption"
@@ -21,28 +22,68 @@ import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { RecipeExtractJob } from "@/domain/RecipeExtractJob"
 import { countRecords, layerFreshIndexedDb } from "./harness/indexeddb"
 
-test("first launch creates an identity, keeps it under the Store ID key and never uses it as the storeId", async () => {
+// The identity is a kvs setting like the server URL and Enable Sync: it is
+// read and written through the schema store that `Atom.kvs` uses, so the
+// value under the key is the JSON encoding of the identity string.
+const identitySetting = KeyValueStore.KeyValueStore.use((kvs) =>
+  Effect.succeed(KeyValueStore.toSchemaStore(kvs, Schema.String)),
+)
+
+const identityLayers = [
+  KeyValueStore.layerMemory,
+  EventLogEncryption.layerSubtle,
+] as const
+
+test("first launch creates an identity, keeps it as the Store ID setting and never uses it as the storeId", async () => {
   const result = await Effect.gen(function* () {
-    const kvs = yield* KeyValueStore.KeyValueStore
-    const beforeFirstLaunch = yield* kvs.get(identityKey)
+    const setting = yield* identitySetting
+    const beforeFirstLaunch = yield* setting.get(identityKey)
     const first = yield* loadOrCreateIdentity
-    const stored = yield* kvs.get(identityKey)
+    const stored = yield* setting.get(identityKey)
     const second = yield* loadOrCreateIdentity
     return { beforeFirstLaunch, first, stored, second }
-  }).pipe(
-    Effect.provide([KeyValueStore.layerMemory, EventLogEncryption.layerSubtle]),
-    Effect.runPromise,
-  )
+  }).pipe(Effect.provide(identityLayers), Effect.runPromise)
 
-  assert.equal(result.beforeFirstLaunch, undefined)
-  assert.ok(result.stored, "the identity is stored on first launch")
+  assert.deepEqual(result.beforeFirstLaunch, Option.none())
+  assert.ok(
+    Option.isSome(result.stored),
+    "the identity is stored on first launch",
+  )
   assert.equal(
-    EventLog.decodeIdentityString(result.stored).publicKey,
+    EventLog.decodeIdentityString(result.stored.value).publicKey,
     result.first.publicKey,
   )
   assert.equal(result.second.publicKey, result.first.publicKey)
   assert.equal(storeId, "default")
-  assert.notEqual(storeId, result.stored)
+  assert.notEqual(storeId, result.stored.value)
+})
+
+// localStorage as two tabs see it: a moment passes between reading the key
+// and acting on it, so two first launches can both find it absent before
+// either has written.
+const layerSlowKvs = Layer.effect(
+  KeyValueStore.KeyValueStore,
+  Effect.gen(function* () {
+    const memory = yield* KeyValueStore.KeyValueStore
+    return KeyValueStore.makeStringOnly({
+      get: (key) =>
+        memory.get(key).pipe(Effect.tap(() => Effect.sleep("1 millis"))),
+      set: memory.set,
+      remove: memory.remove,
+    })
+  }),
+).pipe(Layer.provide(KeyValueStore.layerMemory))
+
+test("two first launches at the same time agree on one identity", async () => {
+  const [a, b] = await Effect.all(
+    [loadOrCreateIdentity, loadOrCreateIdentity],
+    { concurrency: "unbounded" },
+  ).pipe(
+    Effect.provide([layerSlowKvs, EventLogEncryption.layerSubtle]),
+    Effect.runPromise,
+  )
+
+  assert.equal(a.publicKey, b.publicKey)
 })
 
 test("sync connects only when it is enabled and a server URL is set", () => {

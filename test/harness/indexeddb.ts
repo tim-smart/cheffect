@@ -48,3 +48,20 @@ export const countRecords = (
       }
     }
   })
+
+// Writes to a store behind the query builder's back, bypassing the table
+// schema. For putting rows the schema can't decode, to make a read fail.
+export const rawRequest = <A>(
+  connection: IDBDatabase,
+  store: string,
+  f: (store: IDBObjectStore) => IDBRequest<A>,
+): Effect.Effect<A, Error> =>
+  Effect.callback<A, Error>((resume) => {
+    const transaction = connection.transaction(store, "readwrite")
+    const request = f(transaction.objectStore(store))
+    transaction.onerror = () =>
+      resume(Effect.fail(new Error(String(transaction.error))))
+    transaction.onabort = () =>
+      resume(Effect.fail(new Error(String(transaction.error))))
+    transaction.oncomplete = () => resume(Effect.succeed(request.result))
+  })

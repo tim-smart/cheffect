@@ -2,15 +2,19 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
+import * as Exit from "effect/Exit"
+import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Queue from "effect/Queue"
+import * as Schedule from "effect/Schedule"
 import * as Stream from "effect/Stream"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { RecipeExtractJob, RecipeExtractJobId } from "@/domain/RecipeExtractJob"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { uuidBytes } from "@/lib/Id"
-import { layerFreshIndexedDb } from "./harness/indexeddb"
+import { layerFreshIndexedDb, rawRequest } from "./harness/indexeddb"
 
 // One `cheffect` database with a single V1. The local-only extract jobs table
 // is its first table; module stages add theirs to the same version.
@@ -97,5 +101,61 @@ test("a table snapshot serves reads from one cached array and reloads when its k
     before: [],
     streamed: ["https://example.com/soup"],
     after: ["https://example.com/soup"],
+  })
+})
+
+test("a failed reload surfaces the error, and the next invalidation recovers", async () => {
+  const badId = new Uint8Array(16).fill(7)
+  const result = await Effect.gen(function* () {
+    const db = yield* QueryBuilder
+    const reactivity = yield* Reactivity.Reactivity
+    const snapshot = yield* makeSnapshot("recipeExtractJobs")
+
+    const first = yield* snapshot.current
+    const consumer = yield* Effect.forkScoped(Stream.runDrain(snapshot.stream))
+
+    // a row the table schema can't decode, written behind the query builder's back
+    yield* rawRequest(db.database.current, "recipeExtractJobs", (store) =>
+      store.put({ id: badId, url: 123, completedAt: "soon" }),
+    )
+    yield* reactivity.invalidate(["recipeExtractJobs"])
+    const streamExit = yield* Fiber.join(consumer).pipe(
+      Effect.exit,
+      Effect.timeoutOption("1 second"),
+    )
+    const whileBroken = yield* Effect.exit(snapshot.current)
+
+    yield* rawRequest(db.database.current, "recipeExtractJobs", (store) =>
+      store.delete(badId),
+    )
+    yield* db.from("recipeExtractJobs").insert(job)
+    yield* reactivity.invalidate(["recipeExtractJobs"])
+    const recovered = yield* snapshot.current.pipe(
+      Effect.retry({
+        while: () => true,
+        schedule: Schedule.spaced("10 millis"),
+      }),
+      Effect.timeout("1 second"),
+    )
+
+    return {
+      first: first.length,
+      streamFailed:
+        Option.isSome(streamExit) && Exit.isFailure(streamExit.value),
+      readFailedWhileBroken: Exit.isFailure(whileBroken),
+      recovered: recovered.map((row) => row.url),
+    }
+  }).pipe(
+    Effect.timeout("5 seconds"),
+    Effect.scoped,
+    Effect.provide(layer),
+    Effect.runPromise,
+  )
+
+  assert.deepEqual(result, {
+    first: 0,
+    streamFailed: true,
+    readFailedWhileBroken: true,
+    recovered: ["https://example.com/soup"],
   })
 })
