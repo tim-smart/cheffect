@@ -8,18 +8,10 @@ import { recipesRuntime } from "@/Recipes/runtime"
 import { MealPlanRepo, type PlannedEntry } from "./Repo"
 
 // The repo shares the recipes runtime, so the join reads the same recipes
-// snapshot and handler writes reload both. Kept apart from `atoms.ts` so
-// Settings can export and import the meal plan without an import cycle.
+// snapshot and handler writes reload both.
 export const mealPlanRuntime = Atom.runtime((get) =>
   MealPlanRepo.layer.pipe(Layer.provideMerge(get(recipesRuntime.layer))),
 ).pipe(Atom.keepAlive)
-
-// Every entry and day note, read when called.
-export const exportMealPlanAtom = mealPlanRuntime.fn<void>()(() =>
-  MealPlanRepo.use((repo) =>
-    Effect.all({ entries: repo.entries, notes: repo.notes }),
-  ),
-)
 
 // Writes entries and notes as new add entries. Ones that already exist are
 // left alone, so importing the same file twice changes nothing. A note add

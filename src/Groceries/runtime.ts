@@ -9,8 +9,7 @@ import { eventLogAtom, writeEvent } from "@/EventLog"
 import { GroceryRepo, learnedAisle } from "./Repo"
 
 // The repo shares the EventLog runtime's query builder and Reactivity, so
-// handler writes reload its snapshots. Kept apart from `atoms.ts` so Settings
-// can export and import groceries without an import cycle.
+// handler writes reload its snapshots.
 export const groceriesRuntime = Atom.runtime((get) =>
   GroceryRepo.layer.pipe(Layer.provideMerge(get(eventLogAtom.layer))),
 ).pipe(Atom.keepAlive)
@@ -151,28 +150,5 @@ export const addToGroceriesAtom = groceriesMutation(
       }
     }
     yield* Effect.sleep("3 seconds")
-  }),
-)
-
-// Every item on every list, read when called.
-export const exportGroceryItemsAtom = groceriesRuntime.fn<void>()(() =>
-  GroceryRepo.use((repo) => repo.items),
-)
-
-// Writes items as new adds. Ones that already exist are left alone, so
-// importing the same file twice changes nothing.
-export const importGroceryItemsAtom = groceriesRuntime.fn<
-  ReadonlyArray<GroceryItem>
->()(
-  Effect.fnUntraced(function* (items) {
-    const existing = new Set(
-      (yield* GroceryRepo.use((repo) => repo.items)).map(
-        (item) => item.idString,
-      ),
-    )
-    for (const item of items) {
-      if (existing.has(item.idString)) continue
-      yield* addGroceryItem(item)
-    }
   }),
 )

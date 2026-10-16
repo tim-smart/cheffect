@@ -33,7 +33,7 @@ import {
   importAllAtom,
   openAiModel,
 } from "@/Settings"
-import { useAtomSet, useAtomSuspense } from "@effect/atom-react"
+import { useAtom, useAtomSet, useAtomSuspense } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   CommandList,
@@ -77,7 +77,7 @@ const weekDayOptions = days.map((day, index) => ({
 
 function SettingsPage() {
   const exportAllData = useAtomSet(exportAllAtom)
-  const importAllData = useAtomSet(importAllAtom)
+  const [importAllResult, importAllData] = useAtom(importAllAtom)
   const importAllRef = useRef<HTMLInputElement>(null)
 
   const exportRecipes = useAtomSet(exportAtom)
@@ -112,12 +112,20 @@ function SettingsPage() {
                   Export all data
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  disabled={importAllResult.waiting}
                   onClick={() => {
                     importAllRef.current?.click()
                   }}
                 >
                   <Import />
-                  Import all data
+                  <div className="flex flex-col">
+                    Import all data
+                    <span className="text-xs text-muted-foreground max-w-56">
+                      Merges into this device. Doesn't bring back anything
+                      deleted since the export, and overwrites settings and
+                      aisles.
+                    </span>
+                  </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -144,6 +152,8 @@ function SettingsPage() {
               accept="text/plain"
               onChange={(e) => {
                 const file = e.target.files?.[0]
+                // Cleared so picking the same file again imports it again.
+                e.target.value = ""
                 if (!file) return
                 importAllData(file)
               }}

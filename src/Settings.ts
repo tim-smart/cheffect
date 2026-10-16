@@ -1,60 +1,21 @@
+import * as Cause from "effect/Cause"
 import * as Data from "effect/Data"
+import * as Exit from "effect/Exit"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import { Store } from "./livestore/atoms"
-import {
-  events,
-  LegacyAiMemoryEntry,
-  LegacyGroceryItem,
-  LegacyMealPlanDayNote,
-  LegacyMenu,
-  LegacyRecipe,
-} from "./livestore/schema"
-import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { kvsRuntime } from "./atoms"
 import * as Function from "effect/Function"
 import * as Effect from "effect/Effect"
-import { Recipe, RecipeId, RecipeIdFromString } from "./domain/Recipe"
-import { generateUuidBytes, uuidString } from "./lib/Id"
-import { importRecipesAtom, liveRecipesAtom } from "./Recipes/runtime"
-import {
-  MealPlanDayNote,
-  MealPlanDayNoteId,
-  MealPlanDayNoteIdFromString,
-} from "./domain/MealPlanDayNote"
-import {
-  MealPlanEntryId,
-  MealPlanEntryIdFromString,
-} from "./domain/MealPlanEntry"
-import type { PlannedEntry } from "./MealPlan/Repo"
-import { exportMealPlanAtom, importMealPlanAtom } from "./MealPlan/runtime"
-import { Menu, MenuId, MenuIdFromString } from "./domain/Menu"
-import { MenuDayNoteId, MenuDayNoteIdFromString } from "./domain/MenuDayNote"
-import { MenuEntryId, MenuEntryIdFromString } from "./domain/MenuEntry"
-import type { StoredMenuDayNote, StoredMenuEntry } from "./Menus/Repo"
-import { exportMenusAtom, importMenusAtom } from "./Menus/runtime"
-import {
-  GroceryItem,
-  GroceryItemId,
-  GroceryItemIdFromString,
-} from "./domain/GroceryItem"
-import {
-  exportGroceryItemsAtom,
-  importGroceryItemsAtom,
-} from "./Groceries/runtime"
 import { eventLogAtom, writeEventAtom } from "./EventLog"
+import { exportAll, ExportFileJson, importAll } from "./ExportFile"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
+import { toast } from "sonner"
+import { withToast } from "./lib/sonner"
 import { SettingsRepo } from "./Settings/Repo"
-import {
-  AiMemoryEntry,
-  AiMemoryEntryId,
-  AiMemoryEntryIdFromString,
-} from "./domain/AiMemoryEntry"
-import { exportAiMemoryAtom, importAiMemoryAtom } from "./AiChat/runtime"
 
 // Every setting's encoded value, kept live from the `settings` snapshot.
 const settingsRuntime = Atom.runtime((get) =>
@@ -213,137 +174,17 @@ export const mealPlanWeekStart = new Setting({
   cached: true,
 })
 
-const ExportEvents = Schema.Array(
-  Schema.Union([
-    Schema.Struct({
-      name: Schema.Literal(events.recipeCreated.name),
-      args: events.recipeCreated.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.groceryItemAdded.name),
-      args: events.groceryItemAdded.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.mealPlanAdd.name),
-      args: events.mealPlanAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.menuAdd.name),
-      args: events.menuAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.menuEntryAdd.name),
-      args: events.menuEntryAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.menuDayNoteAdd.name),
-      args: events.menuDayNoteAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.mealPlanDayNoteAdd.name),
-      args: events.mealPlanDayNoteAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.aiMemoryEntryAdded.name),
-      args: events.aiMemoryEntryAdded.schema,
-    }),
-  ]),
-)
-const ExportEventsJson = Schema.fromJsonString(ExportEvents)
+// Export and import (TIM-256)
+//
+// Both go through the EventLog runtime, so export works offline, with sync
+// off and before the remote has ever connected. Export keeps the share-only
+// behaviour: where files can't be shared it does nothing.
 
-export const exportAllAtom = Atom.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const out = Array.empty<(typeof ExportEvents.Type)[number]>()
-
-    // recipes
-    const allRecipes = yield* get.setResult(liveRecipesAtom, undefined)
-    for (const recipe of allRecipes) {
-      out.push(
-        events.recipeCreated(
-          LegacyRecipe.insert.make({ ...recipe, id: recipe.idString }),
-        ),
-      )
-    }
-
-    // groceries
-    const groceryItems = yield* get.setResult(exportGroceryItemsAtom, undefined)
-    for (const item of groceryItems) {
-      out.push(
-        events.groceryItemAdded(
-          LegacyGroceryItem.insert.make({
-            ...item,
-            id: item.idString,
-            recipeIds: item.recipeIds
-              ? Array.map(item.recipeIds, uuidString)
-              : null,
-          }),
-        ),
-      )
-    }
-
-    // meal plan
-    const mealPlan = yield* get.setResult(exportMealPlanAtom, undefined)
-    for (const entry of mealPlan.entries) {
-      out.push(
-        events.mealPlanAdd({
-          id: uuidString(entry.id),
-          recipeId: uuidString(entry.recipeId),
-          day: entry.day,
-        }),
-      )
-    }
-
-    // menus
-    const menus = yield* get.setResult(exportMenusAtom, undefined)
-    for (const menu of menus.menus) {
-      out.push(
-        events.menuAdd(LegacyMenu.insert.make({ ...menu, id: menu.idString })),
-      )
-    }
-
-    // menu entries
-    for (const entry of menus.entries) {
-      out.push(
-        events.menuEntryAdd({
-          ...entry,
-          id: uuidString(entry.id),
-          menuId: uuidString(entry.menuId),
-          recipeId: uuidString(entry.recipeId),
-        }),
-      )
-    }
-
-    // menu day notes
-    for (const note of menus.notes) {
-      out.push(
-        events.menuDayNoteAdd({
-          ...note,
-          id: uuidString(note.id),
-          menuId: uuidString(note.menuId),
-        }),
-      )
-    }
-
-    // meal plan day notes
-    for (const note of mealPlan.notes) {
-      out.push(
-        events.mealPlanDayNoteAdd(
-          LegacyMealPlanDayNote.insert.make({ ...note, id: note.idString }),
-        ),
-      )
-    }
-
-    // AI memory
-    const aiMemoryEntries = yield* get.setResult(exportAiMemoryAtom, undefined)
-    for (const entry of aiMemoryEntries) {
-      out.push(
-        events.aiMemoryEntryAdded(
-          LegacyAiMemoryEntry.insert.make({ ...entry, id: entry.idString }),
-        ),
-      )
-    }
-
-    const json = Schema.encodeSync(ExportEventsJson)(out)
+export const exportAllAtom = eventLogAtom.fn<void>()(
+  Effect.fnUntraced(function* () {
+    const json = yield* exportAll.pipe(
+      Effect.flatMap(Schema.encodeEffect(ExportFileJson)),
+    )
     const file = new File([json], `cheffect-${new Date().toISOString()}.txt`, {
       type: "text/plain",
     })
@@ -353,190 +194,36 @@ export const exportAllAtom = Atom.fn<void>()(
   }),
 )
 
-// Recipes, groceries, the meal plan, menus and AI memory in the file go to
-// the EventLog, everything else to LiveStore until its module moves over.
-const recipeFromLegacy = (legacy: typeof LegacyRecipe.insert.Type) =>
-  new Recipe({
-    ...legacy,
-    id: Option.getOrElse(
-      Schema.decodeOption(RecipeIdFromString)(legacy.id),
-      () => RecipeId.make(generateUuidBytes()),
-    ),
-    ingredientScale: 1,
-  })
-
-// An entry whose recipe id isn't a UUID can never join with a recipe, so it
-// is dropped.
-const mealPlanEntryFromLegacy = (
-  legacy: typeof events.mealPlanAdd.schema.Type,
-): Option.Option<PlannedEntry> =>
-  Option.map(
-    Schema.decodeOption(RecipeIdFromString)(legacy.recipeId),
-    (recipeId) => ({
-      id: Option.getOrElse(
-        Schema.decodeOption(MealPlanEntryIdFromString)(legacy.id),
-        () => MealPlanEntryId.make(generateUuidBytes()),
-      ),
-      recipeId,
-      day: legacy.day,
-    }),
-  )
-
-const mealPlanDayNoteFromLegacy = (
-  legacy: typeof LegacyMealPlanDayNote.insert.Type,
-) =>
-  new MealPlanDayNote({
-    ...legacy,
-    id: Option.getOrElse(
-      Schema.decodeOption(MealPlanDayNoteIdFromString)(legacy.id),
-      () => MealPlanDayNoteId.make(generateUuidBytes()),
-    ),
-  })
-
-// A recipe id that isn't a UUID can never join with a recipe, so it is
-// dropped from the item.
-const groceryItemFromLegacy = (
-  legacy: typeof LegacyGroceryItem.insert.Type,
-) => {
-  const recipeIds = (legacy.recipeIds ?? []).flatMap((id) =>
-    Option.toArray(Schema.decodeOption(RecipeIdFromString)(id)),
-  )
-  return new GroceryItem({
-    ...legacy,
-    id: Option.getOrElse(
-      Schema.decodeOption(GroceryItemIdFromString)(legacy.id),
-      () => GroceryItemId.make(generateUuidBytes()),
-    ),
-    list: legacy.list ?? null,
-    recipeIds: Array.isArrayNonEmpty(recipeIds) ? recipeIds : null,
-  })
-}
-
-const aiMemoryEntryFromLegacy = (
-  legacy: typeof LegacyAiMemoryEntry.insert.Type,
-) =>
-  new AiMemoryEntry({
-    ...legacy,
-    id: Option.getOrElse(
-      Schema.decodeOption(AiMemoryEntryIdFromString)(legacy.id),
-      () => AiMemoryEntryId.make(generateUuidBytes()),
-    ),
-  })
-
-// A menu id that isn't a UUID gets a new one, the same for the menu and every
-// entry and note that names it.
-const makeMenuIdFromLegacy = () => {
-  const ids = new Map<string, MenuId>()
-  return (legacy: string): MenuId => {
-    let id = ids.get(legacy)
-    if (id === undefined) {
-      id = Option.getOrElse(Schema.decodeOption(MenuIdFromString)(legacy), () =>
-        MenuId.make(generateUuidBytes()),
-      )
-      ids.set(legacy, id)
-    }
-    return id
-  }
-}
-
-// An entry whose recipe id isn't a UUID can never join with a recipe, so it
-// is dropped.
-const menuEntryFromLegacy = (
-  legacy: typeof events.menuEntryAdd.schema.Type,
-  menuId: (legacy: string) => MenuId,
-): Option.Option<StoredMenuEntry> =>
-  Option.map(
-    Schema.decodeOption(RecipeIdFromString)(legacy.recipeId),
-    (recipeId) => ({
-      ...legacy,
-      id: Option.getOrElse(
-        Schema.decodeOption(MenuEntryIdFromString)(legacy.id),
-        () => MenuEntryId.make(generateUuidBytes()),
-      ),
-      menuId: menuId(legacy.menuId),
-      recipeId,
-    }),
-  )
-
-const menuDayNoteFromLegacy = (
-  legacy: typeof events.menuDayNoteAdd.schema.Type,
-  menuId: (legacy: string) => MenuId,
-): StoredMenuDayNote => ({
-  ...legacy,
-  id: Option.getOrElse(
-    Schema.decodeOption(MenuDayNoteIdFromString)(legacy.id),
-    () => MenuDayNoteId.make(generateUuidBytes()),
+// A file that doesn't decode writes nothing. One that fails part way can be
+// imported again, because import merges.
+export const importAllAtom = eventLogAtom.fn<File>()(
+  Effect.fnUntraced(
+    function* (file) {
+      const text = yield* Effect.promise(() => file.text())
+      yield* importAll(text)
+    },
+    withToast(() => ({
+      loading: "Importing data",
+      onExit(exit, toastId) {
+        if (Exit.isSuccess(exit)) {
+          return toast.success("Data imported", {
+            id: toastId,
+            cancel: undefined,
+          })
+        }
+        const error = Cause.squash(exit.cause)
+        if (Schema.isSchemaError(error)) {
+          return toast.error("This file can't be imported. Nothing changed.", {
+            id: toastId,
+            cancel: undefined,
+            description: error.message,
+          })
+        }
+        toast.error("Import didn't finish. Import the file again.", {
+          id: toastId,
+          cancel: undefined,
+        })
+      },
+    })),
   ),
-  menuId: menuId(legacy.menuId),
-})
-
-export const importAllAtom = Store.runtime.fn<File>()(
-  Effect.fnUntraced(function* (file, get) {
-    const text = yield* Effect.promise(() => file.text())
-    const events = Schema.decodeSync(ExportEventsJson)(text)
-    const store = yield* Store
-    const recipes = Array.empty<Recipe>()
-    const groceryItems = Array.empty<GroceryItem>()
-    const mealPlanEntries = Array.empty<PlannedEntry>()
-    const mealPlanNotes = Array.empty<MealPlanDayNote>()
-    const menus = Array.empty<Menu>()
-    const menuEntries = Array.empty<StoredMenuEntry>()
-    const menuNotes = Array.empty<StoredMenuDayNote>()
-    const aiMemoryEntries = Array.empty<AiMemoryEntry>()
-    const menuId = makeMenuIdFromLegacy()
-    for (const event of events) {
-      if (event.name === "v1.RecipeCreated") {
-        recipes.push(recipeFromLegacy(event.args))
-        continue
-      }
-      if (event.name === "v1.GroceryItemAdded") {
-        groceryItems.push(groceryItemFromLegacy(event.args))
-        continue
-      }
-      if (event.name === "v1.MealPlanAdd") {
-        const entry = mealPlanEntryFromLegacy(event.args)
-        if (Option.isSome(entry)) mealPlanEntries.push(entry.value)
-        continue
-      }
-      if (event.name === "v1.MealPlanDayNoteAdd") {
-        mealPlanNotes.push(mealPlanDayNoteFromLegacy(event.args))
-        continue
-      }
-      if (event.name === "v1.MenuAdd") {
-        menus.push(new Menu({ ...event.args, id: menuId(event.args.id) }))
-        continue
-      }
-      if (event.name === "v1.MenuEntryAdd") {
-        const entry = menuEntryFromLegacy(event.args, menuId)
-        if (Option.isSome(entry)) menuEntries.push(entry.value)
-        continue
-      }
-      if (event.name === "v1.MenuDayNoteAdd") {
-        menuNotes.push(menuDayNoteFromLegacy(event.args, menuId))
-        continue
-      }
-      if (event.name === "v1.AIMemoryEntryAdded") {
-        aiMemoryEntries.push(aiMemoryEntryFromLegacy(event.args))
-        continue
-      }
-      // @effect-diagnostics-next-line tryCatchInEffectGen:off
-      try {
-        store.commit(event)
-      } catch (e) {
-        console.error("Failed to import event", event, e)
-      }
-    }
-    yield* get.setResult(importRecipesAtom, recipes)
-    yield* get.setResult(importGroceryItemsAtom, groceryItems)
-    yield* get.setResult(importMealPlanAtom, {
-      entries: mealPlanEntries,
-      notes: mealPlanNotes,
-    })
-    yield* get.setResult(importMenusAtom, {
-      menus,
-      entries: menuEntries,
-      notes: menuNotes,
-    })
-    yield* get.setResult(importAiMemoryAtom, aiMemoryEntries)
-  }),
 )
