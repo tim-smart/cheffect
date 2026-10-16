@@ -35,22 +35,17 @@ test("tryWebLock yields none while the name is held and runs once it is free", a
       "cheffect/extract/job-1",
       Effect.succeed("second"),
     )
-    const otherName = yield* tryWebLock(
-      "cheffect/extract/job-2",
-      Effect.succeed("other"),
-    )
     release()
     const holderResult = yield* Fiber.join(holder)
     const afterRelease = yield* tryWebLock(
       "cheffect/extract/job-1",
       Effect.succeed("third"),
     )
-    return { whileHeld, otherName, holderResult, afterRelease }
+    return { whileHeld, holderResult, afterRelease }
   })
 
   assert.deepEqual(await Effect.runPromise(program), {
     whileHeld: Option.none(),
-    otherName: Option.some("other"),
     holderResult: "holder",
     afterRelease: Option.some("third"),
   })

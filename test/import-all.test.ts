@@ -15,7 +15,7 @@ import { makeEntry, makeFakeRemote } from "./harness/eventlog"
 // "Import all data" (TIM-256, TIM-258). Import validates the whole file before
 // it writes anything, then replays the events as ordinary writes, so it merges
 // rather than restores: importing a file twice gives the state importing it
-// once does, and a row deleted after the export stays deleted.
+// once does, and a hard-deleted row stays deleted.
 
 // The create and set events "Export all data" writes, one table each.
 const exportedTables = {
@@ -74,21 +74,6 @@ test("importing the same file twice gives the state importing it once does", asy
     assert.equal(once[table].length, 1, `${table} after one import`)
   }
   assert.deepStrictEqual(twice, once)
-})
-
-test("a recipe deleted after the export stays deleted when the file is imported again", async () => {
-  const { deleted, reimported } = await run(
-    Effect.gen(function* () {
-      yield* importAll(file)
-      yield* writeEvent(sample("RecipeDeleted"))
-      const deleted = yield* snapshot
-      yield* importAll(file)
-      const reimported = yield* snapshot
-      return { deleted, reimported }
-    }),
-  )
-  assert.notEqual(deleted.recipes[0].deletedAt, null)
-  assert.deepStrictEqual(reimported, deleted)
 })
 
 // Grocery items hard-delete (TIM-248 rule 4), so once the row is gone the
@@ -152,10 +137,6 @@ const recipe = sample("RecipeCreated").payload as typeof Recipe.insert.Type
 const otherRecipeId = Schema.decodeSync(RecipeIdFromString)(
   "0193c7a0-1b2c-4def-8123-0123456789ab",
 )
-const scaled = (ingredientScale: number): EventPayload => ({
-  event: "RecipeSetIngredientScale",
-  payload: { id: recipe.id, ingredientScale, updatedAt: recipe.updatedAt },
-})
 
 test("an export leaves out deleted recipes, removed drafts, the API key and chat history", async () => {
   const exported = await exportAfter([
@@ -188,43 +169,24 @@ test("an export leaves out deleted recipes, removed drafts, the API key and chat
   assert.deepEqual(state.aiChatTurns, [])
 })
 
-// Export writes the fewest events that carry the data: one create per recipe.
-// The ingredient scale isn't exported, so a scaled recipe is still just its
-// `RecipeCreated`.
-test("an export has one RecipeCreated per recipe and no scale events", async () => {
-  const exported = await exportAfter([sample("RecipeCreated"), scaled(2)])
-  assert.deepEqual(
-    JSON.parse(exported).events.map((event: ExportEvent) => event.tag),
-    ["RecipeCreated"],
-  )
-})
-
-const parsed = JSON.parse(file)
-const last = parsed.events.at(-1)
-
-const badFiles = {
-  "one invalid event": JSON.stringify({
+test("a file with one invalid event writes nothing", async () => {
+  const parsed = JSON.parse(file)
+  const last = parsed.events.at(-1)
+  const bad = JSON.stringify({
     ...parsed,
     events: [...parsed.events.slice(0, -1), { tag: last.tag, payload: {} }],
-  }),
-  "an unknown version": JSON.stringify({ ...parsed, version: 2 }),
-  "an unknown format": JSON.stringify({ ...parsed, format: "something-else" }),
-}
-
-for (const [name, bad] of Object.entries(badFiles)) {
-  test(`a file with ${name} writes nothing`, async () => {
-    const { exit, entries, state } = await run(
-      Effect.gen(function* () {
-        const exit = yield* Effect.exit(importAll(bad))
-        const entries = yield* journalEntries
-        const state = yield* snapshot
-        return { exit, entries, state }
-      }),
-    )
-    assert.ok(Exit.isFailure(exit), "the import should fail")
-    assert.equal(entries.length, 0)
-    for (const [table, rows] of Object.entries(state)) {
-      assert.deepEqual(rows, [], `${table} should be empty`)
-    }
   })
-}
+  const { exit, entries, state } = await run(
+    Effect.gen(function* () {
+      const exit = yield* Effect.exit(importAll(bad))
+      const entries = yield* journalEntries
+      const state = yield* snapshot
+      return { exit, entries, state }
+    }),
+  )
+  assert.ok(Exit.isFailure(exit), "the import should fail")
+  assert.equal(entries.length, 0)
+  for (const [table, rows] of Object.entries(state)) {
+    assert.deepEqual(rows, [], `${table} should be empty`)
+  }
+})

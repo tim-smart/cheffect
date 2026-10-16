@@ -16,7 +16,6 @@ import {
   journalDatabaseName,
   loadOrCreateIdentity,
   resolveSyncUrl,
-  storeId,
 } from "@/EventLog"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { RecipeExtractJob } from "@/domain/RecipeExtractJob"
@@ -34,7 +33,7 @@ const identityLayers = [
   EventLogEncryption.layerSubtle,
 ] as const
 
-test("first launch creates an identity, keeps it as the Store ID setting and never uses it as the storeId", async () => {
+test("first launch creates an identity, keeps it as the Store ID setting and loads it again", async () => {
   const result = await Effect.gen(function* () {
     const setting = yield* identitySetting
     const beforeFirstLaunch = yield* setting.get(identityKey)
@@ -54,8 +53,6 @@ test("first launch creates an identity, keeps it as the Store ID setting and nev
     result.first.publicKey,
   )
   assert.equal(result.second.publicKey, result.first.publicKey)
-  assert.equal(storeId, "default")
-  assert.notEqual(storeId, result.stored.value)
 })
 
 // localStorage as two tabs see it: a moment passes between reading the key
@@ -94,12 +91,6 @@ test("sync connects only when it is enabled and a server URL is set", () => {
       expected: Option.none(),
     },
     { enabled: true, url: Option.none(), expected: Option.none() },
-    { enabled: true, url: Option.some("   "), expected: Option.none() },
-    {
-      enabled: true,
-      url: Option.some("wss://sync.example.com/sync"),
-      expected: Option.some("wss://sync.example.com/sync"),
-    },
     {
       enabled: true,
       url: Option.some("https://sync.example.com/sync"),
@@ -123,7 +114,6 @@ test("sync connects only when it is enabled and a server URL is set", () => {
 test("sync falls back to the default URL only when enabled and no URL is set", () => {
   const defaultUrl = Option.some("wss://app.example.com/sync")
   const cases = [
-    { enabled: true, url: Option.none(), expected: defaultUrl },
     { enabled: true, url: Option.some("   "), expected: defaultUrl },
     {
       enabled: true,

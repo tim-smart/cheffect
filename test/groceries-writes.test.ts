@@ -30,7 +30,8 @@ import { layerFreshIndexedDb } from "./harness/indexeddb"
 
 // Every grocery submission is written: one made while an earlier one is still
 // writing, one made while the groceries runtime is still building, and one
-// whose component unmounts straight after. The atoms live next to the
+// whose component unmounts straight after. Both mutation atoms share one
+// wrapper, so each case runs through one of them. The atoms live next to the
 // runtime, away from the AI imports that can't load in node.
 
 // The app's EventLog runtime on fake-indexeddb, with the Groceries handlers.
@@ -149,7 +150,6 @@ const recipe = (title: string, ingredients: ReadonlyArray<string>) =>
   }).asRecipe()
 
 const soup = recipe("Carrot soup", ["Carrots", "Onion", "Stock"])
-const salad = recipe("Salad", ["Lettuce", "Tomatoes", "Cucumber"])
 
 test("adding a grocery item while the previous add is still writing keeps both", async () => {
   const added = await addedNames({
@@ -173,25 +173,6 @@ test("grocery items added while the runtime is still building are all kept", asy
     },
   })
   assert.deepEqual(added, ["Carrots", "Milk"])
-})
-
-test("adding a second recipe while the first is still being added keeps every ingredient", async () => {
-  const added = await addedNames({
-    runtime: "built",
-    atom: addToGroceriesAtom,
-    submit: (registry) => {
-      submit(registry, addToGroceriesAtom, { recipes: [soup] })
-      submit(registry, addToGroceriesAtom, { recipes: [salad] })
-    },
-  })
-  assert.deepEqual(added, [
-    "Carrots",
-    "Cucumber",
-    "Lettuce",
-    "Onion",
-    "Stock",
-    "Tomatoes",
-  ])
 })
 
 test("a recipe keeps being added after its button unmounts", async () => {

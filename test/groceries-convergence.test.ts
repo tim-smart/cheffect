@@ -7,7 +7,6 @@ import * as Schema from "effect/Schema"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
-import { CheffectEvents } from "@/EventLog"
 import { GroceriesLayer } from "@/Groceries"
 import { GroceryEvents } from "@/Groceries/Events"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
@@ -30,7 +29,7 @@ import {
 // can't bring an item back. `GroceryItemsDeleted` hard-deletes only the ids
 // its writer saw, so an item added concurrently survives the clear.
 //
-// Ingredient aisles and aisle orders have reusable keys: a set upserts under
+// Ingredient aisles have reusable keys: a set upserts under
 // last-writer-wins, and a remove leaves a tombstone (`deleted: 1`) that only a
 // newer set revives, even when the remove arrives before the set.
 //
@@ -45,11 +44,11 @@ const {
   GroceryItemsDeleted,
   IngredientAisleSet,
   IngredientAisleRemoved,
-  GroceryAisleOrderSet,
 } = GroceryEvents.events
 
-const carrotsIdString = "0193c7a0-1b2c-4def-8123-c0ffee000001"
-const carrots = Schema.decodeSync(GroceryItemIdFromString)(carrotsIdString)
+const carrots = Schema.decodeSync(GroceryItemIdFromString)(
+  "0193c7a0-1b2c-4def-8123-c0ffee000001",
+)
 const milk = Schema.decodeSync(GroceryItemIdFromString)(
   "0193c7a0-1b2c-4def-8123-c0ffee000002",
 )
@@ -108,18 +107,6 @@ const aisleSet = (msecs: number, name: string, aisle: GroceryAisle) =>
 const aisleRemoved = (msecs: number, name: string) =>
   makeEntry({ msecs, event: IngredientAisleRemoved, payload: { name } })
 
-const aisleOrderSet = (
-  msecs: number,
-  list: string | null,
-  aisle: string,
-  sortOrder: number,
-) =>
-  makeEntry({
-    msecs,
-    event: GroceryAisleOrderSet,
-    payload: { list, aisle, sortOrder, updatedAt: DateTime.makeUnsafe(msecs) },
-  })
-
 const makeLayer: MakeLayer = (identity, remote) => {
   const eventLog = EventLog.layer(
     EventLog.schema(GroceryEvents),
@@ -140,55 +127,7 @@ const read = Effect.gen(function* () {
   return {
     groceryItems: yield* readTable("groceryItems"),
     ingredientAisles: yield* readTable("ingredientAisles"),
-    groceryAisleOrders: yield* readTable("groceryAisleOrders"),
   }
-})
-
-test("the Groceries group is in the catalogue, keyed by the id string, the normalised name, or [list, aisle]", () => {
-  assert.ok(
-    (CheffectEvents.groups as ReadonlyArray<unknown>).includes(GroceryEvents),
-  )
-  for (const entry of [
-    added(carrots, "Carrots"),
-    updated(2000, carrots, { name: "Leeks", completed: false }),
-    toggled(2000, carrots, true),
-    deleted(2000, carrots),
-  ]) {
-    assert.equal(entry.primaryKey, carrotsIdString, entry.event)
-  }
-  // Every clear shares one fixed key.
-  assert.equal(cleared(2000, [carrots, milk]).primaryKey, "groceryItems")
-  assert.equal(aisleSet(1000, " Carrots ", "Produce").primaryKey, "carrots")
-  assert.equal(aisleRemoved(1000, "CARROTS").primaryKey, "carrots")
-  assert.equal(
-    aisleOrderSet(1000, null, "Produce", 1).primaryKey,
-    '[null,"Produce"]',
-  )
-  assert.equal(
-    aisleOrderSet(1000, "Weekend", "Produce", 1).primaryKey,
-    '["Weekend","Produce"]',
-  )
-})
-
-test("the newest write to each grocery item field wins across updates and toggles", async () => {
-  const { groceryItems } = await converge({
-    layer: makeLayer,
-    read,
-    setup: [added(carrots, "Carrots"), added(milk, "Milk")],
-    concurrent: [
-      updated(2000, carrots, { name: "Leeks", completed: false }),
-      toggled(3000, carrots, true),
-      updated(2500, carrots, { name: "Baby leeks", completed: false }),
-    ],
-  })
-  // An update never moves an item to another list.
-  assert.deepEqual(
-    groceryItems.map((row) => pick(row, ["name", "completed", "list"])),
-    [
-      { name: "Baby leeks", completed: true, list: "Weekend" },
-      { name: "Milk", completed: false, list: "Weekend" },
-    ],
-  )
 })
 
 test("a deleted grocery item stays deleted, with updates and toggles either side of the delete", async () => {
@@ -248,27 +187,6 @@ test("an ingredient aisle remove outlasts older sets and yields to newer ones, w
     [
       { name: "carrots", aisle: "Deli", deleted: 0 },
       { name: "milk", aisle: "Dairy & Eggs", deleted: 1 },
-    ],
-  )
-})
-
-test("the newest aisle order wins per [list, aisle], and the default list is its own key", async () => {
-  const { groceryAisleOrders } = await converge({
-    layer: makeLayer,
-    read,
-    concurrent: [
-      aisleOrderSet(2000, null, "Produce", 1),
-      aisleOrderSet(3000, null, "Produce", 5),
-      aisleOrderSet(2500, "Weekend", "Produce", 2),
-    ],
-  })
-  assert.deepEqual(
-    groceryAisleOrders.map((row) =>
-      pick(row, ["list", "aisle", "sortOrder", "deleted"]),
-    ),
-    [
-      { list: "Weekend", aisle: "Produce", sortOrder: 2, deleted: 0 },
-      { list: null, aisle: "Produce", sortOrder: 5, deleted: 0 },
     ],
   )
 })

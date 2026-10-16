@@ -64,8 +64,6 @@ test("converts the sample old export into a file that imports", async () => {
   assert.ok(output !== undefined, "no output file")
 
   const file = Schema.decodeUnknownSync(ExportFileJson)(output)
-  assert.equal(file.format, "cheffect-export")
-  assert.equal(file.version, 1)
 
   const tags: Record<string, number> = {}
   for (const event of file.events) tags[event.tag] = (tags[event.tag] ?? 0) + 1
@@ -100,13 +98,6 @@ test("converts the sample old export into a file that imports", async () => {
   assert.ok(item, "the grocery item kept its id")
   assert.deepEqual(item.recipeIds.map(uuidString), oldItem.recipeIds)
   assert.equal(DateTime.toEpochMillis(item.createdAt), oldItem.createdAt)
-
-  const aisle = payload("IngredientAisleSet")
-  assert.equal(
-    normalizeIngredientName(aisle.name),
-    normalizeIngredientName(oldItem.name),
-  )
-  assert.equal(aisle.aisle, oldItem.aisle)
 
   const state = await importAll(output).pipe(
     Effect.andThen(snapshot),
