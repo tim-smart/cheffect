@@ -16,7 +16,6 @@ import { Events, makeSchema, State } from "@livestore/livestore"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 
 // The timer events as LiveStore wrote them, with string ids. Frozen here now
 // that the domain `Timer` lives on EventLog, so old event logs still decode.
@@ -26,6 +25,23 @@ class LegacyTimer extends Model.Class<LegacyTimer>("LegacyTimer")({
   duration: Schema.DurationFromMillis,
   expiresAt: Schema.DateTimeUtcFromMillis,
   pausedRemaining: Schema.NullOr(Schema.DurationFromMillis),
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
+  ),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldExcept(["jsonCreate", "jsonUpdate"]),
+  ),
+}) {}
+
+// The meal plan day note events as LiveStore wrote them, with string ids.
+// Frozen here now that the domain `MealPlanDayNote` lives on EventLog, so old
+// event logs and exports still decode.
+export class LegacyMealPlanDayNote extends Model.Class<LegacyMealPlanDayNote>(
+  "LegacyMealPlanDayNote",
+)({
+  id: Model.GeneratedByApp(Schema.String),
+  day: Model.Date,
+  note: Schema.String,
   createdAt: Schema.DateTimeUtcFromMillis.pipe(
     Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
   ),
@@ -552,11 +568,11 @@ export const events = {
   }),
   mealPlanDayNoteAdd: Events.synced({
     name: "v1.MealPlanDayNoteAdd",
-    schema: MealPlanDayNote.insert,
+    schema: LegacyMealPlanDayNote.insert,
   }),
   mealPlanDayNoteUpdate: Events.synced({
     name: "v1.MealPlanDayNoteUpdate",
-    schema: MealPlanDayNote.update,
+    schema: LegacyMealPlanDayNote.update,
   }),
   mealPlanDayNoteRemove: Events.synced({
     name: "v1.MealPlanDayNoteRemove",

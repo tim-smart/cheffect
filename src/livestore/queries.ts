@@ -1,41 +1,13 @@
 import { queryDb, sql } from "@livestore/livestore"
-import { Recipe } from "@/domain/Recipe"
 import { Store } from "./atoms"
 import * as Atom from "effect/reactivity/Atom"
-import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Array from "effect/Array"
 import { GroceryItem } from "@/domain/GroceryItem"
-import * as DateTime from "effect/DateTime"
-import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
-import { MealPlanEntry } from "@/domain/MealPlanEntry"
-import { mealPlanWeekStart } from "@/Settings"
 import { groceryCurrentListAtom } from "@/Groceries/currentList"
-import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { flow } from "effect"
 
 export const PANTRY_GROCERY_LIST_NAME = "Pantry" as const
-
-export const mealPlanWeekAtom = Atom.make(
-  DateTime.nowUnsafe().pipe(
-    DateTime.setZone(DateTime.zoneMakeLocal()),
-    DateTime.startOf("week"),
-    DateTime.removeTime,
-  ),
-).pipe(Atom.keepAlive)
-
-export const mealPlanWeekAdjustedAtom = Atom.make((get) => {
-  const today = new Date().getDay()
-  const selectedWeek = get(mealPlanWeekAtom)
-  const weekStartsOn = get(mealPlanWeekStart.atom).pipe(
-    AsyncResult.value,
-    Option.flatten,
-    Option.getOrElse(() => 0 as const),
-  )
-  return DateTime.add(selectedWeek, {
-    days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
-  })
-})
 
 const GroceryAisleOrderRow = Schema.Array(
   Schema.Struct({
@@ -184,84 +156,4 @@ export const pantryGroceryItemNames$ = queryDb(
     label: "pantryGroceryItemNames",
     map: Array.map((row) => row.name),
   },
-)
-
-export const mealPlanEntries$ = (startDay: DateTime.Utc) => {
-  const weekDays = Array.of(DateTime.formatIsoDate(startDay))
-  for (let i = 1; i < 7; i++) {
-    weekDays.push(
-      DateTime.add(startDay, { days: i }).pipe(DateTime.formatIsoDate),
-    )
-  }
-  return queryDb(
-    {
-      query: sql`
-        select
-          json_object(
-            ${Object.keys(Recipe.fields)
-              .map((f) => `'${f}', r.${f}`)
-              .join(", ")}
-          ) as recipe,
-          m.day as day,
-          m.id as id
-        from meal_plan m
-        join recipes r on m.recipeId = r.id
-        where m.day IN ('${weekDays.join("','")}')
-        order by m.day ASC, r.title ASC
-      `,
-      schema: MealPlanEntry.array,
-    },
-    {
-      deps: [startDay.epochMilliseconds],
-    },
-  )
-}
-
-export const mealPlanDayNotes$ = (startDay: DateTime.Utc) => {
-  const weekDays = Array.of(DateTime.formatIsoDate(startDay))
-  for (let i = 1; i < 7; i++) {
-    weekDays.push(
-      DateTime.add(startDay, { days: i }).pipe(DateTime.formatIsoDate),
-    )
-  }
-  return queryDb(
-    {
-      query: sql`
-        select *
-        from meal_plan_day_notes
-        where day IN ('${weekDays.join("','")}')
-        order by day asc, updatedAt desc
-      `,
-      schema: MealPlanDayNote.array,
-    },
-    {
-      deps: [startDay.epochMilliseconds],
-    },
-  )
-}
-
-export const mealPlanDayNotesForDay$ = (day: DateTime.Utc) => {
-  const weekDay = DateTime.formatIsoDate(day)
-  return queryDb(
-    {
-      query: sql`
-        select *
-        from meal_plan_day_notes
-        where day = ?
-      `,
-      schema: MealPlanDayNote.array,
-      bindValues: [weekDay],
-    },
-    {
-      deps: [day.epochMilliseconds],
-    },
-  )
-}
-
-export const mealPlanEntriesAtom = Store.makeQuery((get) =>
-  mealPlanEntries$(get(mealPlanWeekAdjustedAtom)),
-)
-
-export const mealPlanDayNotesAtom = Store.makeQuery((get) =>
-  mealPlanDayNotes$(get(mealPlanWeekAdjustedAtom)),
 )

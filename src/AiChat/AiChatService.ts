@@ -17,11 +17,10 @@ import {
   allGroceryItems$,
   allGroceryItemsArrayAtom,
   groceryListNames$,
-  mealPlanDayNotes$,
-  mealPlanDayNotesForDay$,
-  mealPlanEntries$,
-  mealPlanEntriesAtom,
 } from "@/livestore/queries"
+import { mealPlanEntriesAtom } from "@/MealPlan/atoms"
+import { latestNoteByDay, MealPlanRepo } from "@/MealPlan/Repo"
+import { mealPlanRuntime } from "@/MealPlan/runtime"
 import {
   allMenus$,
   menuByIdAtom,
@@ -32,7 +31,11 @@ import {
 import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { GroceryItem } from "@/domain/GroceryItem"
-import { MealPlanEntry } from "@/domain/MealPlanEntry"
+import {
+  MealPlanEntry,
+  MealPlanEntryId,
+  MealPlanEntryIdFromString,
+} from "@/domain/MealPlanEntry"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import * as Prompt from "effect/ai/Prompt"
 import * as LanguageModel from "effect/ai/LanguageModel"
@@ -53,7 +56,6 @@ import {
   modifiedRecipeByIdAtom,
   recipeByIdAtom,
   recipeSelectedStep,
-  recipesRuntime,
 } from "@/Recipes/atoms"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
@@ -69,6 +71,7 @@ const ToolkitLayer = toolkit.toLayer(
     const store = yield* Store
     const registry = yield* AtomRegistry.AtomRegistry
     const recipes = yield* RecipeRepo
+    const mealPlan = yield* MealPlanRepo
     const extractJobs = yield* RecipeExtractJobRepo
     const context = yield* Effect.context<
       EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
@@ -345,25 +348,16 @@ const ToolkitLayer = toolkit.toLayer(
         const startDay = DateTime.add(thisWeek, {
           days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
         })
-        const entries = store.query(mealPlanEntries$(startDay))
-        const notes = store.query(mealPlanDayNotes$(startDay))
-        const latestNotes = new Map<string, (typeof notes)[number]>()
-        for (const note of notes) {
-          const key = DateTime.formatIsoDate(note.day)
-          const existing = latestNotes.get(key)
-          if (
-            !existing ||
-            note.updatedAt.epochMilliseconds >
-              existing.updatedAt.epochMilliseconds
-          ) {
-            latestNotes.set(key, note)
-          }
-        }
+        const { entries, notes } = yield* mealPlan
+          .week(startDay)
+          .pipe(Effect.orDie)
         return {
           _tag: "Transient",
           value: {
             entries,
-            mealPlanDayNotes: globalThis.Array.from(latestNotes.values()),
+            mealPlanDayNotes: globalThis.Array.from(
+              latestNoteByDay(notes).values(),
+            ),
           },
         }
       }),
@@ -372,12 +366,17 @@ const ToolkitLayer = toolkit.toLayer(
           DateTime.setZone(DateTime.zoneMakeLocal()),
           DateTime.removeTime,
         )
-        const existing = store.query(mealPlanDayNotesForDay$(normalizedDay))[0]
+        const existing = latestNoteByDay(
+          yield* mealPlan.notes.pipe(Effect.orDie),
+        ).get(DateTime.formatIsoDate(normalizedDay))
 
         const trimmed = note.trim()
         if (trimmed.length === 0) {
           if (existing) {
-            store.commit(events.mealPlanDayNoteRemove({ id: existing.id }))
+            yield* write({
+              event: "MealPlanDayNoteRemove",
+              payload: { id: existing.id },
+            })
           }
           return {
             _tag: "Transient",
@@ -387,13 +386,14 @@ const ToolkitLayer = toolkit.toLayer(
 
         if (existing) {
           if (existing.note !== trimmed) {
-            store.commit(
-              events.mealPlanDayNoteUpdate({
+            yield* write({
+              event: "MealPlanDayNoteUpdate",
+              payload: {
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
-              }),
-            )
+              },
+            })
           }
           return {
             _tag: "Transient",
@@ -401,38 +401,46 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
 
-        store.commit(
-          events.mealPlanDayNoteAdd(
-            MealPlanDayNote.fromForm({
-              day: normalizedDay,
-              note: trimmed,
-            }),
-          ),
-        )
-        return {
-          _tag: "Transient",
-          value: null,
-        }
-      }),
-      AddMealPlanEntries: Effect.fnUntraced(function* ({ mealPlanEntries }) {
-        mealPlanEntries.map((mealPlanEntry) => {
-          const id = crypto.randomUUID()
-          store.commit(
-            events.mealPlanAdd({
-              id,
-              day: mealPlanEntry.day,
-              recipeId: mealPlanEntry.recipeId,
-            }),
-          )
-          return id
+        yield* write({
+          event: "MealPlanDayNoteAdd",
+          payload: MealPlanDayNote.fromForm({
+            day: normalizedDay,
+            note: trimmed,
+          }),
         })
         return {
           _tag: "Transient",
           value: null,
         }
       }),
+      AddMealPlanEntries: Effect.fnUntraced(function* ({ mealPlanEntries }) {
+        for (const mealPlanEntry of mealPlanEntries) {
+          const recipe = yield* recipes
+            .byId(mealPlanEntry.recipeId)
+            .pipe(Effect.orDie)
+          if (Option.isNone(recipe)) continue
+          yield* write({
+            event: "MealPlanAdd",
+            payload: {
+              id: MealPlanEntryId.make(generateUuidBytes()),
+              day: mealPlanEntry.day,
+              recipeId: recipe.value.id,
+            },
+          })
+        }
+        return {
+          _tag: "Transient",
+          value: null,
+        }
+      }),
       RemoveMealPlanEntry: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.mealPlanRemove({ id }))
+        const entryId = Schema.decodeOption(MealPlanEntryIdFromString)(id)
+        if (Option.isSome(entryId)) {
+          yield* write({
+            event: "MealPlanRemove",
+            payload: { id: entryId.value },
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -794,7 +802,7 @@ const runtime = Atom.runtime((get) =>
     Layer.provide([
       get(openAiClientLayer),
       get(Store.layer),
-      get(recipesRuntime.layer),
+      get(mealPlanRuntime.layer),
     ]),
   ),
 ).pipe(Atom.keepAlive)

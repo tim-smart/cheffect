@@ -260,7 +260,7 @@ export function RecipeDetails({
                 </DropdownMenuItem>
                 <MealPlanDatePicker
                   target={MealPlanDatePickerTarget.New({
-                    recipeId: recipe.idString,
+                    recipeId: recipe.id,
                   })}
                   onSelect={() => {
                     setMenuOpen(false)

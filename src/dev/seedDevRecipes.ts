@@ -17,6 +17,10 @@ import * as Schema from "effect/Schema"
 import { writeEvent } from "@/EventLog"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { recipesRuntime } from "@/Recipes/runtime"
+import { MealPlanEntryId } from "@/domain/MealPlanEntry"
+import { generateUuidBytes } from "@/lib/Id"
+import { MealPlanRepo } from "@/MealPlan/Repo"
+import { mealPlanRuntime } from "@/MealPlan/runtime"
 
 const CountSchema = Schema.Array(
   Schema.Struct({
@@ -46,17 +50,6 @@ const menuCount$ = queryDb(
   },
 )
 
-const mealPlanCount$ = queryDb(
-  {
-    query: sql`SELECT COUNT(*) as count FROM meal_plan`,
-    schema: CountSchema,
-  },
-  {
-    label: "devMealPlanSeedCount",
-    map: (rows) => rows[0]?.count ?? 0,
-  },
-)
-
 // Recipes are read through the repo and written through the EventLog. The
 // result is the recipes the other seeds reference.
 const seededRecipesAtom = recipesRuntime.atom(
@@ -76,7 +69,44 @@ const seededRecipesAtom = recipesRuntime.atom(
   }),
 )
 
+// The meal plan is read through the repo and written through the EventLog:
+// four of the seeded recipes spread over the current week.
+const seededMealPlanAtom = mealPlanRuntime.atom(
+  Effect.fnUntraced(function* (get) {
+    const recipes = yield* get.result(seededRecipesAtom)
+    const repo = yield* MealPlanRepo
+    if (recipes.length === 0 || (yield* repo.entries).length > 0) return
+    const weekStartsOn = get(mealPlanWeekStart.atom).pipe(
+      AsyncResult.value,
+      Option.flatten,
+      Option.getOrElse(() => 0 as const),
+    )
+    const today = new Date().getDay()
+    const startOfWeek = DateTime.nowUnsafe().pipe(
+      DateTime.setZone(DateTime.zoneMakeLocal()),
+      DateTime.startOf("week"),
+      DateTime.removeTime,
+    )
+    const weekStart = DateTime.add(startOfWeek, {
+      days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
+    })
+    const offsets = [0, 2, 4, 6]
+    for (const [index, offset] of offsets.entries()) {
+      const recipe = recipes[index % recipes.length]
+      yield* writeEvent({
+        event: "MealPlanAdd",
+        payload: {
+          id: MealPlanEntryId.make(generateUuidBytes()),
+          day: DateTime.add(weekStart, { days: offset }),
+          recipeId: recipe.id,
+        },
+      })
+    }
+  }),
+)
+
 export const seedDevRecipesAtom = Atom.make((get) => {
+  get(seededMealPlanAtom)
   const store = get(Store.storeUnsafe)
   if (!store) return
   const seeded = get(seededRecipesAtom)
@@ -84,7 +114,6 @@ export const seedDevRecipesAtom = Atom.make((get) => {
   const availableRecipes: ReadonlyArray<Recipe> = seeded.value
   const groceryCount = store.query(groceryCount$)
   const menuCount = store.query(menuCount$)
-  const mealPlanCount = store.query(mealPlanCount$)
 
   if (groceryCount === 0) {
     for (const item of seedGroceryItems) {
@@ -114,34 +143,6 @@ export const seedDevRecipesAtom = Atom.make((get) => {
             day,
           }),
         ),
-      )
-    }
-  }
-
-  if (mealPlanCount === 0 && availableRecipes.length > 0) {
-    const weekStartsOn = get(mealPlanWeekStart.atom).pipe(
-      AsyncResult.value,
-      Option.flatten,
-      Option.getOrElse(() => 0 as const),
-    )
-    const today = new Date().getDay()
-    const startOfWeek = DateTime.nowUnsafe().pipe(
-      DateTime.setZone(DateTime.zoneMakeLocal()),
-      DateTime.startOf("week"),
-      DateTime.removeTime,
-    )
-    const weekStart = DateTime.add(startOfWeek, {
-      days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
-    })
-    const offsets = [0, 2, 4, 6]
-    for (const [index, offset] of offsets.entries()) {
-      const recipe = availableRecipes[index % availableRecipes.length]
-      store.commit(
-        events.mealPlanAdd({
-          id: crypto.randomUUID(),
-          day: DateTime.add(weekStart, { days: offset }),
-          recipeId: recipe.idString,
-        }),
       )
     }
   }

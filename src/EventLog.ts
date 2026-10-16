@@ -21,6 +21,8 @@ import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import { IndexedDbQueryError } from "@effect/platform-browser/IndexedDbQueryBuilder"
 import { useAtomSet } from "@effect/atom-react"
 import { kvsRuntime } from "./lib/atom"
+import { MealPlanLayer } from "./MealPlan"
+import { MealPlanEvents } from "./MealPlan/Events"
 import { RecipesLayer } from "./Recipes"
 import { RecipeEvents } from "./Recipes/Events"
 import { SettingsLayer } from "./Settings/Handlers"
@@ -39,6 +41,7 @@ export const CheffectEvents = EventLog.schema(
   RecipeEvents,
   SettingsEvents,
   TimerEvents,
+  MealPlanEvents,
 )
 
 export type EventPayload =
@@ -171,7 +174,7 @@ export const syncUrlAtom = Atom.make((get) =>
 
 const EventLogLayer = EventLog.layer(
   CheffectEvents,
-  Layer.mergeAll(RecipesLayer, SettingsLayer, TimersLayer),
+  Layer.mergeAll(RecipesLayer, SettingsLayer, TimersLayer, MealPlanLayer),
 ).pipe(
   Layer.provide(EventJournal.layerIndexedDb({ database: journalDatabaseName })),
   Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),

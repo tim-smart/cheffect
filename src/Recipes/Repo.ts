@@ -129,6 +129,7 @@ export class RecipeRepo extends Context.Service<RecipeRepo>()(
       const currentEdits = recipeEdits.current.pipe(Effect.map(toRecipeEdits))
 
       return {
+        current,
         stream: recipes.stream.pipe(Stream.map(toRecipes)),
         editsStream: recipeEdits.stream.pipe(Stream.map(toRecipeEdits)),
         // Live recipes, unsorted: for export and the dev seed.

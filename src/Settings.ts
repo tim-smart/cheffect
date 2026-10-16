@@ -2,7 +2,12 @@ import * as Data from "effect/Data"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
-import { events, LegacyRecipe, tables } from "./livestore/schema"
+import {
+  events,
+  LegacyMealPlanDayNote,
+  LegacyRecipe,
+  tables,
+} from "./livestore/schema"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
@@ -13,8 +18,19 @@ import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
 import { exportGroceryItems$ } from "./livestore/queries"
 import { Recipe, RecipeId, RecipeIdFromString } from "./domain/Recipe"
-import { generateUuidBytes } from "./lib/Id"
+import { generateUuidBytes, uuidString } from "./lib/Id"
 import { importRecipesAtom, liveRecipesAtom } from "./Recipes/runtime"
+import {
+  MealPlanDayNote,
+  MealPlanDayNoteId,
+  MealPlanDayNoteIdFromString,
+} from "./domain/MealPlanDayNote"
+import {
+  MealPlanEntryId,
+  MealPlanEntryIdFromString,
+} from "./domain/MealPlanEntry"
+import type { PlannedEntry } from "./MealPlan/Repo"
+import { exportMealPlanAtom, importMealPlanAtom } from "./MealPlan/runtime"
 import { eventLogAtom, writeEventAtom } from "./EventLog"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
@@ -271,9 +287,15 @@ export const exportAllAtom = Store.runtime.fn<void>()(
     }
 
     // meal plan
-    const mealPlanEntries = store.query(tables.mealPlan)
-    for (const entry of mealPlanEntries) {
-      out.push(events.mealPlanAdd(entry))
+    const mealPlan = yield* get.setResult(exportMealPlanAtom, undefined)
+    for (const entry of mealPlan.entries) {
+      out.push(
+        events.mealPlanAdd({
+          id: uuidString(entry.id),
+          recipeId: uuidString(entry.recipeId),
+          day: entry.day,
+        }),
+      )
     }
 
     // menus
@@ -295,9 +317,12 @@ export const exportAllAtom = Store.runtime.fn<void>()(
     }
 
     // meal plan day notes
-    const allMealPlanDayNotes = store.query(tables.mealPlanDayNotes)
-    for (const note of allMealPlanDayNotes) {
-      out.push(events.mealPlanDayNoteAdd(note))
+    for (const note of mealPlan.notes) {
+      out.push(
+        events.mealPlanDayNoteAdd(
+          LegacyMealPlanDayNote.insert.make({ ...note, id: note.idString }),
+        ),
+      )
     }
 
     // AI memory
@@ -316,8 +341,8 @@ export const exportAllAtom = Store.runtime.fn<void>()(
   }),
 )
 
-// Recipes in the file go to the EventLog, everything else to LiveStore until
-// its module moves over.
+// Recipes and the meal plan in the file go to the EventLog, everything else to
+// LiveStore until its module moves over.
 const recipeFromLegacy = (legacy: typeof LegacyRecipe.insert.Type) =>
   new Recipe({
     ...legacy,
@@ -328,15 +353,54 @@ const recipeFromLegacy = (legacy: typeof LegacyRecipe.insert.Type) =>
     ingredientScale: 1,
   })
 
+// An entry whose recipe id isn't a UUID can never join with a recipe, so it
+// is dropped.
+const mealPlanEntryFromLegacy = (
+  legacy: typeof events.mealPlanAdd.schema.Type,
+): Option.Option<PlannedEntry> =>
+  Option.map(
+    Schema.decodeOption(RecipeIdFromString)(legacy.recipeId),
+    (recipeId) => ({
+      id: Option.getOrElse(
+        Schema.decodeOption(MealPlanEntryIdFromString)(legacy.id),
+        () => MealPlanEntryId.make(generateUuidBytes()),
+      ),
+      recipeId,
+      day: legacy.day,
+    }),
+  )
+
+const mealPlanDayNoteFromLegacy = (
+  legacy: typeof LegacyMealPlanDayNote.insert.Type,
+) =>
+  new MealPlanDayNote({
+    ...legacy,
+    id: Option.getOrElse(
+      Schema.decodeOption(MealPlanDayNoteIdFromString)(legacy.id),
+      () => MealPlanDayNoteId.make(generateUuidBytes()),
+    ),
+  })
+
 export const importAllAtom = Store.runtime.fn<File>()(
   Effect.fnUntraced(function* (file, get) {
     const text = yield* Effect.promise(() => file.text())
     const events = Schema.decodeSync(ExportEventsJson)(text)
     const store = yield* Store
     const recipes = Array.empty<Recipe>()
+    const mealPlanEntries = Array.empty<PlannedEntry>()
+    const mealPlanNotes = Array.empty<MealPlanDayNote>()
     for (const event of events) {
       if (event.name === "v1.RecipeCreated") {
         recipes.push(recipeFromLegacy(event.args))
+        continue
+      }
+      if (event.name === "v1.MealPlanAdd") {
+        const entry = mealPlanEntryFromLegacy(event.args)
+        if (Option.isSome(entry)) mealPlanEntries.push(entry.value)
+        continue
+      }
+      if (event.name === "v1.MealPlanDayNoteAdd") {
+        mealPlanNotes.push(mealPlanDayNoteFromLegacy(event.args))
         continue
       }
       // @effect-diagnostics-next-line tryCatchInEffectGen:off
@@ -347,5 +411,9 @@ export const importAllAtom = Store.runtime.fn<File>()(
       }
     }
     yield* get.setResult(importRecipesAtom, recipes)
+    yield* get.setResult(importMealPlanAtom, {
+      entries: mealPlanEntries,
+      notes: mealPlanNotes,
+    })
   }),
 )

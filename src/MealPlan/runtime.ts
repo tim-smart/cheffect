@@ -1,0 +1,45 @@
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+import * as Atom from "effect/reactivity/Atom"
+import type { MealPlanDayNote } from "@/domain/MealPlanDayNote"
+import { writeEvent } from "@/EventLog"
+import { recipesRuntime } from "@/Recipes/runtime"
+import { MealPlanRepo, type PlannedEntry } from "./Repo"
+
+// The repo shares the recipes runtime, so the join reads the same recipes
+// snapshot and handler writes reload both. Kept apart from `atoms.ts` so
+// Settings can export and import the meal plan without an import cycle.
+export const mealPlanRuntime = Atom.runtime((get) =>
+  MealPlanRepo.layer.pipe(Layer.provideMerge(get(recipesRuntime.layer))),
+).pipe(Atom.keepAlive)
+
+// Every entry and day note, read when called.
+export const exportMealPlanAtom = mealPlanRuntime.fn<void>()(() =>
+  MealPlanRepo.use((repo) =>
+    Effect.all({ entries: repo.entries, notes: repo.notes }),
+  ),
+)
+
+// Writes entries and notes as new add entries. Ones that already exist are
+// left alone, so importing the same file twice changes nothing. A note add
+// would merge as the newest write, so existing notes are skipped here rather
+// than reverted to the file's text.
+export const importMealPlanAtom = mealPlanRuntime.fn<{
+  readonly entries: ReadonlyArray<PlannedEntry>
+  readonly notes: ReadonlyArray<MealPlanDayNote>
+}>()(
+  Effect.fnUntraced(function* ({ entries, notes }) {
+    const existing = new Set(
+      (yield* MealPlanRepo.use((repo) => repo.notes)).map(
+        (note) => note.idString,
+      ),
+    )
+    for (const entry of entries) {
+      yield* writeEvent({ event: "MealPlanAdd", payload: entry })
+    }
+    for (const note of notes) {
+      if (existing.has(note.idString)) continue
+      yield* writeEvent({ event: "MealPlanDayNoteAdd", payload: note })
+    }
+  }),
+)
