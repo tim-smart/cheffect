@@ -3,7 +3,6 @@ import type { Timer, TimerId } from "@/domain/Timer"
 import { eventLogAtom, writeEvent } from "@/EventLog"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import * as Array from "effect/Array"
 import * as Data from "effect/Data"
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
@@ -18,9 +17,10 @@ const timersRuntime = Atom.runtime((get) =>
   TimerRepo.layer.pipe(Layer.provideMerge(get(eventLogAtom.layer))),
 ).pipe(Atom.keepAlive)
 
+// Stays an `AsyncResult`, so a failed read isn't mistaken for "no timers".
 export const activeTimersAtom = timersRuntime
   .atom(TimerRepo.useSync((_) => _.stream).pipe(Stream.unwrap))
-  .pipe(Atom.map(AsyncResult.getOrElse(Array.empty<Timer>)), Atom.keepAlive)
+  .pipe(Atom.keepAlive)
 
 export type TimerStatus = Data.TaggedEnum<{
   Running: {
@@ -41,30 +41,31 @@ export interface TimerUiState {
 
 export const timerUiStateAtom = Atom.make((get) => {
   const now = get.get(nowAtom)
-  const timers = get.get(activeTimersAtom)
 
-  return timers.map((timer) => {
-    const remaining = timer.remainingAt(now)
-    const remainingMs = Duration.toMillis(remaining)
-    const totalMs = Math.max(1, Duration.toMillis(timer.duration))
-    const progress =
-      remainingMs === 0
-        ? 1
-        : Math.min(1, Math.max(0, 1 - remainingMs / totalMs))
-    const status =
-      remainingMs <= 0
-        ? TimerStatus.Completed()
-        : timer.pausedRemaining !== null
-          ? TimerStatus.Paused({ remaining })
-          : TimerStatus.Running({ remaining })
+  return AsyncResult.map(get.get(activeTimersAtom), (timers) =>
+    timers.map((timer) => {
+      const remaining = timer.remainingAt(now)
+      const remainingMs = Duration.toMillis(remaining)
+      const totalMs = Math.max(1, Duration.toMillis(timer.duration))
+      const progress =
+        remainingMs === 0
+          ? 1
+          : Math.min(1, Math.max(0, 1 - remainingMs / totalMs))
+      const status =
+        remainingMs <= 0
+          ? TimerStatus.Completed()
+          : timer.pausedRemaining !== null
+            ? TimerStatus.Paused({ remaining })
+            : TimerStatus.Running({ remaining })
 
-    return {
-      timer,
-      status,
-      remaining,
-      progress,
-    }
-  })
+      return {
+        timer,
+        status,
+        remaining,
+        progress,
+      }
+    }),
+  )
 })
 
 // Pause, resume and add-time compute from this device's snapshot and write

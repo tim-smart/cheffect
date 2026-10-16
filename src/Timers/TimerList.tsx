@@ -7,6 +7,7 @@ import {
   toggleTimerAtom,
 } from "./atoms"
 import * as Duration from "effect/Duration"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,9 +24,10 @@ const RING_SIZE = 56
 const RING_STROKE = 5
 
 export function TimerList() {
-  const timers = useAtomValue(timerUiStateAtom)
+  const result = useAtomValue(timerUiStateAtom)
 
-  if (timers.length === 0) return null
+  if (!AsyncResult.isSuccess(result) || result.value.length === 0) return null
+  const timers = result.value
 
   const visibleTimers = timers.slice(0, MAX_VISIBLE_TIMERS)
   const hiddenCount = Math.max(0, timers.length - visibleTimers.length)

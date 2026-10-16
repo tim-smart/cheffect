@@ -1,4 +1,5 @@
 import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -76,7 +77,11 @@ export const TimerNotifications = Layer.effectDiscard(
       FiberHandle.run(vibrateHandle, { onlyIfMissing: true }),
     )
 
+    // Only a successful read says which timers exist. A failed one keeps the
+    // last state, so it can't silence a ringing timer.
     yield* AtomRegistry.toStream(registry, timerUiStateAtom).pipe(
+      Stream.filter(AsyncResult.isSuccess),
+      Stream.map((result) => result.value),
       Stream.runForEach(
         Effect.fnUntraced(function* (timerStates) {
           const notified = yield* Ref.get(notifiedRef)
