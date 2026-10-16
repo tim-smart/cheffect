@@ -8,6 +8,7 @@ import * as EventLog from "effect/eventlog/EventLog"
 import { CheffectEvents, type EventPayload } from "@/EventLog"
 import { AiChatTurnIdFromString } from "@/domain/AiChatTurn"
 import { GroceryItemIdFromString } from "@/domain/GroceryItem"
+import { MenuIdFromString } from "@/domain/Menu"
 import { Recipe } from "@/domain/Recipe"
 import { eventSamples } from "./fixtures/event-samples"
 import { layerCheffect, snapshot } from "./harness/cheffect"
@@ -235,12 +236,27 @@ test("a batch replays fewer entries to the same state, and compacting again keep
 // it, so compaction must leave the surviving entries' ids alone. A peer's
 // write that arrived earlier sits between the batch's entries in time, and a
 // stale write arrives after the batch.
+//
+// A day note that existed before the batch moves to a menu that is then
+// removed: the cascade finds it through its new `menuId`, so the Add that
+// moved it matters even though a later Add rewrites every field.
 test("concurrent and stale peer writes merge with a compacted batch as they would without it", async () => {
   const aisle = sample("IngredientAisleSet")
+  const note = sample("MenuDayNoteAdd")
+  const otherMenuId = Schema.decodeSync(MenuIdFromString)(
+    "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f9",
+  )
   const batches = [
     [
       at(1000, "RecipeCreated", recipe),
       at(2500, "RecipeUpdated", recipeUpdate("Peer")),
+      at(6000, "MenuDayNoteAdd", { ...note, menuId: otherMenuId }),
+      at(6900, "MenuDayNoteUpdate", {
+        id: note.id,
+        day: note.day,
+        note: "Peer",
+        updatedAt: note.updatedAt,
+      }),
     ],
     [
       at(2000, "RecipeUpdated", recipeUpdate("Older")),
@@ -250,6 +266,9 @@ test("concurrent and stale peer writes merge with a compacted batch as they woul
       at(4200, "GroceryItemDeleted", { id: item.id }),
       at(5000, "IngredientAisleSet", aisle),
       at(5100, "IngredientAisleRemoved", { name: aisle.name }),
+      at(6100, "MenuDayNoteAdd", note),
+      at(6200, "MenuRemove", { id: note.menuId }),
+      at(6300, "MenuDayNoteAdd", { ...note, note: "Re-added" }),
     ],
     [
       at(2900, "RecipeUpdated", recipeUpdate("Stale")),
@@ -265,4 +284,5 @@ test("concurrent and stale peer writes merge with a compacted batch as they woul
   assert.equal(compacted.recipes[0].title, "Newest")
   assert.deepEqual(compacted.groceryItems, [])
   assert.equal(compacted.ingredientAisles[0].deleted, 1)
+  assert.equal(compacted.menuDayNotes[0].note, "Re-added")
 })
