@@ -373,7 +373,7 @@ function DayListItem({
                 events.mealPlanAdd({
                   id: crypto.randomUUID(),
                   day: date,
-                  recipeId: recipe.id,
+                  recipeId: recipe.idString,
                 }),
               )
             }}
@@ -404,7 +404,7 @@ function DayListItem({
                 key={id}
                 className="flex items-center p-2 gap-3"
                 to="/recipes/$id"
-                params={{ id: recipe.id }}
+                params={{ id: recipe.idString }}
               >
                 <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
                   {recipe.imageUrl ? (

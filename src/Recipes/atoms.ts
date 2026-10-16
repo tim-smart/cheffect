@@ -1,53 +1,126 @@
 import { RecipeCreate } from "@/domain/RecipeForm"
-import { Store } from "@/livestore/atoms"
-import {
-  allRecipesAtom,
-  recipeByIdAtom,
-  searchStateAtom,
-} from "@/livestore/queries"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { useAtomValue } from "@effect/atom-react"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
 import { RecipeExtractionManager } from "./RecipeExtractionManager"
 import {
   AiHelpers,
   isAiEnabledAtom,
   openAiClientLayer,
 } from "@/services/AiHelpers"
-import { events } from "@/livestore/schema"
 import * as HashSet from "effect/HashSet"
-import { ExtractedRecipe, Recipe, RecipeEdit } from "@/domain/Recipe"
+import {
+  ExtractedRecipe,
+  Recipe,
+  RecipeEdit,
+  RecipeId,
+  RecipeIdFromString,
+  SortByValue,
+} from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
 import { router } from "@/Router"
-import { queryDb, sql } from "@livestore/livestore"
 import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import { aiCountry } from "@/Settings"
 import { withToast } from "@/lib/sonner"
 import * as Exit from "effect/Exit"
 import { toast } from "sonner"
+import { writeEvent, writeEventAtom } from "@/EventLog"
+import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
+import { kvsRuntime } from "@/lib/atom"
+import { generateUuidBytes } from "@/lib/Id"
+import { findRecipe, findRecipeEdit, RecipeRepo, searchRecipes } from "./Repo"
+import { importRecipesAtom, liveRecipesAtom, recipesRuntime } from "./runtime"
+
+export { recipesRuntime }
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
     Layer.provideMerge(AiHelpers.layer),
     Layer.provideMerge(get(openAiClientLayer)),
-    Layer.provideMerge(get(Store.layer)),
+    Layer.provideMerge(get(recipesRuntime.layer)),
   ),
 ).pipe(Atom.keepAlive)
+
+// Reads
+
+const recipesAtom = recipesRuntime
+  .atom(RecipeRepo.useSync((_) => _.stream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+const recipeEditsAtom = recipesRuntime
+  .atom(RecipeRepo.useSync((_) => _.editsStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+export const recipeSearchQueryAtom = Atom.make("").pipe(Atom.keepAlive)
+
+export const recipeSortByAtom = Atom.kvs({
+  runtime: kvsRuntime,
+  key: "cheffect:recipeSortBy",
+  schema: SortByValue,
+  defaultValue: () => "title" as const,
+})
+
+export const allRecipesAtom = Atom.make((get) => {
+  const query = get(recipeSearchQueryAtom)
+  const sortBy = get(recipeSortByAtom)
+  return AsyncResult.map(get(recipesAtom), (recipes) =>
+    searchRecipes(recipes, { query, sortBy }),
+  )
+})
+
+export const mealPlanRecipesQueryAtom = Atom.make("")
+
+export const mealPlanRecipesAtom = Atom.make((get) => {
+  const query = get(mealPlanRecipesQueryAtom)
+  return AsyncResult.map(get(recipesAtom), (recipes) =>
+    searchRecipes(recipes, { query, sortBy: "title" }),
+  )
+})
+
+// A recipe by the id string in a route or a reference. Soft-deleted recipes
+// are still found; `None` when the recipe is missing, e.g. not synced yet.
+export const recipeByIdAtom = Atom.family((id: string) =>
+  Atom.make((get) =>
+    AsyncResult.map(get(recipesAtom), (recipes) => findRecipe(recipes, id)),
+  ),
+)
+
+export const recipeTitleAtom = Atom.family((id: string) =>
+  Atom.make((get) =>
+    AsyncResult.map(
+      get(recipeByIdAtom(id)),
+      Option.map((r) => r.title),
+    ),
+  ),
+)
+
+export const recipeFormByIdAtom = Atom.family((id: string) =>
+  Atom.make((get) =>
+    AsyncResult.map(
+      get(recipeByIdAtom(id)),
+      Option.map(
+        (recipe) => [Schema.encodeSync(RecipeCreate)(recipe), recipe] as const,
+      ),
+    ),
+  ),
+)
+
+// Writes
+
+const recipeIdFromString = Schema.decodeSync(RecipeIdFromString)
+
+const recipeEditRemove = (id: RecipeId) =>
+  writeEvent({ event: "RecipeEditRemove", payload: { id } })
 
 export const createRecipeAtom = extractRuntime
   .fn<string>()(
     Effect.fn(function* (url) {
-      const store = yield* Store
-      store.commit(
-        events.recipeExtractJobAdded({
-          id: crypto.randomUUID(),
-          url,
-        }),
-      )
+      const jobs = yield* RecipeExtractJobRepo
+      yield* jobs.add(url)
     }),
     { concurrent: true },
   )
@@ -58,12 +131,10 @@ export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
     function* (files) {
       const helpers = yield* AiHelpers
       const extracted = yield* helpers.recipesFromImages(files)
-      const store = yield* Store
-      const recipes = Array.map(extracted, (r) => {
-        const recipe = r.asRecipe()
-        store.commit(events.recipeCreated(recipe))
-        return recipe
-      })
+      const recipes = Array.map(extracted, (r) => r.asRecipe())
+      for (const recipe of recipes) {
+        yield* writeEvent({ event: "RecipeCreated", payload: recipe })
+      }
       return recipes
     },
     withToast((_) => ({
@@ -81,7 +152,7 @@ export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
               ? {
                   label: "View",
                   onClick() {
-                    const recipeId = exit.value[0]!.id
+                    const recipeId = exit.value[0]!.idString
                     router.navigate({
                       to: `/recipes/$id`,
                       params: { id: recipeId },
@@ -97,48 +168,41 @@ export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
   { concurrent: true },
 )
 
-export const recipeFormByIdAtom = Atom.family((id: string) =>
-  Atom.make(
-    Effect.fnUntraced(function* (get) {
-      const recipe = yield* get.result(recipeByIdAtom(id))
-      return [yield* Schema.encodeEffect(RecipeCreate)(recipe), recipe] as const
-    }),
-  ),
-)
-
 export const showOriginalRecipeAtom = Atom.make(HashSet.empty<string>())
 
-const recipeEditById$ = (id: string) =>
-  queryDb(
-    {
-      query: sql`select * from recipe_edits where id = ?`,
-      bindValues: [id],
-      schema: Schema.Array(RecipeEdit),
-    },
-    {
-      deps: [id],
-      map: Array.head,
-    },
-  )
-
+// The AI's suggested edit to a recipe, kept beside the recipe until it is
+// saved or discarded. Writing `None` removes it.
 export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
   Atom.writable(
-    Store.makeQueryUnsafe(recipeEditById$(id)).read,
+    (get) =>
+      AsyncResult.map(get(recipeEditsAtom), (edits) =>
+        findRecipeEdit(edits, id),
+      ),
     (ctx, modified: Option.Option<ExtractedRecipe>) => {
-      Option.match(modified, {
-        onNone() {
-          ctx.set(Store.commit, events.recipeEditRemove({ id }))
-        },
-        onSome(modified) {
-          ctx.set(
-            Store.commit,
-            events.recipeEditSet({
-              ...modified,
-              id,
+      const recipeId = recipeIdFromString(id)
+      ctx.set(
+        writeEventAtom,
+        Option.match(modified, {
+          onNone: () => ({
+            event: "RecipeEditRemove" as const,
+            payload: { id: recipeId },
+          }),
+          onSome: (modified) => ({
+            event: "RecipeEditSet" as const,
+            payload: RecipeEdit.make({
+              id: recipeId,
+              title: modified.title,
+              imageUrl: modified.imageUrl,
+              prepTime: modified.prepTime,
+              cookingTime: modified.cookingTime,
+              servings: modified.servings,
+              ingredients: modified.ingredients,
+              steps: modified.steps,
+              sourceName: modified.sourceName,
             }),
-          )
-        },
-      })
+          }),
+        }),
+      )
     },
   ),
 )
@@ -146,83 +210,84 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
 export const recipeForDisplayAtom = Atom.family((id: string) =>
   Atom.make((get) => {
     const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
-    return get(recipeByIdAtom(id)).pipe(
-      AsyncResult.map((original) => {
-        const modified = Option.getOrUndefined(get(modifiedRecipeByIdAtom(id))!)
+    const modified = get(modifiedRecipeByIdAtom(id)).pipe(
+      AsyncResult.value,
+      Option.flatten,
+    )
+    return AsyncResult.map(
+      get(recipeByIdAtom(id)),
+      Option.map((original) => {
         const resolved =
-          showOriginal || !modified
+          showOriginal || Option.isNone(modified)
             ? original
             : new Recipe({
                 ...original,
-                ...modified,
+                ...modified.value,
               })
-
-        return { original, resolved, isModified: !!modified } as const
+        return {
+          original,
+          resolved,
+          isModified: Option.isSome(modified),
+        } as const
       }),
     )
   }),
 )
 
-export const discardModifiedRecipeAtom = Atom.fn<string>()(
+export const discardModifiedRecipeAtom = recipesRuntime.fn<string>()(
   Effect.fnUntraced(function* (id, get) {
-    get.set(modifiedRecipeByIdAtom(id), Option.none())
+    yield* recipeEditRemove(recipeIdFromString(id))
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
   }),
 )
 
-export const saveModifiedRecipeAtom = Atom.fn<string>()(
+export const saveModifiedRecipeAtom = recipesRuntime.fn<string>()(
   Effect.fnUntraced(function* (id, get) {
-    const recipe = yield* get.result(recipeByIdAtom(id))
-    const modified = get(modifiedRecipeByIdAtom(id))!
-    if (Option.isNone(modified)) return
-    const store = get(Store.storeUnsafe)!
-    const newRecipe = new Recipe({
-      ...recipe,
-      ...modified.value,
-      updatedAt: DateTime.nowUnsafe(),
+    const repo = yield* RecipeRepo
+    const recipe = yield* repo.byId(id)
+    const modified = yield* repo.editById(id)
+    if (Option.isNone(recipe) || Option.isNone(modified)) return
+    yield* writeEvent({
+      event: "RecipeUpdated",
+      payload: new Recipe({
+        ...recipe.value,
+        ...modified.value,
+        updatedAt: yield* DateTime.now,
+      }),
     })
-    store.commit(events.recipeUpdated(newRecipe))
-    get.set(modifiedRecipeByIdAtom(id), Option.none())
+    yield* recipeEditRemove(recipe.value.id)
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
   }),
 )
 
-export const newModifiedRecipeAtom = Atom.fn<string>()(
+export const newModifiedRecipeAtom = recipesRuntime.fn<string>()(
   Effect.fnUntraced(function* (id, get) {
-    const recipe = yield* get.result(recipeByIdAtom(id))
-    const modified = get(modifiedRecipeByIdAtom(id))!
-    if (Option.isNone(modified)) return
-    const store = get(Store.storeUnsafe)!
+    const repo = yield* RecipeRepo
+    const recipe = yield* repo.byId(id)
+    const modified = yield* repo.editById(id)
+    if (Option.isNone(recipe) || Option.isNone(modified)) return
+    const now = yield* DateTime.now
     const newRecipe = new Recipe({
-      ...recipe,
+      ...recipe.value,
       ...modified.value,
-      id: crypto.randomUUID(),
-      createdAt: DateTime.nowUnsafe(),
-      updatedAt: DateTime.nowUnsafe(),
+      id: RecipeId.make(generateUuidBytes()),
+      createdAt: now,
+      updatedAt: now,
     })
-    store.commit(events.recipeCreated(newRecipe))
-    get.set(modifiedRecipeByIdAtom(id), Option.none())
+    yield* writeEvent({ event: "RecipeCreated", payload: newRecipe })
+    yield* recipeEditRemove(recipe.value.id)
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
-    router.navigate({ to: "/recipes/$id", params: { id: newRecipe.id } })
+    router.navigate({ to: "/recipes/$id", params: { id: newRecipe.idString } })
   }),
 )
-
-export const useSearchQuery = () =>
-  AsyncResult.getOrElse(
-    useAtomValue(
-      searchStateAtom,
-      AsyncResult.map((state) => state.query),
-    ),
-    () => "",
-  )
 
 export const checkedIngredientsAtom = Atom.family((_recipeId: string) =>
   Atom.make(HashSet.empty<string>()).pipe(Atom.keepAlive),
 )
 
-export const exportAtom = Store.runtime.fn<void>()(
+export const exportAtom = recipesRuntime.fn<void>()(
   Effect.fnUntraced(function* (_, get) {
-    const recipes = yield* get.result(allRecipesAtom)
+    const recipes = yield* get.setResult(liveRecipesAtom, undefined)
     const json = yield* Schema.encodeEffect(Recipe.arrayJson)(recipes)
     const file = new File(
       [JSON.stringify(json)],
@@ -235,19 +300,15 @@ export const exportAtom = Store.runtime.fn<void>()(
   }),
 )
 
-export const importAtom = Store.runtime.fn<File>()(
-  Effect.fnUntraced(function* (file) {
+export const importAtom = recipesRuntime.fn<File>()(
+  Effect.fnUntraced(function* (file, get) {
     const text = yield* Effect.promise(() => file.text())
     const json = JSON.parse(text)
     const decoded = yield* Schema.decodeEffect(Recipe.arrayJson)(json)
-    const store = yield* Store
-    for (const r of decoded) {
-      const recipe = new Recipe({
-        ...r,
-        ingredientScale: 1,
-      })
-      store.commit(events.recipeCreated(recipe))
-    }
+    yield* get.setResult(
+      importRecipesAtom,
+      decoded.map((recipe) => new Recipe({ ...recipe, ingredientScale: 1 })),
+    )
   }),
 )
 
@@ -276,7 +337,7 @@ export const convertIngredientsAtom = AiHelpers.runtime.fn<Recipe>()(
               onClick() {
                 router.navigate({
                   to: `/recipes/$id`,
-                  params: { id: recipe.id },
+                  params: { id: recipe.idString },
                 })
               },
             },
@@ -284,7 +345,7 @@ export const convertIngredientsAtom = AiHelpers.runtime.fn<Recipe>()(
         },
       })),
     )
-    get.set(modifiedRecipeByIdAtom(recipe.id), Option.some(converted))
+    get.set(modifiedRecipeByIdAtom(recipe.idString), Option.some(converted))
   }),
 )
 

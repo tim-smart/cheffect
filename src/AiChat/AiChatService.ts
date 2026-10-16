@@ -21,7 +21,6 @@ import {
   mealPlanDayNotesForDay$,
   mealPlanEntries$,
   mealPlanEntriesAtom,
-  recipeByIdAtom,
 } from "@/livestore/queries"
 import {
   allMenus$,
@@ -45,10 +44,21 @@ import * as Option from "effect/Option"
 import * as KeyValueStore from "effect/persistence/KeyValueStore"
 import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
-import { Recipe } from "@/domain/Recipe"
+import * as EventLog from "effect/eventlog/EventLog"
+import type * as IndexedDb from "@effect/platform-browser/IndexedDb"
+import type { QueryBuilder } from "@/IndexedDb"
 import * as DateTime from "effect/DateTime"
 import { aiChatModel, aiCountry, mealPlanWeekStart } from "@/Settings"
-import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
+import {
+  modifiedRecipeByIdAtom,
+  recipeByIdAtom,
+  recipeSelectedStep,
+  recipesRuntime,
+} from "@/Recipes/atoms"
+import { RecipeRepo } from "@/Recipes/Repo"
+import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
+import { uuidString } from "@/lib/Id"
+import { type EventPayload, writeEvent } from "@/EventLog"
 import { Menu } from "@/domain/Menu"
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
 import { Timer } from "@/domain/Timer"
@@ -58,25 +68,34 @@ const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
     const store = yield* Store
     const registry = yield* AtomRegistry.AtomRegistry
+    const recipes = yield* RecipeRepo
+    const extractJobs = yield* RecipeExtractJobRepo
+    const context = yield* Effect.context<
+      EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
+    >()
+    const write = (payload: EventPayload) =>
+      writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
-        const recipes = store.query(searchRecipes$(query))
-        return { _tag: "Transient", value: recipes } as const
+        const found = yield* recipes
+          .search({ query, sortBy: "title" })
+          .pipe(Effect.orDie)
+        return { _tag: "Transient", value: found } as const
       }),
       RecipeById: Effect.fnUntraced(function* ({ id }) {
-        const recipe = store.query(recipeById$(id))
+        const recipe = yield* recipes.byId(id).pipe(Effect.orDie)
         return { _tag: "Transient", value: Option.getOrNull(recipe) } as const
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
         const newRecipe = recipe.asRecipe()
-        store.commit(events.recipeCreated(newRecipe))
+        yield* write({ event: "RecipeCreated", payload: newRecipe })
         return {
           _tag: "Transient",
-          value: { recipeId: newRecipe.id },
+          value: { recipeId: newRecipe.idString },
         }
       }),
       SuggestRecipeEdit: Effect.fnUntraced(function* ({ recipe, recipeId }) {
-        const original = store.query(recipeById$(recipeId))
+        const original = yield* recipes.byId(recipeId).pipe(Effect.orDie)
         if (Option.isNone(original)) {
           return {
             _tag: "Transient",
@@ -90,18 +109,22 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       ScaleRecipe: Effect.fnUntraced(function* ({ scale, recipeId }) {
-        const original = store.query(recipeById$(recipeId))
+        const original = yield* recipes.byId(recipeId).pipe(Effect.orDie)
         if (Option.isNone(original)) {
           return {
             _tag: "Transient",
             value: null,
           }
         }
-        const recipe = new Recipe({
-          ...original.value,
-          ingredientScale: scale,
+        // Only the scale, so a concurrent edit to the recipe isn't undone.
+        yield* write({
+          event: "RecipeSetIngredientScale",
+          payload: {
+            id: original.value.id,
+            ingredientScale: scale,
+            updatedAt: yield* DateTime.now,
+          },
         })
-        store.commit(events.recipeUpdated(recipe))
         return {
           _tag: "Transient",
           value: null,
@@ -279,22 +302,22 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       AddMenuEntries: Effect.fnUntraced(function* ({ menuId, menuEntries }) {
-        menuEntries.flatMap((menuEntry) => {
-          const recipe = store.query(recipeById$(menuEntry.recipeId))
-          if (Option.isNone(recipe)) return []
-          const id = crypto.randomUUID()
+        for (const menuEntry of menuEntries) {
+          const recipe = yield* recipes
+            .byId(menuEntry.recipeId)
+            .pipe(Effect.orDie)
+          if (Option.isNone(recipe)) continue
           store.commit(
             events.menuEntryAdd({
-              id,
+              id: crypto.randomUUID(),
               menuId,
-              recipeId: recipe.value.id,
+              recipeId: recipe.value.idString,
               day: menuEntry.day,
               createdAt: DateTime.nowUnsafe(),
               updatedAt: DateTime.nowUnsafe(),
             }),
           )
-          return id
-        })
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -416,16 +439,10 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       ImportRecipeFromUrl: Effect.fnUntraced(function* ({ url }) {
-        const jobId = crypto.randomUUID()
-        store.commit(
-          events.recipeExtractJobAdded({
-            id: jobId,
-            url,
-          }),
-        )
+        const job = yield* extractJobs.add(url).pipe(Effect.orDie)
         return {
           _tag: "Terminal",
-          value: { jobId },
+          value: { jobId: uuidString(job.id) },
         }
       }),
       SaveLearning: Effect.fnUntraced(function* ({ content }) {
@@ -553,16 +570,21 @@ ${entry.content}`,
           currentTimeAndCountry += ` The user is located in ${country.value}. All ingredient units should be provided in the measurement system commonly used in that country.`
         }
 
+        const viewedRecipe = location.pathname.startsWith("/recipes/")
+          ? yield* Atom.getResult(
+              recipeByIdAtom(location.pathname.split("/")[2]),
+            )
+          : Option.none()
+
         if (location.pathname === "/") {
           return `${baseSystemPrompt}${memoryPrompt}
 
 The user is currently browsing the a list of their recipes.
 
 ${currentTimeAndCountry}`
-        } else if (location.pathname.startsWith("/recipes/")) {
-          const id = location.pathname.split("/")[2]
-          const recipe = yield* Atom.getResult(recipeByIdAtom(id))
-          const selectedStep = registry.get(recipeSelectedStep(id))
+        } else if (Option.isSome(viewedRecipe)) {
+          const recipe = viewedRecipe.value
+          const selectedStep = registry.get(recipeSelectedStep(recipe.idString))
 
           return `${baseSystemPrompt}${memoryPrompt}
 
@@ -769,7 +791,11 @@ const PromptJson = Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt))
 
 const runtime = Atom.runtime((get) =>
   AiChatService.layer.pipe(
-    Layer.provide([get(openAiClientLayer), get(Store.layer)]),
+    Layer.provide([
+      get(openAiClientLayer),
+      get(Store.layer),
+      get(recipesRuntime.layer),
+    ]),
   ),
 ).pipe(Atom.keepAlive)
 
@@ -800,33 +826,6 @@ export const clearAtom = runtime.fn<void>()(
     get.set(currentPromptAtom, Prompt.empty)
   }),
 )
-
-const searchRecipes$ = (query: string) =>
-  queryDb(
-    {
-      query: sql`SELECT * FROM recipes WHERE deletedAt IS NULL AND title LIKE ? ORDER BY title ASC`,
-      schema: Recipe.array,
-      bindValues: [`%${query}%`],
-    },
-    {
-      deps: [query],
-      label: "AiChatService.searchRecipes",
-    },
-  )
-
-const recipeById$ = (id: string) =>
-  queryDb(
-    {
-      query: sql`SELECT * FROM recipes WHERE id = ?`,
-      schema: Recipe.array,
-      bindValues: [id],
-    },
-    {
-      label: "AiChatService.recipeById",
-      deps: [id],
-      map: Array.head,
-    },
-  )
 
 const groceryItemById$ = (id: string) =>
   queryDb(

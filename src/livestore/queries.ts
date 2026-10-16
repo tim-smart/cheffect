@@ -5,7 +5,6 @@ import { Store } from "./atoms"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Array from "effect/Array"
-import * as Effect from "effect/Effect"
 import { GroceryItem } from "@/domain/GroceryItem"
 import * as DateTime from "effect/DateTime"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
@@ -16,15 +15,6 @@ import * as Schema from "effect/Schema"
 import { flow } from "effect"
 
 export const PANTRY_GROCERY_LIST_NAME = "Pantry" as const
-
-export const searchState$ = queryDb(tables.searchState.get())
-export const searchStateAtom = Store.makeQuery(searchState$)
-export const searchSortByAtom = Atom.map(searchStateAtom, (r) =>
-  r.pipe(
-    AsyncResult.map((s) => s.sortBy),
-    AsyncResult.getOrElse(() => "title" as const),
-  ),
-)
 
 export const mealPlanWeekAtom = Atom.make(
   DateTime.nowUnsafe().pipe(
@@ -46,80 +36,6 @@ export const mealPlanWeekAdjustedAtom = Atom.make((get) => {
     days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
   })
 })
-
-export const allRecipesAtom = Store.makeQuery(
-  queryDb(
-    (get) => {
-      const { query, sortBy } = get(searchState$)
-      const trimmedQuery = query.trim()
-      const sort =
-        sortBy === "createdAt"
-          ? "createdAt DESC"
-          : sortBy === "rating"
-            ? "rating IS NULL, rating DESC, title COLLATE NOCASE ASC"
-            : "title COLLATE NOCASE ASC"
-      if (trimmedQuery === "") {
-        return {
-          query: sql`SELECT * FROM recipes WHERE deletedAt IS NULL ORDER BY ${sort}`,
-          schema: Recipe.array,
-        }
-      }
-      const searchTerm = `%${trimmedQuery}%`
-      return {
-        query: sql`
-          SELECT *,
-            IF(title LIKE ?, 20, 0) +
-            IF(ingredients LIKE ?, 10, 0) AS weight
-          FROM recipes
-          WHERE (title LIKE ? OR ingredients LIKE ?) AND deletedAt IS NULL
-          ORDER BY weight DESC, ${sort}`,
-        schema: Recipe.array,
-        bindValues: [searchTerm, searchTerm, searchTerm, searchTerm],
-      }
-    },
-    { label: "allRecipes" },
-  ),
-)
-
-export const recipeByIdAtom = Atom.family((id: string) => {
-  const result = Store.makeQuery(
-    queryDb(
-      {
-        query: sql`SELECT * FROM recipes WHERE id = ?`,
-        bindValues: [id],
-        schema: Recipe.array,
-      },
-      {
-        map: Array.head,
-      },
-    ),
-  )
-
-  return Atom.make((get) =>
-    get.result(result).pipe(Effect.flatMap(Effect.fromOption)),
-  )
-})
-
-export const recipeTitleAtom = Atom.family((id: string) =>
-  Store.makeQueryUnsafe(
-    queryDb(
-      {
-        query: sql`SELECT title FROM recipes WHERE id = ?`,
-        bindValues: [id],
-        schema: TitleStruct,
-      },
-      {
-        map: ([{ title }]) => title,
-      },
-    ),
-  ),
-)
-
-const TitleStruct = Schema.Array(
-  Schema.Struct({
-    title: Schema.String,
-  }),
-)
 
 export const groceryListState$ = queryDb(tables.groceryListState.get())
 export const groceryListStateAtom = Atom.writable(
@@ -364,33 +280,4 @@ export const mealPlanEntriesAtom = Store.makeQuery((get) =>
 
 export const mealPlanDayNotesAtom = Store.makeQuery((get) =>
   mealPlanDayNotes$(get(mealPlanWeekAdjustedAtom)),
-)
-
-const mealPlanRecipes$ = (query: string) => {
-  const trimmedQuery = query.trim()
-  return queryDb(
-    {
-      query:
-        trimmedQuery === ""
-          ? sql`
-              SELECT *
-              FROM recipes
-              WHERE deletedAt IS NULL
-              ORDER BY title COLLATE NOCASE ASC, createdAt DESC`
-          : sql`
-            SELECT *
-            FROM recipes
-            WHERE title LIKE ? AND deletedAt IS NULL
-            ORDER BY title COLLATE NOCASE ASC, createdAt DESC`,
-      schema: Recipe.array,
-      bindValues: trimmedQuery === "" ? [] : [`%${trimmedQuery}%`],
-    },
-    { label: "mealPlanRecipes", deps: [trimmedQuery] },
-  )
-}
-
-export const mealPlanRecipesQueryAtom = Atom.make("")
-
-export const mealPlanRecipesAtom = Store.makeQueryUnsafe((get) =>
-  mealPlanRecipes$(get(mealPlanRecipesQueryAtom)),
 )

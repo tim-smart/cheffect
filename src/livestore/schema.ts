@@ -5,9 +5,9 @@ import { MenuEntry } from "../domain/MenuEntry"
 import { MenuDayNote } from "../domain/MenuDayNote"
 import { Rating } from "../domain/Rating"
 import {
+  DurationField,
+  ExtractedRecipe,
   IngredientsComponent,
-  Recipe,
-  RecipeEdit,
   SortByValue,
   Step,
 } from "../domain/Recipe"
@@ -18,6 +18,43 @@ import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { Timer } from "@/domain/Timer"
+
+// The recipe events as LiveStore wrote them: string ids, and ingredients and
+// steps as JSON strings. Frozen here now that the domain `Recipe` lives on
+// EventLog, so old event logs and exports still decode.
+export class LegacyRecipe extends Model.Class<LegacyRecipe>("LegacyRecipe")({
+  ...ExtractedRecipe.fields,
+  id: Model.GeneratedByApp(Schema.String),
+  cookingTime: DurationField,
+  prepTime: DurationField,
+  ingredients: Model.JsonFromString(IngredientsComponent.array),
+  ingredientScale: Model.Field({
+    select: Schema.Number,
+    update: Schema.Number,
+  }),
+  steps: Model.JsonFromString(Schema.Array(Step)),
+  rating: Schema.NullOr(Rating),
+  sourceUrl: Schema.NullOr(Schema.String),
+  createdAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldOnly(["insert", "select", "json"]),
+  ),
+  updatedAt: Schema.DateTimeUtcFromMillis.pipe(
+    Model.FieldOnly(["insert", "update", "select", "json"]),
+  ),
+  deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromMillis)),
+}) {}
+
+const LegacyRecipeEdit = Schema.Struct({
+  id: LegacyRecipe.fields.id,
+  title: LegacyRecipe.fields.title,
+  imageUrl: LegacyRecipe.fields.imageUrl,
+  prepTime: LegacyRecipe.fields.prepTime,
+  cookingTime: LegacyRecipe.fields.cookingTime,
+  servings: LegacyRecipe.fields.servings,
+  ingredients: LegacyRecipe.fields.ingredients,
+  steps: LegacyRecipe.fields.steps,
+  sourceName: LegacyRecipe.fields.sourceName,
+})
 
 const recipeColumns = {
   id: State.SQLite.text({ primaryKey: true }),
@@ -333,11 +370,11 @@ export const tables = {
 export const events = {
   recipeCreated: Events.synced({
     name: "v1.RecipeCreated",
-    schema: Recipe.insert,
+    schema: LegacyRecipe.insert,
   }),
   recipeUpdated: Events.synced({
     name: "v1.RecipeUpdated",
-    schema: Recipe.update,
+    schema: LegacyRecipe.update,
   }),
   recipeSetIngredientScale: Events.synced({
     name: "v1.RecipeSetIngredientScale",
@@ -370,7 +407,7 @@ export const events = {
   }),
   recipeEditSet: Events.synced({
     name: "v1.RecipeEditSet",
-    schema: RecipeEdit,
+    schema: LegacyRecipeEdit,
   }),
   recipeEditRemove: Events.synced({
     name: "v1.RecipeEditRemove",
@@ -709,13 +746,13 @@ export const schema = makeSchema({ events, state })
 
 // ----
 
-// ensure Recipe model is assignable to the recipes table
+// ensure LegacyRecipe model is assignable to the recipes table
 tables.recipes.rowSchema.pipe(
   Schema.decodeTo(
-    Schema.toType(Recipe),
+    Schema.toType(LegacyRecipe),
     SchemaTransformation.transform({
       decode: (row) =>
-        new Recipe({
+        new LegacyRecipe({
           ...row,
           rating: row.rating != null ? Rating.make(row.rating) : null,
         }),

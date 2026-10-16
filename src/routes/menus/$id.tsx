@@ -283,7 +283,7 @@ function DayListItem({
                 events.menuEntryAdd(
                   MenuEntry.fromForm({
                     menuId: menu.id,
-                    recipeId: recipe.id,
+                    recipeId: recipe.idString,
                     day,
                   }),
                 ),
@@ -370,7 +370,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
       )}
       to="/recipes/$id"
       disabled={debouncedIsDragging}
-      params={{ id: recipe.id }}
+      params={{ id: recipe.idString }}
       ref={setNodeRef}
       style={style}
       {...attributes}

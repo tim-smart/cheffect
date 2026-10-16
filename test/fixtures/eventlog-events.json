@@ -1,1 +1,121 @@
-[]
+[
+  {
+    "tag": "RecipeCreated",
+    "json": {
+      "title": "Carrot soup",
+      "imageUrl": "https://example.com/carrot-soup.jpg",
+      "prepTime": 900000,
+      "cookingTime": 2400000,
+      "servings": 4,
+      "ingredients": [
+        {
+          "name": "Soup",
+          "ingredients": [
+            { "name": "Carrots", "quantity": 500, "unit": "g" },
+            { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
+            { "name": "Salt", "quantity": null, "unit": null }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "text": "Simmer the carrots in the stock until soft.",
+          "tips": ["Cut the carrots small so they cook evenly."]
+        },
+        { "text": "Blend until smooth.", "tips": [] }
+      ],
+      "sourceName": "Example Kitchen",
+      "id": "AZPHoBssTe+BI0VniavN7w==",
+      "rating": 4,
+      "sourceUrl": "https://example.com/carrot-soup",
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000,
+      "deletedAt": null
+    },
+    "bytes": "sgMguMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cPGImYYLgIDmgrlmoJO2jRZ+AmQA+/HF2QZYAVRDdXQgdGhlIGNhcnJvdHMgc21hbGwgc28gdGhleSBjb29rIGV2ZW5seS6+nJnvC1ZTaW1tZXIgdGhlIGNhcnJvdHMgaW4gdGhlIHN0b2NrIHVudGlsIHNvZnQuFwECACZCbGVuZCB1bnRpbCBzbW9vdGgugK6NzhsQAZPHoBssTe+BI0VniavN7/ixxJMtAQLItL/UMCAFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cJj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTAtDYXJyb3Qgc291cLDslLpmBQSA/KQCqduFhnGAgOaCuWaYpsDfdiQFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cC5qcGeAhaKieQIECA=="
+  },
+  {
+    "tag": "RecipeUpdated",
+    "json": {
+      "title": "Carrot soup",
+      "imageUrl": "https://example.com/carrot-soup.jpg",
+      "prepTime": 900000,
+      "cookingTime": 2400000,
+      "servings": 4,
+      "ingredients": [
+        {
+          "name": "Soup",
+          "ingredients": [
+            { "name": "Carrots", "quantity": 500, "unit": "g" },
+            { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
+            { "name": "Salt", "quantity": null, "unit": null }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "text": "Simmer the carrots in the stock until soft.",
+          "tips": ["Cut the carrots small so they cook evenly."]
+        },
+        { "text": "Blend until smooth.", "tips": [] }
+      ],
+      "sourceName": "Example Kitchen",
+      "id": "AZPHoBssTe+BI0VniavN7w==",
+      "ingredientScale": 2,
+      "rating": 5,
+      "sourceUrl": "https://example.com/carrot-soup",
+      "updatedAt": 1760000600000,
+      "deletedAt": null
+    },
+    "bytes": "rQMg4Zi2mwQEuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLoCujc4bEAGTx6AbLE3vgSNFZ4mrze/4scSTLQECyLS/1DAgBWh0dHBzOi8vZXhhbXBsZS5jb20vY2Fycm90LXNvdXCY+uucOQQEwO5t4NevpEQCBAjYpfzhSRAFRXhhbXBsZSBLaXRjaGVuyNC2mUwLQ2Fycm90IHNvdXCw7JS6ZgUEgPykAqnbhYZxgJ+vg7lmmKbA33YkBWh0dHBzOi8vZXhhbXBsZS5jb20vY2Fycm90LXNvdXAuanBngIWionkCBAo="
+  },
+  {
+    "tag": "RecipeSetIngredientScale",
+    "json": {
+      "id": "AZPHoBssTe+BI0VniavN7w==",
+      "ingredientScale": 1.5,
+      "updatedAt": 1760000600000
+    },
+    "bytes": "KSDlmLabBB4BgK6NzhsQAZPHoBssTe+BI0VniavN76nbhYZxgJ+vg7lm"
+  },
+  {
+    "tag": "RecipeDeleted",
+    "json": { "id": "AZPHoBssTe+BI0VniavN7w==", "deletedAt": 1760000600000 },
+    "bytes": "IiCAro3OGxABk8egGyxN74EjRWeJq83v+bHEky2An6+DuWY="
+  },
+  {
+    "tag": "RecipeEditSet",
+    "json": {
+      "title": "Carrot and ginger soup",
+      "imageUrl": "https://example.com/carrot-soup.jpg",
+      "prepTime": 900000,
+      "cookingTime": 2400000,
+      "servings": 4,
+      "ingredients": [
+        {
+          "name": "Soup",
+          "ingredients": [
+            { "name": "Carrots", "quantity": 500, "unit": "g" },
+            { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
+            { "name": "Salt", "quantity": null, "unit": null }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "text": "Simmer the carrots in the stock until soft.",
+          "tips": ["Cut the carrots small so they cook evenly."]
+        },
+        { "text": "Blend until smooth.", "tips": [] }
+      ],
+      "sourceName": "Example Kitchen",
+      "id": "AZPHoBssTe+BI0VniavN7w=="
+    },
+    "bytes": "8gIguMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLoCujc4bEAGTx6AbLE3vgSNFZ4mrze+Y+uucOQQEwO5t4NevpEQCBAjYpfzhSRAFRXhhbXBsZSBLaXRjaGVuyNC2mUwWQ2Fycm90IGFuZCBnaW5nZXIgc291cLDslLpmBQSA/KQCmKbA33YkBWh0dHBzOi8vZXhhbXBsZS5jb20vY2Fycm90LXNvdXAuanBn"
+  },
+  {
+    "tag": "RecipeEditRemove",
+    "json": { "id": "AZPHoBssTe+BI0VniavN7w==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74EjRWeJq83v"
+  }
+]

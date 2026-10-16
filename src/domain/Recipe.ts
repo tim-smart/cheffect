@@ -9,6 +9,18 @@ import { UnknownToXml } from "./Xml"
 import * as Struct from "effect/Struct"
 import { quantityFormatter } from "@/lib/quantity"
 import { escapeHtml, escapeHtmlMultiline } from "@/lib/html"
+import {
+  generateUuidBytes,
+  UuidBytes,
+  UuidFromString,
+  uuidString,
+} from "@/lib/Id"
+
+export const RecipeId = UuidBytes("RecipeId")
+export type RecipeId = typeof RecipeId.Type
+export const RecipeIdFromString = UuidFromString(RecipeId).annotate({
+  description: "A unique identifier for the recipe.",
+})
 
 export const Unit = Schema.Literals([
   "g",
@@ -203,7 +215,7 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
   asRecipe(url?: string): Recipe {
     return new Recipe({
       ...this,
-      id: crypto.randomUUID(),
+      id: RecipeId.make(generateUuidBytes()),
       rating: null,
       ingredientScale: 1,
       sourceUrl: url ?? null,
@@ -218,7 +230,7 @@ const DurationFromMinutesOrNull = Schema.NullOr(DurationFromMinutes).annotate({
   description: "A duration represented in minutes. Can be null if not set.",
 })
 
-const DurationField = Model.Field({
+export const DurationField = Model.Field({
   select: Schema.NullOr(Schema.DurationFromMillis),
   insert: Schema.NullOr(Schema.DurationFromMillis),
   update: Schema.NullOr(Schema.DurationFromMillis),
@@ -229,19 +241,21 @@ const DurationField = Model.Field({
 
 export class Recipe extends Model.Class<Recipe>("Recipe")({
   ...ExtractedRecipe.fields,
-  id: Model.GeneratedByApp(
-    Schema.String.annotate({
-      description: "A unique identifier for the recipe.",
-    }),
-  ),
+  // UUID bytes in storage and events, the canonical string in JSON.
+  id: Model.Field({
+    select: RecipeId,
+    insert: RecipeId,
+    update: RecipeId,
+    json: RecipeIdFromString,
+  }),
   cookingTime: DurationField,
   prepTime: DurationField,
-  ingredients: Model.JsonFromString(IngredientsComponent.array),
+  ingredients: IngredientsComponent.array,
   ingredientScale: Model.Field({
     select: Schema.Number,
     update: Schema.Number,
   }),
-  steps: Model.JsonFromString(Schema.Array(Step)),
+  steps: Schema.Array(Step),
   rating: Schema.NullOr(Rating),
   sourceUrl: Schema.NullOr(Schema.String),
   createdAt: Schema.DateTimeUtcFromMillis.pipe(
@@ -261,6 +275,10 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
       }),
     ),
   )
+
+  get idString(): string {
+    return uuidString(this.id)
+  }
 
   get hasNoDetails(): boolean {
     if (this.prepTime !== null) return false

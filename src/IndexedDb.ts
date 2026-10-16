@@ -8,18 +8,25 @@ import * as IndexedDbDatabase from "@effect/platform-browser/IndexedDbDatabase"
 import type * as IndexedDbTable from "@effect/platform-browser/IndexedDbTable"
 import * as IndexedDbVersion from "@effect/platform-browser/IndexedDbVersion"
 import { RecipeExtractJobsTable } from "./RecipeExtractJobs/Table"
+import { RecipeEditsTable, RecipesTable } from "./Recipes/Table"
 
 export const databaseName = "cheffect"
 
 // One database, one version. Nothing has shipped on this schema, so module
 // stages add their tables and indexes to V1 and its migration rather than
 // adding a V2.
-export class V1 extends IndexedDbVersion.make(RecipeExtractJobsTable) {}
+export class V1 extends IndexedDbVersion.make(
+  RecipeExtractJobsTable,
+  RecipesTable,
+  RecipeEditsTable,
+) {}
 
 export class Database extends IndexedDbDatabase.make(
   V1,
   Effect.fn(function* (api) {
     yield* api.createObjectStore("recipeExtractJobs")
+    yield* api.createObjectStore("recipes")
+    yield* api.createObjectStore("recipeEdits")
   }),
 ) {}
 

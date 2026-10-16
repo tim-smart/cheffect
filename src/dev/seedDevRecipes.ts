@@ -12,23 +12,16 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { queryDb, sql } from "@livestore/livestore"
 import * as DateTime from "effect/DateTime"
 import * as Option from "effect/Option"
+import * as Effect from "effect/Effect"
 import * as Schema from "effect/Schema"
+import { writeEvent } from "@/EventLog"
+import { RecipeRepo } from "@/Recipes/Repo"
+import { recipesRuntime } from "@/Recipes/runtime"
 
 const CountSchema = Schema.Array(
   Schema.Struct({
     count: Schema.Number,
   }),
-)
-
-const recipeCount$ = queryDb(
-  {
-    query: sql`SELECT COUNT(*) as count FROM recipes WHERE deletedAt IS NULL`,
-    schema: CountSchema,
-  },
-  {
-    label: "devRecipeSeedCount",
-    map: (rows) => rows[0]?.count ?? 0,
-  },
 )
 
 const groceryCount$ = queryDb(
@@ -64,37 +57,34 @@ const mealPlanCount$ = queryDb(
   },
 )
 
-const seedRecipes$ = queryDb(
-  {
-    query: sql`
-      SELECT *
-      FROM recipes
-      WHERE deletedAt IS NULL
-      ORDER BY createdAt DESC`,
-    schema: Recipe.array,
-  },
-  {
-    label: "devSeedRecipes",
-  },
+// Recipes are read through the repo and written through the EventLog. The
+// result is the recipes the other seeds reference.
+const seededRecipesAtom = recipesRuntime.atom(
+  Effect.gen(function* () {
+    const repo = yield* RecipeRepo
+    const existing = yield* repo.live
+    if (existing.length > 0) {
+      return existing.toSorted(
+        (a, b) => b.createdAt.epochMilliseconds - a.createdAt.epochMilliseconds,
+      )
+    }
+    const recipes = seedRecipes.map((recipe) => recipe.asRecipe())
+    for (const recipe of recipes) {
+      yield* writeEvent({ event: "RecipeCreated", payload: recipe })
+    }
+    return recipes
+  }),
 )
 
 export const seedDevRecipesAtom = Atom.make((get) => {
   const store = get(Store.storeUnsafe)
   if (!store) return
-  const recipeCount = store.query(recipeCount$)
+  const seeded = get(seededRecipesAtom)
+  if (!AsyncResult.isSuccess(seeded)) return
+  const availableRecipes: ReadonlyArray<Recipe> = seeded.value
   const groceryCount = store.query(groceryCount$)
   const menuCount = store.query(menuCount$)
   const mealPlanCount = store.query(mealPlanCount$)
-
-  let availableRecipes: ReadonlyArray<Recipe> = []
-  if (recipeCount === 0) {
-    availableRecipes = seedRecipes.map((recipe) => recipe.asRecipe())
-    for (const recipe of availableRecipes) {
-      store.commit(events.recipeCreated(recipe))
-    }
-  } else {
-    availableRecipes = store.query(seedRecipes$)
-  }
 
   if (groceryCount === 0) {
     for (const item of seedGroceryItems) {
@@ -120,7 +110,7 @@ export const seedDevRecipesAtom = Atom.make((get) => {
         events.menuEntryAdd(
           MenuEntry.fromForm({
             menuId: menu.id,
-            recipeId: recipe.id,
+            recipeId: recipe.idString,
             day,
           }),
         ),
@@ -150,7 +140,7 @@ export const seedDevRecipesAtom = Atom.make((get) => {
         events.mealPlanAdd({
           id: crypto.randomUUID(),
           day: DateTime.add(weekStart, { days: offset }),
-          recipeId: recipe.id,
+          recipeId: recipe.idString,
         }),
       )
     }

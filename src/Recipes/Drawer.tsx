@@ -10,14 +10,27 @@ import {
 } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Recipe } from "@/domain/Recipe"
-import type { AtomRegistry } from "effect/reactivity/AtomRegistry"
+import * as Array from "effect/Array"
+import * as Effect from "effect/Effect"
+import * as Option from "effect/Option"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
+import React, { useState } from "react"
 import {
   mealPlanRecipesAtom,
   mealPlanRecipesQueryAtom,
-} from "@/livestore/queries"
-import { RegistryContext, useAtom, useAtomValue } from "@effect/atom-react"
-import React, { useContext, useState } from "react"
+  recipesRuntime,
+} from "./atoms"
 import { RecipeList } from "./List"
+import { RecipeRepo } from "./Repo"
+
+// The best match for the query, read from the repo rather than from whatever
+// the results list last rendered.
+const firstMatchAtom = recipesRuntime.fn<string>()((query) =>
+  RecipeRepo.use((repo) => repo.search({ query, sortBy: "title" })).pipe(
+    Effect.map(Array.head),
+  ),
+)
 
 export function SelectRecipeDrawer({
   children,
@@ -27,7 +40,7 @@ export function SelectRecipeDrawer({
   onSelect: (recipe: Recipe) => void
 }) {
   const [open, setOpen] = useState(false)
-  const registry = useContext<AtomRegistry>(RegistryContext)
+  const firstMatch = useAtomSet(firstMatchAtom, { mode: "promise" })
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
     null,
   )
@@ -42,10 +55,10 @@ export function SelectRecipeDrawer({
           </DrawerHeader>
           <div className="px-4 flex flex-col gap-4">
             <SearchInput
-              onSubmit={() => {
-                const recipe = registry.get(mealPlanRecipesAtom)![0]
-                if (recipe) {
-                  onSelect(recipe)
+              onSubmit={async (query) => {
+                const recipe = await firstMatch(query)
+                if (Option.isSome(recipe)) {
+                  onSelect(recipe.value)
                   setOpen(false)
                 }
               }}
@@ -74,7 +87,7 @@ export function SelectRecipeDrawer({
   )
 }
 
-function SearchInput({ onSubmit }: { onSubmit: () => void }) {
+function SearchInput({ onSubmit }: { onSubmit: (query: string) => void }) {
   const [query, setQuery] = useAtom(mealPlanRecipesQueryAtom)
   return (
     <Input
@@ -84,7 +97,7 @@ function SearchInput({ onSubmit }: { onSubmit: () => void }) {
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault()
-          onSubmit()
+          onSubmit(query)
         }
       }}
       autoFocus
@@ -100,14 +113,16 @@ function SearchResults({
   onSelect: (recipe: Recipe) => void
 }) {
   const query = useAtomValue(mealPlanRecipesQueryAtom)
-  const recipes = useAtomValue(mealPlanRecipesAtom)!
-  return (
-    <RecipeList
-      recipes={recipes}
-      searchQuery={query}
-      onSelect={onSelect}
-      rounded={false}
-      getScrollElement={getScrollElement}
-    />
-  )
+  const recipes = useAtomValue(mealPlanRecipesAtom)
+  return AsyncResult.builder(recipes)
+    .onSuccess((recipes) => (
+      <RecipeList
+        recipes={recipes}
+        searchQuery={query}
+        onSelect={onSelect}
+        rounded={false}
+        getScrollElement={getScrollElement}
+      />
+    ))
+    .render()
 }

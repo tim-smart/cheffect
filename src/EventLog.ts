@@ -21,6 +21,8 @@ import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import { IndexedDbQueryError } from "@effect/platform-browser/IndexedDbQueryBuilder"
 import { useAtomSet } from "@effect/atom-react"
 import { kvsRuntime } from "./lib/atom"
+import { RecipesLayer } from "./Recipes"
+import { RecipeEvents } from "./Recipes/Events"
 import { withWebLock } from "./lib/WebLock"
 import { QueryBuilder, layerIndexedDb, tableNames } from "./IndexedDb"
 
@@ -29,7 +31,7 @@ import { QueryBuilder, layerIndexedDb, tableNames } from "./IndexedDb"
 // One EventGroup per module. Each module stage adds its group here and its
 // handlers to `EventLogLayer`.
 
-export const CheffectEvents = EventLog.schema()
+export const CheffectEvents = EventLog.schema(RecipeEvents)
 
 export type EventPayload =
   (typeof CheffectEvents.groups)[number] extends EventGroup.EventGroup<
@@ -159,7 +161,7 @@ export const syncUrlAtom = Atom.make((get) =>
 
 // Layers and atoms
 
-const EventLogLayer = EventLog.layer(CheffectEvents, Layer.empty).pipe(
+const EventLogLayer = EventLog.layer(CheffectEvents, RecipesLayer).pipe(
   Layer.provide(EventJournal.layerIndexedDb({ database: journalDatabaseName })),
   Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),
 )
@@ -272,18 +274,25 @@ export const durabilityBarrier: Effect.Effect<
 
 // Writes
 //
-// The one write atom. Every write ends with the durability barrier, so there
-// is no second "persisted" API to forget.
+// Every write ends with the durability barrier, so there is no second
+// "persisted" API to forget. Effects that write (atoms, the AI tools, the
+// extraction manager, the dev seed) use `writeEvent`; components use
+// `useWrite()`.
+
+export const writeEvent = (
+  payload: EventPayload,
+): Effect.Effect<
+  void,
+  EventJournal.EventJournalError | IndexedDbQueryError,
+  EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
+> =>
+  EventLog.EventLog.use((_) =>
+    _.write({ schema: CheffectEvents, ...payload } as any),
+  ).pipe(Effect.andThen(durabilityBarrier))
 
 export const writeEventAtom = eventLogAtom
   .fn<EventPayload>()(
-    (payload) =>
-      EventLog.EventLog.use((_) =>
-        _.write({ schema: CheffectEvents, ...payload } as any),
-      ).pipe(
-        Effect.andThen(durabilityBarrier),
-        Effect.tapCause(Effect.logWarning),
-      ),
+    (payload) => writeEvent(payload).pipe(Effect.tapCause(Effect.logWarning)),
     { concurrent: true },
   )
   .pipe(Atom.keepAlive)

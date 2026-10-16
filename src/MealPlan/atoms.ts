@@ -33,7 +33,7 @@ export const addMenuToMealPlanAtom = Store.runtime.fn<{
         events.mealPlanAdd({
           id: crypto.randomUUID(),
           day,
-          recipeId: entry.recipe.id,
+          recipeId: entry.recipe.idString,
         }),
       )
     }

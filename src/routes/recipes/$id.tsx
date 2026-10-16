@@ -13,7 +13,8 @@ import { Recipe, unitNeedsSpace } from "@/domain/Recipe"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
-import { useCommit, useCommitPersisted } from "@/livestore/atoms"
+import { useWrite } from "@/EventLog"
+import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import {
   MealPlanDatePicker,
@@ -85,10 +86,14 @@ function RouteComponent() {
   const { id } = Route.useParams()
   const result = useAtomValue(recipeForDisplayAtom(id))
   return AsyncResult.builder(result)
-    .onSuccess(({ resolved, isModified }) => (
-      <RecipeDetails recipe={resolved} modified={isModified} />
-    ))
-    .onErrorTag("NoSuchElementError", () => <NoRecipeFound />)
+    .onSuccess((found) =>
+      Option.match(found, {
+        onNone: () => <NoRecipeFound />,
+        onSome: ({ resolved, isModified }) => (
+          <RecipeDetails recipe={resolved} modified={isModified} />
+        ),
+      }),
+    )
     .render()
 }
 
@@ -103,14 +108,16 @@ export function RecipeDetails({
   useAtomMount(screenWakeLockAtom)
 
   const commit = useCommit()
-  const commitPersisted = useCommitPersisted()
+  const write = useWrite()
 
   const ingredients = useMemo(() => recipe.ingredientsDisplay, [recipe])
   const [checkedIngredients, setCheckedIngredients] = useAtom(
-    checkedIngredientsAtom(recipe.id),
+    checkedIngredientsAtom(recipe.idString),
   )
   const stepElements: Array<HTMLDivElement> = []
-  const [currentStep, setCurrentStep] = useAtom(recipeSelectedStep(recipe.id))
+  const [currentStep, setCurrentStep] = useAtom(
+    recipeSelectedStep(recipe.idString),
+  )
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -246,14 +253,14 @@ export function RecipeDetails({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link to="/edit/$id" params={{ id: recipe.id }}>
+                  <Link to="/edit/$id" params={{ id: recipe.idString }}>
                     <Edit />
                     Edit
                   </Link>
                 </DropdownMenuItem>
                 <MealPlanDatePicker
                   target={MealPlanDatePickerTarget.New({
-                    recipeId: recipe.id,
+                    recipeId: recipe.idString,
                   })}
                   onSelect={() => {
                     setMenuOpen(false)
@@ -290,12 +297,13 @@ export function RecipeDetails({
                     ) {
                       return
                     }
-                    await commitPersisted(
-                      events.recipeDeleted({
+                    await write({
+                      event: "RecipeDeleted",
+                      payload: {
                         id: recipe.id,
                         deletedAt: DateTime.nowUnsafe(),
-                      }),
-                    )
+                      },
+                    })
                     return router.history.back()
                   }}
                 >
@@ -496,7 +504,7 @@ export function RecipeDetails({
 
 function IngredientDropdown({ recipe }: { recipe: Recipe }) {
   const [open, setOpen] = useState(false)
-  const commit = useCommit()
+  const write = useWrite()
   const canConvert = useAtomValue(canConvertIngredientsAtom)
   const convert = useAtomSet(convertIngredientsAtom)
 
@@ -534,13 +542,14 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
                 return yield* BigDecimal.fromString(parts[0])
               })
               if (Option.isSome(scale)) {
-                commit(
-                  events.recipeSetIngredientScale({
+                write({
+                  event: "RecipeSetIngredientScale",
+                  payload: {
                     id: recipe.id,
                     ingredientScale: BigDecimal.toNumberUnsafe(scale.value),
                     updatedAt: DateTime.nowUnsafe(),
-                  }),
-                )
+                  },
+                })
               }
               setOpen(false)
             }}
@@ -559,7 +568,7 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
 
 function ModifiedBanner({ recipe }: { recipe: Recipe }) {
   const [originals, setOriginals] = useAtom(showOriginalRecipeAtom)
-  const showOriginal = HashSet.has(originals, recipe.id)
+  const showOriginal = HashSet.has(originals, recipe.idString)
   const discard = useAtomSet(discardModifiedRecipeAtom)
   const save = useAtomSet(saveModifiedRecipeAtom)
   const create = useAtomSet(newModifiedRecipeAtom)
@@ -571,7 +580,7 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setOriginals(toggleHashSet(recipe.id))}
+          onClick={() => setOriginals(toggleHashSet(recipe.idString))}
         >
           {showOriginal ? "Show modified" : "Show original"}
         </Button>
@@ -582,15 +591,15 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => discard(recipe.id)}>
+            <DropdownMenuItem onClick={() => discard(recipe.idString)}>
               <Trash />
               Discard
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => save(recipe.id)}>
+            <DropdownMenuItem onClick={() => save(recipe.idString)}>
               <Save />
               Save
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => create(recipe.id)}>
+            <DropdownMenuItem onClick={() => create(recipe.idString)}>
               <Plus />
               Create new
             </DropdownMenuItem>

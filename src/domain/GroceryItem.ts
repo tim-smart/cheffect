@@ -97,7 +97,7 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
       name: ingredient.name,
       quantity: ingredient.quantityWithUnit,
       completed: false,
-      recipeIds: recipe ? [recipe.id] : null,
+      recipeIds: recipe ? [recipe.idString] : null,
       aisle: null,
       createdAt: DateTime.nowUnsafe(),
       updatedAt: DateTime.nowUnsafe(),

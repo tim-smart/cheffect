@@ -2,7 +2,7 @@ import * as Data from "effect/Data"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
-import { events, tables } from "./livestore/schema"
+import { events, LegacyRecipe, tables } from "./livestore/schema"
 import { queryDb, sql } from "@livestore/livestore"
 import { flow } from "effect"
 import * as Array from "effect/Array"
@@ -14,7 +14,10 @@ import * as DateTime from "effect/DateTime"
 import * as Function from "effect/Function"
 import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
-import { allRecipesAtom, exportGroceryItems$ } from "./livestore/queries"
+import { exportGroceryItems$ } from "./livestore/queries"
+import { Recipe, RecipeId, RecipeIdFromString } from "./domain/Recipe"
+import { generateUuidBytes } from "./lib/Id"
+import { importRecipesAtom, liveRecipesAtom } from "./Recipes/runtime"
 
 const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
   const schema: Schema.Codec<S["Type"], S["Encoded"]> = setting.schema
@@ -249,9 +252,13 @@ export const exportAllAtom = Store.runtime.fn<void>()(
     const out = Array.empty<(typeof ExportEvents.Type)[number]>()
 
     // recipes
-    const allRecipes = yield* get.result(allRecipesAtom)
+    const allRecipes = yield* get.setResult(liveRecipesAtom, undefined)
     for (const recipe of allRecipes) {
-      out.push(events.recipeCreated(recipe))
+      out.push(
+        events.recipeCreated(
+          LegacyRecipe.insert.make({ ...recipe, id: recipe.idString }),
+        ),
+      )
     }
 
     // groceries
@@ -306,12 +313,29 @@ export const exportAllAtom = Store.runtime.fn<void>()(
   }),
 )
 
+// Recipes in the file go to the EventLog, everything else to LiveStore until
+// its module moves over.
+const recipeFromLegacy = (legacy: typeof LegacyRecipe.insert.Type) =>
+  new Recipe({
+    ...legacy,
+    id: Option.getOrElse(
+      Schema.decodeOption(RecipeIdFromString)(legacy.id),
+      () => RecipeId.make(generateUuidBytes()),
+    ),
+    ingredientScale: 1,
+  })
+
 export const importAllAtom = Store.runtime.fn<File>()(
-  Effect.fnUntraced(function* (file) {
+  Effect.fnUntraced(function* (file, get) {
     const text = yield* Effect.promise(() => file.text())
     const events = Schema.decodeSync(ExportEventsJson)(text)
     const store = yield* Store
+    const recipes = Array.empty<Recipe>()
     for (const event of events) {
+      if (event.name === "v1.RecipeCreated") {
+        recipes.push(recipeFromLegacy(event.args))
+        continue
+      }
       // @effect-diagnostics-next-line tryCatchInEffectGen:off
       try {
         store.commit(event)
@@ -319,5 +343,6 @@ export const importAllAtom = Store.runtime.fn<File>()(
         console.error("Failed to import event", event, e)
       }
     }
+    yield* get.setResult(importRecipesAtom, recipes)
   }),
 )

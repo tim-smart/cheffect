@@ -26,6 +26,7 @@ import { useCommit } from "@/livestore/atoms"
 import { events } from "@/livestore/schema"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
+import * as Option from "effect/Option"
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { FormBody, FormDisplay } from "@/lib/Form"
@@ -47,8 +48,8 @@ import {
   groceryListNamesAtom,
   groceryListStateAtom,
   PANTRY_GROCERY_LIST_NAME,
-  recipeTitleAtom,
 } from "@/livestore/queries"
+import { recipeTitleAtom } from "@/Recipes/atoms"
 import { cn } from "@/lib/utils"
 import { isAiEnabledAtom } from "@/services/AiHelpers"
 import {
@@ -696,9 +697,14 @@ function BeautifyButton() {
   )
 }
 
+// Renders nothing while the recipe is loading, or when it is missing (an item
+// can sync before its recipe, or outlive it).
 function RecipeTitle({ id }: { readonly id: string }) {
-  const title = useAtomValue(recipeTitleAtom(id))
-  return <span>{title}</span>
+  const title = useAtomValue(recipeTitleAtom(id)).pipe(
+    AsyncResult.value,
+    Option.flatten,
+  )
+  return Option.isSome(title) ? <span>{title.value}</span> : null
 }
 
 function NameAutoCompleteSync() {

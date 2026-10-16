@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button"
 import { Recipe } from "@/domain/Recipe"
 import { RecipeInsert } from "@/domain/RecipeForm"
-import { useCommitPersisted } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import { useWrite } from "@/EventLog"
 import { recipeFormByIdAtom } from "@/Recipes/atoms"
 import { Display, RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
+import * as Option from "effect/Option"
 import { useAtomValue } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
@@ -22,45 +22,47 @@ export const Route = createFileRoute("/edit/$id")({
 function EditRecipeScreen() {
   const { id } = Route.useParams()
   const result = useAtomValue(recipeFormByIdAtom(id))
-  const commit = useCommitPersisted()
+  const write = useWrite()
   const [saving, setSaving] = useState(false)
   const formId = Display.Form.id
   return AsyncResult.builder(result)
-    .onWaiting(() => <RecipeFormSkeleton />)
-    .onSuccess(([initialValue, recipe]) => (
-      <div className="pb-content">
-        <Header recipe={recipe} formId={formId} saving={saving} />
-        <RecipeForm
-          initialValue={initialValue}
-          variant="edit"
-          onSubmit={async (data) => {
-            if (saving) return
-            setSaving(true)
-            const formRecipe = Schema.decodeSync(RecipeInsert)(data)
-            // history.back() can leave the document, so wait for the edit to
-            // be persisted first
-            await commit(
-              events.recipeUpdated(
-                Recipe.update.make({
+    .onInitial(() => <RecipeFormSkeleton />)
+    .onSuccess((found) => {
+      if (Option.isNone(found)) return <NoRecipeFound />
+      const [initialValue, recipe] = found.value
+      return (
+        <div className="pb-content">
+          <Header recipe={recipe} formId={formId} saving={saving} />
+          <RecipeForm
+            initialValue={initialValue}
+            variant="edit"
+            onSubmit={async (data) => {
+              if (saving) return
+              setSaving(true)
+              const formRecipe = Schema.decodeSync(RecipeInsert)(data)
+              // history.back() can leave the document, so wait for the edit to
+              // be persisted first
+              await write({
+                event: "RecipeUpdated",
+                payload: Recipe.update.make({
                   ...formRecipe,
                   id: recipe.id,
                   ingredientScale: recipe.ingredientScale,
                   updatedAt: DateTime.nowUnsafe(),
                 }),
-              ),
-            ).finally(() => setSaving(false))
-            if (router.history.length > 1) {
-              return router.history.back()
-            }
-            router.navigate({
-              to: "/recipes/$id",
-              params: { id: recipe.id },
-            })
-          }}
-        />
-      </div>
-    ))
-    .onErrorTag("NoSuchElementError", () => <NoRecipeFound />)
+              }).finally(() => setSaving(false))
+              if (router.history.length > 1) {
+                return router.history.back()
+              }
+              router.navigate({
+                to: "/recipes/$id",
+                params: { id: recipe.idString },
+              })
+            }}
+          />
+        </div>
+      )
+    })
     .render()
 }
 
@@ -70,7 +72,6 @@ function Header({
   saving,
 }: {
   recipe: {
-    readonly id: string
     readonly title: string
   }
   formId: string
