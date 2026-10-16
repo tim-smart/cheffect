@@ -237,6 +237,46 @@ test("the Recipes group is in the catalogue, keyed by the canonical id string", 
   }
 })
 
+test("a local whole-Recipe update preserves createdAt", async () => {
+  const identity = await Effect.runPromise(testIdentity)
+  const { recipes } = await Effect.gen(function* () {
+    const remote = yield* makeFakeRemote
+    return yield* Effect.gen(function* () {
+      yield* remote.deliver([created])
+      const log = yield* EventLog.EventLog
+      // The edit form supplies a whole Recipe, including a new createdAt.
+      yield* log.write({
+        schema: EventLog.schema(RecipeEvents),
+        event: "RecipeUpdated",
+        payload: new Recipe({
+          ...soup,
+          id: recipeId,
+          title: "Carrot soup",
+          rating: null,
+          sourceUrl: null,
+          ingredientScale: 2,
+          createdAt: at(2000),
+          updatedAt: at(2000),
+          deletedAt: null,
+        }),
+      })
+      return yield* readTables
+    }).pipe(
+      Effect.timeout("5 seconds"),
+      Effect.provide(makeLayer(identity, remote.layer)),
+    )
+  }).pipe(Effect.runPromise)
+  assert.deepEqual(
+    pick(only(recipes), ["title", "ingredientScale", "createdAt", "updatedAt"]),
+    {
+      title: "Carrot soup",
+      ingredientScale: 2,
+      createdAt: 1000,
+      updatedAt: 2000,
+    },
+  )
+})
+
 test("concurrent writes to different recipe fields both land", async () => {
   const { recipes, recipeEdits } = await converge({
     setup: [created],
