@@ -121,17 +121,16 @@ function NoResults() {
   )
 }
 
-const noCounts: ReadonlyMap<string, number> = new Map()
-
 function MenuCard({ menu }: { menu: Menu }) {
   const write = useWrite()
   const [menuOpen, setMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const recipeCount =
-    AsyncResult.getOrElse(
-      useAtomValue(menuRecipeCountsAtom),
-      () => noCounts,
-    ).get(menu.idString) ?? 0
+  // The counts also need the menu entries, so they can load after the menus.
+  // Until then there's no count rather than "0 recipes".
+  const counts = useAtomValue(menuRecipeCountsAtom)
+  const recipeCount = AsyncResult.isSuccess(counts)
+    ? (counts.value.get(menu.idString) ?? 0)
+    : null
   return (
     <div className="flex items-center pr-2 active:bg-muted transition-colors">
       <Link
@@ -161,8 +160,14 @@ function MenuCard({ menu }: { menu: Menu }) {
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-0.5">{menu.days} days</div>
-          &bull;
-          <div className="flex items-center gap-0.5">{recipeCount} recipes</div>
+          {recipeCount !== null && (
+            <>
+              &bull;
+              <div className="flex items-center gap-0.5">
+                {recipeCount} recipes
+              </div>
+            </>
+          )}
         </div>
       </Link>
 
