@@ -84,6 +84,13 @@ function AddMenuForm() {
 function MenuList() {
   // Doesn't suspend, so the page shows while the menus load.
   const result = useAtomValue(allMenusAtom)
+  if (AsyncResult.isFailure(result)) {
+    return (
+      <p role="alert" className="text-center py-16 text-muted-foreground">
+        Couldn't load menus. Reload the app to try again.
+      </p>
+    )
+  }
   if (!AsyncResult.isSuccess(result)) return null
   const menus = result.value
 
