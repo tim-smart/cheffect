@@ -22,9 +22,7 @@ import { TimersTable } from "./Timers/Table"
 
 export const databaseName = "cheffect"
 
-// One database, one version. Nothing has shipped on this schema, so module
-// stages add their tables and indexes to V1 and its migration rather than
-// adding a V2.
+// All module tables and indexes share one database and schema version.
 export class V1 extends IndexedDbVersion.make(
   RecipeExtractJobsTable,
   RecipesTable,

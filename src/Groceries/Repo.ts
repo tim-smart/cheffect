@@ -20,7 +20,7 @@ import type {
 
 // Reads
 //
-// Every read is a pure function over the table snapshots (TIM-251). Ingredient
+// Every read is a pure function over the table snapshots. Ingredient
 // aisle and aisle order tombstones never show. An item whose recipe is gone
 // still shows; the recipe chip renders nothing for it.
 

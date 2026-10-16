@@ -12,7 +12,7 @@ import { QueryBuilder } from "./IndexedDb"
 import { eventFields } from "./lib/eventFields"
 import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 
-// Handlers converge whatever order remote entries arrive in (TIM-248): an add
+// Handlers converge whatever order remote entries arrive in: an add
 // inserts only when the item is missing, updates and toggles patch under
 // last-writer-wins and do nothing when the item is missing, and a delete
 // hard-deletes, so a late update can't bring an item back. A clear deletes

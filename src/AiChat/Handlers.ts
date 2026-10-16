@@ -6,9 +6,9 @@ import { QueryBuilder } from "@/IndexedDb"
 import { eventFields } from "@/lib/eventFields"
 import { AiChatEvents } from "./Events"
 
-// Handlers converge whatever order remote entries arrive in (TIM-248,
-// TIM-254): an add inserts only when the row is missing, and a remove
-// hard-deletes. A clear deletes only the ids its writer saw, so a memory
+// Handlers converge whatever order remote entries arrive in: an add inserts
+// only when the row is missing, and a remove hard-deletes. A clear deletes
+// only the ids its writer saw, so a memory
 // entry or turn added concurrently on another device survives it.
 //
 // The handlers live here rather than in `src/AiChat.tsx`, which is the chat

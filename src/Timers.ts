@@ -7,7 +7,7 @@ import { eventFields } from "./lib/eventFields"
 import { applyLww, stampAll } from "./lib/Lww"
 import { TimerEvents } from "./Timers/Events"
 
-// Handlers converge whatever order remote entries arrive in (TIM-254): a
+// Handlers converge whatever order remote entries arrive in: a
 // create inserts only when the row is missing, an update patches the running
 // state under last-writer-wins and does nothing when the row is missing, and
 // a dismiss hard-deletes, so a late update can't bring the timer back.

@@ -47,8 +47,7 @@ import {
 
 // Events
 //
-// One EventGroup per module. Each module stage adds its group here and its
-// handlers to `EventLogLayer`.
+// One EventGroup per module, with its handlers provided by `EventLogLayer`.
 
 export const CheffectEvents = EventLog.schema(
   RecipeEvents,

@@ -28,7 +28,7 @@ import { eventFields } from "./lib/eventFields"
 import { isLive } from "./lib/Lww"
 import { SettingsEvents } from "./Settings/Events"
 
-// Export files (TIM-256)
+// Export files
 //
 // "Export all data", "Import all data" and the LiveStore conversion CLI share
 // one versioned file: a list of create and set events from the catalogue,
@@ -220,7 +220,7 @@ export const exportAll: Effect.Effect<
 // - A create this device has already seen (its entry is in the journal) is
 //   skipped. Handlers already ignore a create for a row that exists, and this
 //   also keeps hard-deleted rows deleted, which a handler can't tell apart
-//   from rows it has never had (TIM-248 rule 4).
+//   from rows it has never had.
 // - Sets on natural keys (drafts, aisles, aisle orders, settings) are always
 //   written, so they overwrite what is here as the newest entries.
 //

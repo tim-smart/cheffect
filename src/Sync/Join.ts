@@ -43,7 +43,7 @@ const holdLock = Effect.fnUntraced(function* (
   yield* Effect.raceFirst(Deferred.await(acquired), Fiber.join(holder))
 })
 
-// Joining replaces this device's data with another collection (TIM-255). The
+// Joining replaces this device's data with another collection. The
 // order is what makes a crash safe:
 //
 // 1. Wipe the cheffect database, then the journal. Rebuilding first makes

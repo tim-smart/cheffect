@@ -13,7 +13,7 @@ export const aiChatRuntime = Atom.runtime((get) =>
 ).pipe(Atom.keepAlive)
 
 // Removes the entries this device can see, so one saved concurrently on
-// another device survives (TIM-248).
+// another device survives.
 export const clearAiMemoryAtom = aiChatRuntime.fn<void>()(
   Effect.fnUntraced(function* () {
     const entries = yield* AiChatRepo.use((repo) => repo.memoryEntries)

@@ -4,7 +4,7 @@ import { UuidBytes, UuidFromString } from "@/lib/Id"
 
 // One finished chat turn: the user's message and everything the assistant
 // did to answer it, tool calls and results included, so they always sync
-// together (TIM-254).
+// together.
 export const AiChatTurnId = UuidBytes("AiChatTurnId")
 export type AiChatTurnId = typeof AiChatTurnId.Type
 export const AiChatTurnIdFromString = UuidFromString(AiChatTurnId)

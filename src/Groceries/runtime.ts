@@ -16,7 +16,7 @@ export const groceriesRuntime = Atom.runtime((get) =>
 
 // Writes
 //
-// Handlers never touch the aisle table on an item write (TIM-248), so the
+// Handlers never touch the aisle table on an item write, so the
 // writer teaches it. An item with an aisle sets that aisle for its name when
 // the name has none yet, or always on a user's own edit. A rename with an
 // aisle also removes the previous name's aisle. These are separate writes,

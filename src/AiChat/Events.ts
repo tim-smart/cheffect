@@ -8,7 +8,7 @@ import { uuidString } from "@/lib/Id"
 // the old handler stays. `v1.AIMemoryClear` is dropped for
 // `AIMemoryEntriesRemoved`, which carries the ids the writer saw. Chat
 // history moves out of `key_values` into one `AiChatTurnAdded` per finished
-// turn, and clearing the chat removes the turns it saw (TIM-254).
+// turn, and clearing the chat removes the turns it saw.
 export const AiChatEvents = EventGroup.empty
   .add({
     tag: "AIMemoryEntryAdded",

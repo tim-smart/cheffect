@@ -174,7 +174,7 @@ export const mealPlanWeekStart = new Setting({
   cached: true,
 })
 
-// Export and import (TIM-256)
+// Export and import
 //
 // Both go through the EventLog runtime, so export works offline, with sync
 // off and before the remote has ever connected. Export keeps the share-only

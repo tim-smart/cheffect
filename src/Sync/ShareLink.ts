@@ -2,7 +2,7 @@ import * as Option from "effect/Option"
 import * as EventLog from "effect/eventlog/EventLog"
 import { parseSyncServerUrl } from "@/EventLog"
 
-// Share links (TIM-255): `https://<app>/#join=<sync key>&server=<url>`. Both
+// Share links: `https://<app>/#join=<sync key>&server=<url>`. Both
 // values live in the fragment, so the key never reaches a server log or a
 // `Referer`.
 

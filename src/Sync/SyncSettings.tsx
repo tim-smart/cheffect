@@ -34,8 +34,8 @@ import {
 import { JoinDialog } from "./JoinDialog"
 import { makeShareLink, parseJoinInput, type JoinRequest } from "./ShareLink"
 
-// The server URL, Enable Sync, the sync key and joining another collection
-// (TIM-255). Changing the server or toggling sync takes effect without a
+// Controls the server URL, Enable Sync, the sync key and joining another
+// collection. Changing the server or toggling sync takes effect without a
 // reload: the remote follows the settings, and a new server receives this
 // device's whole journal on its first connection.
 export function SyncSettings() {

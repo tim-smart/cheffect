@@ -850,7 +850,7 @@ ${MenuEntry.toXml(entries)}`
       )
 
       // Removes the turns this device can see, so a turn from another device
-      // that hasn't synced yet survives the clear (TIM-254).
+      // that hasn't synced yet survives the clear.
       const clear = Effect.gen(function* () {
         const ids = yield* repo.turnIds.pipe(Effect.orDie)
         yield* Ref.set(chat.history, Prompt.empty)

@@ -11,7 +11,7 @@ import { eventFields } from "./lib/eventFields"
 import { applyLww, stampAll } from "./lib/Lww"
 import { MealPlanEvents } from "./MealPlan/Events"
 
-// Handlers converge whatever order remote entries arrive in (TIM-248): an add
+// Handlers converge whatever order remote entries arrive in: an add
 // inserts only when the row is missing, `MealPlanSetDay` and note updates
 // patch under last-writer-wins and do nothing when the row is missing, and
 // removes hard-delete, so a late update can't bring a row back. A day note

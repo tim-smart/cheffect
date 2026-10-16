@@ -10,7 +10,7 @@ import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 import { RecipeEvents } from "./Recipes/Events"
 import type { RecipeRow } from "./Recipes/Table"
 
-// Handlers converge whatever order remote entries arrive in (TIM-248): a
+// Handlers converge whatever order remote entries arrive in: a
 // create inserts only when the row is missing, updates patch fields under
 // last-writer-wins and do nothing when the row is missing, and recipe edits
 // keep tombstones because their key is the recipe id.

@@ -1,5 +1,5 @@
 // Converts an old LiveStore "Export all data" file into the new export
-// format, for "Import all data" (TIM-256):
+// format, for "Import all data":
 //
 //   node --import tsx scripts/convert-livestore-export.ts <in> <out>
 //

@@ -42,7 +42,7 @@ export const GroceryEvents = EventGroup.empty
   .add({
     tag: "GroceryItemsDeleted",
     // A fixed key: the payload has no list, and clears never need to be told
-    // apart from each other (approved on TIM-266).
+    // apart from each other.
     primaryKey: () => "groceryItems",
     payload: Schema.Struct({ ids: Schema.NonEmptyArray(GroceryItemId) }),
   })
