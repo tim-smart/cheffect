@@ -1,44 +1,49 @@
+import * as Cause from "effect/Cause"
 import * as Data from "effect/Data"
+import * as Exit from "effect/Exit"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import { Store, storeIdAtom, syncEnabledAtom } from "./livestore/atoms"
-import { events, tables } from "./livestore/schema"
-import { queryDb, sql } from "@livestore/livestore"
-import { flow } from "effect"
-import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { kvsRuntime } from "./atoms"
-import * as DateTime from "effect/DateTime"
 import * as Function from "effect/Function"
-import { makeResultOptionAtom } from "./lib/atom"
 import * as Effect from "effect/Effect"
-import { allRecipesAtom, exportGroceryItems$ } from "./livestore/queries"
+import { eventLogAtom, writeEventAtom } from "./EventLog"
+import { exportAll, ExportFileJson, importAll } from "./ExportFile"
+import * as Layer from "effect/Layer"
+import * as Stream from "effect/Stream"
+import { toast } from "sonner"
+import { withToast } from "./lib/sonner"
+import { SettingsRepo } from "./Settings/Repo"
 
+// Every setting's encoded value, kept live from the `settings` snapshot.
+const settingsRuntime = Atom.runtime((get) =>
+  SettingsRepo.layer.pipe(Layer.provideMerge(get(eventLogAtom.layer))),
+).pipe(Atom.keepAlive)
+
+const settingValuesAtom = settingsRuntime
+  .atom(SettingsRepo.useSync((_) => _.stream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+// A setting's value is its encoded `Option` as a JSON string. A cleared
+// setting, or one that no longer decodes, reads as `None` and falls back to
+// the initial value.
 const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
   const schema: Schema.Codec<S["Type"], S["Encoded"]> = setting.schema
-  const optionSchema = Schema.Option(schema)
-  const read = Store.makeQuery(
-    queryDb(
-      {
-        query: sql`SELECT value FROM settings WHERE id = ? AND value IS NOT NULL`,
-        bindValues: [setting.name],
-        schema: Schema.Array(
-          Schema.Struct({
-            value: Schema.OptionFromNullOr(Schema.fromJsonString(schema)),
-          }),
-        ),
-      },
-      {
-        map: flow(
-          Array.head,
-          Option.flatMap((row) => row.value),
-          setting.initialValue
-            ? Option.orElse(() => Option.some(setting.initialValue!))
-            : Function.identity,
-        ),
-      },
+  const valueSchema = Schema.fromJsonString(
+    Schema.toCodecJson(Schema.Option(schema)),
+  )
+  const decodeValue = Schema.decodeUnknownOption(valueSchema)
+  const read = Atom.make((get) =>
+    AsyncResult.map(get(settingValuesAtom), (values) =>
+      Option.fromUndefinedOr(values.get(setting.name)).pipe(
+        Option.flatMap(decodeValue),
+        Option.flatten,
+        setting.initialValue
+          ? Option.orElse(() => Option.some(setting.initialValue!))
+          : Function.identity,
+      ),
     ),
   )
 
@@ -68,15 +73,13 @@ const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
       return result
     },
     (ctx, newValue: Option.Option<S["Type"]>) => {
-      const value = Schema.encodeSync(optionSchema)(newValue)
-      ctx.set(
-        Store.commit,
-        events.settingsSet({
+      ctx.set(writeEventAtom, {
+        event: "SettingsSet",
+        payload: {
           id: setting.name,
-          value,
-          updatedAt: DateTime.nowUnsafe(),
-        }),
-      )
+          value: Schema.encodeSync(valueSchema)(newValue),
+        },
+      })
       if (cacheAtom) {
         ctx.set(cacheAtom, newValue)
       }
@@ -171,132 +174,17 @@ export const mealPlanWeekStart = new Setting({
   cached: true,
 })
 
-export const livestoreStoreId = new Setting({
-  name: "livestoreStoreId",
-  label: "LiveStore Store ID",
-  schema: Schema.NonEmptyString,
-  schemaInput: OptionFromString,
-  atomOverride: makeResultOptionAtom(storeIdAtom),
-})
+// Export and import
+//
+// Both go through the EventLog runtime, so export works offline, with sync
+// off and before the remote has ever connected. Export keeps the share-only
+// behaviour: where files can't be shared it does nothing.
 
-export const livestoreSyncEnabled = new Setting({
-  name: "livestoreSyncEnabled",
-  label: "Enable Sync",
-  schema: Schema.Boolean,
-  schemaInput: AsSome(
-    Schema.String.pipe(
-      Schema.decodeTo(
-        Schema.Boolean,
-        SchemaTransformation.transform({
-          decode: (s) => s === "true",
-          encode: (b) => (b ? "true" : "false"),
-        }),
-      ),
-    ),
-    Function.constFalse,
-  ),
-  atomOverride: makeResultOptionAtom(syncEnabledAtom),
-})
-
-export const clearAiMemoryAtom = Atom.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const store = get(Store.storeUnsafe)!
-    store.commit(events.aiMemoryClear())
-  }),
-)
-
-const ExportEvents = Schema.Array(
-  Schema.Union([
-    Schema.Struct({
-      name: Schema.Literal(events.recipeCreated.name),
-      args: events.recipeCreated.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.groceryItemAdded.name),
-      args: events.groceryItemAdded.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.mealPlanAdd.name),
-      args: events.mealPlanAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.menuAdd.name),
-      args: events.menuAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.menuEntryAdd.name),
-      args: events.menuEntryAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.menuDayNoteAdd.name),
-      args: events.menuDayNoteAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.mealPlanDayNoteAdd.name),
-      args: events.mealPlanDayNoteAdd.schema,
-    }),
-    Schema.Struct({
-      name: Schema.Literal(events.aiMemoryEntryAdded.name),
-      args: events.aiMemoryEntryAdded.schema,
-    }),
-  ]),
-)
-const ExportEventsJson = Schema.fromJsonString(ExportEvents)
-
-export const exportAllAtom = Store.runtime.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const store = yield* Store
-    const out = Array.empty<(typeof ExportEvents.Type)[number]>()
-
-    // recipes
-    const allRecipes = yield* get.result(allRecipesAtom)
-    for (const recipe of allRecipes) {
-      out.push(events.recipeCreated(recipe))
-    }
-
-    // groceries
-    const allGroceryItems = store.query(exportGroceryItems$)
-    for (const item of allGroceryItems) {
-      out.push(events.groceryItemAdded(item))
-    }
-
-    // meal plan
-    const mealPlanEntries = store.query(tables.mealPlan)
-    for (const entry of mealPlanEntries) {
-      out.push(events.mealPlanAdd(entry))
-    }
-
-    // menus
-    const allMenus = store.query(tables.menus)
-    for (const menu of allMenus) {
-      out.push(events.menuAdd(menu))
-    }
-
-    // menu entries
-    const allMenuEntries = store.query(tables.menuEntries)
-    for (const entry of allMenuEntries) {
-      out.push(events.menuEntryAdd(entry))
-    }
-
-    // menu day notes
-    const allMenuDayNotes = store.query(tables.menuDayNotes)
-    for (const note of allMenuDayNotes) {
-      out.push(events.menuDayNoteAdd(note))
-    }
-
-    // meal plan day notes
-    const allMealPlanDayNotes = store.query(tables.mealPlanDayNotes)
-    for (const note of allMealPlanDayNotes) {
-      out.push(events.mealPlanDayNoteAdd(note))
-    }
-
-    // AI memory
-    const aiMemoryEntries = store.query(tables.aiMemoryEntries)
-    for (const entry of aiMemoryEntries) {
-      out.push(events.aiMemoryEntryAdded(entry))
-    }
-
-    const json = Schema.encodeSync(ExportEventsJson)(out)
+export const exportAllAtom = eventLogAtom.fn<void>()(
+  Effect.fnUntraced(function* () {
+    const json = yield* exportAll.pipe(
+      Effect.flatMap(Schema.encodeEffect(ExportFileJson)),
+    )
     const file = new File([json], `cheffect-${new Date().toISOString()}.txt`, {
       type: "text/plain",
     })
@@ -306,18 +194,36 @@ export const exportAllAtom = Store.runtime.fn<void>()(
   }),
 )
 
-export const importAllAtom = Store.runtime.fn<File>()(
-  Effect.fnUntraced(function* (file) {
-    const text = yield* Effect.promise(() => file.text())
-    const events = Schema.decodeSync(ExportEventsJson)(text)
-    const store = yield* Store
-    for (const event of events) {
-      // @effect-diagnostics-next-line tryCatchInEffectGen:off
-      try {
-        store.commit(event)
-      } catch (e) {
-        console.error("Failed to import event", event, e)
-      }
-    }
-  }),
+// A file that doesn't decode writes nothing. One that fails part way can be
+// imported again, because import merges.
+export const importAllAtom = eventLogAtom.fn<File>()(
+  Effect.fnUntraced(
+    function* (file) {
+      const text = yield* Effect.promise(() => file.text())
+      yield* importAll(text)
+    },
+    withToast(() => ({
+      loading: "Importing data",
+      onExit(exit, toastId) {
+        if (Exit.isSuccess(exit)) {
+          return toast.success("Data imported", {
+            id: toastId,
+            cancel: undefined,
+          })
+        }
+        const error = Cause.squash(exit.cause)
+        if (Schema.isSchemaError(error)) {
+          return toast.error("This file can't be imported. Nothing changed.", {
+            id: toastId,
+            cancel: undefined,
+            description: error.message,
+          })
+        }
+        toast.error("Import didn't finish. Import the file again.", {
+          id: toastId,
+          cancel: undefined,
+        })
+      },
+    })),
+  ),
 )

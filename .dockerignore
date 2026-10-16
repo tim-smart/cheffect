@@ -3,7 +3,7 @@ node_modules/
 
 # Build output
 dist/
-.wrangler/
+dist-server/
 
 # Git
 .git/
@@ -20,9 +20,6 @@ dist/
 .editorconfig
 .prettierrc.json
 .prettierignore
-
-# Cloudflare sync server (not needed in Docker image)
-cf/
 
 # Temporary files
 *.log

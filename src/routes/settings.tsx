@@ -20,14 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
+import { clearAiMemoryAtom } from "@/AiChat/runtime"
+import { SyncSettings } from "@/Sync/SyncSettings"
 import { exportAtom, importAtom } from "@/Recipes/atoms"
 import {
   aiChatModel,
   aiCountry,
-  clearAiMemoryAtom,
-  livestoreStoreId,
-  livestoreSyncEnabled,
   mealPlanWeekStart,
   openAiApiKey,
   Setting,
@@ -35,7 +33,7 @@ import {
   importAllAtom,
   openAiModel,
 } from "@/Settings"
-import { useAtomSet, useAtomSuspense } from "@effect/atom-react"
+import { useAtom, useAtomSet, useAtomSuspense } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   CommandList,
@@ -54,7 +52,6 @@ import {
   MoreVertical,
   Settings,
   Share,
-  Share2,
 } from "lucide-react"
 import { useRef, useState } from "react"
 import { cn } from "@/lib/utils"
@@ -80,7 +77,7 @@ const weekDayOptions = days.map((day, index) => ({
 
 function SettingsPage() {
   const exportAllData = useAtomSet(exportAllAtom)
-  const importAllData = useAtomSet(importAllAtom)
+  const [importAllResult, importAllData] = useAtom(importAllAtom)
   const importAllRef = useRef<HTMLInputElement>(null)
 
   const exportRecipes = useAtomSet(exportAtom)
@@ -115,12 +112,20 @@ function SettingsPage() {
                   Export all data
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  disabled={importAllResult.waiting}
                   onClick={() => {
                     importAllRef.current?.click()
                   }}
                 >
                   <Import />
-                  Import all data
+                  <div className="flex flex-col">
+                    Import all data
+                    <span className="text-xs text-muted-foreground max-w-56">
+                      Merges into this device. Doesn't bring back anything
+                      deleted since the export, and overwrites settings and
+                      aisles.
+                    </span>
+                  </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -147,6 +152,8 @@ function SettingsPage() {
               accept="text/plain"
               onChange={(e) => {
                 const file = e.target.files?.[0]
+                // Cleared so picking the same file again imports it again.
+                e.target.value = ""
                 if (!file) return
                 importAllData(file)
               }}
@@ -240,39 +247,8 @@ function SettingsPage() {
           <SettingSelect setting={mealPlanWeekStart} options={weekDayOptions} />
         </SettingSection>
 
-        <SettingSection title="Sync Settings">
-          <SettingCheckbox setting={livestoreSyncEnabled} />
-          <SettingControl
-            setting={livestoreStoreId}
-            render={({ value, onChange, onBlur, onKeyDown }) => (
-              <div className="flex items-center gap-1">
-                <Input
-                  id={livestoreStoreId.name}
-                  type="password"
-                  value={value}
-                  onChange={(e) => onChange(e.target.value)}
-                  onBlur={() => onBlur()}
-                  onKeyDown={onKeyDown}
-                />
-                <Button
-                  className="size-8.5"
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
-                    const url = new URL(window.location.href)
-                    url.pathname = "/"
-                    url.searchParams.set("invite_id", value)
-                    navigator.share({
-                      title: "Cheffect recipe manager invite",
-                      url: url.toString(),
-                    })
-                  }}
-                >
-                  <Share2 />
-                </Button>
-              </div>
-            )}
-          />
+        <SettingSection title="Sync">
+          <SyncSettings />
         </SettingSection>
       </main>
     </div>
@@ -369,25 +345,6 @@ function SettingSelect<
             </SelectGroup>
           </SelectContent>
         </Select>
-      )}
-    />
-  )
-}
-
-function SettingCheckbox<S extends Schema.Codec<any, any>>({
-  setting,
-}: {
-  setting: Setting<S>
-}) {
-  return (
-    <SettingControl
-      setting={setting}
-      render={({ value, onBlur }) => (
-        <Switch
-          id={setting.name}
-          checked={value === "true"}
-          onCheckedChange={(checked) => onBlur(checked ? "true" : "false")}
-        />
       )}
     />
   )

@@ -1,4 +1,5 @@
 import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
@@ -7,7 +8,7 @@ import * as Stream from "effect/Stream"
 import { toast } from "sonner"
 import { dismissTimerAtom, timerUiStateAtom } from "./atoms"
 import * as FiberHandle from "effect/FiberHandle"
-import { Timer } from "@/domain/Timer"
+import type { Timer, TimerId } from "@/domain/Timer"
 
 declare global {
   interface NotificationOptions {
@@ -26,7 +27,7 @@ export const TimerNotifications = Layer.effectDiscard(
     const registry = yield* AtomRegistry.AtomRegistry
     const notifiedRef = yield* Ref.make<Map<string, Timer>>(new Map())
 
-    const notify = (timerId: string, label: string) =>
+    const notify = (timerId: TimerId, label: string) =>
       Effect.sync(() => {
         let toastId: number | string | undefined
         toastId = toast(`Timer finished: ${label}`, {
@@ -76,13 +77,17 @@ export const TimerNotifications = Layer.effectDiscard(
       FiberHandle.run(vibrateHandle, { onlyIfMissing: true }),
     )
 
+    // Only a successful read says which timers exist. A failed one keeps the
+    // last state, so it can't silence a ringing timer.
     yield* AtomRegistry.toStream(registry, timerUiStateAtom).pipe(
+      Stream.filter(AsyncResult.isSuccess),
+      Stream.map((result) => result.value),
       Stream.runForEach(
         Effect.fnUntraced(function* (timerStates) {
           const notified = yield* Ref.get(notifiedRef)
           const nextNotified = new Map(notified)
           const activeIds = new Set(
-            timerStates.map((timerState) => timerState.timer.id),
+            timerStates.map((timerState) => timerState.timer.idString),
           )
           const anyCompleted = timerStates.some(
             (timerState) => timerState.status._tag === "Completed",
@@ -95,20 +100,20 @@ export const TimerNotifications = Layer.effectDiscard(
           }
 
           for (const timer of nextNotified.values()) {
-            if (activeIds.has(timer.id)) continue
-            nextNotified.delete(timer.id)
+            if (activeIds.has(timer.idString)) continue
+            nextNotified.delete(timer.idString)
           }
 
           for (const timerState of timerStates) {
             const timer = timerState.timer
             if (timerState.status._tag === "Completed") {
-              if (!nextNotified.has(timerState.timer.id)) {
-                nextNotified.set(timerState.timer.id, timer)
-                yield* notify(timerState.timer.id, timer.label)
+              if (!nextNotified.has(timer.idString)) {
+                nextNotified.set(timer.idString, timer)
+                yield* notify(timer.id, timer.label)
               }
               continue
             }
-            nextNotified.delete(timerState.timer.id)
+            nextNotified.delete(timer.idString)
           }
 
           yield* Ref.set(notifiedRef, nextNotified)

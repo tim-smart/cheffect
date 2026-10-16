@@ -1,43 +1,44 @@
-# Stage 1: Build the application
+# Stage 1: Build the front end and bundle the server
 FROM node:24-alpine AS builder
 
 # Enable corepack for pnpm support
 RUN corepack enable
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package.json pnpm-lock.yaml ./
-COPY patches ./patches
-
-# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
 COPY . .
 
-# Build argument for sync server URL (optional)
-ARG VITE_SYNC_SERVER_URL
+# The sync server runs on the same origin, so the app defaults to it
+ENV VITE_SYNC_SAME_ORIGIN=true
 
-# Build the application
+# Builds dist/ and dist-server/main.mjs
 RUN pnpm build
 
-# Stage 2: Serve with nginx
-FROM nginx:alpine
+# Stage 2: One Node process serves dist/ and the sync server on /sync
+FROM node:24-alpine
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# The server bundle has no runtime dependencies, so there is no node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist-server ./dist-server
 
-# Expose port 80
-EXPOSE 80
+# The sync database lives on a volume, owned by the non-root user
+RUN mkdir /data && chown node:node /data
+VOLUME /data
 
-# Health check
+ENV PORT=8080
+ENV DATABASE_PATH=/data/cheffect-sync.db
+
+USER node
+
+EXPOSE 8080
+
+# node:24-alpine has no curl
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+    CMD wget -q --spider http://localhost:$PORT/ || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "dist-server/main.mjs"]

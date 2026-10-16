@@ -13,70 +13,103 @@ import * as Array from "effect/Array"
 import * as AiResponse from "effect/ai/Response"
 import * as Ref from "effect/Ref"
 import { router } from "@/Router"
+import { groceryItemsAtom } from "@/Groceries/atoms"
+import { GroceryRepo } from "@/Groceries/Repo"
 import {
-  allGroceryItems$,
-  allGroceryItemsArrayAtom,
-  groceryListNames$,
-  mealPlanDayNotes$,
-  mealPlanDayNotesForDay$,
-  mealPlanEntries$,
-  mealPlanEntriesAtom,
-  recipeByIdAtom,
-} from "@/livestore/queries"
-import {
-  allMenus$,
-  menuByIdAtom,
-  menuDayNotes$,
-  menuEntries$,
-  menuEntriesAtom,
-} from "@/Menus/atoms"
-import { MenuEntry } from "@/domain/MenuEntry"
+  addGroceryItem,
+  groceriesRuntime,
+  updateGroceryItem,
+} from "@/Groceries/runtime"
+import { mealPlanEntriesAtom } from "@/MealPlan/atoms"
+import { latestNoteByDay, MealPlanRepo } from "@/MealPlan/Repo"
+import { mealPlanRuntime } from "@/MealPlan/runtime"
+import { menuByIdAtom } from "@/Menus/atoms"
+import { MenuRepo } from "@/Menus/Repo"
+import { menusRuntime } from "@/Menus/runtime"
+import { MenuEntry, MenuEntryIdFromString } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
-import { GroceryItem } from "@/domain/GroceryItem"
-import { MealPlanEntry } from "@/domain/MealPlanEntry"
+import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
+import type { RecipeId } from "@/domain/Recipe"
+import {
+  MealPlanEntry,
+  MealPlanEntryId,
+  MealPlanEntryIdFromString,
+} from "@/domain/MealPlanEntry"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import * as Prompt from "effect/ai/Prompt"
 import * as LanguageModel from "effect/ai/LanguageModel"
-import { layerKvsLivestore } from "@/lib/kvs"
-import { Store } from "@/livestore/atoms"
-import { events, tables } from "@/livestore/schema"
-import { queryDb, sql } from "@livestore/livestore"
 import * as Option from "effect/Option"
-import * as KeyValueStore from "effect/persistence/KeyValueStore"
 import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
-import { Recipe } from "@/domain/Recipe"
+import * as EventLog from "effect/eventlog/EventLog"
+import type * as EventJournal from "effect/eventlog/EventJournal"
+import type * as IndexedDb from "@effect/platform-browser/IndexedDb"
+import type { QueryBuilder } from "@/IndexedDb"
 import * as DateTime from "effect/DateTime"
 import { aiChatModel, aiCountry, mealPlanWeekStart } from "@/Settings"
-import { modifiedRecipeByIdAtom, recipeSelectedStep } from "@/Recipes/atoms"
-import { Menu } from "@/domain/Menu"
-import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
-import { Timer } from "@/domain/Timer"
+import {
+  modifiedRecipeByIdAtom,
+  recipeByIdAtom,
+  recipeSelectedStep,
+} from "@/Recipes/atoms"
+import { RecipeRepo } from "@/Recipes/Repo"
+import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
+import { generateUuidBytes, uuidString } from "@/lib/Id"
+import { type EventPayload, writeEvent } from "@/EventLog"
+import { Menu, MenuId } from "@/domain/Menu"
+import {
+  AiMemoryEntry,
+  AiMemoryEntryId,
+  AiMemoryEntryIdFromString,
+} from "@/domain/AiMemoryEntry"
+import { AiChatTurnId, PromptJson } from "@/domain/AiChatTurn"
+import { AiChatRepo } from "./Repo"
+import { aiChatRuntime } from "./runtime"
+import { Timer, TimerId } from "@/domain/Timer"
 import * as Duration from "effect/Duration"
 
 const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
-    const store = yield* Store
     const registry = yield* AtomRegistry.AtomRegistry
+    const recipes = yield* RecipeRepo
+    const mealPlan = yield* MealPlanRepo
+    const menus = yield* MenuRepo
+    const extractJobs = yield* RecipeExtractJobRepo
+    const groceries = yield* GroceryRepo
+    const context = yield* Effect.context<
+      | EventLog.EventLog
+      | EventJournal.EventJournal
+      | QueryBuilder
+      | IndexedDb.IndexedDb
+      | GroceryRepo
+    >()
+    const write = (payload: EventPayload) =>
+      writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
+    const addItem = (item: GroceryItem) =>
+      addGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
+    const updateItem = (item: GroceryItem) =>
+      updateGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
-        const recipes = store.query(searchRecipes$(query))
-        return { _tag: "Transient", value: recipes } as const
+        const found = yield* recipes
+          .search({ query, sortBy: "title" })
+          .pipe(Effect.orDie)
+        return { _tag: "Transient", value: found } as const
       }),
       RecipeById: Effect.fnUntraced(function* ({ id }) {
-        const recipe = store.query(recipeById$(id))
+        const recipe = yield* recipes.byId(id).pipe(Effect.orDie)
         return { _tag: "Transient", value: Option.getOrNull(recipe) } as const
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
         const newRecipe = recipe.asRecipe()
-        store.commit(events.recipeCreated(newRecipe))
+        yield* write({ event: "RecipeCreated", payload: newRecipe })
         return {
           _tag: "Transient",
-          value: { recipeId: newRecipe.id },
+          value: { recipeId: newRecipe.idString },
         }
       }),
       SuggestRecipeEdit: Effect.fnUntraced(function* ({ recipe, recipeId }) {
-        const original = store.query(recipeById$(recipeId))
+        const original = yield* recipes.byId(recipeId).pipe(Effect.orDie)
         if (Option.isNone(original)) {
           return {
             _tag: "Transient",
@@ -90,46 +123,50 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       ScaleRecipe: Effect.fnUntraced(function* ({ scale, recipeId }) {
-        const original = store.query(recipeById$(recipeId))
+        const original = yield* recipes.byId(recipeId).pipe(Effect.orDie)
         if (Option.isNone(original)) {
           return {
             _tag: "Transient",
             value: null,
           }
         }
-        const recipe = new Recipe({
-          ...original.value,
-          ingredientScale: scale,
+        // Only the scale, so a concurrent edit to the recipe isn't undone.
+        yield* write({
+          event: "RecipeSetIngredientScale",
+          payload: {
+            id: original.value.id,
+            ingredientScale: scale,
+            updatedAt: yield* DateTime.now,
+          },
         })
-        store.commit(events.recipeUpdated(recipe))
         return {
           _tag: "Transient",
           value: null,
         }
       }),
       GroceryListNames: Effect.fnUntraced(function* () {
-        const names = store.query(groceryListNames$)
+        const names = yield* groceries.listNames.pipe(Effect.orDie)
         return { _tag: "Transient", value: names }
       }),
       GetGroceryList: Effect.fnUntraced(function* ({ list }) {
-        const items = store.query(allGroceryItems$(list))
+        const items = yield* groceries.list(list).pipe(Effect.orDie)
         return {
           _tag: "Transient",
           value: items,
         }
       }),
       AddGroceryItems: Effect.fnUntraced(function* ({ groceryItems }) {
-        groceryItems.map((groceryItem) => {
-          const newItem = new GroceryItem({
-            ...groceryItem,
-            id: crypto.randomUUID(),
-            createdAt: DateTime.nowUnsafe(),
-            updatedAt: DateTime.nowUnsafe(),
-            completed: false,
-          })
-          store.commit(events.groceryItemAdded(newItem))
-          return newItem
-        })
+        for (const groceryItem of groceryItems) {
+          yield* addItem(
+            new GroceryItem({
+              ...groceryItem,
+              id: GroceryItemId.make(generateUuidBytes()),
+              createdAt: DateTime.nowUnsafe(),
+              updatedAt: DateTime.nowUnsafe(),
+              completed: false,
+            }),
+          )
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -139,12 +176,12 @@ const ToolkitLayer = toolkit.toLayer(
         groceryItem,
         groceryItemId,
       }) {
-        const existing = store.query(groceryItemById$(groceryItemId))
+        const existing = yield* groceries.byId(groceryItemId).pipe(Effect.orDie)
         if (Option.isNone(existing)) {
           return { _tag: "Transient", value: null }
         }
-        store.commit(
-          events.groceryItemUpdated({
+        yield* updateItem(
+          new GroceryItem({
             ...existing.value,
             ...groceryItem,
             updatedAt: DateTime.nowUnsafe(),
@@ -158,76 +195,94 @@ const ToolkitLayer = toolkit.toLayer(
         mergedName,
         mergedQuantity,
       }) {
-        const target = store.query(groceryItemById$(targetId))
+        const target = yield* groceries.byId(targetId).pipe(Effect.orDie)
         if (Option.isNone(target)) {
           return { _tag: "Transient", value: null }
         }
 
-        // Collect all recipeIds from merged items
-        const allRecipeIds = new Set<string>()
-        if (target.value.recipeIds) {
-          target.value.recipeIds.forEach((id) => allRecipeIds.add(id))
-        }
+        // Collect all recipeIds from merged items, by id string
+        const allRecipeIds = new Map<string, RecipeId>()
+        const collectRecipeIds = (item: GroceryItem) =>
+          item.recipeIds?.forEach((id) => allRecipeIds.set(uuidString(id), id))
+        collectRecipeIds(target.value)
 
         // Delete source items and collect their recipeIds
         for (const sourceId of sourceIds) {
-          const source = store.query(groceryItemById$(sourceId))
+          const source = yield* groceries.byId(sourceId).pipe(Effect.orDie)
           if (Option.isSome(source)) {
-            if (source.value.recipeIds) {
-              source.value.recipeIds.forEach((id) => allRecipeIds.add(id))
-            }
-            store.commit(events.groceryItemDeleted({ id: sourceId }))
+            collectRecipeIds(source.value)
+            yield* write({
+              event: "GroceryItemDeleted",
+              payload: { id: source.value.id },
+            })
           }
         }
 
         // Update target with merged info
-        const recipeIdsArray = globalThis.Array.from(allRecipeIds)
-        store.commit(
-          events.groceryItemUpdated({
-            id: targetId,
+        const recipeIdsArray = globalThis.Array.from(allRecipeIds.values())
+        yield* updateItem(
+          new GroceryItem({
+            ...target.value,
             name: mergedName ?? target.value.name,
             quantity: mergedQuantity ?? target.value.quantity,
-            aisle: target.value.aisle,
-            recipeIds:
-              recipeIdsArray.length > 0
-                ? (recipeIdsArray as [string, ...string[]])
-                : null,
-            completed: target.value.completed,
+            recipeIds: Array.isArrayNonEmpty(recipeIdsArray)
+              ? recipeIdsArray
+              : null,
             updatedAt: DateTime.nowUnsafe(),
           }),
         )
         return { _tag: "Transient", value: null }
       }),
       DeleteGroceryItem: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.groceryItemDeleted({ id }))
+        const item = yield* groceries.byId(id).pipe(Effect.orDie)
+        if (Option.isSome(item)) {
+          yield* write({
+            event: "GroceryItemDeleted",
+            payload: { id: item.value.id },
+          })
+        }
         return { _tag: "Transient", value: null }
       }),
       GetMenus: Effect.fnUntraced(function* () {
-        const menus = store.query(allMenus$)
+        const all = yield* menus.all.pipe(Effect.orDie)
         return {
           _tag: "Transient",
-          value: menus,
+          value: all,
         }
       }),
       GetMenuEntries: Effect.fnUntraced(function* ({ menuId }) {
-        const entries = store.query(menuEntries$(menuId))
-        const notes = store.query(menuDayNotes$(menuId))
+        const menu = yield* menus.byId(menuId).pipe(Effect.orDie)
         return {
           _tag: "Transient",
           value: {
-            entries,
-            menuDayNotes: notes,
+            entries: Option.match(menu, {
+              onNone: () => [],
+              onSome: (menu) => menu.entries,
+            }),
+            menuDayNotes: Option.match(menu, {
+              onNone: () => [],
+              onSome: (menu) => menu.notes,
+            }),
           },
         }
       }),
       SetMenuDayNote: Effect.fnUntraced(function* ({ menuId, day, note }) {
-        const notes = store.query(menuDayNotes$(menuId))
-        let existing = notes.find((n) => n.day === day)
+        const menu = yield* menus.byId(menuId).pipe(Effect.orDie)
+        if (Option.isNone(menu)) {
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+        const existing = menu.value.notes.find((n) => n.day === day)
 
         const trimmed = note.trim()
         if (trimmed.length === 0) {
           if (existing) {
-            store.commit(events.menuDayNoteRemove({ id: existing.id }))
+            yield* write({
+              event: "MenuDayNoteRemove",
+              payload: { id: existing.id },
+            })
           }
           return {
             _tag: "Transient",
@@ -237,13 +292,14 @@ const ToolkitLayer = toolkit.toLayer(
 
         if (existing) {
           if (existing.note !== trimmed) {
-            store.commit(
-              events.menuDayNoteUpdate({
+            yield* write({
+              event: "MenuDayNoteUpdate",
+              payload: {
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
-              }),
-            )
+              },
+            })
           }
           return {
             _tag: "Transient",
@@ -251,15 +307,14 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
 
-        store.commit(
-          events.menuDayNoteAdd(
-            MenuDayNote.fromForm({
-              menuId,
-              day,
-              note: trimmed,
-            }),
-          ),
-        )
+        yield* write({
+          event: "MenuDayNoteAdd",
+          payload: MenuDayNote.fromForm({
+            menuId: menu.value.menu.id,
+            day,
+            note: trimmed,
+          }),
+        })
         return {
           _tag: "Transient",
           value: null,
@@ -268,40 +323,51 @@ const ToolkitLayer = toolkit.toLayer(
       CreateMenu: Effect.fnUntraced(function* ({ menu }) {
         const newMenu = new Menu({
           ...menu,
-          id: crypto.randomUUID(),
+          id: MenuId.make(generateUuidBytes()),
           createdAt: DateTime.nowUnsafe(),
           updatedAt: DateTime.nowUnsafe(),
         })
-        store.commit(events.menuAdd(newMenu))
+        yield* write({ event: "MenuAdd", payload: newMenu })
         return {
           _tag: "Transient",
           value: newMenu,
         }
       }),
       AddMenuEntries: Effect.fnUntraced(function* ({ menuId, menuEntries }) {
-        menuEntries.flatMap((menuEntry) => {
-          const recipe = store.query(recipeById$(menuEntry.recipeId))
-          if (Option.isNone(recipe)) return []
-          const id = crypto.randomUUID()
-          store.commit(
-            events.menuEntryAdd({
-              id,
-              menuId,
+        const menu = yield* menus.byId(menuId).pipe(Effect.orDie)
+        if (Option.isNone(menu)) {
+          return {
+            _tag: "Transient",
+            value: null,
+          }
+        }
+        for (const menuEntry of menuEntries) {
+          const recipe = yield* recipes
+            .byId(menuEntry.recipeId)
+            .pipe(Effect.orDie)
+          if (Option.isNone(recipe)) continue
+          yield* write({
+            event: "MenuEntryAdd",
+            payload: MenuEntry.fromForm({
+              menuId: menu.value.menu.id,
               recipeId: recipe.value.id,
               day: menuEntry.day,
-              createdAt: DateTime.nowUnsafe(),
-              updatedAt: DateTime.nowUnsafe(),
             }),
-          )
-          return id
-        })
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
         }
       }),
       RemoveMenuEntry: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.menuEntryRemove({ id }))
+        const entryId = Schema.decodeOption(MenuEntryIdFromString)(id)
+        if (Option.isSome(entryId)) {
+          yield* write({
+            event: "MenuEntryRemove",
+            payload: { id: entryId.value },
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -322,25 +388,16 @@ const ToolkitLayer = toolkit.toLayer(
         const startDay = DateTime.add(thisWeek, {
           days: today < weekStartsOn ? weekStartsOn - 7 : weekStartsOn,
         })
-        const entries = store.query(mealPlanEntries$(startDay))
-        const notes = store.query(mealPlanDayNotes$(startDay))
-        const latestNotes = new Map<string, (typeof notes)[number]>()
-        for (const note of notes) {
-          const key = DateTime.formatIsoDate(note.day)
-          const existing = latestNotes.get(key)
-          if (
-            !existing ||
-            note.updatedAt.epochMilliseconds >
-              existing.updatedAt.epochMilliseconds
-          ) {
-            latestNotes.set(key, note)
-          }
-        }
+        const { entries, notes } = yield* mealPlan
+          .week(startDay)
+          .pipe(Effect.orDie)
         return {
           _tag: "Transient",
           value: {
             entries,
-            mealPlanDayNotes: globalThis.Array.from(latestNotes.values()),
+            mealPlanDayNotes: globalThis.Array.from(
+              latestNoteByDay(notes).values(),
+            ),
           },
         }
       }),
@@ -349,12 +406,17 @@ const ToolkitLayer = toolkit.toLayer(
           DateTime.setZone(DateTime.zoneMakeLocal()),
           DateTime.removeTime,
         )
-        const existing = store.query(mealPlanDayNotesForDay$(normalizedDay))[0]
+        const existing = latestNoteByDay(
+          yield* mealPlan.notes.pipe(Effect.orDie),
+        ).get(DateTime.formatIsoDate(normalizedDay))
 
         const trimmed = note.trim()
         if (trimmed.length === 0) {
           if (existing) {
-            store.commit(events.mealPlanDayNoteRemove({ id: existing.id }))
+            yield* write({
+              event: "MealPlanDayNoteRemove",
+              payload: { id: existing.id },
+            })
           }
           return {
             _tag: "Transient",
@@ -364,13 +426,14 @@ const ToolkitLayer = toolkit.toLayer(
 
         if (existing) {
           if (existing.note !== trimmed) {
-            store.commit(
-              events.mealPlanDayNoteUpdate({
+            yield* write({
+              event: "MealPlanDayNoteUpdate",
+              payload: {
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
-              }),
-            )
+              },
+            })
           }
           return {
             _tag: "Transient",
@@ -378,70 +441,82 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
 
-        store.commit(
-          events.mealPlanDayNoteAdd(
-            MealPlanDayNote.fromForm({
-              day: normalizedDay,
-              note: trimmed,
-            }),
-          ),
-        )
+        yield* write({
+          event: "MealPlanDayNoteAdd",
+          payload: MealPlanDayNote.fromForm({
+            day: normalizedDay,
+            note: trimmed,
+          }),
+        })
         return {
           _tag: "Transient",
           value: null,
         }
       }),
       AddMealPlanEntries: Effect.fnUntraced(function* ({ mealPlanEntries }) {
-        mealPlanEntries.map((mealPlanEntry) => {
-          const id = crypto.randomUUID()
-          store.commit(
-            events.mealPlanAdd({
-              id,
+        for (const mealPlanEntry of mealPlanEntries) {
+          const recipe = yield* recipes
+            .byId(mealPlanEntry.recipeId)
+            .pipe(Effect.orDie)
+          if (Option.isNone(recipe)) continue
+          yield* write({
+            event: "MealPlanAdd",
+            payload: {
+              id: MealPlanEntryId.make(generateUuidBytes()),
               day: mealPlanEntry.day,
-              recipeId: mealPlanEntry.recipeId,
-            }),
-          )
-          return id
-        })
+              recipeId: recipe.value.id,
+            },
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
         }
       }),
       RemoveMealPlanEntry: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.mealPlanRemove({ id }))
+        const entryId = Schema.decodeOption(MealPlanEntryIdFromString)(id)
+        if (Option.isSome(entryId)) {
+          yield* write({
+            event: "MealPlanRemove",
+            payload: { id: entryId.value },
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
         }
       }),
       ImportRecipeFromUrl: Effect.fnUntraced(function* ({ url }) {
-        const jobId = crypto.randomUUID()
-        store.commit(
-          events.recipeExtractJobAdded({
-            id: jobId,
-            url,
-          }),
-        )
+        const job = yield* extractJobs
+          .add(url)
+          .pipe(Effect.provideContext(context), Effect.orDie)
         return {
           _tag: "Terminal",
-          value: { jobId },
+          value: { jobId: uuidString(job.id) },
         }
       }),
       SaveLearning: Effect.fnUntraced(function* ({ content }) {
-        const newEntry = new AiMemoryEntry({
-          id: crypto.randomUUID(),
-          content,
-          createdAt: DateTime.nowUnsafe(),
+        yield* write({
+          event: "AIMemoryEntryAdded",
+          payload: new AiMemoryEntry({
+            id: AiMemoryEntryId.make(generateUuidBytes()),
+            content,
+            createdAt: DateTime.nowUnsafe(),
+          }),
         })
-        store.commit(events.aiMemoryEntryAdded(newEntry))
         return {
           _tag: "Transient",
           value: null,
         }
       }),
       RemoveLearning: Effect.fnUntraced(function* ({ id }) {
-        store.commit(events.aiMemoryEntryRemove({ id }))
+        const entryId = Schema.decodeOption(AiMemoryEntryIdFromString)(id)
+        if (Option.isSome(entryId)) {
+          yield* write({
+            event: "AIMemoryEntryRemove",
+            payload: { id: entryId.value },
+          })
+        }
         return {
           _tag: "Transient",
           value: null,
@@ -457,7 +532,7 @@ const ToolkitLayer = toolkit.toLayer(
         }
         const now = DateTime.nowUnsafe()
         const timer = new Timer({
-          id: crypto.randomUUID(),
+          id: TimerId.make(generateUuidBytes()),
           label,
           duration,
           expiresAt: DateTime.addDuration(now, duration),
@@ -465,11 +540,11 @@ const ToolkitLayer = toolkit.toLayer(
           createdAt: now,
           updatedAt: now,
         })
-        store.commit(events.timerAdded(timer))
+        yield* write({ event: "TimerAdded", payload: timer })
         return {
           _tag: "Transient",
           value: {
-            timerId: timer.id,
+            timerId: timer.idString,
             label: timer.label,
             durationMs,
           },
@@ -485,11 +560,12 @@ class AiChatService extends Context.Service<AiChatService>()(
     make: Effect.gen(function* () {
       const client = yield* OpenAiClient.OpenAiClient
       const registry = yield* AtomRegistry.AtomRegistry
-      const store = KeyValueStore.toSchemaStore(
-        yield* KeyValueStore.KeyValueStore,
-        Prompt.Prompt,
-      )
-      const livestore = yield* Store
+      const repo = yield* AiChatRepo
+      const context = yield* Effect.context<
+        EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
+      >()
+      const write = (payload: EventPayload) =>
+        writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
       const baseSystemPrompt = `You are a professional chef working for Cheffect. Your goal is to assist users in working with recipes, creating meal plan menus, and answering any cooking-related questions they may have.
 
 You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary. Avoid asking follow-up questions and instead provide direct answers or suggestions. You are a short, sharp and direct chef. "Yes chef!" is a good motto to follow.
@@ -528,7 +604,7 @@ If you are able, always provide links to relevant sections of the app instead of
 `
 
       const currentSystemPrompt = Effect.gen(function* () {
-        const memoryEntries = livestore.query(aiMemoryEntries$)
+        const memoryEntries = yield* repo.memoryEntries.pipe(Effect.orDie)
         const memoryPrompt =
           memoryEntries.length > 0
             ? `## Learning notes
@@ -537,7 +613,7 @@ The following are notes from previous interactions with the user. They must be c
 
 ${memoryEntries
   .map(
-    (entry) => `#### Learning ID: ${entry.id}
+    (entry) => `#### Learning ID: ${entry.idString}
 
 ${entry.content}`,
   )
@@ -553,16 +629,21 @@ ${entry.content}`,
           currentTimeAndCountry += ` The user is located in ${country.value}. All ingredient units should be provided in the measurement system commonly used in that country.`
         }
 
+        const viewedRecipe = location.pathname.startsWith("/recipes/")
+          ? yield* Atom.getResult(
+              recipeByIdAtom(location.pathname.split("/")[2]),
+            )
+          : Option.none()
+
         if (location.pathname === "/") {
           return `${baseSystemPrompt}${memoryPrompt}
 
 The user is currently browsing the a list of their recipes.
 
 ${currentTimeAndCountry}`
-        } else if (location.pathname.startsWith("/recipes/")) {
-          const id = location.pathname.split("/")[2]
-          const recipe = yield* Atom.getResult(recipeByIdAtom(id))
-          const selectedStep = registry.get(recipeSelectedStep(id))
+        } else if (Option.isSome(viewedRecipe)) {
+          const recipe = viewedRecipe.value
+          const selectedStep = registry.get(recipeSelectedStep(recipe.idString))
 
           return `${baseSystemPrompt}${memoryPrompt}
 
@@ -592,7 +673,7 @@ When converting ingredient units, **do not** change the following units:
 - cups
 `
         } else if (location.pathname === "/groceries") {
-          const items = yield* Atom.getResult(allGroceryItemsArrayAtom)
+          const items = yield* Atom.getResult(groceryItemsAtom)
           return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
@@ -617,10 +698,10 @@ The user is currently browsing their list of menus.
 ${currentTimeAndCountry}`
         } else if (location.pathname.startsWith("/menus/")) {
           const id = location.pathname.split("/")[2]
-          const menu = yield* Atom.getResult(menuByIdAtom(id))
-          const menuEntries = (yield* Atom.get(menuEntriesAtom(id)))!
-
-          return `${baseSystemPrompt}${memoryPrompt}
+          const found = yield* Atom.getResult(menuByIdAtom(id))
+          if (Option.isSome(found)) {
+            const { menu, entries } = found.value
+            return `${baseSystemPrompt}${memoryPrompt}
 
 ${currentTimeAndCountry}
 
@@ -630,38 +711,61 @@ Here are the details of the menu and its entries:
 
 ${menu.toXml()}
 
-${MenuEntry.toXml(menuEntries)}`
+${MenuEntry.toXml(entries)}`
+          }
         }
 
         return baseSystemPrompt + memoryPrompt + "\n\n" + currentTimeAndCountry
       })
 
-      const chat = yield* store.get("ai-history").pipe(
-        Effect.flatMap(
-          Option.match({
-            onNone: () => AiChat.empty,
-            onSome: AiChat.fromPrompt,
-          }),
-        ),
+      // History is the `aiChatTurns` snapshot, so turns from other devices
+      // and clears show up here too. While a reply streams, the snapshot only
+      // replaces the history the next message builds on, not what's shown.
+      const chat = yield* repo.history.pipe(
+        Effect.flatMap(AiChat.fromPrompt),
         Effect.catch(() => AiChat.empty),
       )
       registry.set(currentPromptAtom, yield* Ref.get(chat.history))
+      let sending = false
 
-      yield* AtomRegistry.toStream(registry, persistenceUpdatesAtom).pipe(
-        Stream.runForEach(
-          Effect.fnUntraced(function* (json) {
-            if (!json) return
-            const history = Option.isNone(json)
-              ? Prompt.empty
-              : yield* Schema.decodeEffect(PromptJson)(json.value)
+      yield* repo.historyStream.pipe(
+        Stream.runForEach((history) =>
+          Effect.gen(function* () {
             yield* Ref.set(chat.history, history)
-            registry.set(currentPromptAtom, history)
+            if (!sending) registry.set(currentPromptAtom, history)
           }),
         ),
+        Effect.tapCause(Effect.logError),
         Effect.forkScoped,
       )
 
       const tools = yield* toolkit
+
+      // The messages shown since the send began become one turn, finished or
+      // interrupted. File parts are already stripped from what's shown.
+      let previous = Prompt.empty
+      let shown = Prompt.empty
+      const show = (prompt: Prompt.Prompt) => {
+        shown = prompt
+        registry.set(currentPromptAtom, prompt)
+      }
+
+      const saveTurn = Effect.gen(function* () {
+        // A send that failed before it started has no turn to save.
+        if (!sending) return
+        sending = false
+        const messages = shown.content.slice(previous.content.length)
+        if (messages.length === 0) return
+        yield* write({
+          event: "AiChatTurnAdded",
+          payload: {
+            id: AiChatTurnId.make(generateUuidBytes()),
+            prompt: Schema.encodeSync(PromptJson)(
+              Prompt.fromMessages(messages),
+            ),
+          },
+        })
+      })
 
       const send = Effect.fnUntraced(
         function* (options: {
@@ -677,12 +781,15 @@ ${MenuEntry.toXml(menuEntries)}`
             config: { reasoning: { effort: "medium" } },
           }).pipe(Effect.provideService(OpenAiClient.OpenAiClient, client))
           const message = yield* makeMessage(options)
-          let history = (yield* Ref.get(chat.history)).pipe(
+          previous = yield* Ref.get(chat.history)
+          shown = previous
+          sending = true
+          let history = previous.pipe(
             Prompt.concat([message]),
             Prompt.setSystem(yield* currentSystemPrompt),
           )
           let historyNoFiles = filterFileParts(history)
-          registry.set(currentPromptAtom, historyNoFiles)
+          show(historyNoFiles)
           let parts = Array.empty<AiResponse.AnyPart>()
           while (true) {
             yield* pipe(
@@ -697,16 +804,13 @@ ${MenuEntry.toXml(menuEntries)}`
                 return [Prompt.fromResponseParts(parts)] as const
               }),
               Stream.runForEach((response) => {
-                registry.set(
-                  currentPromptAtom,
-                  Prompt.concat(historyNoFiles, response),
-                )
+                show(Prompt.concat(historyNoFiles, response))
                 return Effect.void
               }),
             )
             history = Prompt.concat(history, Prompt.fromResponseParts(parts))
             historyNoFiles = filterFileParts(history)
-            registry.set(currentPromptAtom, historyNoFiles)
+            show(historyNoFiles)
             const errorPart = parts.findLast((part) => part.type === "error")
             if (errorPart) {
               historyNoFiles = Prompt.concat(historyNoFiles, [
@@ -718,7 +822,7 @@ ${MenuEntry.toXml(menuEntries)}`
                   ],
                 }),
               ])
-              registry.set(currentPromptAtom, historyNoFiles)
+              show(historyNoFiles)
               break
             }
             const response = new LanguageModel.GenerateTextResponse<
@@ -741,46 +845,42 @@ ${MenuEntry.toXml(menuEntries)}`
             break
           }
         },
-        Effect.ensuring(
-          Effect.gen(function* () {
-            const toPersist = registry.get(currentPromptAtom)
-            yield* Ref.set(chat.history, toPersist)
-            yield* Effect.orDie(store.set("ai-history", toPersist))
-          }),
-        ),
+        Effect.ensuring(saveTurn),
         Effect.catchCause(Effect.logError),
       )
 
-      const clear = Ref.set(chat.history, Prompt.empty).pipe(
-        Effect.andThen(store.remove("ai-history")),
-      )
+      // Removes the turns this device can see, so a turn from another device
+      // that hasn't synced yet survives the clear.
+      const clear = Effect.gen(function* () {
+        const ids = yield* repo.turnIds.pipe(Effect.orDie)
+        yield* Ref.set(chat.history, Prompt.empty)
+        if (!Array.isArrayNonEmpty(ids)) return
+        yield* write({ event: "AiChatTurnsRemoved", payload: { ids } })
+      })
 
       return { send, clear } as const
     }),
   },
 ) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide([layerKvsLivestore, ToolkitLayer]),
+    Layer.provide(ToolkitLayer),
   )
 }
 
-// Same JSON codec KeyValueStore.toSchemaStore uses for "ai-history"
-const PromptJson = Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt))
-
 const runtime = Atom.runtime((get) =>
   AiChatService.layer.pipe(
-    Layer.provide([get(openAiClientLayer), get(Store.layer)]),
+    Layer.provide([
+      get(openAiClientLayer),
+      get(aiChatRuntime.layer),
+      get(mealPlanRuntime.layer),
+      get(menusRuntime.layer),
+      get(groceriesRuntime.layer),
+    ]),
   ),
 ).pipe(Atom.keepAlive)
 
 export const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
   Atom.keepAlive,
-)
-
-const persistenceUpdatesAtom = Store.makeQueryUnsafe(
-  queryDb(tables.keyValues.select("value").where({ key: "ai-history" }), {
-    map: Array.head,
-  }),
 )
 
 export const sendAtom = runtime.fn<{
@@ -800,52 +900,6 @@ export const clearAtom = runtime.fn<void>()(
     get.set(currentPromptAtom, Prompt.empty)
   }),
 )
-
-const searchRecipes$ = (query: string) =>
-  queryDb(
-    {
-      query: sql`SELECT * FROM recipes WHERE deletedAt IS NULL AND title LIKE ? ORDER BY title ASC`,
-      schema: Recipe.array,
-      bindValues: [`%${query}%`],
-    },
-    {
-      deps: [query],
-      label: "AiChatService.searchRecipes",
-    },
-  )
-
-const recipeById$ = (id: string) =>
-  queryDb(
-    {
-      query: sql`SELECT * FROM recipes WHERE id = ?`,
-      schema: Recipe.array,
-      bindValues: [id],
-    },
-    {
-      label: "AiChatService.recipeById",
-      deps: [id],
-      map: Array.head,
-    },
-  )
-
-const groceryItemById$ = (id: string) =>
-  queryDb(
-    {
-      query: sql`SELECT * FROM grocery_items WHERE id = ?`,
-      schema: GroceryItem.array,
-      bindValues: [id],
-    },
-    {
-      label: "AiChatService.groceryItemById",
-      deps: [id],
-      map: Array.head,
-    },
-  )
-
-const aiMemoryEntries$ = queryDb({
-  query: sql`SELECT * FROM ai_memory_entries ORDER BY createdAt DESC`,
-  schema: AiMemoryEntry.array,
-})
 
 export const isVisualMessage = (
   message: Prompt.Message,

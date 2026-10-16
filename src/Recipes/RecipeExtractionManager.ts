@@ -1,55 +1,39 @@
+import { writeEvent } from "@/EventLog"
+import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
+import type { RecipeExtractJob } from "@/domain/RecipeExtractJob"
+import { uuidString } from "@/lib/Id"
 import { withToast } from "@/lib/sonner"
-import { Store } from "@/livestore/atoms"
-import { events, tables } from "@/livestore/schema"
+import { tryWebLock } from "@/lib/WebLock"
 import { router } from "@/Router"
 import { AiHelpers } from "@/services/AiHelpers"
-import * as Atom from "effect/reactivity/Atom"
-import { queryDb } from "@livestore/livestore"
-import * as Cause from "effect/Cause"
-import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as FiberMap from "effect/FiberMap"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Stream from "effect/Stream"
 import { toast } from "sonner"
 
-const extractJobs = Store.makeQuery(
-  queryDb(
-    tables.recipeExtractJobs
-      .select("id", "url")
-      .where("completedAt", "=", null),
-  ),
-)
-
+// Runs in every tab. Each job runs under its own Web Lock, and inside the lock
+// the job is re-read from IndexedDB, so a job that another tab finished or is
+// working on is skipped.
 export const RecipeExtractionManager = Layer.effectDiscard(
   Effect.gen(function* () {
     const ai = yield* AiHelpers
-    const store = yield* Store
+    const jobs = yield* RecipeExtractJobRepo
     const fiberMap = yield* FiberMap.make<string>()
 
     const extract = Effect.fn("RecipeExtractionManager.extract")(
-      function* (job: { readonly id: string; readonly url: string }) {
-        const fiberId = yield* Effect.fiberId
-        const extracted = yield* ai.recipeFromUrl(job.url).pipe(
-          Effect.onExit((exit) => {
-            if (
-              Exit.isFailure(exit) &&
-              !Cause.interruptors(exit.cause).has(fiberId)
-            ) {
-              return Effect.void
-            }
-            store.commit(
-              events.recipeExtractJobCompleted({
-                id: job.id,
-                completedAt: DateTime.nowUnsafe(),
-              }),
-            )
-            return Effect.void
-          }),
-        )
+      function* (job: RecipeExtractJob) {
+        const extracted = yield* ai.recipeFromUrl(job.url)
         const recipe = extracted.asRecipe(job.url)
-        store.commit(events.recipeCreated(recipe))
+        // Completing the job drops it from the pending stream, which
+        // interrupts this fiber, so the recipe is written first and neither
+        // write can be cut short.
+        yield* writeEvent({ event: "RecipeCreated", payload: recipe }).pipe(
+          Effect.andThen(jobs.complete(job.id)),
+          Effect.uninterruptible,
+        )
         return recipe
       },
       withToast(({ url }) => ({
@@ -67,7 +51,7 @@ export const RecipeExtractionManager = Layer.effectDiscard(
               onClick() {
                 router.navigate({
                   to: `/recipes/$id`,
-                  params: { id: recipe.id },
+                  params: { id: recipe.idString },
                 })
               },
             },
@@ -76,13 +60,24 @@ export const RecipeExtractionManager = Layer.effectDiscard(
       })),
     )
 
-    yield* Atom.toStreamResult(extractJobs).pipe(
+    const run = (id: string, job: RecipeExtractJob) =>
+      tryWebLock(
+        `cheffect/extract/${id}`,
+        Effect.gen(function* () {
+          const fresh = yield* jobs.byIdFresh(job.id)
+          if (Option.isNone(fresh) || fresh.value.completedAt !== null) return
+          yield* extract(fresh.value)
+        }),
+      )
+
+    yield* jobs.pending.pipe(
       Stream.runForEach(
-        Effect.fnUntraced(function* (jobs) {
-          const ids = new Set()
-          for (const job of jobs!) {
-            ids.add(job.id)
-            yield* FiberMap.run(fiberMap, job.id, extract(job), {
+        Effect.fnUntraced(function* (pending) {
+          const ids = new Set<string>()
+          for (const job of pending) {
+            const id = uuidString(job.id)
+            ids.add(id)
+            yield* FiberMap.run(fiberMap, id, run(id, job), {
               onlyIfMissing: true,
             })
           }

@@ -1,0 +1,106 @@
+[
+  {
+    "name": "v1.RecipeCreated",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000001",
+      "title": "Garlic spaghetti",
+      "imageUrl": "https://example.com/pasta.jpg",
+      "prepTime": 600000,
+      "cookingTime": 1200000,
+      "servings": 4,
+      "ingredients": "[{\"name\":\"Sauce\",\"ingredients\":[{\"name\":\"olive oil\",\"quantity\":2,\"unit\":\"tbsp\"},{\"name\":\"garlic cloves\",\"quantity\":3,\"unit\":null},{\"name\":\"salt\",\"quantity\":null,\"unit\":null}]},{\"name\":\"Pasta\",\"ingredients\":[{\"name\":\"spaghetti\",\"quantity\":0.5,\"unit\":\"kg\"}]}]",
+      "steps": "[{\"text\":\"Boil the pasta.\",\"tips\":[\"Salt the water well.\"]},{\"text\":\"Fry the garlic in oil.\",\"tips\":[]}]",
+      "sourceName": "Example",
+      "sourceUrl": "https://example.com/pasta",
+      "rating": 4.5,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000,
+      "deletedAt": null
+    }
+  },
+  {
+    "name": "v1.GroceryItemAdded",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000002",
+      "list": null,
+      "name": "Milk",
+      "quantity": "2 l",
+      "aisle": "Dairy & Eggs",
+      "recipeIds": ["01990a6e-5c00-7000-8000-000000000001"],
+      "completed": 0,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.GroceryItemAdded",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000003",
+      "name": "Bread",
+      "quantity": null,
+      "aisle": null,
+      "recipeIds": null,
+      "completed": 1,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MealPlanAdd",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000004",
+      "recipeId": "01990a6e-5c00-7000-8000-000000000001",
+      "day": "2026-10-12"
+    }
+  },
+  {
+    "name": "v1.MenuAdd",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000005",
+      "name": "Weeknights",
+      "days": 7,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuEntryAdd",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000006",
+      "menuId": "01990a6e-5c00-7000-8000-000000000005",
+      "recipeId": "01990a6e-5c00-7000-8000-000000000001",
+      "day": 1,
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MenuDayNoteAdd",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000007",
+      "menuId": "01990a6e-5c00-7000-8000-000000000005",
+      "day": 1,
+      "note": "Leftovers",
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.MealPlanDayNoteAdd",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000008",
+      "day": "2026-10-12",
+      "note": "Guests",
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    }
+  },
+  {
+    "name": "v1.AIMemoryEntryAdded",
+    "args": {
+      "id": "01990a6e-5c00-7000-8000-000000000009",
+      "content": "Vegetarian household",
+      "createdAt": 1760000000000
+    }
+  }
+]

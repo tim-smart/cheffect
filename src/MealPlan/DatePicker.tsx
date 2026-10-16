@@ -4,23 +4,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { useAtomSet, useAtomValue } from "@effect/atom-react"
 import * as Data from "effect/Data"
 import * as DateTime from "effect/DateTime"
 import { useState } from "react"
 import { addMenuToMealPlanAtom } from "./atoms"
+import { MealPlanEntryId } from "@/domain/MealPlanEntry"
+import type { RecipeId } from "@/domain/Recipe"
+import { useWrite } from "@/EventLog"
+import { generateUuidBytes } from "@/lib/Id"
 import { mealPlanWeekStart } from "@/Settings"
 import * as Option from "effect/Option"
 
 export type MealPlanDatePickerTarget = Data.TaggedEnum<{
   Existing: {
-    id: string
+    id: MealPlanEntryId
     initialValue: DateTime.Utc
   }
-  New: { recipeId: string }
+  New: { recipeId: RecipeId }
   Menu: { id: string }
 }>
 export const MealPlanDatePickerTarget =
@@ -36,7 +38,7 @@ export function MealPlanDatePicker({
   readonly onSelect?: (date: DateTime.Utc) => void
 }) {
   const [open, setOpen] = useState(false)
-  const commit = useCommit()
+  const write = useWrite()
   const addMenu = useAtomSet(addMenuToMealPlanAtom)
   const weekStart = useAtomValue(mealPlanWeekStart.atom).pipe(
     AsyncResult.value,
@@ -73,16 +75,17 @@ export function MealPlanDatePicker({
             )
             MealPlanDatePickerTarget.$match(target, {
               Existing({ id }) {
-                commit(events.mealPlanSetDay({ id, day }))
+                write({ event: "MealPlanSetDay", payload: { id, day } })
               },
               New({ recipeId }) {
-                commit(
-                  events.mealPlanAdd({
-                    id: crypto.randomUUID(),
+                write({
+                  event: "MealPlanAdd",
+                  payload: {
+                    id: MealPlanEntryId.make(generateUuidBytes()),
                     day,
                     recipeId,
-                  }),
-                )
+                  },
+                })
               },
               Menu({ id }) {
                 addMenu({

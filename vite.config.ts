@@ -4,7 +4,6 @@ import react from "@vitejs/plugin-react"
 import * as path from "node:path"
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
 import tailwindcss from "@tailwindcss/vite"
-import { livestoreDevtoolsPlugin } from "@livestore/devtools-vite"
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -12,7 +11,6 @@ export default defineConfig({
     TanStackRouterVite(),
     react(),
     tailwindcss(),
-    livestoreDevtoolsPlugin({ schemaPath: "./src/livestore/schema.ts" }),
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",
@@ -80,7 +78,7 @@ export default defineConfig({
       },
 
       injectManifest: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm,mp3}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,mp3}"],
         maximumFileSizeToCacheInBytes: 7 * 1024 * 1024,
       },
 
@@ -104,37 +102,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "@livestore/adapter-web/shared-worker?sharedworker":
-        path.resolve(__dirname, "src/livestore/livestore-shared.worker.ts") +
-        "?sharedworker",
     },
-  },
-
-  worker: {
-    format: "es",
-    plugins: () => [
-      {
-        name: "livestore-shared-worker-side-effects",
-        transform(code, id) {
-          // The package declares sideEffects: false, but this module starts the worker.
-          if (id.endsWith("/shared-worker/make-shared-worker.js")) {
-            return { code, moduleSideEffects: true }
-          }
-        },
-      },
-    ],
-  },
-
-  optimizeDeps: {
-    // Discover worker dependencies before boot so optimization cannot invalidate their imports mid-load.
-    entries: [
-      "index.html",
-      "src/livestore/livestore.worker.ts",
-      "src/livestore/livestore-no-sync.worker.ts",
-      "src/livestore/livestore-shared.worker.ts",
-    ],
-    // pre-bundling effect leaves the LiveStore workers with a separate copy
-    // of it in dev, and the store never finishes booting
-    exclude: ["@livestore/wa-sqlite", "effect"],
   },
 })

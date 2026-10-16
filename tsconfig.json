@@ -32,10 +32,9 @@
       }
     ],
 
-    "rootDir": "src",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "domain"]
+  "include": ["src", "domain", "server"]
 }

@@ -11,7 +11,15 @@ import {
 } from "@/lib/InatoForm"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import { Ingredient, IngredientsComponent, Recipe, Step, Unit } from "./Recipe"
+import {
+  Ingredient,
+  IngredientsComponent,
+  Recipe,
+  RecipeId,
+  Step,
+  Unit,
+} from "./Recipe"
+import { generateUuidBytes } from "@/lib/Id"
 import * as Array from "effect/Array"
 
 export const RecipeFormSchema = FormBody.struct({
@@ -69,7 +77,7 @@ const decodeFromForm = (
   input: typeof RecipeFormSchema.schema.Type,
 ): ConstructorParameters<typeof Recipe>[0] => ({
   ...input,
-  id: crypto.randomUUID(),
+  id: RecipeId.make(generateUuidBytes()),
   ingredients: input.ingredients.map(
     (c) =>
       new IngredientsComponent({

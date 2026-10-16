@@ -20,7 +20,7 @@ Add in-recipe timers by parsing recipe step text for durations and turning them 
 - Timer circles remain until dismissed; completed timers do not auto-dismiss.
 - Show timers globally (not per-recipe); include recipe title in labels when available.
 - Timer completion triggers a toast notification and optional haptic/vibration feedback when supported.
-- Timers are stored in LiveStore and persist locally across reloads until dismissed; they are not synced across devices.
+- Timers are stored through EventLog in the `timers` IndexedDB table and persist across reloads until dismissed; they sync across devices with the rest of the collection.
 - Parsing is English-only for now; non-English units are not recognized.
 
 ### Non-functional
@@ -35,15 +35,15 @@ Add in-recipe timers by parsing recipe step text for durations and turning them 
 
 ### Data model
 
-- Use the existing `Timer` model in `src/domain/Timer.ts` and the `timers` table in `src/livestore/schema.ts`:
-  - id: string
+- Use the existing `Timer` model in `src/domain/Timer.ts` and the `timers` table in `src/Timers/Table.ts`:
+  - id: TimerId (UUID bytes, the canonical string in JSON)
   - label: string (for example, "Step 3: 20 min")
   - duration: Duration (stored as millis)
   - expiresAt: DateTimeUtc (stored as number)
   - pausedRemaining: Duration | null
-  - dismissed: boolean
   - createdAt: DateTimeUtc
   - updatedAt: DateTimeUtc
+- Dismissing a timer deletes its row.
 - Timer state is derived, not stored:
   - running: `pausedRemaining === null && remainingAt(now) > 0`
   - paused: `pausedRemaining !== null`
@@ -52,7 +52,7 @@ Add in-recipe timers by parsing recipe step text for durations and turning them 
 
 ### Timer state integration
 
-- Keep using LiveStore timers state and events (`events.timerAdded`, `events.timerUpdate`, `events.timerDeleted`).
+- Keep using the Timers EventLog events (`TimerAdded`, `TimerUpdated`, `TimerDeleted` in `src/Timers/Events.ts`).
 - Use `src/Timers/atoms.ts` for the existing React adapter (`activeTimersAtom`, `toggleTimerAtom`, `dismissTimerAtom`).
 - Use the existing `nowAtom` in `src/atoms.ts` (currently ticking every 250ms); do not add a new ticking atom.
 - Add lightweight derived selectors in `src/Timers/atoms.ts` or `TimerList` for running/paused/completed timers and progress math.

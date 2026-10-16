@@ -1,0 +1,98 @@
+import "fake-indexeddb/auto"
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb"
+import * as IndexedDb from "@effect/platform-browser/IndexedDb"
+import * as Effect from "effect/Effect"
+import * as Layer from "effect/Layer"
+
+// Every case gets its own IDBFactory, so nothing leaks between cases. The
+// EventJournal's IndexedDB implementation reaches for the `indexedDB` global
+// rather than the IndexedDb service, so the fresh factory is installed there
+// as well. Cases in one file run one after another, which keeps that safe.
+export const freshIndexedDb = (): IndexedDb.IndexedDb => {
+  const indexedDB = new IDBFactory()
+  ;(globalThis as any).indexedDB = indexedDB
+  return IndexedDb.make({ indexedDB, IDBKeyRange })
+}
+
+export const layerFreshIndexedDb = Layer.sync(
+  IndexedDb.IndexedDb,
+  freshIndexedDb,
+)
+
+// Counts the records a *separate* connection sees, the way the next page load
+// would open the database. Used to check that an awaited write is on disk.
+export const countRecords = (
+  indexedDB: IDBFactory,
+  database: string,
+  store: string,
+): Effect.Effect<number, Error> =>
+  Effect.callback<number, Error>((resume) => {
+    const open = indexedDB.open(database)
+    open.onerror = () => resume(Effect.fail(new Error(String(open.error))))
+    open.onsuccess = () => {
+      const db = open.result
+      try {
+        const request = db
+          .transaction(store, "readonly")
+          .objectStore(store)
+          .count()
+        request.onerror = () =>
+          resume(Effect.fail(new Error(String(request.error))))
+        request.onsuccess = () => {
+          db.close()
+          resume(Effect.succeed(request.result))
+        }
+      } catch (error) {
+        db.close()
+        resume(Effect.fail(new Error(String(error))))
+      }
+    }
+  })
+
+// Writes to a store behind the query builder's back, bypassing the table
+// schema. For putting rows the schema can't decode, to make a read fail.
+export const rawRequest = <A>(
+  connection: IDBDatabase,
+  store: string,
+  f: (store: IDBObjectStore) => IDBRequest<A>,
+): Effect.Effect<A, Error> =>
+  Effect.callback<A, Error>((resume) => {
+    const transaction = connection.transaction(store, "readwrite")
+    const request = f(transaction.objectStore(store))
+    transaction.onerror = () =>
+      resume(Effect.fail(new Error(String(transaction.error))))
+    transaction.onabort = () =>
+      resume(Effect.fail(new Error(String(transaction.error))))
+    transaction.oncomplete = () => resume(Effect.succeed(request.result))
+  })
+
+// Every record in a store as a *separate* connection reads it: the encoded
+// rows, hidden fields included, in key order. Convergence tests compare these
+// so they check what is on disk rather than what a repo decodes.
+export const readRecords = (
+  indexedDB: IDBFactory,
+  database: string,
+  store: string,
+): Effect.Effect<ReadonlyArray<Record<string, unknown>>, Error> =>
+  Effect.callback<ReadonlyArray<Record<string, unknown>>, Error>((resume) => {
+    const open = indexedDB.open(database)
+    open.onerror = () => resume(Effect.fail(new Error(String(open.error))))
+    open.onsuccess = () => {
+      const db = open.result
+      try {
+        const request = db
+          .transaction(store, "readonly")
+          .objectStore(store)
+          .getAll()
+        request.onerror = () =>
+          resume(Effect.fail(new Error(String(request.error))))
+        request.onsuccess = () => {
+          db.close()
+          resume(Effect.succeed(request.result))
+        }
+      } catch (error) {
+        db.close()
+        resume(Effect.fail(new Error(String(error))))
+      }
+    }
+  })

@@ -1,102 +1,91 @@
-import { Menu } from "@/domain/Menu"
-import { MenuDayNote } from "@/domain/MenuDayNote"
-import { MenuEntry } from "@/domain/MenuEntry"
-import { Recipe } from "@/domain/Recipe"
-import { Store } from "@/livestore/atoms"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Atom from "effect/reactivity/Atom"
-import { queryDb, sql } from "@livestore/livestore"
-import * as Array from "effect/Array"
+import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
-import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
+import type { Menu } from "@/domain/Menu"
+import { writeEvent } from "@/EventLog"
+import { idEquals } from "@/lib/Id"
+import { RecipeRepo } from "@/Recipes/Repo"
+import { menuDetail, MenuRepo, recipeCounts } from "./Repo"
+import { menusRuntime } from "./runtime"
 
-export const allMenus$ = queryDb({
-  query: sql`select * from menus order by name asc`,
-  schema: Menu.array,
-})
-export const allMenusAtom = Store.makeQuery(allMenus$)
+// Reads
 
-export const menuByIdAtom = Atom.family((menuId: string) => {
-  const result = Store.makeQuery(
-    queryDb(
-      {
-        query: sql`select * from menus where id = ?`,
-        schema: Menu.array,
-        bindValues: [menuId],
-      },
-      {
-        deps: [menuId],
-        map: Array.head,
-      },
-    ),
-  )
-  return Atom.make((get) =>
-    get.result(result).pipe(Effect.flatMap(Effect.fromOption)),
-  )
-})
+const menusAtom = menusRuntime
+  .atom(MenuRepo.useSync((_) => _.menusStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
 
-export const menuEntries$ = (menuId: string) =>
-  queryDb(
-    {
-      query: sql`
-          select
-            me.*,
-            json_object(
-              ${Object.keys(Recipe.fields)
-                .map((f) => `'${f}', r.${f}`)
-                .join(", ")}
-            ) as recipe
-          from menu_entries me
-          join recipes r on me.recipeId = r.id
-          where me.menuId = ?
-          order by me.day asc, r.title asc, me.createdAt desc`,
-      schema: MenuEntry.array,
-      bindValues: [menuId],
-    },
-    { deps: [menuId] },
-  )
+const entriesAtom = menusRuntime
+  .atom(MenuRepo.useSync((_) => _.entriesStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
 
-export const menuEntriesAtom = Atom.family((menuId: string) =>
-  Store.makeQueryUnsafe(menuEntries$(menuId)),
+const notesAtom = menusRuntime
+  .atom(MenuRepo.useSync((_) => _.notesStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+const recipesAtom = menusRuntime
+  .atom(RecipeRepo.useSync((_) => _.stream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
+// Every menu, by name.
+export const allMenusAtom = Atom.make((get) =>
+  AsyncResult.map(get(menusAtom), (menus) => menus.all),
 )
 
-export const menuDayNotes$ = (menuId: string) =>
-  queryDb(
-    {
-      query: sql`
-        select *
-        from menu_day_notes
-        where menuId = ?
-        order by day asc, updatedAt desc`,
-      schema: MenuDayNote.array,
-      bindValues: [menuId],
-    },
-    { deps: [menuId] },
-  )
-
-export const menuDayNotesAtom = Atom.family((menuId: string) =>
-  Store.makeQueryUnsafe(menuDayNotes$(menuId)),
+// A menu with the entries and notes it shows, or none when it doesn't exist.
+export const menuByIdAtom = Atom.family((id: string) =>
+  Atom.make((get) =>
+    AsyncResult.all({
+      menus: get(menusAtom),
+      entries: get(entriesAtom),
+      notes: get(notesAtom),
+      recipes: get(recipesAtom),
+    }).pipe(AsyncResult.map((state) => menuDetail(state, id))),
+  ),
 )
 
-export const menuRecipeCountAtom = (menuId: string) =>
-  Store.makeQueryUnsafe(
-    queryDb(
-      {
-        query: sql`
-          select count(recipeId) as count
-          from menu_entries
-          where menuId = ?`,
-        schema: CountSchema,
-        bindValues: [menuId],
-      },
-      {
-        map: (arr) => arr[0].count,
-        deps: [menuId],
-      },
-    ),
-  )
+// The number of recipes each menu shows, keyed by the menu's id string.
+export const menuRecipeCountsAtom = Atom.make((get) =>
+  AsyncResult.all({
+    menus: get(menusAtom),
+    entries: get(entriesAtom),
+    recipes: get(recipesAtom),
+  }).pipe(AsyncResult.map(recipeCounts)),
+)
 
-const CountSchema = Schema.Array(
-  Schema.Struct({
-    count: Schema.Number,
+// Writes
+
+// Lowering `days` removes the menu's entries and notes on the dropped days,
+// then updates the menu. The handlers don't cascade a shrink: a remove for
+// each row this device can see means an entry or note written concurrently on
+// another device survives, past the last day where reads don't show it.
+export const setMenuDaysAtom = menusRuntime.fn<{
+  readonly menu: Menu
+  readonly days: number
+}>()(
+  Effect.fnUntraced(function* ({ menu, days }) {
+    if (!Number.isInteger(days) || days < 1 || days === menu.days) return
+    if (days < menu.days) {
+      const repo = yield* MenuRepo
+      for (const entry of yield* repo.entries) {
+        if (!idEquals(entry.menuId, menu.id) || entry.day <= days) continue
+        yield* writeEvent({
+          event: "MenuEntryRemove",
+          payload: { id: entry.id },
+        })
+      }
+      for (const note of yield* repo.notes) {
+        if (!idEquals(note.menuId, menu.id) || note.day <= days) continue
+        yield* writeEvent({
+          event: "MenuDayNoteRemove",
+          payload: { id: note.id },
+        })
+      }
+    }
+    yield* writeEvent({
+      event: "MenuUpdate",
+      payload: { ...menu, days, updatedAt: yield* DateTime.now },
+    })
   }),
 )

@@ -19,18 +19,19 @@ import {
   mealPlanEntriesAtom,
   mealPlanWeekAdjustedAtom,
   mealPlanWeekAtom,
-} from "@/livestore/queries"
+} from "@/MealPlan/atoms"
+import { latestNoteByDay } from "@/MealPlan/Repo"
 import * as Option from "effect/Option"
 import * as Duration from "effect/Duration"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import { useWrite } from "@/EventLog"
 import { SelectRecipeDrawer } from "@/Recipes/Drawer"
 import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
 } from "@/MealPlan/DatePicker"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
-import { MealPlanEntry } from "@/domain/MealPlanEntry"
+import { MealPlanEntry, MealPlanEntryId } from "@/domain/MealPlanEntry"
+import { generateUuidBytes } from "@/lib/Id"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import * as Iterable from "effect/Iterable"
 import {
@@ -59,7 +60,7 @@ const dayNames = [
 ]
 
 export function MealPlanPage() {
-  const commit = useCommit()
+  const write = useWrite()
 
   const today = DateTime.nowUnsafe().pipe(
     DateTime.setZone(DateTime.zoneMakeLocal()),
@@ -93,8 +94,8 @@ export function MealPlanPage() {
     setWeekStart(DateTime.add(weekStartRaw, { weeks: 1 }))
   }
 
-  const handleRemoveEntry = (id: string) => {
-    commit(events.mealPlanRemove({ id }))
+  const handleRemoveEntry = (id: MealPlanEntryId) => {
+    write({ event: "MealPlanRemove", payload: { id } })
   }
 
   const handlers = useSwipeable({
@@ -137,14 +138,20 @@ export function MealPlanPage() {
                       }
                       const toRemove = AsyncResult.getOrElse(entries, () => [])
                       toRemove.forEach((entry) => {
-                        commit(events.mealPlanRemove({ id: entry.id }))
+                        write({
+                          event: "MealPlanRemove",
+                          payload: { id: entry.id },
+                        })
                       })
                       const notesToRemove = AsyncResult.getOrElse(
                         dayNotes,
                         () => [],
                       )
                       notesToRemove.forEach((note) => {
-                        commit(events.mealPlanDayNoteRemove({ id: note.id }))
+                        write({
+                          event: "MealPlanDayNoteRemove",
+                          payload: { id: note.id },
+                        })
                       })
                     }}
                   >
@@ -211,13 +218,17 @@ export function MealPlanPage() {
 
       {/* Main Content */}
       <main className="max-w-lg mx-auto px-2 py-3" {...handlers}>
-        <WeekList
-          today={today}
-          entries={AsyncResult.getOrElse(entries, () => [])}
-          dayNotes={AsyncResult.getOrElse(dayNotes, () => [])}
-          weekDays={weekDays}
-          handleRemoveEntry={handleRemoveEntry}
-        />
+        {/* Days open their note on mount, so wait for the first snapshot. */}
+        {AsyncResult.isInitial(entries) ||
+        AsyncResult.isInitial(dayNotes) ? null : (
+          <WeekList
+            today={today}
+            entries={AsyncResult.getOrElse(entries, () => [])}
+            dayNotes={AsyncResult.getOrElse(dayNotes, () => [])}
+            weekDays={weekDays}
+            handleRemoveEntry={handleRemoveEntry}
+          />
+        )}
       </main>
     </div>
   )
@@ -233,22 +244,11 @@ function WeekList({
   entries: ReadonlyArray<MealPlanEntry>
   dayNotes: ReadonlyArray<MealPlanDayNote>
   weekDays: Array<DateTime.Utc>
-  handleRemoveEntry: (id: string) => void
+  handleRemoveEntry: (id: MealPlanEntryId) => void
   today: DateTime.Utc
 }) {
   const isToday = (date: DateTime.Utc) => DateTime.Equivalence(date, today)
-  const notesByDay = new Map<string, MealPlanDayNote>()
-
-  for (const note of dayNotes) {
-    const key = DateTime.formatIsoDate(note.day)
-    const existing = notesByDay.get(key)
-    if (
-      !existing ||
-      note.updatedAt.epochMilliseconds > existing.updatedAt.epochMilliseconds
-    ) {
-      notesByDay.set(key, note)
-    }
-  }
+  const notesByDay = latestNoteByDay(dayNotes)
 
   return (
     <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
@@ -285,9 +285,9 @@ function DayListItem({
   dayEntries: ReadonlyArray<MealPlanEntry>
   dayNote?: MealPlanDayNote
   isTodayDate: boolean
-  handleRemoveEntry: (id: string) => void
+  handleRemoveEntry: (id: MealPlanEntryId) => void
 }) {
-  const commit = useCommit()
+  const write = useWrite()
   const dateParts = DateTime.toPartsUtc(date)
   const [noteVisible, setNoteVisible] = useState(() => dayNote !== undefined)
   const [noteDraft, setNoteDraft] = useState(dayNote?.note ?? "")
@@ -300,31 +300,31 @@ function DayListItem({
     const trimmed = noteDraft.trim()
     if (trimmed.length === 0) {
       if (dayNote) {
-        commit(events.mealPlanDayNoteRemove({ id: dayNote.id }))
+        write({ event: "MealPlanDayNoteRemove", payload: { id: dayNote.id } })
       }
       return
     }
 
     if (dayNote) {
       if (trimmed === dayNote.note) return
-      commit(
-        events.mealPlanDayNoteUpdate({
+      write({
+        event: "MealPlanDayNoteUpdate",
+        payload: {
           ...dayNote,
           note: trimmed,
           updatedAt: DateTime.nowUnsafe(),
-        }),
-      )
+        },
+      })
       return
     }
 
-    commit(
-      events.mealPlanDayNoteAdd(
-        MealPlanDayNote.fromForm({
-          day: date,
-          note: trimmed,
-        }),
-      ),
-    )
+    write({
+      event: "MealPlanDayNoteAdd",
+      payload: MealPlanDayNote.fromForm({
+        day: date,
+        note: trimmed,
+      }),
+    })
   }
 
   return (
@@ -369,13 +369,14 @@ function DayListItem({
           </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {
-              commit(
-                events.mealPlanAdd({
-                  id: crypto.randomUUID(),
+              write({
+                event: "MealPlanAdd",
+                payload: {
+                  id: MealPlanEntryId.make(generateUuidBytes()),
                   day: date,
                   recipeId: recipe.id,
-                }),
-              )
+                },
+              })
             }}
           >
             <SelectRecipeButton />
@@ -399,12 +400,12 @@ function DayListItem({
       <div>
         {dayEntries.length > 0 && (
           <div className="divide-y divide-border">
-            {dayEntries.map(({ id, recipe }) => (
+            {dayEntries.map(({ id, idString, recipe }) => (
               <Link
-                key={id}
+                key={idString}
                 className="flex items-center p-2 gap-3"
                 to="/recipes/$id"
-                params={{ id: recipe.id }}
+                params={{ id: recipe.idString }}
               >
                 <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
                   {recipe.imageUrl ? (

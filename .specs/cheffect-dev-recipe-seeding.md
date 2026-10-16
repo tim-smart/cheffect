@@ -2,7 +2,7 @@
 
 ## Overview
 
-In development builds, automatically seed the local LiveStore database with a
+In development builds, automatically seed the local EventLog database with a
 small set of sample recipes when there are no non-deleted recipes. This
 provides realistic UI data for recipes, timers, menus, and grocery flows
 without manual setup.
@@ -13,9 +13,9 @@ without manual setup.
   images.
 - Include at least one step with a duration string (for example, "10 min") for
   timer parsing.
-- Run only in dev builds and only when the recipes table is empty
-  (deletedAt IS NULL).
-- Use LiveStore events so seeded data behaves like user-created data.
+- Run only in dev builds and only when there are no recipes with
+  `deletedAt === null`.
+- Use EventLog events so seeded data behaves like user-created data.
 
 ## Non-goals
 
@@ -25,8 +25,8 @@ without manual setup.
 
 ## Functional Requirements
 
-- On app startup, after the LiveStore runtime is available, check for existing
-  recipes with `deletedAt IS NULL`.
+- On app startup, read the recipes from `RecipeRepo` and check for any with
+  `deletedAt === null`.
 - If the count is zero, insert the seed recipes. The only dev gating should be
   at the `useAtomMount` call site.
 - The check only runs on startup; deleting all recipes should require a reload
@@ -37,7 +37,7 @@ without manual setup.
   - rating: null
   - sourceUrl: null
   - createdAt/updatedAt: now
-- Use `events.recipeCreated` for inserts.
+- Write a `RecipeCreated` event for each insert.
 
 ## Non-functional Requirements
 
@@ -66,8 +66,9 @@ Ingredient entries.
 - Add a module such as `src/dev/seedRecipes.ts` that exports the seed recipe
   data (as `ExtractedRecipe` entries or already-constructed `Recipe` objects).
 - Add a seeding routine (for example, `seedDevRecipesAtom`) that:
-  - Queries `recipes` for a count of rows where `deletedAt IS NULL`.
-  - If empty, constructs `Recipe` objects and commits `events.recipeCreated`
+  - Reads the recipes from `RecipeRepo` and counts those with
+    `deletedAt === null`.
+  - If none, constructs `Recipe` objects and writes a `RecipeCreated` event
     for each.
 - Mount the seeding routine once in `App` using `useAtomMount`, and only render
   the mount when `import.meta.env.DEV` is true (avoid calling the hook in

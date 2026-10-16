@@ -1,20 +1,40 @@
 import * as Model from "effect/schema/Model"
 import * as Schema from "effect/Schema"
-import { Recipe } from "./Recipe"
 import * as DateTime from "effect/DateTime"
+import {
+  generateUuidBytes,
+  UuidBytes,
+  UuidFromString,
+  uuidString,
+} from "@/lib/Id"
+import { MenuId } from "./Menu"
+import { Recipe, RecipeId } from "./Recipe"
 import { UnknownToXml } from "./Xml"
 
+export const MenuEntryId = UuidBytes("MenuEntryId")
+export type MenuEntryId = typeof MenuEntryId.Type
+export const MenuEntryIdFromString = UuidFromString(MenuEntryId)
+
+// A menu's recipe on one of its days, joined with the recipe. The stored row
+// keeps `menuId` and `recipeId` instead, and the repo joins it with the
+// recipes snapshot.
 export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
-  id: Model.GeneratedByApp(Schema.String),
+  // UUID bytes in storage and events, the canonical string in JSON.
+  id: Model.Field({
+    select: MenuEntryId,
+    insert: MenuEntryId,
+    update: MenuEntryId,
+    json: MenuEntryIdFromString,
+  }),
   menuId: Model.Field({
-    insert: Schema.String,
+    insert: MenuId,
   }),
   recipe: Model.Field({
-    select: Schema.fromJsonString(Recipe),
-    json: Recipe,
+    select: Recipe,
+    json: Recipe.json,
   }),
   recipeId: Model.Field({
-    insert: Schema.String,
+    insert: RecipeId,
     jsonCreate: Schema.String,
   }),
   day: Schema.Number,
@@ -30,10 +50,7 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
     Schema.decodeTo(
       Schema.Array(
         Schema.Struct({
-          menuEntry: Schema.Struct({
-            ...MenuEntry.json.fields,
-            recipe: Recipe.json,
-          }),
+          menuEntry: MenuEntry.json,
         }),
       ),
     ),
@@ -43,7 +60,7 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
     input: Pick<typeof MenuEntry.insert.Type, "menuId" | "recipeId" | "day">,
   ) {
     return MenuEntry.insert.make({
-      id: crypto.randomUUID(),
+      id: MenuEntryId.make(generateUuidBytes()),
       menuId: input.menuId,
       recipeId: input.recipeId,
       day: input.day,
@@ -56,5 +73,9 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
     return Schema.encodeSync(MenuEntry.xml)(
       entries.map((entry) => ({ menuEntry: entry })),
     )
+  }
+
+  get idString(): string {
+    return uuidString(this.id)
   }
 }

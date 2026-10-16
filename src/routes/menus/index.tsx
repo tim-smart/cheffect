@@ -15,15 +15,15 @@ import { Menu } from "@/domain/Menu"
 import * as DateTime from "effect/DateTime"
 import { cn } from "@/lib/utils"
 import * as Atom from "effect/reactivity/Atom"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
 import {
   useAtom,
   useAtomSet,
   useAtomSuspense,
   useAtomValue,
 } from "@effect/atom-react"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
-import { allMenusAtom, menuRecipeCountAtom } from "@/Menus/atoms"
+import { useWrite } from "@/EventLog"
+import { allMenusAtom, menuRecipeCountsAtom } from "@/Menus/atoms"
 import { useState } from "react"
 import {
   MealPlanDatePicker,
@@ -70,7 +70,7 @@ export function MenusPage() {
 
 function AddMenuForm() {
   const [showForm, setShowForm] = useAtom(showAddMenu)
-  const commit = useCommit()
+  const write = useWrite()
 
   if (!showForm) return null
 
@@ -78,7 +78,7 @@ function AddMenuForm() {
     <MenuForm
       className="max-w-lg mx-auto px-2 sm:px-4"
       onSubmit={(menu) => {
-        commit(events.menuAdd(menu))
+        write({ event: "MenuAdd", payload: menu })
         setShowForm(false)
       }}
       onCancel={() => setShowForm(false)}
@@ -97,7 +97,7 @@ function MenuList() {
       className={`rounded-lg border bg-card overflow-hidden divide-y divide-border border-border`}
     >
       {menus.map((menu) => (
-        <MenuCard key={menu.id} menu={menu} />
+        <MenuCard key={menu.idString} menu={menu} />
       ))}
     </div>
   )
@@ -116,16 +116,22 @@ function NoResults() {
   )
 }
 
+const noCounts: ReadonlyMap<string, number> = new Map()
+
 function MenuCard({ menu }: { menu: Menu }) {
-  const commit = useCommit()
+  const write = useWrite()
   const [menuOpen, setMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const recipeCount = useAtomValue(menuRecipeCountAtom(menu.id))
+  const recipeCount =
+    AsyncResult.getOrElse(
+      useAtomValue(menuRecipeCountsAtom),
+      () => noCounts,
+    ).get(menu.idString) ?? 0
   return (
     <div className="flex items-center pr-2 active:bg-muted transition-colors">
       <Link
         to="/menus/$id"
-        params={{ id: menu.id }}
+        params={{ id: menu.idString }}
         className="flex-1 flex flex-col gap-1 h-20 justify-center pl-4"
         disabled={editing}
       >
@@ -136,7 +142,7 @@ function MenuCard({ menu }: { menu: Menu }) {
               <MenuForm
                 initialValue={menu}
                 onSubmit={(updated) => {
-                  commit(events.menuUpdate(updated))
+                  write({ event: "MenuUpdate", payload: updated })
                   setEditing(false)
                 }}
                 onCancel={() => setEditing(false)}
@@ -164,7 +170,7 @@ function MenuCard({ menu }: { menu: Menu }) {
         <DropdownMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
           <MealPlanDatePicker
             target={MealPlanDatePickerTarget.Menu({
-              id: menu.id,
+              id: menu.idString,
             })}
             onSelect={() => setMenuOpen(false)}
           >
@@ -191,7 +197,7 @@ function MenuCard({ menu }: { menu: Menu }) {
               if (!confirm("Are you sure you want to remove this menu?")) {
                 return
               }
-              commit(events.menuRemove({ id: menu.id }))
+              write({ event: "MenuRemove", payload: { id: menu.id } })
             }}
           >
             <Trash />

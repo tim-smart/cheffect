@@ -11,6 +11,8 @@ import {
   GroceryItem,
   GroceryItemList,
 } from "@/domain/GroceryItem"
+import type { RecipeId } from "@/domain/Recipe"
+import { uuidString } from "@/lib/Id"
 import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
@@ -143,7 +145,7 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
 
         for (const item of groceries) {
           if (item.completed) continue
-          leftoverItems.set(item.id, item)
+          leftoverItems.set(item.idString, item)
         }
 
         const response = yield* llm.generateObject({
@@ -186,21 +188,25 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
         const merges = new Map<string, string>()
         const updated: Array<GroceryItem> = []
         for (const item of response.value.items) {
-          const prev = leftoverItems.get(item.id)
+          const itemId = uuidString(item.id)
+          const prev = leftoverItems.get(itemId)
           if (!prev) continue
-          const recipeIds = new Set(
-            prev.recipeIds ? prev.recipeIds.slice() : [],
+          // By id string, so the same recipe from two items counts once.
+          const recipeIds = new Map<string, RecipeId>(
+            prev.recipeIds?.map((id) => [uuidString(id), id]),
           )
-          leftoverItems.delete(item.id)
+          leftoverItems.delete(itemId)
           for (const mergedId of item.mergedIds) {
-            const mergedItem = leftoverItems.get(mergedId)
+            const mergedItem = leftoverItems.get(mergedId.toLowerCase())
             if (mergedItem) {
-              merges.set(mergedId, item.id)
+              merges.set(mergedId, itemId)
             }
             if (!mergedItem || !mergedItem.recipeIds) continue
-            mergedItem.recipeIds.forEach((id) => recipeIds.add(id))
+            mergedItem.recipeIds.forEach((id) =>
+              recipeIds.set(uuidString(id), id),
+            )
           }
-          const recipeIdsArray = Array.fromIterable(recipeIds)
+          const recipeIdsArray = Array.fromIterable(recipeIds.values())
           updated.push(
             new GroceryItem({
               ...prev,

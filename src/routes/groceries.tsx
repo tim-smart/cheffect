@@ -22,12 +22,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import * as Arr from "effect/Array"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
+import * as Option from "effect/Option"
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
-import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
+import {
+  GroceryAisle,
+  GroceryItem,
+  GroceryItemId,
+  PANTRY_GROCERY_LIST_NAME,
+} from "@/domain/GroceryItem"
+import type { RecipeId } from "@/domain/Recipe"
+import { useWrite } from "@/EventLog"
+import { generateUuidBytes, uuidString } from "@/lib/Id"
 import { FormBody, FormDisplay } from "@/lib/Form"
 import {
   SelectWithLiteralsOrNull,
@@ -38,17 +46,14 @@ import * as DateTime from "effect/DateTime"
 import {
   beautifyGroceriesAtom,
   groceryCountAtom,
-  groceryItemAddAtom,
+  groceryListNamesAtom,
   groceryNameAtom,
   groceryNameAutoCompleteAtom,
 } from "@/Groceries/atoms"
+import { groceryItemAddAtom, groceryItemEditAtom } from "@/Groceries/runtime"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  groceryListNamesAtom,
-  groceryListStateAtom,
-  PANTRY_GROCERY_LIST_NAME,
-  recipeTitleAtom,
-} from "@/livestore/queries"
+import { groceryCurrentListAtom } from "@/Groceries/currentList"
+import { recipeTitleAtom } from "@/Recipes/atoms"
 import { cn } from "@/lib/utils"
 import { isAiEnabledAtom } from "@/services/AiHelpers"
 import {
@@ -58,7 +63,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import * as Function from "effect/Function"
 import {
   Popover,
   PopoverContent,
@@ -77,9 +81,6 @@ export const Route = createFileRoute("/groceries")({
   component: GroceryList,
 })
 
-const groceryAisleOrderId = (list: string | null, aisle: string) =>
-  JSON.stringify([list ?? null, aisle])
-
 const arrayMove = <T,>(items: readonly T[], from: number, to: number): T[] => {
   const next = [...items]
   const [moved] = next.splice(from, 1)
@@ -88,16 +89,23 @@ const arrayMove = <T,>(items: readonly T[], from: number, to: number): T[] => {
 }
 
 function GroceryList() {
-  const currentList = useAtomValue(groceryListStateAtom).pipe(
-    AsyncResult.map((state) => state.currentList),
-    AsyncResult.getOrElse(Function.constNull),
-  )
+  const currentList = useAtomValue(groceryCurrentListAtom)
   const result = useAtomValue(groceryCountAtom)
 
-  const commit = useCommit()
-  const clearCompleted = () => {
-    commit(events.groceryItemClearedCompleted({ list: currentList }))
+  const write = useWrite()
+
+  // A clear deletes the items this device shows, so an item added on another
+  // device at the same time survives it.
+  const clearShown = (shown: (item: GroceryItem) => boolean) => {
+    if (result._tag !== "Success") return
+    const ids = result.value.aisles.flatMap(({ items }) =>
+      items.filter(shown).map((item) => item.id),
+    )
+    if (!Arr.isArrayNonEmpty(ids)) return
+    write({ event: "GroceryItemsDeleted", payload: { ids } })
   }
+
+  const clearCompleted = () => clearShown((item) => item.completed)
 
   const moveCompletedTargetList =
     currentList === PANTRY_GROCERY_LIST_NAME ? null : PANTRY_GROCERY_LIST_NAME
@@ -110,30 +118,23 @@ function GroceryList() {
       for (const item of items) {
         if (!item.completed) continue
         const now = DateTime.nowUnsafe()
-        commit(
-          events.groceryItemAdded(
-            new GroceryItem({
-              ...item,
-              id: crypto.randomUUID(),
-              list: moveCompletedTargetList,
-              completed: false,
-              createdAt: now,
-              updatedAt: now,
-            }),
-          ),
-        )
-        commit(
-          events.groceryItemDeleted({
-            id: item.id,
+        write({
+          event: "GroceryItemAdded",
+          payload: new GroceryItem({
+            ...item,
+            id: GroceryItemId.make(generateUuidBytes()),
+            list: moveCompletedTargetList,
+            completed: false,
+            createdAt: now,
+            updatedAt: now,
           }),
-        )
+        })
+        write({ event: "GroceryItemDeleted", payload: { id: item.id } })
       }
     }
   }
 
-  const clearAll = () => {
-    commit(events.groceryItemCleared({ list: currentList }))
-  }
+  const clearAll = () => clearShown(() => true)
 
   const total = result._tag === "Success" ? result.value.total : 0
   const completed = result._tag === "Success" ? result.value.completed : 0
@@ -348,7 +349,7 @@ function GroceryListList({
   readonly showForm?: boolean
   readonly currentList: string | null
 }) {
-  const commit = useCommit()
+  const write = useWrite()
   const addGroceryItem = useAtomSet(groceryItemAddAtom)
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
   const cancelBeautify = () => beautifyResult(Atom.Reset)
@@ -356,9 +357,10 @@ function GroceryListList({
   const lastOverId = useRef<string | null>(null)
 
   const toggleItem = (item: GroceryItem) => {
-    commit(
-      events.groceryItemToggled({ id: item.id, completed: !item.completed }),
-    )
+    write({
+      event: "GroceryItemToggled",
+      payload: { id: item.id, completed: !item.completed },
+    })
     if ("vibrate" in navigator) {
       navigator.vibrate(3)
     }
@@ -366,7 +368,7 @@ function GroceryListList({
 
   const removeItem = (item: GroceryItem) => {
     cancelBeautify()
-    commit(events.groceryItemDeleted({ id: item.id }))
+    write({ event: "GroceryItemDeleted", payload: { id: item.id } })
     if ("vibrate" in navigator) {
       navigator.vibrate(3)
     }
@@ -398,15 +400,15 @@ function GroceryListList({
     const nextOrder = arrayMove(aisles, fromIndex, toIndex)
     const updatedAt = DateTime.nowUnsafe()
     nextOrder.forEach(({ name }, index) => {
-      commit(
-        events.groceryAisleOrderSet({
-          id: groceryAisleOrderId(currentList, name),
+      write({
+        event: "GroceryAisleOrderSet",
+        payload: {
           list: currentList,
           aisle: name,
           sortOrder: index,
           updatedAt,
-        }),
-      )
+        },
+      })
     })
   }
 
@@ -556,7 +558,7 @@ function GroceryAisleSection({
       <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
         {items.map((item) => (
           <GroceryListItem
-            key={item.id}
+            key={item.idString}
             item={item}
             toggleItem={toggleItem}
             removeItem={removeItem}
@@ -576,7 +578,7 @@ function GroceryListItem({
   toggleItem: (item: GroceryItem) => void
   removeItem: (item: GroceryItem) => void
 }) {
-  const commit = useCommit()
+  const editItem = useAtomSet(groceryItemEditAtom)
   const [editingItem, setEditingItem] = useState(false)
   return (
     <div
@@ -598,13 +600,7 @@ function GroceryListItem({
             initialValue={item}
             currentList={item.list}
             onSubmit={(updated) => {
-              commit(
-                events.groceryItemUpdated({
-                  ...updated,
-                  previousName: item.name,
-                  userInitiated: true,
-                }),
-              )
+              editItem({ item: updated, previousName: item.name })
               setEditingItem(false)
             }}
             onCancel={() => setEditingItem(false)}
@@ -632,7 +628,7 @@ function GroceryListItem({
             {item.recipeIds && (
               <div className="text-xs text-muted-foreground [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
                 {item.recipeIds.map((id) => (
-                  <RecipeTitle key={id} id={id} />
+                  <RecipeTitle key={uuidString(id)} id={id} />
                 ))}
               </div>
             )}
@@ -696,9 +692,14 @@ function BeautifyButton() {
   )
 }
 
-function RecipeTitle({ id }: { readonly id: string }) {
-  const title = useAtomValue(recipeTitleAtom(id))
-  return <span>{title}</span>
+// Renders nothing while the recipe is loading, or when it is missing (an item
+// can sync before its recipe, or outlive it).
+function RecipeTitle({ id }: { readonly id: RecipeId }) {
+  const title = useAtomValue(recipeTitleAtom(uuidString(id))).pipe(
+    AsyncResult.value,
+    Option.flatten,
+  )
+  return Option.isSome(title) ? <span>{title.value}</span> : null
 }
 
 function NameAutoCompleteSync() {
@@ -711,7 +712,7 @@ function NameAutoCompleteSync() {
 }
 
 function NameAutoComplete() {
-  const commit = useCommit()
+  const write = useWrite()
   const setName = Display.name.useControls().set
   const results = useAtomValue(groceryNameAutoCompleteAtom)
   const [focused, setFocused] = useState(false)
@@ -722,7 +723,7 @@ function NameAutoComplete() {
     inputRef.current?.form?.requestSubmit()
   }
   const onRemove = (value: string) => {
-    commit(events.ingredientAisleRemoved({ name: value }))
+    write({ event: "IngredientAisleRemoved", payload: { name: value } })
   }
   const stopPointer = (event: React.PointerEvent) => {
     event.preventDefault()
@@ -799,11 +800,7 @@ function NameAutoComplete() {
 
 function ListCombobox({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
-  const [state, setState] = useAtom(groceryListStateAtom)
-  const currentList = state.pipe(
-    AsyncResult.map((s) => s.currentList),
-    AsyncResult.getOrElse(() => null),
-  )
+  const [currentList, setCurrentList] = useAtom(groceryCurrentListAtom)
   const listNames = useAtomValue(
     groceryListNamesAtom,
     AsyncResult.getOrElse(() => [null]),
@@ -828,7 +825,7 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
             onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
               if (e.key === "Enter") {
                 if (inputTrimmed.length === 0) return
-                setState({ currentList: inputTrimmed })
+                setCurrentList(inputTrimmed)
                 setOpen(false)
                 setInputValue("")
               }
@@ -841,7 +838,7 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
                 !hasInputList && (
                   <CommandItem
                     onPointerUp={() => {
-                      setState({ currentList: inputTrimmed })
+                      setCurrentList(inputTrimmed)
                       setOpen(false)
                       setInputValue("")
                     }}
@@ -853,7 +850,7 @@ function ListCombobox({ children }: { children: React.ReactNode }) {
                 <CommandItem
                   key={list ?? "default"}
                   onPointerUp={() => {
-                    setState({ currentList: list })
+                    setCurrentList(list)
                     setOpen(false)
                   }}
                 >

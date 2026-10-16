@@ -16,12 +16,13 @@ import * as Duration from "effect/Duration"
 import { SelectRecipeDrawer } from "@/Recipes/Drawer"
 import { router } from "@/Router"
 import * as Array from "effect/Array"
-import { useAtomSuspense, useAtomValue } from "@effect/atom-react"
-import { menuByIdAtom, menuDayNotesAtom, menuEntriesAtom } from "@/Menus/atoms"
+import { useAtomSet, useAtomValue } from "@effect/atom-react"
+import * as AsyncResult from "effect/reactivity/AsyncResult"
+import { menuByIdAtom, setMenuDaysAtom } from "@/Menus/atoms"
+import type { MenuDetail } from "@/Menus/Repo"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import { useWrite } from "@/EventLog"
 import { Menu } from "@/domain/Menu"
 import * as DateTime from "effect/DateTime"
 import {
@@ -49,23 +50,36 @@ export const Route = createFileRoute("/menus/$id")({
   component: MenuDetailPage,
 })
 
+// Days open their note on mount, so the page waits for the first snapshot.
 export function MenuDetailPage() {
   const { id } = Route.useParams()
-  const commit = useCommit()
-  const menu = useAtomSuspense(menuByIdAtom(id)).value
-  const entries = useAtomValue(menuEntriesAtom(id))!
-  const dayNotes = useAtomValue(menuDayNotesAtom(id))!
-
-  const setDays = (days: number) => {
-    if (days < 1 || days === menu.days) return
-    commit(
-      events.menuUpdate({
-        ...menu,
-        days,
-        updatedAt: DateTime.nowUnsafe(),
+  const result = useAtomValue(menuByIdAtom(id))
+  return AsyncResult.builder(result)
+    .onSuccess((found) =>
+      Option.match(found, {
+        onNone: () => <NoMenuFound />,
+        onSome: (detail) => <MenuDetails detail={detail} />,
       }),
     )
-  }
+    .render()
+}
+
+function NoMenuFound() {
+  return (
+    <div className="p-4 text-center text-gray-600">
+      <h2 className="text-xl font-semibold mb-2">Menu Not Found</h2>
+      <p className="text-sm">
+        The menu you are looking for does not exist or has been removed.
+      </p>
+    </div>
+  )
+}
+
+function MenuDetails({ detail }: { detail: MenuDetail }) {
+  const { menu, entries, notes: dayNotes } = detail
+  const write = useWrite()
+  const setMenuDays = useAtomSet(setMenuDaysAtom)
+  const setDays = (days: number) => setMenuDays({ menu, days })
 
   return (
     <div className="pb-content">
@@ -86,7 +100,7 @@ export function MenuDetailPage() {
             </h1>
             <MealPlanDatePicker
               target={MealPlanDatePickerTarget.Menu({
-                id: menu.id,
+                id: menu.idString,
               })}
             >
               <Button variant="outline" size="sm">
@@ -110,7 +124,7 @@ export function MenuDetailPage() {
                       return
                     }
                     router.navigate({ to: "/menus" })
-                    commit(events.menuRemove({ id: menu.id }))
+                    write({ event: "MenuRemove", payload: { id: menu.id } })
                   }}
                 >
                   <Trash />
@@ -133,15 +147,16 @@ export function MenuDetailPage() {
             const { active, over } = event
             const targetDay = over?.id as number | undefined
             if (targetDay === undefined) return
-            const entry = entries.find((e) => e.id === active.id)
+            const entry = entries.find((e) => e.idString === active.id)
             if (!entry || entry.day === targetDay) return
-            commit(
-              events.menuEntrySetDay({
+            write({
+              event: "MenuEntrySetDay",
+              payload: {
                 id: entry.id,
                 day: targetDay,
                 updatedAt: DateTime.nowUnsafe(),
-              }),
-            )
+              },
+            })
           }}
         >
           <DayList menu={menu} entries={entries} dayNotes={dayNotes} />
@@ -208,7 +223,7 @@ function DayListItem({
   dayEntries: ReadonlyArray<MenuEntry>
   dayNote?: MenuDayNote
 }) {
-  const commit = useCommit()
+  const write = useWrite()
   const { isOver, setNodeRef } = useDroppable({
     id: day,
   })
@@ -222,32 +237,32 @@ function DayListItem({
     const trimmed = noteDraft.trim()
     if (trimmed.length === 0) {
       if (dayNote) {
-        commit(events.menuDayNoteRemove({ id: dayNote.id }))
+        write({ event: "MenuDayNoteRemove", payload: { id: dayNote.id } })
       }
       return
     }
 
     if (dayNote) {
       if (trimmed === dayNote.note) return
-      commit(
-        events.menuDayNoteUpdate({
+      write({
+        event: "MenuDayNoteUpdate",
+        payload: {
           ...dayNote,
           note: trimmed,
           updatedAt: DateTime.nowUnsafe(),
-        }),
-      )
+        },
+      })
       return
     }
 
-    commit(
-      events.menuDayNoteAdd(
-        MenuDayNote.fromForm({
-          menuId: menu.id,
-          day,
-          note: trimmed,
-        }),
-      ),
-    )
+    write({
+      event: "MenuDayNoteAdd",
+      payload: MenuDayNote.fromForm({
+        menuId: menu.id,
+        day,
+        note: trimmed,
+      }),
+    })
   }
 
   return (
@@ -279,15 +294,14 @@ function DayListItem({
           </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {
-              commit(
-                events.menuEntryAdd(
-                  MenuEntry.fromForm({
-                    menuId: menu.id,
-                    recipeId: recipe.id,
-                    day,
-                  }),
-                ),
-              )
+              write({
+                event: "MenuEntryAdd",
+                payload: MenuEntry.fromForm({
+                  menuId: menu.id,
+                  recipeId: recipe.id,
+                  day,
+                }),
+              })
             }}
           >
             <SelectRecipeButton />
@@ -312,7 +326,7 @@ function DayListItem({
         {dayEntries.length > 0 && (
           <div className="divide-y divide-border">
             {dayEntries.map((entry) => (
-              <DayEntryItem key={entry.id} entry={entry} />
+              <DayEntryItem key={entry.idString} entry={entry} />
             ))}
           </div>
         )}
@@ -331,7 +345,7 @@ function DayListItem({
 
 function DayEntryItem({ entry }: { entry: MenuEntry }) {
   const { id, recipe } = entry
-  const commit = useCommit()
+  const write = useWrite()
 
   const {
     attributes,
@@ -341,7 +355,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
     setActivatorNodeRef,
     isDragging,
   } = useDraggable({
-    id: entry.id,
+    id: entry.idString,
   })
   const style = transform
     ? {
@@ -370,7 +384,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
       )}
       to="/recipes/$id"
       disabled={debouncedIsDragging}
-      params={{ id: recipe.id }}
+      params={{ id: recipe.idString }}
       ref={setNodeRef}
       style={style}
       {...attributes}
@@ -420,7 +434,7 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
           size="sm"
           onClick={(e) => {
             e.preventDefault()
-            commit(events.menuEntryRemove({ id }))
+            write({ event: "MenuEntryRemove", payload: { id } })
           }}
           className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600"
         >

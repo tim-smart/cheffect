@@ -1,6 +1,5 @@
 import { RecipeFormSchema, RecipeInsert } from "@/domain/RecipeForm"
-import { useCommit } from "@/livestore/atoms"
-import { events } from "@/livestore/schema"
+import { useWrite } from "@/EventLog"
 import { RecipeForm } from "@/Recipes/Form"
 import { router } from "@/Router"
 import { createFileRoute } from "@tanstack/react-router"
@@ -11,11 +10,11 @@ export const Route = createFileRoute("/add")({
 })
 
 function AddRecipe() {
-  const commit = useCommit()
-  function onSubmit(data: typeof RecipeFormSchema.schema.Type) {
-    const dataDecoded = Schema.decodeSync(RecipeInsert)(data)
-    commit(events.recipeCreated(dataDecoded))
-    router.navigate({ to: "/recipes/$id", params: { id: dataDecoded.id } })
+  const write = useWrite()
+  async function onSubmit(data: typeof RecipeFormSchema.schema.Type) {
+    const recipe = Schema.decodeSync(RecipeInsert)(data)
+    await write({ event: "RecipeCreated", payload: recipe })
+    router.navigate({ to: "/recipes/$id", params: { id: recipe.idString } })
   }
   return (
     <div className="pb-content">

@@ -1,14 +1,10 @@
-import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { Search, ArrowDownWideNarrow, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { allRecipesAtom, searchSortByAtom } from "@/livestore/queries"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { useAtom, useAtomValue } from "@effect/atom-react"
-import { events } from "@/livestore/schema"
-import { SortBy } from "@/domain/Recipe"
-import { storeIdAtom, useCommit } from "@/livestore/atoms"
+import { type Recipe, SortBy } from "@/domain/Recipe"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -16,18 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSearchQuery } from "@/Recipes/atoms"
-import { RecipeList } from "@/Recipes/List"
-
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog"
+  allRecipesAtom,
+  recipeSearchQueryAtom,
+  recipeSortByAtom,
+} from "@/Recipes/atoms"
+import { RecipeList } from "@/Recipes/List"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -49,20 +39,17 @@ export default function CheffectHome() {
           .onSuccess((recipes) => <WrappedList recipes={recipes} />)
           .render()}
       </div>
-
-      <InviteIdChecker />
     </div>
   )
 }
 
-function WrappedList({ recipes }: { recipes: ReadonlyArray<any> }) {
-  const searchQuery = useSearchQuery()
+function WrappedList({ recipes }: { recipes: ReadonlyArray<Recipe> }) {
+  const searchQuery = useAtomValue(recipeSearchQueryAtom)
   return <RecipeList recipes={recipes} searchQuery={searchQuery} />
 }
 
 function SearchInput() {
-  const searchQuery = useSearchQuery()
-  const commit = useCommit()
+  const [searchQuery, setSearchQuery] = useAtom(recipeSearchQueryAtom)
 
   return (
     <div className="flex gap-2">
@@ -72,9 +59,7 @@ function SearchInput() {
           type="text"
           placeholder="Search recipes..."
           value={searchQuery}
-          onChange={(e) => {
-            commit(events.searchStateSet({ query: e.target.value }))
-          }}
+          onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return
             const target = e.target as HTMLInputElement
@@ -85,7 +70,7 @@ function SearchInput() {
         {searchQuery && (
           <button
             type="button"
-            onClick={() => commit(events.searchStateSet({ query: "" }))}
+            onClick={() => setSearchQuery("")}
             className="absolute right-1 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600"
           >
             <X className="w-4 h-4" />
@@ -98,10 +83,7 @@ function SearchInput() {
 }
 
 function SortButton() {
-  const sortBy = useAtomValue(searchSortByAtom)
-  const commit = useCommit()
-  const set = (value: SortBy) =>
-    commit(events.searchStateSet({ sortBy: value }))
+  const [sortBy, set] = useAtom(recipeSortByAtom)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -150,47 +132,3 @@ function RecipeListSkeleton() {
 //     </div>
 //   )
 // }
-
-const invitesSeen = new Set<string>()
-
-function InviteIdChecker() {
-  const [open, setOpen] = useState(true)
-  const [storeId, setStoreId] = useAtom(storeIdAtom)
-
-  const inviteId = new URLSearchParams(window.location.search).get("invite_id")
-
-  if (!inviteId || inviteId === storeId || invitesSeen.has(inviteId))
-    return null
-
-  return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(nextOpen: boolean) => {
-        if (!nextOpen) invitesSeen.add(inviteId)
-        setOpen(nextOpen)
-      }}
-    >
-      <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Accept invitation</AlertDialogTitle>
-          <AlertDialogDescription>
-            Someone has shared their recipe collection with you.
-            <br />
-            Once you "Accept", all data will be replaced with the shared data.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction
-            onClick={() => {
-              console.log("Accepting invite", inviteId)
-              setStoreId(inviteId)
-              window.location.reload()
-            }}
-          >
-            Accept
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
-}
