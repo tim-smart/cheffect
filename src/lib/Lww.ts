@@ -66,14 +66,20 @@ export const lwwSet = <Row extends LwwFields & Tombstoned>(
 
 // A remove on a reusable key keeps the row as a tombstone. When the row is
 // missing (the remove arrived first) the tombstone is still written, so an
-// older set can't bring it back; `fields` fill the row in that case only.
+// older set can't bring it back. `fields` fill the row in that case only, and
+// stay unstamped, so an older set still fills them in the same way it would
+// have had it arrived first.
 export const lwwRemove = <Row extends LwwFields & Tombstoned>(
   existing: Row | undefined,
   fields: Omit<Fields<Row>, "deleted">,
   entry: EventJournal.Entry,
 ): Row =>
   existing === undefined
-    ? (stampAll({ ...fields, deleted: 1 }, entry) as unknown as Row)
+    ? ({
+        ...fields,
+        deleted: 1,
+        _lww: { deleted: entry.idString },
+      } as unknown as Row)
     : applyLww(existing, { deleted: 1 } as Partial<Fields<Row>>, entry)
 
 export const isLive = (row: Tombstoned): boolean => row.deleted === 0
