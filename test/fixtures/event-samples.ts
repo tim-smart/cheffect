@@ -3,6 +3,11 @@ import * as Duration from "effect/Duration"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import type { EventPayload } from "@/EventLog"
+import {
+  MealPlanDayNote,
+  MealPlanDayNoteIdFromString,
+} from "@/domain/MealPlanDayNote"
+import { MealPlanEntryIdFromString } from "@/domain/MealPlanEntry"
 import { Rating } from "@/domain/Rating"
 import {
   Ingredient,
@@ -67,6 +72,16 @@ const settingValue = Schema.encodeSync(
   Schema.fromJsonString(Schema.toCodecJson(Schema.Option(Schema.String))),
 )(Option.some("NZ"))
 
+const mealPlanEntryId = Schema.decodeSync(MealPlanEntryIdFromString)(
+  "0193c7a0-1b2c-4def-8123-0123456789ab",
+)
+const mealPlanDayNoteId = Schema.decodeSync(MealPlanDayNoteIdFromString)(
+  "0193c7a0-1b2c-4def-8123-ba9876543210",
+)
+// Meal plan days are dates without a time.
+const monday = DateTime.makeUnsafe("2025-10-13")
+const tuesday = DateTime.makeUnsafe("2025-10-14")
+
 export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "RecipeCreated",
@@ -121,5 +136,40 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "TimerDeleted",
     payload: { id: timerId },
+  },
+  {
+    event: "MealPlanAdd",
+    payload: { id: mealPlanEntryId, recipeId, day: monday },
+  },
+  {
+    event: "MealPlanSetDay",
+    payload: { id: mealPlanEntryId, day: tuesday },
+  },
+  {
+    event: "MealPlanRemove",
+    payload: { id: mealPlanEntryId },
+  },
+  {
+    event: "MealPlanDayNoteAdd",
+    payload: MealPlanDayNote.insert.make({
+      id: mealPlanDayNoteId,
+      day: monday,
+      note: "Leftovers for lunch",
+      createdAt,
+      updatedAt: createdAt,
+    }),
+  },
+  {
+    event: "MealPlanDayNoteUpdate",
+    payload: MealPlanDayNote.update.make({
+      id: mealPlanDayNoteId,
+      day: monday,
+      note: "Eating out",
+      updatedAt,
+    }),
+  },
+  {
+    event: "MealPlanDayNoteRemove",
+    payload: { id: mealPlanDayNoteId },
   },
 ]
