@@ -42,6 +42,7 @@ import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import { toolkit } from "@/domain/Toolkits"
 import * as EventLog from "effect/eventlog/EventLog"
+import type * as EventJournal from "effect/eventlog/EventJournal"
 import type * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import type { QueryBuilder } from "@/IndexedDb"
 import * as DateTime from "effect/DateTime"
@@ -76,7 +77,11 @@ const ToolkitLayer = toolkit.toLayer(
     const extractJobs = yield* RecipeExtractJobRepo
     const groceries = yield* GroceryRepo
     const context = yield* Effect.context<
-      EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb | GroceryRepo
+      | EventLog.EventLog
+      | EventJournal.EventJournal
+      | QueryBuilder
+      | IndexedDb.IndexedDb
+      | GroceryRepo
     >()
     const write = (payload: EventPayload) =>
       writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
@@ -482,7 +487,9 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       ImportRecipeFromUrl: Effect.fnUntraced(function* ({ url }) {
-        const job = yield* extractJobs.add(url).pipe(Effect.orDie)
+        const job = yield* extractJobs
+          .add(url)
+          .pipe(Effect.provideContext(context), Effect.orDie)
         return {
           _tag: "Terminal",
           value: { jobId: uuidString(job.id) },

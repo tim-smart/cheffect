@@ -25,8 +25,13 @@ export const joinAtom = syncRuntime
   .fn<{ readonly identity: string; readonly serverUrl?: string | undefined }>()(
     (target) =>
       join(target).pipe(
-        Effect.andThen(Effect.sync(() => window.location.reload())),
         Effect.tapCause(Effect.logWarning),
+        // Even a failed wipe may have closed the journal or changed identity.
+        // Never resume the old runtime; reload while its writers remain locked.
+        Effect.exit,
+        Effect.andThen(Effect.sync(() => window.location.reload())),
+        Effect.andThen(Effect.never),
+        Effect.scoped,
       ),
   )
   .pipe(Atom.keepAlive)

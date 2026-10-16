@@ -4,6 +4,8 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Stream from "effect/Stream"
+import * as EventJournal from "effect/eventlog/EventJournal"
+import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { RecipeExtractJob, RecipeExtractJobId } from "@/domain/RecipeExtractJob"
 import { QueryBuilder } from "@/IndexedDb"
@@ -17,6 +19,14 @@ export class RecipeExtractJobRepo extends Context.Service<RecipeExtractJobRepo>(
   {
     make: Effect.gen(function* () {
       const db = yield* QueryBuilder
+      // These writes bypass EventLog, but must still drain/block at its join
+      // barrier. Per-job locks may nest this lock, never the other way around.
+      const withWriteLock = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+        EventJournal.EventJournal.use((journal) =>
+          Effect.flatMap(EventLog.CurrentStoreId, (storeId) =>
+            journal.withLock(storeId)(effect),
+          ),
+        )
       const reactivity = yield* Reactivity.Reactivity
       const snapshot = yield* makeSnapshot("recipeExtractJobs")
       const jobs = db.from("recipeExtractJobs")
@@ -44,7 +54,7 @@ export class RecipeExtractJobRepo extends Context.Service<RecipeExtractJobRepo>(
           yield* jobs.insert(job)
           yield* invalidate
           return job
-        }),
+        }, withWriteLock),
         byIdFresh,
         complete: Effect.fnUntraced(function* (id: RecipeExtractJobId) {
           const job = yield* byIdFresh(id)
@@ -54,7 +64,7 @@ export class RecipeExtractJobRepo extends Context.Service<RecipeExtractJobRepo>(
             completedAt: yield* DateTime.now,
           })
           yield* invalidate
-        }),
+        }, withWriteLock),
       } as const
     }),
   },

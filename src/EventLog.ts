@@ -211,6 +211,8 @@ const syncServerProtocols = new Set(["ws:", "wss:", "http:", "https:"])
 // `http(s)` mapped to `ws(s)`. Anything else isn't a sync server.
 export const parseSyncServerUrl = (input: string): Option.Option<string> => {
   const trimmed = input.trim()
+  // URL.hash is empty for a trailing bare #, but WebSocket rejects that too.
+  if (trimmed.includes("#")) return Option.none()
   return Option.liftThrowable((url: string) => new URL(url))(trimmed).pipe(
     Option.filter(
       (url) => syncServerProtocols.has(url.protocol) && url.host !== "",
