@@ -7,6 +7,7 @@ import * as Schema from "effect/Schema"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
+import { CheffectEvents } from "@/EventLog"
 import { GroceriesLayer } from "@/Groceries"
 import { GroceryEvents } from "@/Groceries/Events"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
@@ -135,7 +136,10 @@ const read = Effect.gen(function* () {
   }
 })
 
-test("Groceries events are keyed by the id string, the normalised name, or [list, aisle]", () => {
+test("the Groceries group is in the catalogue, keyed by the id string, the normalised name, or [list, aisle]", () => {
+  assert.ok(
+    (CheffectEvents.groups as ReadonlyArray<unknown>).includes(GroceryEvents),
+  )
   for (const entry of [
     added(carrots, "Carrots"),
     updated(2000, carrots, { name: "Leeks", completed: false }),

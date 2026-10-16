@@ -99,9 +99,22 @@ const menuDayNoteId = Schema.decodeSync(MenuDayNoteIdFromString)(
 const groceryItemId = Schema.decodeSync(GroceryItemIdFromString)(
   "0193c7a0-1b2c-4def-8123-c0ffee000001",
 )
-const otherGroceryItemId = Schema.decodeSync(GroceryItemIdFromString)(
-  "0193c7a0-1b2c-4def-8123-c0ffee000002",
-)
+
+// Parked until `GroceryItemsDeleted` is in CheffectEvents: its primaryKey is
+// waiting on a decision on TIM-266. Move it into `eventSamples` with the
+// event, before capturing its fixture:
+//
+//   {
+//     event: "GroceryItemsDeleted",
+//     payload: {
+//       ids: [
+//         groceryItemId,
+//         Schema.decodeSync(GroceryItemIdFromString)(
+//           "0193c7a0-1b2c-4def-8123-c0ffee000002",
+//         ),
+//       ],
+//     },
+//   },
 
 export const eventSamples: ReadonlyArray<EventPayload> = [
   {
@@ -292,10 +305,6 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "GroceryItemDeleted",
     payload: { id: groceryItemId },
-  },
-  {
-    event: "GroceryItemsDeleted",
-    payload: { ids: [groceryItemId, otherGroceryItemId] },
   },
   {
     event: "IngredientAisleSet",
