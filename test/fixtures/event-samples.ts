@@ -1,5 +1,6 @@
 import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
+import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import type { EventPayload } from "@/EventLog"
 import { Rating } from "@/domain/Rating"
@@ -11,6 +12,7 @@ import {
   RecipeIdFromString,
   Step,
 } from "@/domain/Recipe"
+import { Timer, TimerIdFromString } from "@/domain/Timer"
 
 // One or more payloads per event tag, for `scripts/capture-event-fixtures.ts`.
 // Samples fill every field, with non-null values where a field is nullable,
@@ -48,6 +50,22 @@ const recipe = {
   ],
   sourceName: "Example Kitchen",
 }
+
+const timerId = Schema.decodeSync(TimerIdFromString)(
+  "0193c7a0-1b2c-4def-8123-fedcba987654",
+)
+const timer = {
+  id: timerId,
+  label: "Carrot soup",
+  duration: Duration.minutes(40),
+  expiresAt: DateTime.makeUnsafe(1_760_002_400_000),
+  pausedRemaining: Duration.minutes(25),
+}
+
+// A setting's value is its encoded `Option` as a JSON string.
+const settingValue = Schema.encodeSync(
+  Schema.fromJsonString(Schema.toCodecJson(Schema.Option(Schema.String))),
+)(Option.some("NZ"))
 
 export const eventSamples: ReadonlyArray<EventPayload> = [
   {
@@ -87,5 +105,21 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "RecipeEditRemove",
     payload: { id: recipeId },
+  },
+  {
+    event: "SettingsSet",
+    payload: { id: "aiCountry", value: settingValue },
+  },
+  {
+    event: "TimerAdded",
+    payload: Timer.insert.make({ ...timer, createdAt, updatedAt: createdAt }),
+  },
+  {
+    event: "TimerUpdated",
+    payload: Timer.update.make({ ...timer, updatedAt }),
+  },
+  {
+    event: "TimerDeleted",
+    payload: { id: timerId },
   },
 ]
