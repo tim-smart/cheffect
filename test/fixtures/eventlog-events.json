@@ -155,5 +155,50 @@
     "tag": "TimerDeleted",
     "json": { "id": "AZPHoBssTe+BI/7cuph2VA==" },
     "bytes": "FyCAro3OGxABk8egGyxN74Ej/ty6mHZU"
+  },
+  {
+    "tag": "MealPlanAdd",
+    "json": {
+      "id": "AZPHoBssTe+BIwEjRWeJqw==",
+      "recipeId": "AZPHoBssTe+BI0VniavN7w==",
+      "day": "2025-10-13"
+    },
+    "bytes": "PSCQkq7LBRABk8egGyxN74EjRWeJq83vgK6NzhsQAZPHoBssTe+BIwEjRWeJq+if5JNyCjIwMjUtMTAtMTM="
+  },
+  {
+    "tag": "MealPlanSetDay",
+    "json": { "id": "AZPHoBssTe+BIwEjRWeJqw==", "day": "2025-10-14" },
+    "bytes": "JyCAro3OGxABk8egGyxN74EjASNFZ4mr6J/kk3IKMjAyNS0xMC0xNA=="
+  },
+  {
+    "tag": "MealPlanRemove",
+    "json": { "id": "AZPHoBssTe+BIwEjRWeJqw==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74EjASNFZ4mr"
+  },
+  {
+    "tag": "MealPlanDayNoteAdd",
+    "json": {
+      "id": "AZPHoBssTe+BI7qYdlQyEA==",
+      "day": "2025-10-13",
+      "note": "Leftovers for lunch",
+      "createdAt": 1760000000000,
+      "updatedAt": 1760000000000
+    },
+    "bytes": "ViDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSO6mHZUMhDow8HmSBNMZWZ0b3ZlcnMgZm9yIGx1bmNoqduFhnGAgOaCuWbon+STcgoyMDI1LTEwLTEz"
+  },
+  {
+    "tag": "MealPlanDayNoteUpdate",
+    "json": {
+      "id": "AZPHoBssTe+BI7qYdlQyEA==",
+      "day": "2025-10-13",
+      "note": "Eating out",
+      "updatedAt": 1760000600000
+    },
+    "bytes": "QiCAro3OGxABk8egGyxN74Ejuph2VDIQ6MPB5kgKRWF0aW5nIG91dKnbhYZxgJ+vg7lm6J/kk3IKMjAyNS0xMC0xMw=="
+  },
+  {
+    "tag": "MealPlanDayNoteRemove",
+    "json": { "id": "AZPHoBssTe+BI7qYdlQyEA==" },
+    "bytes": "FyCAro3OGxABk8egGyxN74Ejuph2VDIQ"
   }
 ]
