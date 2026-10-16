@@ -21,7 +21,7 @@ export default function App() {
 
   return (
     <>
-      {import.meta.env.DEV ? <DevSeedRecipesMount /> : null}
+      {import.meta.env.DEV && !skipDevSeed ? <DevSeedRecipesMount /> : null}
       <RouterProvider router={router} />
       <JoinLinkPrompt />
       <DatabaseBlockedScreen />
@@ -30,6 +30,11 @@ export default function App() {
     </>
   )
 }
+
+// The seed reads every module's repo on load, so e2e tests that need a
+// screen's data unloaded turn it off once the store is seeded.
+const skipDevSeed =
+  import.meta.env.DEV && localStorage.getItem("cheffect:skipDevSeed") === "1"
 
 function DevSeedRecipesMount() {
   useAtomMount(seedDevRecipesAtom)

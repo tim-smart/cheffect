@@ -16,12 +16,7 @@ import * as DateTime from "effect/DateTime"
 import { cn } from "@/lib/utils"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import {
-  useAtom,
-  useAtomSet,
-  useAtomSuspense,
-  useAtomValue,
-} from "@effect/atom-react"
+import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { useWrite } from "@/EventLog"
 import { allMenusAtom, menuRecipeCountsAtom } from "@/Menus/atoms"
 import { useState } from "react"
@@ -87,7 +82,17 @@ function AddMenuForm() {
 }
 
 function MenuList() {
-  const menus = useAtomSuspense(allMenusAtom).value
+  // Doesn't suspend, so the page shows while the menus load.
+  const result = useAtomValue(allMenusAtom)
+  if (AsyncResult.isFailure(result)) {
+    return (
+      <p role="alert" className="text-center py-16 text-muted-foreground">
+        Couldn't load menus. Reload the app to try again.
+      </p>
+    )
+  }
+  if (!AsyncResult.isSuccess(result)) return null
+  const menus = result.value
 
   if (menus.length === 0) {
     return <NoResults />
