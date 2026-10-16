@@ -125,7 +125,7 @@ const otherAiChatTurnId = Schema.decodeSync(AiChatTurnIdFromString)(
 )
 
 // A finished turn's messages as a JSON string, file parts stripped: the
-// question, a tool call and its result, and the answer (TIM-254).
+// question, a tool call and its result, and the answer.
 const aiChatTurnPrompt = Schema.encodeSync(
   Schema.fromJsonString(Schema.toCodecJson(Prompt.Prompt)),
 )(
