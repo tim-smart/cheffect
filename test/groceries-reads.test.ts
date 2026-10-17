@@ -30,37 +30,33 @@ const item = (name: string) =>
     updatedAt: DateTime.nowUnsafe(),
   })
 
-test(
-  "checking an item off keeps every other item the same value",
-  { todo: "TIM-279: the items stream rebuilds every item on each write" },
-  () =>
-    Effect.gen(function* () {
-      const milk = item("Milk")
-      const eggs = item("Eggs")
-      yield* addGroceryItems([milk, eggs])
-      const repo = yield* GroceryRepo
-      const snapshots = yield* Queue.unbounded<ReadonlyArray<GroceryItem>>()
-      yield* repo.itemsStream.pipe(
-        Stream.runForEach((items) => Queue.offer(snapshots, items)),
-        Effect.forkScoped,
-      )
-      const byName = (items: ReadonlyArray<GroceryItem>, name: string) =>
-        items.find((item) => item.name === name)!
-      const before = yield* Queue.take(snapshots)
+test("checking an item off keeps every other item the same value", () =>
+  Effect.gen(function* () {
+    const milk = item("Milk")
+    const eggs = item("Eggs")
+    yield* addGroceryItems([milk, eggs])
+    const repo = yield* GroceryRepo
+    const snapshots = yield* Queue.unbounded<ReadonlyArray<GroceryItem>>()
+    yield* repo.itemsStream.pipe(
+      Stream.runForEach((items) => Queue.offer(snapshots, items)),
+      Effect.forkScoped,
+    )
+    const byName = (items: ReadonlyArray<GroceryItem>, name: string) =>
+      items.find((item) => item.name === name)!
+    const before = yield* Queue.take(snapshots)
 
-      yield* writeEvent({
-        event: "GroceryItemToggled",
-        payload: { id: milk.id, completed: true },
-      })
-      let after = yield* Queue.take(snapshots)
-      while (!byName(after, "Milk").completed) {
-        after = yield* Queue.take(snapshots)
-      }
+    yield* writeEvent({
+      event: "GroceryItemToggled",
+      payload: { id: milk.id, completed: true },
+    })
+    let after = yield* Queue.take(snapshots)
+    while (!byName(after, "Milk").completed) {
+      after = yield* Queue.take(snapshots)
+    }
 
-      assert.equal(byName(after, "Eggs"), byName(before, "Eggs"))
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(GroceryRepo.layer.pipe(Layer.provideMerge(layerCheffect))),
-      Effect.runPromise,
-    ),
-)
+    assert.equal(byName(after, "Eggs"), byName(before, "Eggs"))
+  }).pipe(
+    Effect.scoped,
+    Effect.provide(GroceryRepo.layer.pipe(Layer.provideMerge(layerCheffect))),
+    Effect.runPromise,
+  ))
