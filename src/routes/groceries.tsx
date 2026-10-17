@@ -34,7 +34,7 @@ import {
   PANTRY_GROCERY_LIST_NAME,
 } from "@/domain/GroceryItem"
 import type { RecipeId } from "@/domain/Recipe"
-import { useWrite } from "@/EventLog"
+import { type EventPayload, useWrite, useWriteEvents } from "@/EventLog"
 import { generateUuidBytes, uuidString } from "@/lib/Id"
 import { FormBody, FormDisplay } from "@/lib/Form"
 import {
@@ -93,6 +93,7 @@ function GroceryList() {
   const result = useAtomValue(groceryCountAtom)
 
   const write = useWrite()
+  const writeEvents = useWriteEvents()
 
   // A clear deletes the items this device shows, so an item added on another
   // device at the same time survives it.
@@ -110,28 +111,33 @@ function GroceryList() {
   const moveCompletedTargetList =
     currentList === PANTRY_GROCERY_LIST_NAME ? null : PANTRY_GROCERY_LIST_NAME
 
+  // Each item's copy and delete are written together in one batch, so the
+  // originals never go without their copies.
   const moveCompletedToOtherList = () => {
     if (result._tag !== "Success") {
       return
     }
-    for (const { items } of result.value.aisles) {
-      for (const item of items) {
-        if (!item.completed) continue
-        const now = DateTime.nowUnsafe()
-        write({
-          event: "GroceryItemAdded",
-          payload: new GroceryItem({
-            ...item,
-            id: GroceryItemId.make(generateUuidBytes()),
-            list: moveCompletedTargetList,
-            completed: false,
-            createdAt: now,
-            updatedAt: now,
-          }),
-        })
-        write({ event: "GroceryItemDeleted", payload: { id: item.id } })
-      }
-    }
+    const now = DateTime.nowUnsafe()
+    writeEvents(
+      result.value.aisles.flatMap(({ items }) =>
+        items
+          .filter((item) => item.completed)
+          .flatMap((item): Array<EventPayload> => [
+            {
+              event: "GroceryItemAdded",
+              payload: new GroceryItem({
+                ...item,
+                id: GroceryItemId.make(generateUuidBytes()),
+                list: moveCompletedTargetList,
+                completed: false,
+                createdAt: now,
+                updatedAt: now,
+              }),
+            },
+            { event: "GroceryItemDeleted", payload: { id: item.id } },
+          ]),
+      ),
+    )
   }
 
   const clearAll = () => clearShown(() => true)

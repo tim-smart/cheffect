@@ -9,7 +9,6 @@ import {
   GroceryItem,
   PANTRY_GROCERY_LIST_NAME,
 } from "@/domain/GroceryItem"
-import { writeEvent } from "@/EventLog"
 import { compareText } from "@/lib/text"
 import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { groceryCurrentListAtom } from "./currentList"
@@ -21,7 +20,11 @@ import {
   listItems,
   listNames,
 } from "./Repo"
-import { groceriesRuntime, updateGroceryItem } from "./runtime"
+import {
+  type GroceryItemWrite,
+  groceriesRuntime,
+  writeGroceryItems,
+} from "./runtime"
 
 // Reads
 
@@ -121,12 +124,12 @@ export const beautifyGroceriesAtom = beautifyRuntime
       const aisles = yield* repo.aisles
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
-      for (const item of removed) {
-        yield* writeEvent({
-          event: "GroceryItemDeleted",
-          payload: { id: item.id },
-        })
-      }
+      // Every change is collected first and written as one batch, so a long
+      // list is one write rather than a few per item.
+      const writes: Array<GroceryItemWrite> = removed.map((item) => ({
+        event: "GroceryItemDeleted",
+        id: item.id,
+      }))
       for (const item of updated) {
         const prev = previousItems.get(item.idString)
         const renamed = prev !== undefined && item.name !== prev.name
@@ -136,10 +139,7 @@ export const beautifyGroceriesAtom = beautifyRuntime
           prev.list !== PANTRY_GROCERY_LIST_NAME &&
           pantryItemNames.has(item.nameNormalized)
         ) {
-          yield* writeEvent({
-            event: "GroceryItemDeleted",
-            payload: { id: item.id },
-          })
+          writes.push({ event: "GroceryItemDeleted", id: item.id })
           continue
         }
         let nextItem = item
@@ -149,8 +149,13 @@ export const beautifyGroceriesAtom = beautifyRuntime
             nextItem = new GroceryItem({ ...item, aisle: aisle.value })
           }
         }
-        yield* updateGroceryItem(nextItem, { previousName: prev?.name })
+        writes.push({
+          event: "GroceryItemUpdated",
+          item: nextItem,
+          previousName: prev?.name,
+        })
       }
+      yield* writeGroceryItems(writes)
     }),
   )
   .pipe(Atom.keepAlive)

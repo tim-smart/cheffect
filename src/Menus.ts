@@ -5,7 +5,7 @@ import * as EventLog from "effect/eventlog/EventLog"
 import { Menu, type MenuId } from "./domain/Menu"
 import { MenuDayNote, type MenuDayNoteId } from "./domain/MenuDayNote"
 import { MenuEntry, type MenuEntryId } from "./domain/MenuEntry"
-import { QueryBuilder } from "./IndexedDb"
+import { QueryBuilder, withWriteTransaction } from "./IndexedDb"
 import * as Compaction from "./lib/Compaction"
 import { eventFields } from "./lib/eventFields"
 import { uuidString } from "./lib/Id"
@@ -106,10 +106,7 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
           yield* entries.delete("menuId").equals(payload.id)
           yield* notes.delete("menuId").equals(payload.id)
         }).pipe(
-          db.withTransaction({
-            tables: ["menus", "menuEntries", "menuDayNotes"],
-            mode: "readwrite",
-          }),
+          withWriteTransaction(db, ["menus", "menuEntries", "menuDayNotes"]),
           Effect.orDie,
         ),
       )

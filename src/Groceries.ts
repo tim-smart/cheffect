@@ -12,7 +12,7 @@ import {
 } from "./domain/GroceryItem"
 import type { IngredientAisle } from "./domain/IngredientAisle"
 import { GroceryEvents } from "./Groceries/Events"
-import { QueryBuilder } from "./IndexedDb"
+import { QueryBuilder, withWriteTransaction } from "./IndexedDb"
 import * as Compaction from "./lib/Compaction"
 import { eventFields } from "./lib/eventFields"
 import { uuidString } from "./lib/Id"
@@ -120,10 +120,7 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
       .handle("GroceryItemsDeleted", ({ payload }) =>
         Effect.forEach(payload.ids, (id) => items.delete().equals(id), {
           discard: true,
-        }).pipe(
-          db.withTransaction({ tables: ["groceryItems"], mode: "readwrite" }),
-          Effect.orDie,
-        ),
+        }).pipe(withWriteTransaction(db, ["groceryItems"]), Effect.orDie),
       )
       .handle("IngredientAisleSet", ({ payload, entry }) =>
         Effect.gen(function* () {

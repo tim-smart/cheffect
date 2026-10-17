@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
-import { QueryBuilder } from "@/IndexedDb"
+import { QueryBuilder, withWriteTransaction } from "@/IndexedDb"
 import * as Compaction from "@/lib/Compaction"
 import { eventFields } from "@/lib/eventFields"
 import { uuidString } from "@/lib/Id"
@@ -38,13 +38,7 @@ const AiChatHandlers = EventLog.group(AiChatEvents, (handlers) =>
       .handle("AIMemoryEntriesRemoved", ({ payload }) =>
         Effect.forEach(payload.ids, (id) => memory.delete().equals(id), {
           discard: true,
-        }).pipe(
-          db.withTransaction({
-            tables: ["aiMemoryEntries"],
-            mode: "readwrite",
-          }),
-          Effect.orDie,
-        ),
+        }).pipe(withWriteTransaction(db, ["aiMemoryEntries"]), Effect.orDie),
       )
       .handle("AiChatTurnAdded", ({ payload, entry }) =>
         Effect.gen(function* () {
@@ -60,10 +54,7 @@ const AiChatHandlers = EventLog.group(AiChatEvents, (handlers) =>
       .handle("AiChatTurnsRemoved", ({ payload }) =>
         Effect.forEach(payload.ids, (id) => turns.delete().equals(id), {
           discard: true,
-        }).pipe(
-          db.withTransaction({ tables: ["aiChatTurns"], mode: "readwrite" }),
-          Effect.orDie,
-        ),
+        }).pipe(withWriteTransaction(db, ["aiChatTurns"]), Effect.orDie),
       )
   }),
 )
