@@ -2,6 +2,7 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
 import * as EventJournal from "effect/eventlog/EventJournal"
@@ -9,17 +10,23 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as EventLogEncryption from "effect/eventlog/EventLogEncryption"
 import * as KeyValueStore from "effect/persistence/KeyValueStore"
 import * as Reactivity from "effect/reactivity/Reactivity"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import {
   durabilityBarrier,
   identityKey,
   journalDatabaseName,
+  layerJournal,
   loadOrCreateIdentity,
   resolveSyncUrl,
 } from "@/EventLog"
-import { QueryBuilder, layerDatabase } from "@/IndexedDb"
+import { QueryBuilder, databaseBlockedAtom, layerDatabase } from "@/IndexedDb"
 import { RecipeExtractJob } from "@/domain/RecipeExtractJob"
-import { countRecords, layerFreshIndexedDb } from "./harness/indexeddb"
+import {
+  countRecords,
+  freshIndexedDb,
+  layerFreshIndexedDb,
+} from "./harness/indexeddb"
 
 // The identity is a kvs setting like the server URL and Enable Sync: it is
 // read and written through the schema store that `Atom.kvs` uses, so the
@@ -130,6 +137,93 @@ test("sync falls back to the default URL only when enabled and no URL is set", (
     )
   }
 })
+
+test(
+  "a blocked version-1 journal upgrade shows the close-other-tabs state and recovers when the old tab closes",
+  { timeout: 10_000 },
+  async () => {
+    const { indexedDB } = freshIndexedDb()
+    // The previous journal keeps this connection open without a versionchange
+    // handler. Reproduce its schema and lifetime, not a mocked blocked error.
+    const oldConnection = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(journalDatabaseName, 1)
+      request.onupgradeneeded = () => {
+        const db = request.result
+        const entries = db.createObjectStore("entries", { keyPath: "id" })
+        entries.createIndex("id", "id", { unique: true })
+        entries.createIndex("event", "event")
+        const remotes = db.createObjectStore("remotes", {
+          keyPath: ["remoteId", "entryId"],
+        })
+        remotes.createIndex("id", ["remoteId", "entryId"], { unique: true })
+        remotes.createIndex("sequence", ["remoteId", "sequence"], {
+          unique: true,
+        })
+        const remoteEntryId = db.createObjectStore("remoteEntryId", {
+          keyPath: ["remoteId"],
+        })
+        remoteEntryId.createIndex("id", "remoteId", { unique: true })
+      }
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    const registry = AtomRegistry.make()
+    const runtime = ManagedRuntime.make(layerJournal)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let unsubscribe = () => {}
+    try {
+      assert.equal(registry.get(databaseBlockedAtom), false)
+      const blocked = new Promise<boolean>((resolve) => {
+        unsubscribe = registry.subscribe(databaseBlockedAtom, (value) => {
+          if (value) resolve(true)
+        })
+        // Bound the missing-notification failure, but still exercise recovery.
+        timer = setTimeout(() => resolve(false), 1_000)
+      })
+      let ready = false
+      const opening = runtime
+        .runPromise(EventJournal.EventJournal)
+        .then((journal) => {
+          ready = true
+          return journal
+        })
+      const showedBlocked = await blocked
+      assert.equal(
+        ready,
+        false,
+        "the old tab must actually hold up the upgrade",
+      )
+      oldConnection.close()
+      const journal = await opening
+      await runtime.runPromise(
+        journal.write({
+          event: "Test",
+          primaryKey: "k",
+          payload: new Uint8Array([1]),
+          effect: () => Effect.void,
+        }),
+      )
+      const entries = await runtime.runPromise(journal.entries)
+      assert.equal(entries.length, 1, "the upgraded journal accepts writes")
+      assert.equal(
+        registry.get(databaseBlockedAtom),
+        false,
+        "opening clears the blocked screen",
+      )
+      assert.equal(
+        showedBlocked,
+        true,
+        "a blocked journal upgrade must show the close-other-tabs screen",
+      )
+    } finally {
+      clearTimeout(timer)
+      unsubscribe()
+      oldConnection.close()
+      await runtime.dispose()
+      registry.dispose()
+    }
+  },
+)
 
 test("the durability barrier spans the cheffect tables and the journal's entries store", async () => {
   const layer = QueryBuilder.layer.pipe(
