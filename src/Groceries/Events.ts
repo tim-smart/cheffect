@@ -5,7 +5,6 @@ import {
   GroceryAisleOrder,
 } from "@/domain/GroceryAisleOrder"
 import {
-  GroceryAisle,
   GroceryItem,
   GroceryItemId,
   normalizeIngredientName,
@@ -19,10 +18,6 @@ import { uuidString } from "@/lib/Id"
 // so `GroceryItemUpdated` drops `previousName` and `userInitiated`.
 // `v1.GroceryItemCleared` and `v1.GroceryItemClearedCompleted` are dropped
 // for `GroceryItemsDeleted`, which carries the ids the writer saw.
-// `GroceryItemsAdded`, `GroceryItemsUpdated` and `IngredientAislesChanged`
-// carry many rows as one entry, so a writer changing a lot at once (adding a
-// recipe, beautifying the list) makes one journal write and one transaction
-// rather than one per row.
 export const GroceryEvents = EventGroup.empty
   .add({
     tag: "GroceryItemAdded",
@@ -30,24 +25,9 @@ export const GroceryEvents = EventGroup.empty
     payload: GroceryItem.insert,
   })
   .add({
-    tag: "GroceryItemsAdded",
-    // A fixed key, as for `GroceryItemsDeleted`.
-    primaryKey: () => "groceryItems",
-    payload: Schema.Struct({
-      items: Schema.NonEmptyArray(GroceryItem.insert),
-    }),
-  })
-  .add({
     tag: "GroceryItemUpdated",
     primaryKey: (item) => uuidString(item.id),
     payload: GroceryItem.update,
-  })
-  .add({
-    tag: "GroceryItemsUpdated",
-    primaryKey: () => "groceryItems",
-    payload: Schema.Struct({
-      items: Schema.NonEmptyArray(GroceryItem.update),
-    }),
   })
   .add({
     tag: "GroceryItemToggled",
@@ -75,19 +55,6 @@ export const GroceryEvents = EventGroup.empty
     tag: "IngredientAisleRemoved",
     primaryKey: ({ name }) => normalizeIngredientName(name),
     payload: Schema.Struct({ name: Schema.String }),
-  })
-  .add({
-    tag: "IngredientAislesChanged",
-    primaryKey: () => "ingredientAisles",
-    // A null aisle removes the name's aisle. Each name appears once.
-    payload: Schema.Struct({
-      aisles: Schema.NonEmptyArray(
-        Schema.Struct({
-          name: Schema.String,
-          aisle: Schema.NullOr(GroceryAisle),
-        }),
-      ),
-    }),
   })
   .add({
     tag: "GroceryAisleOrderSet",

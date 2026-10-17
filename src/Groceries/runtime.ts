@@ -1,17 +1,20 @@
-import * as Arr from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as HashSet from "effect/HashSet"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
 import {
-  type GroceryAisle,
   GroceryItem,
   type GroceryItemId,
   normalizeIngredientName,
 } from "@/domain/GroceryItem"
 import type { Recipe } from "@/domain/Recipe"
-import { eventLogAtom, writeEvent } from "@/EventLog"
+import {
+  type EventPayload,
+  eventLogAtom,
+  writeEvent,
+  writeEvents,
+} from "@/EventLog"
 import { GroceryRepo, learnedAisle } from "./Repo"
 
 // The repo shares the EventLog runtime's query builder and Reactivity, so
@@ -25,32 +28,54 @@ export const groceriesRuntime = Atom.runtime((get) =>
 // Handlers never touch the aisle table on an item write, so the
 // writer teaches it. An item with an aisle sets that aisle for its name when
 // the name has none yet, or always on a user's own edit. A rename with an
-// aisle also removes the previous name's aisle. These are separate writes,
+// aisle also removes the previous name's aisle. These are separate events,
 // which is fine for a learned hint.
 
-const learnAisle = Effect.fnUntraced(function* (
+interface ItemWriteOptions {
+  readonly previousName?: string | undefined
+  readonly userInitiated?: boolean | undefined
+}
+
+type AisleEvent = Extract<
+  EventPayload,
+  { readonly event: "IngredientAisleSet" | "IngredientAisleRemoved" }
+>
+
+const aisleEvents = (
   item: GroceryItem,
-  options: {
-    readonly previousName?: string | undefined
-    readonly userInitiated?: boolean | undefined
-  },
-) {
-  if (item.aisle === null) return
-  const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
+  options: ItemWriteOptions,
+  hasAisle: (name: string) => boolean,
+): Array<AisleEvent> => {
+  if (item.aisle === null) return []
+  const events: Array<AisleEvent> = []
   const name = normalizeIngredientName(item.name)
-  if (options.userInitiated || Option.isNone(learnedAisle(aisles, name))) {
-    yield* writeEvent({
+  if (options.userInitiated || !hasAisle(name)) {
+    events.push({
       event: "IngredientAisleSet",
       payload: { name, aisle: item.aisle },
     })
   }
-  if (options.previousName === undefined) return
+  if (options.previousName === undefined) return events
   const previousName = normalizeIngredientName(options.previousName)
-  if (previousName === name) return
-  yield* writeEvent({
-    event: "IngredientAisleRemoved",
-    payload: { name: previousName },
-  })
+  if (previousName !== name) {
+    events.push({
+      event: "IngredientAisleRemoved",
+      payload: { name: previousName },
+    })
+  }
+  return events
+}
+
+const learnAisle = Effect.fnUntraced(function* (
+  item: GroceryItem,
+  options: ItemWriteOptions,
+) {
+  if (item.aisle === null) return
+  const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
+  const hasAisle = (name: string) => Option.isSome(learnedAisle(aisles, name))
+  for (const event of aisleEvents(item, options, hasAisle)) {
+    yield* writeEvent(event)
+  }
 })
 
 export const addGroceryItem = Effect.fnUntraced(function* (item: GroceryItem) {
@@ -58,76 +83,79 @@ export const addGroceryItem = Effect.fnUntraced(function* (item: GroceryItem) {
   yield* learnAisle(item, {})
 })
 
-// Batches
-//
-// For a writer changing many items at once: each kind of write is one event,
-// and the aisles they teach are one more. The aisles follow the same rules as
-// one item at a time, in order, so a name set by an earlier item counts as
-// learned and a later item's write to a name wins.
-
-interface ItemWrite {
-  readonly item: GroceryItem
-  readonly previousName?: string | undefined
-}
-
-const learnAisles = Effect.fnUntraced(function* (
-  writes: ReadonlyArray<ItemWrite>,
-) {
-  const learned = yield* GroceryRepo.use((repo) => repo.aisles)
-  const changes = new Map<string, GroceryAisle | null>()
-  for (const { item, previousName } of writes) {
-    if (item.aisle === null) continue
-    const name = normalizeIngredientName(item.name)
-    const known = changes.has(name)
-      ? changes.get(name) !== null
-      : learned.has(name)
-    if (!known) changes.set(name, item.aisle)
-    if (previousName === undefined) continue
-    const previous = normalizeIngredientName(previousName)
-    if (previous !== name) changes.set(previous, null)
-  }
-  const aisles = Array.from(changes, ([name, aisle]) => ({ name, aisle }))
-  if (!Arr.isArrayNonEmpty(aisles)) return
-  yield* writeEvent({ event: "IngredientAislesChanged", payload: { aisles } })
-})
-
-export const addGroceryItems = Effect.fnUntraced(function* (
-  items: ReadonlyArray<GroceryItem>,
-) {
-  if (!Arr.isReadonlyArrayNonEmpty(items)) return
-  yield* writeEvent({ event: "GroceryItemsAdded", payload: { items } })
-  yield* learnAisles(items.map((item) => ({ item })))
-})
-
-// An item written twice keeps its last write, as it would one at a time.
-export const updateGroceryItems = Effect.fnUntraced(function* (
-  writes: ReadonlyArray<ItemWrite>,
-) {
-  const items = Array.from(
-    new Map(writes.map(({ item }) => [item.idString, item])).values(),
-  )
-  if (!Arr.isArrayNonEmpty(items)) return
-  yield* writeEvent({ event: "GroceryItemsUpdated", payload: { items } })
-  yield* learnAisles(writes)
-})
-
-export const deleteGroceryItems = Effect.fnUntraced(function* (
-  ids: ReadonlyArray<GroceryItemId>,
-) {
-  if (!Arr.isReadonlyArrayNonEmpty(ids)) return
-  yield* writeEvent({ event: "GroceryItemsDeleted", payload: { ids } })
-})
-
 export const updateGroceryItem = Effect.fnUntraced(function* (
   item: GroceryItem,
-  options: {
-    readonly previousName?: string | undefined
-    readonly userInitiated?: boolean | undefined
-  } = {},
+  options: ItemWriteOptions = {},
 ) {
   yield* writeEvent({ event: "GroceryItemUpdated", payload: item })
   yield* learnAisle(item, options)
 })
+
+// Batches
+//
+// A writer changing many items at once writes the same events as it would one
+// item at a time, in the same order, with one `writeEvents`. The aisles are
+// read once, so the batch keeps track of the names its own aisle events set
+// or removed.
+
+export type GroceryItemWrite =
+  | { readonly event: "GroceryItemAdded"; readonly item: GroceryItem }
+  | {
+      readonly event: "GroceryItemUpdated"
+      readonly item: GroceryItem
+      readonly previousName?: string | undefined
+    }
+  | { readonly event: "GroceryItemDeleted"; readonly id: GroceryItemId }
+
+export const writeGroceryItems = Effect.fnUntraced(function* (
+  writes: ReadonlyArray<GroceryItemWrite>,
+) {
+  if (writes.length === 0) return
+  const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
+  const taught = new Map<string, boolean>()
+  const hasAisle = (name: string) =>
+    taught.get(name) ?? Option.isSome(learnedAisle(aisles, name))
+  const events: Array<EventPayload> = []
+  for (const write of writes) {
+    if (write.event === "GroceryItemDeleted") {
+      events.push({ event: write.event, payload: { id: write.id } })
+      continue
+    }
+    events.push({ event: write.event, payload: write.item })
+    const options =
+      write.event === "GroceryItemUpdated"
+        ? { previousName: write.previousName }
+        : {}
+    for (const event of aisleEvents(write.item, options, hasAisle)) {
+      taught.set(event.payload.name, event.event === "IngredientAisleSet")
+      events.push(event)
+    }
+  }
+  yield* writeEvents(events)
+})
+
+export const addGroceryItems = (items: ReadonlyArray<GroceryItem>) =>
+  writeGroceryItems(
+    items.map((item) => ({ event: "GroceryItemAdded", item }) as const),
+  )
+
+export const updateGroceryItems = (
+  writes: ReadonlyArray<{
+    readonly item: GroceryItem
+    readonly previousName?: string | undefined
+  }>,
+) =>
+  writeGroceryItems(
+    writes.map(
+      ({ item, previousName }) =>
+        ({ event: "GroceryItemUpdated", item, previousName }) as const,
+    ),
+  )
+
+export const deleteGroceryItems = (ids: ReadonlyArray<GroceryItemId>) =>
+  writeGroceryItems(
+    ids.map((id) => ({ event: "GroceryItemDeleted", id }) as const),
+  )
 
 // Mutations
 //
@@ -182,7 +210,7 @@ export const groceryItemEditAtom = groceriesMutation(
 
 // Adds the recipes' ingredients to the default list, skipping excluded ones
 // and anything in the pantry, with the aisle learned for each name. The pantry
-// and aisles are read once up front, and the items are written as one event.
+// and aisles are read once up front, and the items are written as one batch.
 // Stays waiting for a few seconds after, so the button shows a check.
 export const addToGroceriesAtom = groceriesMutation(
   Effect.fnUntraced(function* ({

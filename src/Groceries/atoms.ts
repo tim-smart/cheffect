@@ -21,9 +21,9 @@ import {
   listNames,
 } from "./Repo"
 import {
-  deleteGroceryItems,
+  type GroceryItemWrite,
   groceriesRuntime,
-  updateGroceryItems,
+  writeGroceryItems,
 } from "./runtime"
 
 // Reads
@@ -124,10 +124,12 @@ export const beautifyGroceriesAtom = beautifyRuntime
       const aisles = yield* repo.aisles
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
-      // Every change is collected first and written as a batch, so a long
-      // list is a few writes rather than a few per item.
-      const deleted = removed.map((item) => item.id)
-      const writes: Array<{ item: GroceryItem; previousName?: string }> = []
+      // Every change is collected first and written as one batch, so a long
+      // list is one write rather than a few per item.
+      const writes: Array<GroceryItemWrite> = removed.map((item) => ({
+        event: "GroceryItemDeleted",
+        id: item.id,
+      }))
       for (const item of updated) {
         const prev = previousItems.get(item.idString)
         const renamed = prev !== undefined && item.name !== prev.name
@@ -137,7 +139,7 @@ export const beautifyGroceriesAtom = beautifyRuntime
           prev.list !== PANTRY_GROCERY_LIST_NAME &&
           pantryItemNames.has(item.nameNormalized)
         ) {
-          deleted.push(item.id)
+          writes.push({ event: "GroceryItemDeleted", id: item.id })
           continue
         }
         let nextItem = item
@@ -147,10 +149,13 @@ export const beautifyGroceriesAtom = beautifyRuntime
             nextItem = new GroceryItem({ ...item, aisle: aisle.value })
           }
         }
-        writes.push({ item: nextItem, previousName: prev?.name })
+        writes.push({
+          event: "GroceryItemUpdated",
+          item: nextItem,
+          previousName: prev?.name,
+        })
       }
-      yield* deleteGroceryItems(deleted)
-      yield* updateGroceryItems(writes)
+      yield* writeGroceryItems(writes)
     }),
   )
   .pipe(Atom.keepAlive)

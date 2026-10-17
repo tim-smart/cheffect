@@ -1,10 +1,13 @@
+import type * as Arr from "effect/Array"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Fiber from "effect/Fiber"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
 import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import * as IndexedDbDatabase from "@effect/platform-browser/IndexedDbDatabase"
+import { IndexedDbTransaction } from "@effect/platform-browser/IndexedDbQueryBuilder"
 import type * as IndexedDbTable from "@effect/platform-browser/IndexedDbTable"
 import * as IndexedDbVersion from "@effect/platform-browser/IndexedDbVersion"
 import { AiChatTurnsTable, AiMemoryEntriesTable } from "./AiChat/Table"
@@ -85,6 +88,21 @@ export class QueryBuilder extends Context.Service<QueryBuilder>()(
 ) {
   static readonly layer = Layer.effect(this, this.make)
 }
+
+// A handler's writes in one readwrite transaction over the tables, or in the
+// transaction it already runs in. `writeEvents` runs a batch's handlers in one
+// transaction over every table, and a handler opening its own there would let
+// the batch's transaction commit early, while it waits on the new one.
+export const withWriteTransaction =
+  (db: QueryBuilder["Service"], tables: Arr.NonEmptyReadonlyArray<TableName>) =>
+  <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+    Effect.serviceOption(IndexedDbTransaction).pipe(
+      Effect.flatMap((current) =>
+        Option.isSome(current)
+          ? effect
+          : effect.pipe(db.withTransaction({ tables, mode: "readwrite" })),
+      ),
+    )
 
 // Tab coordination
 //
