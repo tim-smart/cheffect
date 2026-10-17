@@ -4,7 +4,12 @@ import * as HashSet from "effect/HashSet"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
-import { GroceryItem, normalizeIngredientName } from "@/domain/GroceryItem"
+import {
+  type GroceryAisle,
+  GroceryItem,
+  type GroceryItemId,
+  normalizeIngredientName,
+} from "@/domain/GroceryItem"
 import type { Recipe } from "@/domain/Recipe"
 import { eventLogAtom, writeEvent } from "@/EventLog"
 import { GroceryRepo, learnedAisle } from "./Repo"
@@ -53,15 +58,64 @@ export const addGroceryItem = Effect.fnUntraced(function* (item: GroceryItem) {
   yield* learnAisle(item, {})
 })
 
-// Many items as one event, for a writer adding them all at once.
+// Batches
+//
+// For a writer changing many items at once: each kind of write is one event,
+// and the aisles they teach are one more. The aisles follow the same rules as
+// one item at a time, in order, so a name set by an earlier item counts as
+// learned and a later item's write to a name wins.
+
+interface ItemWrite {
+  readonly item: GroceryItem
+  readonly previousName?: string | undefined
+}
+
+const learnAisles = Effect.fnUntraced(function* (
+  writes: ReadonlyArray<ItemWrite>,
+) {
+  const learned = yield* GroceryRepo.use((repo) => repo.aisles)
+  const changes = new Map<string, GroceryAisle | null>()
+  for (const { item, previousName } of writes) {
+    if (item.aisle === null) continue
+    const name = normalizeIngredientName(item.name)
+    const known = changes.has(name)
+      ? changes.get(name) !== null
+      : learned.has(name)
+    if (!known) changes.set(name, item.aisle)
+    if (previousName === undefined) continue
+    const previous = normalizeIngredientName(previousName)
+    if (previous !== name) changes.set(previous, null)
+  }
+  const aisles = Array.from(changes, ([name, aisle]) => ({ name, aisle }))
+  if (!Arr.isArrayNonEmpty(aisles)) return
+  yield* writeEvent({ event: "IngredientAislesChanged", payload: { aisles } })
+})
+
 export const addGroceryItems = Effect.fnUntraced(function* (
   items: ReadonlyArray<GroceryItem>,
 ) {
   if (!Arr.isReadonlyArrayNonEmpty(items)) return
   yield* writeEvent({ event: "GroceryItemsAdded", payload: { items } })
-  for (const item of items) {
-    yield* learnAisle(item, {})
-  }
+  yield* learnAisles(items.map((item) => ({ item })))
+})
+
+// An item written twice keeps its last write, as it would one at a time.
+export const updateGroceryItems = Effect.fnUntraced(function* (
+  writes: ReadonlyArray<ItemWrite>,
+) {
+  const items = Array.from(
+    new Map(writes.map(({ item }) => [item.idString, item])).values(),
+  )
+  if (!Arr.isArrayNonEmpty(items)) return
+  yield* writeEvent({ event: "GroceryItemsUpdated", payload: { items } })
+  yield* learnAisles(writes)
+})
+
+export const deleteGroceryItems = Effect.fnUntraced(function* (
+  ids: ReadonlyArray<GroceryItemId>,
+) {
+  if (!Arr.isReadonlyArrayNonEmpty(ids)) return
+  yield* writeEvent({ event: "GroceryItemsDeleted", payload: { ids } })
 })
 
 export const updateGroceryItem = Effect.fnUntraced(function* (

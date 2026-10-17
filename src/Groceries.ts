@@ -20,8 +20,7 @@ import { uuidString } from "./lib/Id"
 import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 
 // Handlers converge whatever order remote entries arrive in: an add
-// inserts only when the item is missing (a batch add does so for each item, in
-// one transaction), updates and toggles patch under
+// inserts only when the item is missing, updates and toggles patch under
 // last-writer-wins and do nothing when the item is missing, and a delete
 // hard-deletes, so a late update can't bring an item back. A clear deletes
 // only the ids its writer saw, so an item added concurrently survives it.
@@ -29,7 +28,8 @@ import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 // Ingredient aisles and aisle orders have reusable keys, so a set upserts
 // under last-writer-wins and a remove leaves a tombstone that only a newer set
 // revives. Adding or updating an item never touches the aisles: the writer
-// emits `IngredientAisleSet` and `IngredientAisleRemoved` itself.
+// emits `IngredientAisleSet` and `IngredientAisleRemoved` itself. A batch
+// event does the same for each of its rows, in one transaction.
 
 const itemFields = eventFields(GroceryItem.insert)
 
@@ -101,6 +101,35 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
       )
     })
 
+    const updateItem = Effect.fnUntraced(function* (
+      payload: typeof GroceryItem.update.Type,
+      entry: EventJournal.Entry,
+    ) {
+      const row = yield* itemRow(payload.id)
+      if (row === undefined) return
+      const next = applyLww(row, itemUpdate(payload), entry)
+      if (next !== row) yield* items.upsert(next)
+    })
+
+    const setAisle = Effect.fnUntraced(function* (
+      payload: typeof IngredientAisle.Type,
+      entry: EventJournal.Entry,
+    ) {
+      const fields = aisleFields(payload)
+      const row = yield* aisleRow(fields.name)
+      yield* aisles.upsert(lwwSet(row, fields, entry))
+    })
+
+    const removeAisle = Effect.fnUntraced(function* (
+      rawName: string,
+      entry: EventJournal.Entry,
+    ) {
+      const name = normalizeIngredientName(rawName)
+      const row = yield* aisleRow(name)
+      // The aisle only fills a tombstone that a set never wrote.
+      yield* aisles.upsert(lwwRemove(row, { name, aisle: "Pantry" }, entry))
+    })
+
     return handlers
       .handle("GroceryItemAdded", ({ payload, entry }) =>
         addItem(payload, entry).pipe(Effect.orDie),
@@ -114,12 +143,15 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
         ),
       )
       .handle("GroceryItemUpdated", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const row = yield* itemRow(payload.id)
-          if (row === undefined) return
-          const next = applyLww(row, itemUpdate(payload), entry)
-          if (next !== row) yield* items.upsert(next)
-        }).pipe(Effect.orDie),
+        updateItem(payload, entry).pipe(Effect.orDie),
+      )
+      .handle("GroceryItemsUpdated", ({ payload, entry }) =>
+        Effect.forEach(payload.items, (item) => updateItem(item, entry), {
+          discard: true,
+        }).pipe(
+          db.withTransaction({ tables: ["groceryItems"], mode: "readwrite" }),
+          Effect.orDie,
+        ),
       )
       .handle("GroceryItemToggled", ({ payload, entry }) =>
         Effect.gen(function* () {
@@ -141,19 +173,26 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
         ),
       )
       .handle("IngredientAisleSet", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const fields = aisleFields(payload)
-          const row = yield* aisleRow(fields.name)
-          yield* aisles.upsert(lwwSet(row, fields, entry))
-        }).pipe(Effect.orDie),
+        setAisle(payload, entry).pipe(Effect.orDie),
       )
       .handle("IngredientAisleRemoved", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const name = normalizeIngredientName(payload.name)
-          const row = yield* aisleRow(name)
-          // The aisle only fills a tombstone that a set never wrote.
-          yield* aisles.upsert(lwwRemove(row, { name, aisle: "Pantry" }, entry))
-        }).pipe(Effect.orDie),
+        removeAisle(payload.name, entry).pipe(Effect.orDie),
+      )
+      .handle("IngredientAislesChanged", ({ payload, entry }) =>
+        Effect.forEach(
+          payload.aisles,
+          ({ name, aisle }) =>
+            aisle === null
+              ? removeAisle(name, entry)
+              : setAisle({ name, aisle }, entry),
+          { discard: true },
+        ).pipe(
+          db.withTransaction({
+            tables: ["ingredientAisles"],
+            mode: "readwrite",
+          }),
+          Effect.orDie,
+        ),
       )
       .handle("GroceryAisleOrderSet", ({ payload, entry }) =>
         Effect.gen(function* () {
@@ -169,20 +208,24 @@ const GroceryReactivity = EventLog.groupReactivity(GroceryEvents, {
   GroceryItemAdded: ["groceryItems"],
   GroceryItemsAdded: ["groceryItems"],
   GroceryItemUpdated: ["groceryItems"],
+  GroceryItemsUpdated: ["groceryItems"],
   GroceryItemToggled: ["groceryItems"],
   GroceryItemDeleted: ["groceryItems"],
   GroceryItemsDeleted: ["groceryItems"],
   IngredientAisleSet: ["ingredientAisles"],
   IngredientAisleRemoved: ["ingredientAisles"],
+  IngredientAislesChanged: ["ingredientAisles"],
   GroceryAisleOrderSet: ["groceryAisleOrders"],
 })
 
 const GroceryCompaction = Compaction.layer(GroceryEvents, {
   GroceryItemAdded: () => Compaction.create("groceryItems"),
-  // Inserts many rows, so it's never skipped.
-  GroceryItemsAdded: () => Compaction.keep("groceryItems"),
+  // The batch events write many rows, so they're never skipped, and nothing
+  // is skipped because of them.
+  GroceryItemsAdded: () => Compaction.keep(),
   GroceryItemUpdated: (payload) =>
     Compaction.patch("groceryItems", itemUpdate(payload)),
+  GroceryItemsUpdated: () => Compaction.keep(),
   GroceryItemToggled: ({ completed }) =>
     Compaction.patch("groceryItems", { completed }),
   GroceryItemDeleted: ({ id }) =>
@@ -192,6 +235,7 @@ const GroceryCompaction = Compaction.layer(GroceryEvents, {
   IngredientAisleSet: (payload) =>
     Compaction.set("ingredientAisles", aisleFields(payload)),
   IngredientAisleRemoved: () => Compaction.keep("ingredientAisles"),
+  IngredientAislesChanged: () => Compaction.keep(),
   GroceryAisleOrderSet: (payload) =>
     Compaction.set("groceryAisleOrders", aisleOrderFields(payload)),
 })

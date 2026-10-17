@@ -381,6 +381,31 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
     }),
   },
   {
+    event: "GroceryItemsUpdated",
+    payload: {
+      items: [
+        GroceryItem.update.make({
+          id: groceryItemId,
+          name: "Baby carrots",
+          quantity: "1 kg",
+          aisle: "Produce",
+          recipeIds: [recipeId],
+          completed: true,
+          updatedAt,
+        }),
+        GroceryItem.update.make({
+          id: otherGroceryItemId,
+          name: "Red onion",
+          quantity: "3",
+          aisle: "Produce",
+          recipeIds: [recipeId],
+          completed: false,
+          updatedAt,
+        }),
+      ],
+    },
+  },
+  {
     event: "GroceryItemToggled",
     payload: { id: groceryItemId, completed: true },
   },
@@ -399,6 +424,15 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "IngredientAisleRemoved",
     payload: { name: "carrots" },
+  },
+  {
+    event: "IngredientAislesChanged",
+    payload: {
+      aisles: [
+        { name: "carrots", aisle: "Produce" },
+        { name: "2 carrots", aisle: null },
+      ],
+    },
   },
   {
     event: "GroceryAisleOrderSet",
