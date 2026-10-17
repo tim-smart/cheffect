@@ -4,7 +4,6 @@ import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
-import * as PubSub from "effect/PubSub"
 import * as Schema from "effect/Schema"
 import * as Scope from "effect/Scope"
 import type * as Event from "effect/eventlog/Event"
@@ -226,13 +225,7 @@ export const parseSyncServerUrl = (input: string): Option.Option<string> => {
 
 // Journal
 //
-// Effect's IndexedDB journal, except for how it writes local entries and that
-// `destroy` waits for the deletion.
-//
-// Effect's `write` commits each entry in its own transaction. Here
-// `JournalBatch` commits a batch of entries in one, and `write` is a batch of
-// one, so both publish to the `changes` the remotes upload from. Entries in a
-// batch get ascending ids, so every device orders them as they were written.
+// Effect's IndexedDB journal, except that `destroy` waits for the deletion.
 //
 // Effect's own `destroy` only requests the deletion, and the journal's open
 // connection holds it back until the page unloads. A join writes the new
@@ -240,26 +233,6 @@ export const parseSyncServerUrl = (input: string): Option.Option<string> => {
 // upload into the joined collection. The connection gets its own scope so
 // `destroy` can close it first. Another tab's journal can still hold the
 // deletion back, so that shows the "close other tabs" screen.
-
-export class JournalBatch extends Context.Service<
-  JournalBatch,
-  {
-    // Runs the effect with the new entries, then commits them in one
-    // transaction and publishes them, as `EventJournal.write` does for one.
-    // The caller holds the lock.
-    readonly write: <A, E, R>(options: {
-      readonly entries: Arr.NonEmptyReadonlyArray<{
-        readonly event: string
-        readonly primaryKey: string
-        readonly payload: Uint8Array
-      }>
-      readonly effect: (
-        entries: Arr.NonEmptyReadonlyArray<EventJournal.Entry>,
-      ) => Effect.Effect<A, E, R>
-    }) => Effect.Effect<A, EventJournal.EventJournalError | E, R>
-    readonly withLock: EventJournal.EventJournal["Service"]["withLock"]
-  }
->()("cheffect/EventLog/JournalBatch") {}
 
 const deleteJournal = Effect.callback<void, EventJournal.EventJournalError>(
   (resume) => {
@@ -283,76 +256,63 @@ const deleteJournal = Effect.callback<void, EventJournal.EventJournalError>(
   },
 )
 
-const encodeEntry = Schema.encodeSync(EventJournal.Entry)
-
-const putEntries = (entries: ReadonlyArray<EventJournal.Entry>) =>
-  Effect.tryPromise({
-    try: () =>
-      openJournal(indexedDB).then(
-        (connection) =>
-          new Promise<void>((resolve, reject) => {
-            const transaction = connection.transaction("entries", "readwrite")
-            const store = transaction.objectStore("entries")
-            for (const entry of entries) store.put(encodeEntry(entry))
-            transaction.oncomplete = () => resolve()
-            transaction.onerror = () => reject(transaction.error)
-            transaction.onabort = () => reject(transaction.error)
-          }),
-      ),
-    catch: (cause) =>
-      new EventJournal.EventJournalError({ method: "write", cause }),
-  })
-
 export const layerJournal: Layer.Layer<
-  EventJournal.EventJournal | JournalBatch,
+  EventJournal.EventJournal,
   EventJournal.EventJournalError
-> = Layer.effectContext(
+> = Layer.effect(
+  EventJournal.EventJournal,
   Effect.gen(function* () {
     const scope = yield* Scope.make()
     yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void))
     const journal = yield* EventJournal.makeIndexedDb({
       database: journalDatabaseName,
     }).pipe(Scope.provide(scope))
-    const changes = yield* PubSub.unbounded<EventJournal.Entry>()
-
-    const write: JournalBatch["Service"]["write"] = ({ entries, effect }) =>
-      Effect.uninterruptibleMask((restore) => {
-        const ids = entries
-          .map(() => EventJournal.makeEntryIdUnsafe())
-          .sort(EventJournal.EntryIdOrder)
-        const written = Arr.map(
-          entries,
-          (entry, i) =>
-            new EventJournal.Entry(
-              { ...entry, id: ids[i] },
-              { disableChecks: true },
-            ),
-        )
-        return restore(effect(written)).pipe(
-          Effect.tap(putEntries(written)),
-          Effect.tap(PubSub.publishAll(changes, written)),
-        )
-      })
-
-    return Context.make(
-      EventJournal.EventJournal,
-      EventJournal.EventJournal.of({
-        ...journal,
-        write: ({ effect, ...entry }) =>
-          write({ entries: [entry], effect: ([written]) => effect(written) }),
-        changes: PubSub.subscribe(changes),
-        destroy: Scope.close(scope, Exit.void).pipe(
-          Effect.andThen(deleteJournal),
-        ),
-      }),
-    ).pipe(
-      Context.add(
-        JournalBatch,
-        JournalBatch.of({ write, withLock: journal.withLock }),
+    return EventJournal.EventJournal.of({
+      ...journal,
+      destroy: Scope.close(scope, Exit.void).pipe(
+        Effect.andThen(deleteJournal),
       ),
-    )
+    })
   }),
 )
+
+// Handler transaction
+//
+// Effect runs the handlers of each local write, and of each batch replayed
+// from a remote, inside `EventLog.HandlerTransaction`. This one is a readwrite
+// transaction over every table, so a batch's table writes commit together,
+// and a handler failure in a local write leaves none of them written.
+// Handlers that open their own transaction (`withWriteTransaction`) join it.
+//
+// The transaction may not change the handlers' errors. A handler error passes
+// through it wrapped, so it can be told apart from the transaction failing to
+// commit, which becomes a defect.
+
+class HandlerError<E> {
+  constructor(readonly error: E) {}
+}
+
+export const layerHandlerTransaction: Layer.Layer<never, never, QueryBuilder> =
+  Layer.effect(
+    EventLog.HandlerTransaction,
+    Effect.gen(function* () {
+      const db = yield* QueryBuilder
+      const transaction = db.withTransaction({
+        tables: tableNames as Arr.NonEmptyReadonlyArray<TableName>,
+        mode: "readwrite",
+      })
+      return <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+        effect.pipe(
+          Effect.mapError((error) => new HandlerError(error)),
+          transaction,
+          Effect.catch((error) =>
+            error instanceof HandlerError
+              ? Effect.fail(error.error)
+              : Effect.die(error),
+          ),
+        )
+    }),
+  )
 
 // Layers and atoms
 
@@ -369,6 +329,7 @@ const EventLogLayer = EventLog.layer(
   ),
 ).pipe(
   Layer.provideMerge(layerJournal),
+  Layer.provide(layerHandlerTransaction),
   Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),
 )
 
@@ -505,113 +466,21 @@ export const writeEvent = (
 // Batches
 //
 // `writeEvents` writes the same events, in the same order, as calling
-// `writeEvent` on each, with one transaction for all their handlers, one for
-// their journal entries and one durability barrier. If a handler fails, none
-// of them are written. A journal without `JournalBatch` (Effect's own, in the
-// node tests) writes them one at a time instead.
-
-const invalidateEntries = (
-  registry: EventLog.Registry["Service"],
-  reactivity: Reactivity.Reactivity,
-  entries: ReadonlyArray<EventJournal.Entry>,
-) => {
-  for (const entry of entries) {
-    const keys = Object.hasOwn(registry.reactivityKeys, entry.event)
-      ? registry.reactivityKeys[entry.event]
-      : undefined
-    if (keys === undefined) continue
-    for (const key of keys) {
-      reactivity.invalidateUnsafe({ [key]: [entry.primaryKey] })
-    }
-  }
-}
-
-const writeBatch = Effect.fnUntraced(function* (
-  batch: JournalBatch["Service"],
-  payloads: Arr.NonEmptyReadonlyArray<EventPayload>,
-) {
-  const registry = yield* EventLog.Registry
-  const identity = yield* EventLog.Identity
-  const reactivity = yield* Reactivity.Reactivity
-  const db = yield* QueryBuilder
-  const writes = yield* Effect.forEach(payloads, ({ event, payload }) => {
-    const handler = registry.handlers.get(event)
-    if (handler === undefined) {
-      return Effect.die(`Event handler not found for: "${event}"`)
-    }
-    return Schema.encodeUnknownEffect(handler.event.payloadSchemaBinary)(
-      payload,
-    ).pipe(
-      Effect.orDie,
-      Effect.map((encoded) => ({
-        handler,
-        payload,
-        entry: {
-          event,
-          primaryKey: handler.event.primaryKey(payload),
-          payload: encoded as Uint8Array,
-        },
-      })),
-    )
-  })
-  if (!Arr.isArrayNonEmpty(writes)) return
-  yield* batch.withLock(storeId)(
-    batch.write({
-      entries: Arr.map(writes, (write) => write.entry),
-      effect: (entries) =>
-        Effect.forEach(
-          entries,
-          (entry, i) => {
-            const { handler, payload } = writes[i]
-            return handler
-              .handler({ storeId, payload, entry, conflicts: [] })
-              .pipe(
-                Effect.updateContext((input) =>
-                  Context.merge(handler.context, input),
-                ),
-                Effect.provideService(EventLog.Identity, identity),
-              )
-          },
-          { discard: true },
-        ).pipe(
-          db.withTransaction({
-            tables: tableNames as Arr.NonEmptyReadonlyArray<TableName>,
-            mode: "readwrite",
-          }),
-          Effect.andThen(
-            Effect.sync(() => invalidateEntries(registry, reactivity, entries)),
-          ),
-        ),
-    }),
-  )
-})
+// `writeEvent` on each, with one handler transaction, one journal transaction
+// and one durability barrier. If a handler fails, none of them are written.
 
 export const writeEvents = (
   payloads: ReadonlyArray<EventPayload>,
 ): Effect.Effect<
   void,
   EventJournal.EventJournalError | IndexedDbQueryError,
-  | EventLog.EventLog
-  | EventLog.Registry
-  | EventLog.Identity
-  | Reactivity.Reactivity
-  | QueryBuilder
-  | IndexedDb.IndexedDb
+  EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
 > =>
   Effect.gen(function* () {
     if (!Arr.isReadonlyArrayNonEmpty(payloads)) return
-    const batch = yield* Effect.serviceOption(JournalBatch)
-    if (Option.isSome(batch)) {
-      yield* writeBatch(batch.value, payloads) as Effect.Effect<
-        void,
-        EventJournal.EventJournalError | IndexedDbQueryError,
-        any
-      >
-    } else {
-      for (const payload of payloads) {
-        yield* writeUnbarriered(payload)
-      }
-    }
+    yield* EventLog.EventLog.use((_) =>
+      _.writeMany({ schema: CheffectEvents, events: payloads }),
+    )
     yield* durabilityBarrier
   })
 

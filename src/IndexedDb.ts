@@ -90,9 +90,10 @@ export class QueryBuilder extends Context.Service<QueryBuilder>()(
 }
 
 // A handler's writes in one readwrite transaction over the tables, or in the
-// transaction it already runs in. `writeEvents` runs a batch's handlers in one
-// transaction over every table, and a handler opening its own there would let
-// the batch's transaction commit early, while it waits on the new one.
+// transaction it already runs in. The EventLog's handler transaction runs a
+// batch's handlers in one transaction over every table, and a handler opening
+// its own there would let the batch's transaction commit early, while it waits
+// on the new one.
 export const withWriteTransaction =
   (db: QueryBuilder["Service"], tables: Arr.NonEmptyReadonlyArray<TableName>) =>
   <A, E, R>(effect: Effect.Effect<A, E, R>) =>

@@ -7,7 +7,7 @@ import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import { CheffectEvents, type EventPayload } from "@/EventLog"
 import { AiChatTurnIdFromString } from "@/domain/AiChatTurn"
-import { GroceryItemIdFromString } from "@/domain/GroceryItem"
+import { GroceryItem, GroceryItemIdFromString } from "@/domain/GroceryItem"
 import { MenuIdFromString } from "@/domain/Menu"
 import { Recipe } from "@/domain/Recipe"
 import { eventSamples } from "./fixtures/event-samples"
@@ -285,4 +285,44 @@ test("concurrent and stale peer writes merge with a compacted batch as they woul
   assert.deepEqual(compacted.groceryItems, [])
   assert.equal(compacted.ingredientAisles[0].deleted, 1)
   assert.equal(compacted.menuDayNotes[0].note, "Re-added")
+})
+
+// A remote batch replays in delivery order, which need not be id order: a
+// device that was offline uploads its older entries after newer ones. Here
+// the newest update arrives before the add and finds no row, so the older
+// update that runs after the add is the one that sticks.
+test("a batch out of id order replays as its entries would one at a time", async () => {
+  const update = (name: string) =>
+    GroceryItem.update.make({ ...sample("GroceryItemUpdated"), name })
+  const batch = [
+    at(1200, "GroceryItemUpdated", update("Newest")),
+    at(1000, "GroceryItemAdded", { ...item, name: "Original" }),
+    at(1100, "GroceryItemUpdated", update("Older")),
+  ]
+
+  const compacted = await receive([batch], snapshot)
+  const uncompacted = await receive(oneAtATime([batch]), snapshot)
+
+  assert.equal(uncompacted.groceryItems[0].name, "Older")
+  assert.deepStrictEqual(compacted, uncompacted)
+})
+
+// An older update delivered after a newer one loses to it under
+// last-writer-wins, so it doesn't make the newer one irrelevant.
+test("an older update delivered later doesn't replace a newer one", async () => {
+  const update = (name: string) =>
+    GroceryItem.update.make({ ...sample("GroceryItemUpdated"), name })
+  const batches = [
+    [at(1000, "GroceryItemAdded", item)],
+    [
+      at(1200, "GroceryItemUpdated", update("Newest")),
+      at(1100, "GroceryItemUpdated", update("Older")),
+    ],
+  ]
+
+  const compacted = await receive(batches, snapshot)
+  const uncompacted = await receive(oneAtATime(batches), snapshot)
+
+  assert.equal(uncompacted.groceryItems[0].name, "Newest")
+  assert.deepStrictEqual(compacted, uncompacted)
 })

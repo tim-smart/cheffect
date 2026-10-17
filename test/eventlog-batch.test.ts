@@ -11,6 +11,7 @@ import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import {
   type EventPayload,
   journalDatabaseName,
+  layerHandlerTransaction,
   layerJournal,
   writeEvents,
 } from "@/EventLog"
@@ -27,9 +28,10 @@ import {
 } from "./harness/eventlog"
 import { countRecords, layerFreshIndexedDb } from "./harness/indexeddb"
 
-// `writeEvents` on the app's own journal, which commits a batch's entries in
-// one transaction. Every entry is stamped in the same millisecond, so only the
-// batch's own ordering keeps them in the order they were written.
+// `writeEvents` through Effect's `writeMany`, with the app's handler
+// transaction wrapping a batch's handlers. Every entry is stamped in the same
+// millisecond, so only the batch's own ordering keeps them in the order they
+// were written.
 
 const device = (
   remote: FakeRemote,
@@ -40,6 +42,7 @@ const device = (
     handlers,
   ).pipe(
     Layer.provideMerge(layerJournal),
+    Layer.provide(layerHandlerTransaction),
     Layer.provideMerge(Layer.effect(EventLog.Identity, testIdentity)),
   )
   return Layer.mergeAll(
