@@ -161,12 +161,29 @@ const launchBrowser = async (profile: string) => {
   /**
    * Clicks the centre of an element with real mouse events. `element` is an
    * expression that evaluates to the element.
+   *
+   * The mouse events go to a fixed point, so the element has to have stopped
+   * moving first: a dialog slides in for 200 ms, and a point taken mid-slide
+   * misses the button by the time the events land. The centre is read once a
+   * frame until two frames agree, for at most two seconds.
    */
   const click = async (element: string) => {
-    const { x, y } = await evaluate<{ x: number; y: number }>(`(() => {
-      const rect = (${element}).getBoundingClientRect()
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
-    })()`)
+    const { x, y } = await evaluate<{
+      x: number
+      y: number
+    }>(`new Promise((resolve) => {
+      const start = performance.now()
+      let last
+      const check = () => {
+        const rect = (${element}).getBoundingClientRect()
+        const centre = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
+        const settled = last !== undefined && last.x === centre.x && last.y === centre.y
+        if (settled || performance.now() - start > 2000) return resolve(centre)
+        last = centre
+        requestAnimationFrame(check)
+      }
+      check()
+    })`)
     for (const type of ["mousePressed", "mouseReleased"]) {
       await sendOrCrash(
         "Input.dispatchMouseEvent",
