@@ -1,5 +1,6 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import type * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import {
   type GroceryAisleOrder,
@@ -19,7 +20,8 @@ import { uuidString } from "./lib/Id"
 import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
 
 // Handlers converge whatever order remote entries arrive in: an add
-// inserts only when the item is missing, updates and toggles patch under
+// inserts only when the item is missing (a batch add does so for each item, in
+// one transaction), updates and toggles patch under
 // last-writer-wins and do nothing when the item is missing, and a delete
 // hard-deletes, so a late update can't bring an item back. A clear deletes
 // only the ids its writer saw, so an item added concurrently survives it.
@@ -88,15 +90,28 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
         .limit(1)
         .pipe(Effect.map((rows) => rows[0]))
 
+    const addItem = Effect.fnUntraced(function* (
+      payload: typeof GroceryItem.insert.Type,
+      entry: EventJournal.Entry,
+    ) {
+      if ((yield* itemRow(payload.id)) !== undefined) return
+      const fields = itemFields(payload)
+      yield* items.insert(
+        stampAll({ ...fields, list: fields.list ?? null }, entry),
+      )
+    })
+
     return handlers
       .handle("GroceryItemAdded", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          if ((yield* itemRow(payload.id)) !== undefined) return
-          const fields = itemFields(payload)
-          yield* items.insert(
-            stampAll({ ...fields, list: fields.list ?? null }, entry),
-          )
-        }).pipe(Effect.orDie),
+        addItem(payload, entry).pipe(Effect.orDie),
+      )
+      .handle("GroceryItemsAdded", ({ payload, entry }) =>
+        Effect.forEach(payload.items, (item) => addItem(item, entry), {
+          discard: true,
+        }).pipe(
+          db.withTransaction({ tables: ["groceryItems"], mode: "readwrite" }),
+          Effect.orDie,
+        ),
       )
       .handle("GroceryItemUpdated", ({ payload, entry }) =>
         Effect.gen(function* () {
@@ -152,6 +167,7 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
 
 const GroceryReactivity = EventLog.groupReactivity(GroceryEvents, {
   GroceryItemAdded: ["groceryItems"],
+  GroceryItemsAdded: ["groceryItems"],
   GroceryItemUpdated: ["groceryItems"],
   GroceryItemToggled: ["groceryItems"],
   GroceryItemDeleted: ["groceryItems"],
@@ -163,6 +179,8 @@ const GroceryReactivity = EventLog.groupReactivity(GroceryEvents, {
 
 const GroceryCompaction = Compaction.layer(GroceryEvents, {
   GroceryItemAdded: () => Compaction.create("groceryItems"),
+  // Inserts many rows, so it's never skipped.
+  GroceryItemsAdded: () => Compaction.keep("groceryItems"),
   GroceryItemUpdated: (payload) =>
     Compaction.patch("groceryItems", itemUpdate(payload)),
   GroceryItemToggled: ({ completed }) =>

@@ -18,11 +18,21 @@ import { uuidString } from "@/lib/Id"
 // so `GroceryItemUpdated` drops `previousName` and `userInitiated`.
 // `v1.GroceryItemCleared` and `v1.GroceryItemClearedCompleted` are dropped
 // for `GroceryItemsDeleted`, which carries the ids the writer saw.
+// `GroceryItemsAdded` adds many items as one entry, so adding a recipe is one
+// journal write and one transaction rather than one per ingredient.
 export const GroceryEvents = EventGroup.empty
   .add({
     tag: "GroceryItemAdded",
     primaryKey: (item) => uuidString(item.id),
     payload: GroceryItem.insert,
+  })
+  .add({
+    tag: "GroceryItemsAdded",
+    // A fixed key, as for `GroceryItemsDeleted`.
+    primaryKey: () => "groceryItems",
+    payload: Schema.Struct({
+      items: Schema.NonEmptyArray(GroceryItem.insert),
+    }),
   })
   .add({
     tag: "GroceryItemUpdated",

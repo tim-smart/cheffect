@@ -1,3 +1,4 @@
+import * as Arr from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as HashSet from "effect/HashSet"
 import * as Layer from "effect/Layer"
@@ -50,6 +51,17 @@ const learnAisle = Effect.fnUntraced(function* (
 export const addGroceryItem = Effect.fnUntraced(function* (item: GroceryItem) {
   yield* writeEvent({ event: "GroceryItemAdded", payload: item })
   yield* learnAisle(item, {})
+})
+
+// Many items as one event, for a writer adding them all at once.
+export const addGroceryItems = Effect.fnUntraced(function* (
+  items: ReadonlyArray<GroceryItem>,
+) {
+  if (!Arr.isReadonlyArrayNonEmpty(items)) return
+  yield* writeEvent({ event: "GroceryItemsAdded", payload: { items } })
+  for (const item of items) {
+    yield* learnAisle(item, {})
+  }
 })
 
 export const updateGroceryItem = Effect.fnUntraced(function* (
@@ -116,8 +128,8 @@ export const groceryItemEditAtom = groceriesMutation(
 
 // Adds the recipes' ingredients to the default list, skipping excluded ones
 // and anything in the pantry, with the aisle learned for each name. The pantry
-// and aisles are read once up front. Stays waiting for a few seconds after, so
-// the button shows a check.
+// and aisles are read once up front, and the items are written as one event.
+// Stays waiting for a few seconds after, so the button shows a check.
 export const addToGroceriesAtom = groceriesMutation(
   Effect.fnUntraced(function* ({
     recipes,
@@ -129,6 +141,7 @@ export const addToGroceriesAtom = groceriesMutation(
     const repo = yield* GroceryRepo
     const pantryItemNames = yield* repo.pantryNames
     const aisles = yield* repo.aisles
+    const items: Array<GroceryItem> = []
     for (const recipe of recipes) {
       for (const [gi, group] of recipe.ingredientsDisplay.entries()) {
         for (const [ii, ingredient] of group.ingredients.entries()) {
@@ -140,7 +153,7 @@ export const addToGroceriesAtom = groceriesMutation(
           }
           const item = GroceryItem.fromIngredient(null, ingredient, recipe)
           if (pantryItemNames.has(item.nameNormalized)) continue
-          yield* addGroceryItem(
+          items.push(
             new GroceryItem({
               ...item,
               aisle: Option.getOrNull(learnedAisle(aisles, item.name)),
@@ -149,6 +162,7 @@ export const addToGroceriesAtom = groceriesMutation(
         }
       }
     }
+    yield* addGroceryItems(items)
     yield* Effect.sleep("3 seconds")
   }),
 )

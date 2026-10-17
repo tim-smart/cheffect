@@ -110,28 +110,35 @@ function GroceryList() {
   const moveCompletedTargetList =
     currentList === PANTRY_GROCERY_LIST_NAME ? null : PANTRY_GROCERY_LIST_NAME
 
+  // The copies go in one event and the originals in another, and the
+  // originals are only deleted once the copies are written.
   const moveCompletedToOtherList = () => {
     if (result._tag !== "Success") {
       return
     }
-    for (const { items } of result.value.aisles) {
-      for (const item of items) {
-        if (!item.completed) continue
-        const now = DateTime.nowUnsafe()
-        write({
-          event: "GroceryItemAdded",
-          payload: new GroceryItem({
-            ...item,
-            id: GroceryItemId.make(generateUuidBytes()),
-            list: moveCompletedTargetList,
-            completed: false,
-            createdAt: now,
-            updatedAt: now,
-          }),
-        })
-        write({ event: "GroceryItemDeleted", payload: { id: item.id } })
-      }
-    }
+    const now = DateTime.nowUnsafe()
+    const completed = result.value.aisles.flatMap(({ items }) =>
+      items.filter((item) => item.completed),
+    )
+    if (!Arr.isArrayNonEmpty(completed)) return
+    const copies = Arr.map(
+      completed,
+      (item) =>
+        new GroceryItem({
+          ...item,
+          id: GroceryItemId.make(generateUuidBytes()),
+          list: moveCompletedTargetList,
+          completed: false,
+          createdAt: now,
+          updatedAt: now,
+        }),
+    )
+    write({ event: "GroceryItemsAdded", payload: { items: copies } }).then(() =>
+      write({
+        event: "GroceryItemsDeleted",
+        payload: { ids: Arr.map(completed, (item) => item.id) },
+      }),
+    )
   }
 
   const clearAll = () => clearShown(() => true)

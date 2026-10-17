@@ -340,6 +340,35 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
     }),
   },
   {
+    event: "GroceryItemsAdded",
+    payload: {
+      items: [
+        GroceryItem.insert.make({
+          id: groceryItemId,
+          list: "Weekend",
+          name: "Carrots",
+          quantity: "500 g",
+          aisle: "Produce",
+          recipeIds: [recipeId],
+          completed: false,
+          createdAt,
+          updatedAt: createdAt,
+        }),
+        GroceryItem.insert.make({
+          id: otherGroceryItemId,
+          list: "Weekend",
+          name: "Onion",
+          quantity: "2",
+          aisle: "Produce",
+          recipeIds: [recipeId],
+          completed: false,
+          createdAt,
+          updatedAt: createdAt,
+        }),
+      ],
+    },
+  },
+  {
     event: "GroceryItemUpdated",
     payload: GroceryItem.update.make({
       id: groceryItemId,
