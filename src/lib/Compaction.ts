@@ -212,7 +212,9 @@ export const layer = <Events extends Event.Any>(
                 return { entry, replay }
               }),
             ),
-            write,
+            // Without a `source`, each entry keeps its place in the remote
+            // batch.
+            (entry) => write(entry),
             { discard: true },
           ),
       }),
