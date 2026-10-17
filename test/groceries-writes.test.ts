@@ -53,9 +53,6 @@ const layer = EventLogClient.layer.pipe(
 const decodeAdded = Schema.decodeUnknownSync(
   GroceryEvents.events.GroceryItemAdded.payloadSchemaBinary,
 )
-const decodeAddedMany = Schema.decodeUnknownSync(
-  GroceryEvents.events.GroceryItemsAdded.payloadSchemaBinary,
-)
 
 type Mutation<Arg> = Atom.AtomResultFn<Arg, void, unknown>
 
@@ -103,14 +100,8 @@ const addedNames = <Arg>(options: {
       Effect.provideContext(context),
     )
     return entries
-      .flatMap((entry) =>
-        entry.event === "GroceryItemAdded"
-          ? [decodeAdded(entry.payload)]
-          : entry.event === "GroceryItemsAdded"
-            ? decodeAddedMany(entry.payload).items
-            : [],
-      )
-      .map((item) => item.name)
+      .filter((entry) => entry.event === "GroceryItemAdded")
+      .map((entry) => decodeAdded(entry.payload).name)
       .sort()
   }).pipe(
     // A recipe batch stays waiting for 3 seconds after its writes.

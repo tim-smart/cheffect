@@ -340,35 +340,6 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
     }),
   },
   {
-    event: "GroceryItemsAdded",
-    payload: {
-      items: [
-        GroceryItem.insert.make({
-          id: groceryItemId,
-          list: "Weekend",
-          name: "Carrots",
-          quantity: "500 g",
-          aisle: "Produce",
-          recipeIds: [recipeId],
-          completed: false,
-          createdAt,
-          updatedAt: createdAt,
-        }),
-        GroceryItem.insert.make({
-          id: otherGroceryItemId,
-          list: "Weekend",
-          name: "Onion",
-          quantity: "2",
-          aisle: "Produce",
-          recipeIds: [recipeId],
-          completed: false,
-          createdAt,
-          updatedAt: createdAt,
-        }),
-      ],
-    },
-  },
-  {
     event: "GroceryItemUpdated",
     payload: GroceryItem.update.make({
       id: groceryItemId,
@@ -379,31 +350,6 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
       completed: true,
       updatedAt,
     }),
-  },
-  {
-    event: "GroceryItemsUpdated",
-    payload: {
-      items: [
-        GroceryItem.update.make({
-          id: groceryItemId,
-          name: "Baby carrots",
-          quantity: "1 kg",
-          aisle: "Produce",
-          recipeIds: [recipeId],
-          completed: true,
-          updatedAt,
-        }),
-        GroceryItem.update.make({
-          id: otherGroceryItemId,
-          name: "Red onion",
-          quantity: "3",
-          aisle: "Produce",
-          recipeIds: [recipeId],
-          completed: false,
-          updatedAt,
-        }),
-      ],
-    },
   },
   {
     event: "GroceryItemToggled",
@@ -424,15 +370,6 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: "IngredientAisleRemoved",
     payload: { name: "carrots" },
-  },
-  {
-    event: "IngredientAislesChanged",
-    payload: {
-      aisles: [
-        { name: "carrots", aisle: "Produce" },
-        { name: "2 carrots", aisle: null },
-      ],
-    },
   },
   {
     event: "GroceryAisleOrderSet",
