@@ -21,25 +21,19 @@ const write = (primaryKey: string) =>
     }),
   )
 
-test(
-  "an upload sends only the entries written since the last upload",
-  {
-    todo: "TIM-279: the last uploaded entry is never found, so every upload rescans the journal",
-  },
-  () => {
-    freshIndexedDb()
-    return Effect.gen(function* () {
-      const journal = yield* EventJournal.EventJournal
-      const remoteId = EventJournal.makeRemoteIdUnsafe()
-      const upload = journal.withRemoteUncommited(remoteId, (entries) =>
-        Effect.succeed(entries.map((entry) => entry.primaryKey)),
-      )
+test("an upload sends only the entries written since the last upload", () => {
+  freshIndexedDb()
+  return Effect.gen(function* () {
+    const journal = yield* EventJournal.EventJournal
+    const remoteId = EventJournal.makeRemoteIdUnsafe()
+    const upload = journal.withRemoteUncommited(remoteId, (entries) =>
+      Effect.succeed(entries.map((entry) => entry.primaryKey)),
+    )
 
-      yield* write("milk")
-      yield* upload
-      yield* write("eggs")
+    yield* write("milk")
+    yield* upload
+    yield* write("eggs")
 
-      assert.deepEqual(Option.getOrThrow(yield* upload), ["eggs"])
-    }).pipe(Effect.provide(layerJournal), Effect.runPromise)
-  },
-)
+    assert.deepEqual(Option.getOrThrow(yield* upload), ["eggs"])
+  }).pipe(Effect.provide(layerJournal), Effect.runPromise)
+})
