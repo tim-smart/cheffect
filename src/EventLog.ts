@@ -256,6 +256,45 @@ const deleteJournal = Effect.callback<void, EventJournal.EventJournalError>(
   },
 )
 
+// The upstream journal opens version 2 without an onblocked hook. Probe that
+// open first so an old tab can be explained by the existing blocked screen.
+// Abort any upgrade: only the upstream journal may create or migrate stores.
+const awaitJournalUpgrade = Effect.callback<
+  void,
+  EventJournal.EventJournalError
+>((resume) => {
+  const request = indexedDB.open(journalDatabaseName, 2)
+  let abortedUpgrade = false
+  let cancelled = false
+  request.onblocked = () => {
+    if (!cancelled) setDatabaseBlocked(true)
+  }
+  request.onupgradeneeded = () => {
+    abortedUpgrade = true
+    request.transaction!.abort()
+  }
+  request.onsuccess = () => {
+    request.result.close()
+    if (!cancelled) resume(Effect.void)
+  }
+  request.onerror = () => {
+    if (cancelled) return
+    resume(
+      abortedUpgrade
+        ? Effect.void
+        : Effect.fail(
+            new EventJournal.EventJournalError({
+              method: "open",
+              cause: request.error,
+            }),
+          ),
+    )
+  }
+  return Effect.sync(() => {
+    cancelled = true
+  })
+})
+
 export const layerJournal: Layer.Layer<
   EventJournal.EventJournal,
   EventJournal.EventJournalError
@@ -264,9 +303,13 @@ export const layerJournal: Layer.Layer<
   Effect.gen(function* () {
     const scope = yield* Scope.make()
     yield* Effect.addFinalizer(() => Scope.close(scope, Exit.void))
-    const journal = yield* EventJournal.makeIndexedDb({
-      database: journalDatabaseName,
-    }).pipe(Scope.provide(scope))
+    const journal = yield* awaitJournalUpgrade.pipe(
+      Effect.andThen(
+        EventJournal.makeIndexedDb({ database: journalDatabaseName }),
+      ),
+      Scope.provide(scope),
+      Effect.ensuring(Effect.sync(() => setDatabaseBlocked(false))),
+    )
     return EventJournal.EventJournal.of({
       ...journal,
       destroy: Scope.close(scope, Exit.void).pipe(
@@ -384,7 +427,7 @@ const openJournal = (indexedDB: IDBFactory): Promise<IDBDatabase> => {
   let pending = journalConnections.get(indexedDB)
   if (pending === undefined) {
     pending = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(journalDatabaseName, 1)
+      const request = indexedDB.open(journalDatabaseName)
       request.onupgradeneeded = () => {
         // Only the journal layer creates its database.
         request.transaction?.abort()
