@@ -9,6 +9,7 @@ import {
   normalizeIngredientName,
   PANTRY_GROCERY_LIST_NAME,
 } from "@/domain/GroceryItem"
+import { uuidString } from "@/lib/Id"
 import { isLive, stripLww } from "@/lib/Lww"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText, includesFolded } from "@/lib/text"
@@ -29,10 +30,40 @@ export type IngredientAisles = ReadonlyMap<string, GroceryAisle>
 
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
-const decodeItems = (
-  rows: ReadonlyArray<GroceryItemRow>,
-): ReadonlyArray<GroceryItem> =>
-  rows.map((row) => new GroceryItem(stripLww(row)))
+// Every write to an item re-stamps the fields it changes, so a row with the
+// same stamps as last time holds the same values.
+const sameStamps = (a: GroceryItemRow["_lww"], b: GroceryItemRow["_lww"]) => {
+  const keys = Object.keys(a)
+  if (keys.length !== Object.keys(b).length) return false
+  return keys.every((key) => a[key] === b[key])
+}
+
+interface DecodedItem {
+  readonly row: GroceryItemRow
+  readonly item: GroceryItem
+}
+
+// Decodes the items, handing back the item it decoded last time for a row
+// that hasn't changed since. The grocery page skips re-rendering a row whose
+// item is the same value, so a write re-renders only the rows it touched.
+const makeItemDecoder = () => {
+  let decoded = new Map<string, DecodedItem>()
+  return (rows: ReadonlyArray<GroceryItemRow>): ReadonlyArray<GroceryItem> => {
+    const next = new Map<string, DecodedItem>()
+    const items = rows.map((row) => {
+      const id = uuidString(row.id)
+      const previous = decoded.get(id)
+      const entry =
+        previous !== undefined && sameStamps(previous.row._lww, row._lww)
+          ? previous
+          : { row, item: new GroceryItem(stripLww(row)) }
+      next.set(id, entry)
+      return entry.item
+    })
+    decoded = next
+    return items
+  }
+}
 
 const decodeAisles = (
   rows: ReadonlyArray<IngredientAisleRow>,
@@ -121,6 +152,7 @@ export class GroceryRepo extends Context.Service<GroceryRepo>()(
       const aisles = yield* makeSnapshot("ingredientAisles")
       const aisleOrders = yield* makeSnapshot("groceryAisleOrders")
 
+      const decodeItems = makeItemDecoder()
       const currentItems = items.current.pipe(Effect.map(decodeItems))
       const currentAisles = aisles.current.pipe(Effect.map(decodeAisles))
 

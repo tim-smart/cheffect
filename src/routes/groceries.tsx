@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useRef, useState } from "react"
 import {
   X,
   ShoppingCart,
@@ -358,27 +358,33 @@ function GroceryListList({
   const write = useWrite()
   const addGroceryItem = useAtomSet(groceryItemAddAtom)
   const beautifyResult = useAtomSet(beautifyGroceriesAtom)
-  const cancelBeautify = () => beautifyResult(Atom.Reset)
   const canReorder = !showCompleted
   const lastOverId = useRef<string | null>(null)
 
-  const toggleItem = (item: GroceryItem) => {
-    write({
-      event: "GroceryItemToggled",
-      payload: { id: item.id, completed: !item.completed },
-    })
-    if ("vibrate" in navigator) {
-      navigator.vibrate(3)
-    }
-  }
+  // Stable, so a row whose item didn't change skips re-rendering.
+  const toggleItem = useCallback(
+    (item: GroceryItem) => {
+      write({
+        event: "GroceryItemToggled",
+        payload: { id: item.id, completed: !item.completed },
+      })
+      if ("vibrate" in navigator) {
+        navigator.vibrate(3)
+      }
+    },
+    [write],
+  )
 
-  const removeItem = (item: GroceryItem) => {
-    cancelBeautify()
-    write({ event: "GroceryItemDeleted", payload: { id: item.id } })
-    if ("vibrate" in navigator) {
-      navigator.vibrate(3)
-    }
-  }
+  const removeItem = useCallback(
+    (item: GroceryItem) => {
+      beautifyResult(Atom.Reset)
+      write({ event: "GroceryItemDeleted", payload: { id: item.id } })
+      if ("vibrate" in navigator) {
+        navigator.vibrate(3)
+      }
+    },
+    [write, beautifyResult],
+  )
 
   const filteredAisles = aisles.flatMap((aisle) => {
     const items = aisle.items.filter((item) =>
@@ -575,7 +581,9 @@ function GroceryAisleSection({
   )
 }
 
-function GroceryListItem({
+// Memoised: the repo hands back the same item for a row a write didn't touch,
+// so checking one item off re-renders only its row.
+const GroceryListItem = memo(function GroceryListItem({
   item,
   toggleItem,
   removeItem,
@@ -661,7 +669,7 @@ function GroceryListItem({
       )}
     </div>
   )
-}
+})
 
 function GroceryListSkeleton() {
   return (
