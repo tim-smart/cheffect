@@ -27,19 +27,24 @@ import * as EventLog from "effect/eventlog/EventLog"
 //   Without a table it may read or write any row, so nothing before it is
 //   skipped because of anything after it.
 //
-// A handler that reads other rows is a `keep` without a table. Walking the
-// batch in entry order, an entry is skipped when:
+// A handler that reads other rows is a `keep` without a table.
+//
+// The handlers run in the order the batch arrived in, which need not be
+// entry order: a device that was offline uploads its older entries after
+// newer ones. "Later" below means later in that order. Overwriting also needs
+// a newer entry, because an older one loses to the skipped entry under
+// last-writer-wins. Walking the batch, an entry is skipped when:
 //
 // - a later entry hard-deletes its row, so whatever the entry did is gone
 //   with the row.
-// - it's a patch, and later entries write every field it writes. Each of
-//   those either finds the row and wins under last-writer-wins, or finds it
-//   deleted after the patch.
-// - it's a set, later entries write every field it writes, and the entry right
-//   after it for the row is also a set. That set inserts the row if the
-//   skipped one would have, before anything that needs the row exists. A set
-//   with an undefined field isn't skipped this way, because an insert stamps
-//   undefined fields and an update doesn't.
+// - it's a patch, and later, newer entries write every field it writes. Each
+//   of those either finds the row and wins under last-writer-wins, or finds
+//   it deleted after the patch.
+// - it's a set, later, newer entries write every field it writes, and the
+//   entry right after it for the row is also a set. That set inserts the row
+//   if the skipped one would have, before anything that needs the row exists.
+//   A set with an undefined field isn't skipped this way, because an insert
+//   stamps undefined fields and an update doesn't.
 //
 // Deletes and `keep` entries are never skipped.
 
@@ -82,7 +87,8 @@ export const keep = (table?: string): Replay => ({ _tag: "Keep", table })
 interface RowState {
   removed: boolean
   nextIsSet: boolean
-  readonly written: Set<string>
+  // Each field written later in the batch, with the newest id that wrote it.
+  readonly written: Map<string, string>
 }
 
 const definedFields = (fields: object) =>
@@ -90,7 +96,7 @@ const definedFields = (fields: object) =>
     value === undefined ? [] : [key],
   )
 
-// The entries to replay, in entry order.
+// The entries to replay, in batch order.
 const compact = (
   batch: ReadonlyArray<{
     readonly entry: EventJournal.Entry
@@ -102,18 +108,36 @@ const compact = (
     const id = JSON.stringify([table, key])
     let state = rows.get(id)
     if (state === undefined) {
-      state = { removed: false, nextIsSet: false, written: new Set() }
+      state = { removed: false, nextIsSet: false, written: new Map() }
       rows.set(id, state)
     }
     return state
   }
+  const overwritten = (
+    state: RowState,
+    entry: EventJournal.Entry,
+    fields: ReadonlyArray<string>,
+  ) =>
+    fields.every((field) => {
+      const newest = state.written.get(field)
+      return newest !== undefined && newest > entry.idString
+    })
+  const write = (
+    state: RowState,
+    entry: EventJournal.Entry,
+    fields: ReadonlyArray<string>,
+  ) => {
+    for (const field of fields) {
+      const newest = state.written.get(field)
+      if (newest === undefined || entry.idString > newest) {
+        state.written.set(field, entry.idString)
+      }
+    }
+  }
 
-  const sorted = batch.toSorted((a, b) =>
-    EventJournal.Entry.Order(a.entry, b.entry),
-  )
   const replayed: Array<EventJournal.Entry> = []
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    const { entry, replay } = sorted[i]
+  for (let i = batch.length - 1; i >= 0; i--) {
+    const { entry, replay } = batch[i]
     switch (replay._tag) {
       case "Keep": {
         replayed.push(entry)
@@ -142,9 +166,10 @@ const compact = (
       case "Patch": {
         const state = row(replay.table, entry.primaryKey)
         const fields = definedFields(replay.fields)
-        const overwritten = fields.every((field) => state.written.has(field))
-        if (!state.removed && !overwritten) replayed.push(entry)
-        for (const field of fields) state.written.add(field)
+        if (!state.removed && !overwritten(state, entry, fields)) {
+          replayed.push(entry)
+        }
+        write(state, entry, fields)
         state.nextIsSet = false
         break
       }
@@ -152,14 +177,10 @@ const compact = (
         const state = row(replay.table, entry.primaryKey)
         const fields = Object.keys(replay.fields)
         const complete = definedFields(replay.fields).length === fields.length
-        const overwritten =
-          complete &&
-          state.nextIsSet &&
-          fields.every((field) => state.written.has(field))
-        if (!state.removed && !overwritten) replayed.push(entry)
-        if (complete) {
-          for (const field of fields) state.written.add(field)
-        }
+        const skip =
+          complete && state.nextIsSet && overwritten(state, entry, fields)
+        if (!state.removed && !skip) replayed.push(entry)
+        if (complete) write(state, entry, fields)
         state.nextIsSet = complete
         break
       }
