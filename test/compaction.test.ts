@@ -306,3 +306,23 @@ test("a batch out of id order replays as its entries would one at a time", async
   assert.equal(uncompacted.groceryItems[0].name, "Older")
   assert.deepStrictEqual(compacted, uncompacted)
 })
+
+// An older update delivered after a newer one loses to it under
+// last-writer-wins, so it doesn't make the newer one irrelevant.
+test("an older update delivered later doesn't replace a newer one", async () => {
+  const update = (name: string) =>
+    GroceryItem.update.make({ ...sample("GroceryItemUpdated"), name })
+  const batches = [
+    [at(1000, "GroceryItemAdded", item)],
+    [
+      at(1200, "GroceryItemUpdated", update("Newest")),
+      at(1100, "GroceryItemUpdated", update("Older")),
+    ],
+  ]
+
+  const compacted = await receive(batches, snapshot)
+  const uncompacted = await receive(oneAtATime(batches), snapshot)
+
+  assert.equal(uncompacted.groceryItems[0].name, "Newest")
+  assert.deepStrictEqual(compacted, uncompacted)
+})
