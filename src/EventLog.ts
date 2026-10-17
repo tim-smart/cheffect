@@ -384,7 +384,7 @@ const openJournal = (indexedDB: IDBFactory): Promise<IDBDatabase> => {
   let pending = journalConnections.get(indexedDB)
   if (pending === undefined) {
     pending = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(journalDatabaseName, 1)
+      const request = indexedDB.open(journalDatabaseName)
       request.onupgradeneeded = () => {
         // Only the journal layer creates its database.
         request.transaction?.abort()
