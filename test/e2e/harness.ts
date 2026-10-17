@@ -165,25 +165,35 @@ const launchBrowser = async (profile: string) => {
    * The mouse events go to a fixed point, so the element has to have stopped
    * moving first: a dialog slides in for 200 ms, and a point taken mid-slide
    * misses the button by the time the events land. The centre is read once a
-   * frame until two frames agree, for at most two seconds.
+   * frame until two frames agree. An element still moving after two seconds
+   * fails the click without sending any mouse events, rather than missing.
    */
   const click = async (element: string) => {
-    const { x, y } = await evaluate<{
+    const { x, y, settled, elapsed } = await evaluate<{
       x: number
       y: number
+      settled: boolean
+      elapsed: number
     }>(`new Promise((resolve) => {
       const start = performance.now()
       let last
       const check = () => {
         const rect = (${element}).getBoundingClientRect()
-        const centre = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
-        const settled = last !== undefined && last.x === centre.x && last.y === centre.y
-        if (settled || performance.now() - start > 2000) return resolve(centre)
-        last = centre
+        const x = rect.x + rect.width / 2
+        const y = rect.y + rect.height / 2
+        const settled = last !== undefined && last.x === x && last.y === y
+        const elapsed = Math.round(performance.now() - start)
+        if (settled || elapsed > 2000) return resolve({ x, y, settled, elapsed })
+        last = { x, y }
         requestAnimationFrame(check)
       }
       check()
     })`)
+    if (!settled) {
+      throw new Error(
+        `click(${element.slice(0, 60)}): the element was still moving after ${elapsed} ms`,
+      )
+    }
     for (const type of ["mousePressed", "mouseReleased"]) {
       await sendOrCrash(
         "Input.dispatchMouseEvent",
