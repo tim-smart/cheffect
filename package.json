@@ -46,7 +46,7 @@
     "cmdk": "^1.1.1",
     "country-data-list": "^1.6.3",
     "date-fns": "^4.4.0",
-    "effect": "https://pkg.pr.new/effect@6be1fec",
+    "effect": "https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588",
     "embla-carousel-react": "^8.6.0",
     "fraction.js": "^5.3.4",
     "jstoxml": "^7.1.1",
@@ -108,7 +108,7 @@
       "@effect/platform-node": "4.0.5",
       "@effect/platform-node-shared": "4.0.5",
       "@effect/vitest": "4.0.5",
-      "effect": "https://pkg.pr.new/effect@6be1fec"
+      "effect": "https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588"
     }
   },
   "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad"
