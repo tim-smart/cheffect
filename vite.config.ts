@@ -5,6 +5,9 @@ import * as path from "node:path"
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
 import tailwindcss from "@tailwindcss/vite"
 
+// Vite's default baseline, lowered to support iOS 15
+const target = ["chrome111", "edge111", "firefox114", "safari15", "ios15"]
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -91,7 +94,14 @@ export default defineConfig({
     }),
   ],
 
+  optimizeDeps: {
+    rolldownOptions: {
+      transform: { target },
+    },
+  },
+
   build: {
+    target,
     minify: false,
     terserOptions: {
       compress: false,

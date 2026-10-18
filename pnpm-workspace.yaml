@@ -1,2 +1,15 @@
 allowBuilds:
   esbuild: true
+
+overrides:
+  "@effect/opentelemetry": 4.0.5
+  "@effect/platform-browser": 4.0.5
+  "@effect/platform-bun": 4.0.5
+  "@effect/platform-node": 4.0.5
+  "@effect/platform-node-shared": 4.0.5
+  "@effect/vitest": 4.0.5
+  effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+
+patchedDependencies:
+  effect@4.0.5: patches/effect@4.0.5.patch
+  mdast-util-gfm-autolink-literal@2.0.1: patches/mdast-util-gfm-autolink-literal@2.0.1.patch

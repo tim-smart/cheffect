@@ -725,6 +725,10 @@ function NameAutoCompleteSync() {
   return null
 }
 
+// form.requestSubmit is missing before Safari 16
+const submitForm = (form: HTMLFormElement | null | undefined) =>
+  form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+
 function NameAutoComplete() {
   const write = useWrite()
   const setName = Display.name.useControls().set
@@ -734,7 +738,7 @@ function NameAutoComplete() {
   const onClick = (value: string) => {
     setName(value)
     inputRef.current?.focus()
-    inputRef.current?.form?.requestSubmit()
+    submitForm(inputRef.current?.form)
   }
   const onRemove = (value: string) => {
     write({ event: "IngredientAisleRemoved", payload: { name: value } })
@@ -760,7 +764,7 @@ function NameAutoComplete() {
             if (e.key !== "Enter") return
             const input = e.target as HTMLInputElement
             setTimeout(() => {
-              input.form?.requestSubmit()
+              submitForm(input.form)
             }, 0)
           },
         }}

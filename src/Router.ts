@@ -23,7 +23,7 @@ router.history.subscribe(({ action }) => {
 router.subscribe("onBeforeRouteMount", ({ toLocation }) => {
   if (!newHistoryEntry) return
   newHistoryEntry = false
-  if (!router._scroll.next || toLocation.hash) return
+  if (!router._scroll.n || toLocation.hash) return
   window.scrollTo({
     top: 0,
     left: 0,
