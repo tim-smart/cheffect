@@ -1,7 +1,4 @@
 import * as Effect from "effect/Effect"
-import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
-import * as Schema from "effect/Schema"
 import type * as Event from "effect/eventlog/Event"
 import type * as EventGroup from "effect/eventlog/EventGroup"
 import * as EventJournal from "effect/eventlog/EventJournal"
@@ -199,45 +196,21 @@ export const layer = <Events extends Event.Any>(
       payload: Event.PayloadWithTag<Events, Tag>,
     ) => Replay
   },
-): Layer.Layer<never, never, EventLog.Registry> =>
-  Layer.effectDiscard(
-    EventLog.Registry.use((registry) =>
-      registry.registerCompaction({
-        events: Object.keys(group.events),
-        effect: ({ entries, write }) =>
-          Effect.forEach(
-            compact(
-              entries.map((entry) => {
-                const event: Event.Any | undefined = Object.hasOwn(
-                  group.events,
-                  entry.event,
-                )
-                  ? group.events[entry.event]
-                  : undefined
-                const replay =
-                  event === undefined
-                    ? keep()
-                    : Schema.decodeUnknownOption(
-                        event.payloadSchemaBinary as Schema.Codec<unknown>,
-                      )(entry.payload).pipe(
-                        Option.map((payload) =>
-                          (
-                            replays as Record<
-                              string,
-                              (payload: unknown) => Replay
-                            >
-                          )[entry.event](payload),
-                        ),
-                        Option.getOrElse(() => keep()),
-                      )
-                return { entry, replay }
-              }),
-            ),
-            // Without a `source`, each entry keeps its place in the remote
-            // batch.
-            (entry) => write(entry),
-            { discard: true },
-          ),
-      }),
+) =>
+  EventLog.groupBatchCompaction(group, ({ entries, forward }) =>
+    Effect.forEach(
+      compact(
+        entries.map(({ entry, event }) => ({
+          entry,
+          replay:
+            event === undefined
+              ? keep()
+              : (replays as Record<string, (payload: unknown) => Replay>)[
+                  event._tag
+                ](event.payload),
+        })),
+      ),
+      forward,
+      { discard: true },
     ),
   )
