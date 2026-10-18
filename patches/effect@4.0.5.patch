@@ -1,0 +1,21 @@
+diff --git a/dist/ConfigProvider.js b/dist/ConfigProvider.js
+index 4e5d2ef1fb02457d6358f49626e05d593ace923f..23a56fc07618e4778bbf831d631a5b0accbea62d 100644
+--- a/dist/ConfigProvider.js
++++ b/dist/ConfigProvider.js
+@@ -858,12 +858,14 @@ function dotEnvExpand(parsed) {
+   return newParsed;
+ }
+ function interpolate(envValue, parsed, seen) {
+-  const reference = /(?<!\\)\${?(\w+)/g;
++  const reference = /\\?\${?(\w+)/g;
+   let result = "";
+   let cursor = 0;
+   let match;
+   while ((match = reference.exec(envValue)) != null) {
+-    const [, name] = match;
++    const [token, name] = match;
++    // Escaped references are left as-is.
++    if (token[0] === "\\") continue;
+     let end = reference.lastIndex;
+     let defaultValue = "";
+     if (envValue.startsWith(":-", end)) {

@@ -13,6 +13,14 @@ overrides:
   '@effect/vitest': 4.0.5
   effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
 
+patchedDependencies:
+  effect@4.0.5:
+    hash: 428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094
+    path: patches/effect@4.0.5.patch
+  mdast-util-gfm-autolink-literal@2.0.1:
+    hash: b6c92ec682456ca4b035718f71ee2b4a77d00da4c08cbc5e235e99eaabd96c45
+    path: patches/mdast-util-gfm-autolink-literal@2.0.1.patch
+
 importers:
 
   .:
@@ -22,16 +30,16 @@ importers:
         version: 6.3.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@effect/ai-openai':
         specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)
+        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))
       '@effect/atom-react':
         specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)(react@19.3.0)(scheduler@0.28.0)
+        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))(react@19.3.0)(scheduler@0.28.0)
       '@effect/platform-browser':
         specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)
+        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))
       '@hookform/resolvers':
         specifier: ^5.9.1
-        version: 5.9.1(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.7)
+        version: 5.9.1(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.7)
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.18
         version: 1.1.18(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -115,7 +123,7 @@ importers:
         version: 4.4.0
       effect:
         specifier: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
-        version: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+        version: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.3.0)
@@ -182,10 +190,10 @@ importers:
         version: 0.87.4
       '@effect/platform-node':
         specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)(redis@6.3.0(@opentelemetry/api@1.9.1))
+        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))(redis@6.3.0(@opentelemetry/api@1.9.1))
       '@effect/sql-sqlite-node':
         specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)
+        version: 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))
       '@tailwindcss/typography':
         specifier: ^0.5.20
         version: 0.5.20(tailwindcss@4.3.3)
@@ -5123,44 +5131,44 @@ snapshots:
       react: 19.3.0
       tslib: 2.8.1
 
-  '@effect/ai-openai@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)':
+  '@effect/ai-openai@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))':
     dependencies:
-      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
 
-  '@effect/atom-react@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)(react@19.3.0)(scheduler@0.28.0)':
+  '@effect/atom-react@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))(react@19.3.0)(scheduler@0.28.0)':
     dependencies:
-      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
       react: 19.3.0
       scheduler: 0.28.0
 
   '@effect/language-service@0.87.4': {}
 
-  '@effect/platform-browser@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)':
+  '@effect/platform-browser@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))':
     dependencies:
-      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
 
-  '@effect/platform-node-shared@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)':
+  '@effect/platform-node-shared@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))':
     dependencies:
       '@types/ws': 8.18.2
-      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
       ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)(redis@6.3.0(@opentelemetry/api@1.9.1))':
+  '@effect/platform-node@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))(redis@6.3.0(@opentelemetry/api@1.9.1))':
     dependencies:
-      '@effect/platform-node-shared': 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)
-      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+      '@effect/platform-node-shared': 4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))
+      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
       redis: 6.3.0(@opentelemetry/api@1.9.1)
       undici: 8.11.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/sql-sqlite-node@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)':
+  '@effect/sql-sqlite-node@4.0.5(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))':
     dependencies:
-      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
 
   '@emnapi/runtime@1.11.3':
     dependencies:
@@ -5262,14 +5270,14 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@hookform/resolvers@5.9.1(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.7)':
+  '@hookform/resolvers@5.9.1(@standard-schema/spec@1.1.0)(ajv@8.20.0)(effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094))(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.7)':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.90.0(@types/react@19.3.0)(react@19.3.0)
     optionalDependencies:
       '@standard-schema/spec': 1.1.0
       ajv: 8.20.0
-      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588
+      effect: https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094)
       zod: 4.6.7
 
   '@img/colour@1.1.0': {}
@@ -6802,7 +6810,7 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
-  effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588: {}
+  effect@https://pkg.pr.new/effect@0c8b446709c737c10d0e11af4313bb29fdff2588(patch_hash=428d32331f5b3ecba7e508374e2bfbf65c8e622063fcec7baf831fb0f3025094): {}
 
   ejs@3.1.10:
     dependencies:
@@ -7528,7 +7536,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  mdast-util-gfm-autolink-literal@2.0.1:
+  mdast-util-gfm-autolink-literal@2.0.1(patch_hash=b6c92ec682456ca4b035718f71ee2b4a77d00da4c08cbc5e235e99eaabd96c45):
     dependencies:
       '@types/mdast': 4.0.4
       ccount: 2.0.1
@@ -7576,7 +7584,7 @@ snapshots:
   mdast-util-gfm@3.1.0:
     dependencies:
       mdast-util-from-markdown: 2.1.0
-      mdast-util-gfm-autolink-literal: 2.0.1
+      mdast-util-gfm-autolink-literal: 2.0.1(patch_hash=b6c92ec682456ca4b035718f71ee2b4a77d00da4c08cbc5e235e99eaabd96c45)
       mdast-util-gfm-footnote: 2.1.0
       mdast-util-gfm-strikethrough: 2.0.1
       mdast-util-gfm-table: 2.0.0
