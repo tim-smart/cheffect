@@ -121,6 +121,25 @@ const otherTurn = {
   ),
 }
 
+test("an undecodable payload is replayed unchanged and prevents skipping earlier entries", async () => {
+  const entry = at(1100, "RecipeUpdated", recipeUpdate("Invalid"))
+  const undecodable = new EventJournal.Entry({
+    id: entry.id,
+    event: entry.event,
+    primaryKey: entry.primaryKey,
+    payload: new Uint8Array(),
+  })
+  const batch = [
+    at(1000, "RecipeUpdated", recipeUpdate("Older")),
+    undecodable,
+    at(1200, "RecipeUpdated", recipeUpdate("Newer")),
+  ]
+
+  const replayed = await receive([], compactBatch(batch))
+
+  assert.deepStrictEqual(replayed, batch)
+})
+
 test("a batch replays fewer entries to the same state, and compacting again keeps them all", async () => {
   const history = [
     // Recipes: a newer update rewrites every field the older update and the
