@@ -40,6 +40,9 @@ const rectOf = (browser: Browser, element: string) =>
 // iOS 26 can also shrink innerHeight to the visual viewport's height while
 // the keyboard is up, which `__keyboard(height, offsetTop, true)` does too.
 //
+// `__keyboardFollowsFocus()` lowers the keyboard, as iOS does, once the
+// message field loses focus.
+//
 // `__keyboardOnOpen(height, offsetTop)` raises the keyboard when the chat is
 // next opened, which focuses the message field, in the order the iOS 26.3
 // simulator logged on first open: the keyboard rises, then the view pans
@@ -70,6 +73,13 @@ const keyboardStandIn = `(() => {
     shrinkLayout = shrink
     viewport.dispatchEvent(new Event("resize"))
     viewport.dispatchEvent(new Event("scroll"))
+  }
+  window.__keyboardFollowsFocus = () => {
+    const timer = setInterval(() => {
+      if (keyboard === 0 || document.activeElement instanceof HTMLTextAreaElement) return
+      clearInterval(timer)
+      window.__keyboard(0, 0)
+    }, 50)
   }
   window.__keyboardOnOpen = (height, top) => {
     document.addEventListener("click", (event) => {
@@ -244,6 +254,56 @@ test(
       assert.ok(
         shortField.bottom <= short.bottom,
         `in a 126px landscape space, the message field runs ${shortField.bottom - short.bottom}px past the chat`,
+      )
+    }),
+)
+
+test(
+  "in Safari landscape the message field stays usable when the keyboard leaves little or no room",
+  { skip: !hasChromium && "chromium not found", timeout: 180_000 },
+  () =>
+    withSeededApp(async ({ browser, base, recipeId }) => {
+      // Safari's landscape screen on an iPhone 17 Pro, iOS 26.3
+      await browser.setViewport(874, 402)
+      await enableAi(browser, base)
+      await browser.addInitScript(keyboardStandIn)
+      await openRecipe(browser, base, recipeId)
+      await openChat(browser)
+      await browser.evaluate(`window.__keyboardFollowsFocus()`)
+
+      // the keyboard left 98px, panned 233px down the page
+      await browser.evaluate(`window.__keyboard(304, 233)`)
+      await sleep(500)
+      const short = await rectOf(browser, panel)
+      assert.deepEqual(
+        { top: short.top, bottom: short.bottom },
+        { top: 233, bottom: 331 },
+        "in a 98px landscape space, the chat covers what's visible",
+      )
+      const shortField = await rectOf(browser, input)
+      assert.ok(
+        shortField.bottom <= short.bottom,
+        `in a 98px landscape space, the message field runs ${shortField.bottom - short.bottom}px past the chat`,
+      )
+
+      // With Safari's tab bar showing, the keyboard covered the whole page
+      // and the visual viewport reported -4px. Nothing of the chat can be
+      // seen until the keyboard goes, so the chat lowers it.
+      await browser.setViewport(874, 296)
+      await browser.evaluate(`window.__keyboard(300, 300)`)
+      await sleep(1000)
+      assert.equal(
+        await browser.evaluate(`document.activeElement === (${input})`),
+        false,
+        "the keyboard stays up with no room for the chat",
+      )
+      const recovered = await rectOf(browser, panel)
+      const recoveredField = await rectOf(browser, input)
+      assert.ok(
+        recovered.top <= 16 &&
+          recovered.bottom === 296 &&
+          recoveredField.bottom <= 296,
+        `after the keyboard goes, the chat spans ${recovered.top}-${recovered.bottom}px with the message field at ${recoveredField.top}-${recoveredField.bottom}px`,
       )
     }),
 )
