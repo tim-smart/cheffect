@@ -37,10 +37,11 @@ const rectOf = (browser: Browser, element: string) =>
 // keyboard of that height with the visual viewport panned `offsetTop` down
 // the page; `__keyboard(0, 0)` lowers it.
 //
-// iOS 26 can also shrink innerHeight to the visual viewport's height while
-// the keyboard is up, which `__keyboard(height, offsetTop, true)` does too.
+// iOS 26 can also shrink innerHeight while the keyboard is up:
+// `__keyboard(height, offsetTop, true)` shrinks it to the visual viewport's
+// height, and `__keyboard(height, offsetTop, innerHeight)` sets it.
 //
-// `__keyboardFollowsFocus()` lowers the keyboard, as iOS does, once the
+// `__keyboardFollowsFocus()` lowers the keyboard, as iOS does, whenever the
 // message field loses focus.
 //
 // `__keyboardOnOpen(height, offsetTop)` raises the keyboard when the chat is
@@ -51,7 +52,7 @@ const keyboardStandIn = `(() => {
   const layoutHeight = Object.getOwnPropertyDescriptor(window, "innerHeight").get.bind(window)
   let keyboard = 0
   let offsetTop = 0
-  let shrinkLayout = false
+  let layout = false
   const viewport = new EventTarget()
   Object.defineProperties(viewport, {
     width: { get: () => innerWidth },
@@ -65,19 +66,19 @@ const keyboardStandIn = `(() => {
   Object.defineProperty(window, "visualViewport", { configurable: true, get: () => viewport })
   Object.defineProperty(window, "innerHeight", {
     configurable: true,
-    get: () => layoutHeight() - (shrinkLayout ? keyboard : 0),
+    get: () =>
+      typeof layout === "number" ? layout : layoutHeight() - (layout ? keyboard : 0),
   })
-  window.__keyboard = (height, top, shrink = false) => {
+  window.__keyboard = (height, top, innerHeight = false) => {
     keyboard = height
     offsetTop = top
-    shrinkLayout = shrink
+    layout = innerHeight
     viewport.dispatchEvent(new Event("resize"))
     viewport.dispatchEvent(new Event("scroll"))
   }
   window.__keyboardFollowsFocus = () => {
-    const timer = setInterval(() => {
+    setInterval(() => {
       if (keyboard === 0 || document.activeElement instanceof HTMLTextAreaElement) return
-      clearInterval(timer)
       window.__keyboard(0, 0)
     }, 50)
   }
@@ -90,7 +91,7 @@ const keyboardStandIn = `(() => {
       }, 100)
       setTimeout(() => {
         offsetTop = top
-        shrinkLayout = true
+        layout = true
         dispatchEvent(new Event("resize"))
         viewport.dispatchEvent(new Event("scroll"))
       }, 150)
@@ -305,6 +306,70 @@ test(
           recoveredField.bottom <= 296,
         `after the keyboard goes, the chat spans ${recovered.top}-${recovered.bottom}px with the message field at ${recoveredField.top}-${recoveredField.bottom}px`,
       )
+
+      // With the toolbars still showing, tapping the field again left the
+      // chat a 19-20px strip each time: innerHeight 51-52, panned 244-245px.
+      // Typing a draft there worked, so the chat keeps the keyboard, fits the
+      // field into the strip and offers a way out that keeps the draft.
+      await browser.evaluate(`(() => {
+        const input = ${input}
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(input, "Local draft")
+        input.dispatchEvent(new Event("input", { bubbles: true }))
+      })()`)
+      const hideKeyboard = `document.querySelector('button[aria-label="Hide keyboard"]')`
+      for (const [keyboard, offsetTop, innerHeight] of [
+        [277, 245, 51],
+        [276, 244, 52],
+      ]) {
+        await browser.click(input)
+        await browser.evaluate(
+          `window.__keyboard(${keyboard}, ${offsetTop}, ${innerHeight})`,
+        )
+        await sleep(500)
+        const strip = { top: offsetTop, bottom: offsetTop + 296 - keyboard }
+        assert.equal(
+          await browser.evaluate(`document.activeElement === (${input})`),
+          true,
+          "the chat took the keyboard away from the user's tap",
+        )
+        const cramped = await rectOf(browser, panel)
+        assert.deepEqual(
+          { top: cramped.top, bottom: cramped.bottom },
+          strip,
+          `in a ${strip.bottom - strip.top}px strip, the chat covers what's visible`,
+        )
+        const field = await rectOf(browser, input)
+        assert.ok(
+          field.top >= strip.top && field.bottom <= strip.bottom,
+          `in a ${strip.bottom - strip.top}px strip, the message field is at ${field.top}-${field.bottom}px`,
+        )
+        assert.ok(
+          await browser.evaluate(`!!(${hideKeyboard})?.checkVisibility()`),
+          `in a ${strip.bottom - strip.top}px strip, there is no way to hide the keyboard`,
+        )
+        const button = await rectOf(browser, hideKeyboard)
+        assert.ok(
+          button.top >= strip.top && button.bottom <= strip.bottom,
+          `in a ${strip.bottom - strip.top}px strip, the hide keyboard button is at ${button.top}-${button.bottom}px`,
+        )
+
+        await browser.click(hideKeyboard)
+        await sleep(500)
+        const restored = await rectOf(browser, panel)
+        assert.ok(
+          restored.top <= 16 &&
+            restored.bottom === 296 &&
+            (await browser.evaluate<boolean>(
+              `document.querySelector("h2").checkVisibility()`,
+            )),
+          `hiding the keyboard leaves the chat at ${restored.top}-${restored.bottom}px`,
+        )
+        assert.equal(
+          await browser.evaluate(`(${input}).value`),
+          "Local draft",
+          "hiding the keyboard keeps the draft",
+        )
+      }
     }),
 )
 
