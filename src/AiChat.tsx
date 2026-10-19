@@ -121,7 +121,7 @@ function ModalContent({
     initial: "instant",
     resize: "smooth",
   })
-  const viewport = useVisualViewport(open)
+  const viewport = useVisualViewport()
   const [maximized, setMaximized] = useState(false)
   useEffect(() => {
     setTimeout(scrollToBottom, 10)
@@ -184,7 +184,7 @@ function ModalContent({
         {/* Messages */}
         <div
           ref={scrollRef}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 bg-card"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 bg-card"
           onClick={(e) => {
             if (!(e.target instanceof HTMLAnchorElement)) return
             e.preventDefault()
@@ -230,7 +230,7 @@ function MessagesList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col gap-2 text-center h-full items-center justify-center text-muted-foreground mb-0">
+      <div className="flex flex-col gap-2 text-center h-full items-center justify-center text-muted-foreground mb-0 py-4">
         <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
         <p>Ask me anything about recipes or meal planning!</p>
         <div className="flex flex-wrap justify-center mt-2 gap-2">
@@ -254,7 +254,7 @@ function MessagesList({
     )
   }
   return (
-    <div ref={ref} className="space-y-3">
+    <div ref={ref} className="space-y-3 py-4">
       {messages.filter(isVisualMessage).map((message, i) =>
         message.role === "tool" ? (
           <div
