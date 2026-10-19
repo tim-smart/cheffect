@@ -123,6 +123,12 @@ function ModalContent({
   })
   const viewport = useVisualViewport()
   const [maximized, setMaximized] = useState(false)
+  // With nothing of the page visible the chat can't be seen, so lower the
+  // keyboard to get the screen back
+  useEffect(() => {
+    if (!open || !viewport.collapsed) return
+    if (document.activeElement === inputRef.current) inputRef.current?.blur()
+  }, [open, viewport.collapsed])
   useEffect(() => {
     setTimeout(scrollToBottom, 10)
   }, [viewport.obstructed, open])
@@ -154,7 +160,15 @@ function ModalContent({
         }
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border pl-4 pr-2 py-2 touch-none">
+        <div
+          className={cn(
+            "flex items-center justify-between border-b border-border pl-4 pr-2 py-2 touch-none",
+            // too short for the header and the message field: keep the
+            // field, the header returns with the keyboard down
+            viewport.obstructed && viewport.height < 160 && "hidden",
+            "chat-panel:flex",
+          )}
+        >
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">AI Sous-chef</h2>
