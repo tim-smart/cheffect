@@ -202,12 +202,41 @@ const launchBrowser = async (profile: string) => {
       )
     }
   }
-  /** Emulates a phone screen of the given size, in CSS pixels. */
-  const setViewport = (width: number, height: number) =>
+  /**
+   * Emulates a screen of the given size, in CSS pixels: a phone by default,
+   * or a desktop window with `{ mobile: false }`.
+   */
+  const setViewport = (
+    width: number,
+    height: number,
+    { mobile = true }: { readonly mobile?: boolean } = {},
+  ) =>
     sendOrCrash(
       "Emulation.setDeviceMetricsOverride",
-      { width, height, deviceScaleFactor: 1, mobile: true },
+      { width, height, deviceScaleFactor: 1, mobile },
       `setViewport(${width}, ${height})`,
+    )
+  /**
+   * Turns the mouse wheel over the centre of an element, scrolling whatever
+   * the browser would scroll for a real wheel there.
+   */
+  const wheel = async (element: string, deltaY: number) => {
+    const { x, y } = await evaluate<{ x: number; y: number }>(`(() => {
+      const rect = (${element}).getBoundingClientRect()
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
+    })()`)
+    await sendOrCrash(
+      "Input.dispatchMouseEvent",
+      { type: "mouseWheel", x, y, deltaX: 0, deltaY },
+      `wheel(${element.slice(0, 60)})`,
+    )
+  }
+  /** Runs `source` in every document loaded from now on, before its scripts. */
+  const addInitScript = (source: string) =>
+    sendOrCrash(
+      "Page.addScriptToEvaluateOnNewDocument",
+      { source },
+      "addInitScript",
     )
   const close = async () => {
     ws.close()
@@ -227,7 +256,16 @@ const launchBrowser = async (profile: string) => {
     // let the rest of the process group release the profile
     killGroup("SIGKILL")
   }
-  return { evaluate, waitFor, navigate, click, setViewport, close }
+  return {
+    evaluate,
+    waitFor,
+    navigate,
+    click,
+    setViewport,
+    wheel,
+    addInitScript,
+    close,
+  }
 }
 
 export type Browser = Awaited<ReturnType<typeof launchBrowser>>
