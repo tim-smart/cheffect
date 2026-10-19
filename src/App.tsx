@@ -77,9 +77,9 @@ function DisableScroll() {
     // iOS Safari can still scroll the page when only <body> is locked
     for (const element of [document.documentElement, document.body]) {
       if (aiChatOpen) {
-        element.classList.add("overflow-hidden", "md:overflow-auto")
+        element.classList.add("overflow-hidden", "chat-panel:overflow-auto")
       } else {
-        element.classList.remove("overflow-hidden", "md:overflow-auto")
+        element.classList.remove("overflow-hidden", "chat-panel:overflow-auto")
       }
     }
   }, [aiChatOpen])

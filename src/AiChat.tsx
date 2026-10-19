@@ -95,7 +95,7 @@ export function AiChatModal() {
       {/* Mobile overlay (blocks interaction) */}
       <div ref={ref} className={isOpen ? "" : "hidden"}>
         <div
-          className="fixed inset-0 z-50 bg-black/50 touch-none md:hidden"
+          className="fixed inset-0 z-50 bg-black/50 touch-none chat-panel:hidden"
           onClick={() => setIsOpen(false)}
         />
         <ModalContent
@@ -138,10 +138,10 @@ function ModalContent({
           viewport.obstructed
             ? "top-(--chat-top) h-(--chat-height) pt-[env(safe-area-inset-top)]"
             : "top-[calc(env(safe-area-inset-top)+0.5rem)] bottom-0 rounded-t-2xl",
-          "md:inset-auto md:right-4 md:floating-b md:rounded-2xl md:pt-0",
+          "chat-panel:inset-auto chat-panel:right-4 chat-panel:floating-b chat-panel:rounded-2xl chat-panel:pt-0",
           maximized
-            ? "md:top-4 md:h-auto md:w-[min(64rem,calc(100vw-2rem))]"
-            : "md:top-auto md:w-[26rem] md:h-128 md:max-h-[calc(100dvh-7.5rem)]",
+            ? "chat-panel:top-4 chat-panel:h-auto chat-panel:w-[min(64rem,calc(100vw-2rem))]"
+            : "chat-panel:top-auto chat-panel:w-[26rem] chat-panel:h-128 chat-panel:max-h-[calc(100dvh-7.5rem)]",
         )}
         onClick={(e) => e.stopPropagation()}
         style={
@@ -160,7 +160,7 @@ function ModalContent({
           <div className="flex items-center">
             <Button
               onClick={() => setMaximized(!maximized)}
-              className="rounded-full hidden md:inline-flex"
+              className="rounded-full hidden chat-panel:inline-flex"
               size="icon"
               variant="ghost"
               aria-label={maximized ? "Restore chat size" : "Maximize chat"}
@@ -365,7 +365,7 @@ function PromptInput({
       onSubmit={handleSubmit}
       className={cn(
         "border-t border-border p-2 pl-1 z-10",
-        viewportObstructed ? "" : "nav-pb md:pb-2!",
+        viewportObstructed ? "" : "nav-pb chat-panel:pb-2!",
       )}
     >
       <div className="flex gap-2 pl-15">
