@@ -216,21 +216,6 @@ const launchBrowser = async (profile: string) => {
       { width, height, deviceScaleFactor: 1, mobile },
       `setViewport(${width}, ${height})`,
     )
-  /**
-   * Turns the mouse wheel over the centre of an element, scrolling whatever
-   * the browser would scroll for a real wheel there.
-   */
-  const wheel = async (element: string, deltaY: number) => {
-    const { x, y } = await evaluate<{ x: number; y: number }>(`(() => {
-      const rect = (${element}).getBoundingClientRect()
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
-    })()`)
-    await sendOrCrash(
-      "Input.dispatchMouseEvent",
-      { type: "mouseWheel", x, y, deltaX: 0, deltaY },
-      `wheel(${element.slice(0, 60)})`,
-    )
-  }
   /** Runs `source` in every document loaded from now on, before its scripts. */
   const addInitScript = (source: string) =>
     sendOrCrash(
@@ -262,7 +247,6 @@ const launchBrowser = async (profile: string) => {
     navigate,
     click,
     setViewport,
-    wheel,
     addInitScript,
     close,
   }
