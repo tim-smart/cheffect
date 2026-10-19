@@ -9,7 +9,7 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { MealPlanLayer } from "@/MealPlan"
-import { MealPlanEvents } from "@/MealPlan/Events"
+import { MealPlanDayNoteEvent, MealPlanEvents } from "@/MealPlan/Events"
 import {
   MealPlanDayNote,
   MealPlanDayNoteIdFromString,
@@ -21,13 +21,16 @@ import {
   converge,
   pick,
   readTable,
+  withoutCompaction,
 } from "./harness/convergence"
 
-// A day note Add on a row that exists merges under last-writer-wins, unlike
-// other creates, so two devices importing the same file still agree. The
-// first add of each note is delivered before the permuted entries.
+// A `set` of a note that exists replaces it as the newest write, and an older
+// `set` keeps the fields newer patches wrote, so two devices importing the
+// same file still agree. The first set of each note is delivered before the
+// permuted entries. Each order is also replayed uncompacted and one entry at
+// a time.
 
-const { MealPlanDayNoteAdd, MealPlanDayNoteUpdate } = MealPlanEvents.events
+const noteEvent = MealPlanEvents.events[MealPlanDayNoteEvent.tag]
 
 const mondayNote = Schema.decodeSync(MealPlanDayNoteIdFromString)(
   "0193c7a0-1b2c-4def-8123-ba9876543210",
@@ -47,58 +50,62 @@ const friday = "2025-10-17"
 const noteAdded = (msecs: number, id: NoteId, onDay: string, note: string) =>
   makeEntry({
     msecs,
-    event: MealPlanDayNoteAdd,
-    payload: MealPlanDayNote.insert.make({
-      id,
-      day: day(onDay),
-      note,
-      createdAt: DateTime.makeUnsafe(msecs),
-      updatedAt: DateTime.makeUnsafe(msecs),
-    }),
+    event: noteEvent,
+    payload: MealPlanDayNoteEvent.set(
+      MealPlanDayNote.insert.make({
+        id,
+        day: day(onDay),
+        note,
+        createdAt: DateTime.makeUnsafe(msecs),
+        updatedAt: DateTime.makeUnsafe(msecs),
+      }),
+    ),
   })
 
 const noteUpdated = (msecs: number, id: NoteId, onDay: string, note: string) =>
   makeEntry({
     msecs,
-    event: MealPlanDayNoteUpdate,
-    payload: MealPlanDayNote.update.make({
-      id,
+    event: noteEvent,
+    payload: MealPlanDayNoteEvent.patch(MealPlanDayNoteEvent.keyOf({ id }), {
       day: day(onDay),
       note,
       updatedAt: DateTime.makeUnsafe(msecs),
     }),
   })
 
-const makeLayer: MakeLayer = (identity, remote) => {
-  const eventLog = EventLog.layer(
-    EventLog.schema(MealPlanEvents),
-    MealPlanLayer,
-  ).pipe(
-    Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
-    Layer.provide(Layer.succeed(EventLog.Identity, identity)),
-  )
-  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
-    Layer.provideMerge(QueryBuilder.layer),
-    Layer.provideMerge(layerDatabase),
-    Layer.provideMerge(Reactivity.layer),
-    Layer.provideMerge(layerFreshIndexedDb),
-  )
-}
+const makeLayer =
+  (handlers: typeof MealPlanLayer): MakeLayer =>
+  (identity, remote) => {
+    const eventLog = EventLog.layer(
+      EventLog.schema(MealPlanEvents),
+      handlers,
+    ).pipe(
+      Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
+      Layer.provide(Layer.succeed(EventLog.Identity, identity)),
+    )
+    return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+      Layer.provideMerge(QueryBuilder.layer),
+      Layer.provideMerge(layerDatabase),
+      Layer.provideMerge(Reactivity.layer),
+      Layer.provideMerge(layerFreshIndexedDb),
+    )
+  }
 
 const read = Effect.map(readTable("mealPlanDayNotes"), (mealPlanDayNotes) => ({
   mealPlanDayNotes,
 }))
 
-test("a re-added day note merges with concurrent updates under last-writer-wins", async () => {
+test("a re-set day note merges with concurrent patches as the newer write", async () => {
   const { mealPlanDayNotes } = await converge({
-    layer: makeLayer,
+    layer: makeLayer(MealPlanLayer),
+    uncompacted: makeLayer(withoutCompaction(MealPlanLayer)),
     read,
     setup: [
       noteAdded(1000, mondayNote, monday, "Leftovers"),
       noteAdded(1000, fridayNote, friday, "Takeaway"),
     ],
     concurrent: [
-      // A newer add of an existing note writes its fields...
+      // A newer set of an existing note writes its fields...
       noteUpdated(2000, mondayNote, monday, "Pizza"),
       noteAdded(3000, mondayNote, tuesday, "Tacos"),
       // ...and an older one loses to a newer update.

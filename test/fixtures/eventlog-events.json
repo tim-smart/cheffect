@@ -1,378 +1,523 @@
 [
   {
-    "tag": "RecipeCreated",
+    "tag": "Recipe",
     "json": {
-      "title": "Carrot soup",
-      "imageUrl": "https://example.com/carrot-soup.jpg",
-      "prepTime": 900000,
-      "cookingTime": 2400000,
-      "servings": 4,
-      "ingredients": [
-        {
-          "name": "Soup",
-          "ingredients": [
-            { "name": "Carrots", "quantity": 500, "unit": "g" },
-            { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
-            { "name": "Salt", "quantity": null, "unit": null }
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "text": "Simmer the carrots in the stock until soft.",
-          "tips": ["Cut the carrots small so they cook evenly."]
-        },
-        { "text": "Blend until smooth.", "tips": [] }
-      ],
-      "sourceName": "Example Kitchen",
-      "id": "AZPHoBssTe+BI0VniavN7w==",
-      "rating": 4,
-      "sourceUrl": "https://example.com/carrot-soup",
-      "createdAt": 1760000000000,
-      "updatedAt": 1760000000000,
-      "deletedAt": null
+      "_tag": "set",
+      "row": {
+        "title": "Carrot soup",
+        "imageUrl": "https://example.com/carrot-soup.jpg",
+        "prepTime": 900000,
+        "cookingTime": 2400000,
+        "servings": 4,
+        "ingredients": [
+          {
+            "name": "Soup",
+            "ingredients": [
+              { "name": "Carrots", "quantity": 500, "unit": "g" },
+              { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
+              { "name": "Salt", "quantity": null, "unit": null }
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "text": "Simmer the carrots in the stock until soft.",
+            "tips": ["Cut the carrots small so they cook evenly."]
+          },
+          { "text": "Blend until smooth.", "tips": [] }
+        ],
+        "sourceName": "Example Kitchen",
+        "id": "AZPHoBssTe+BI0VniavN7w==",
+        "ingredientScale": 1,
+        "rating": 4,
+        "sourceUrl": "https://example.com/carrot-soup",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000,
+        "deletedAt": null
+      }
     },
-    "bytes": "sgMguMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cPGImYYLgIDmgrlmoJO2jRZ+AmQA+/HF2QZYAVRDdXQgdGhlIGNhcnJvdHMgc21hbGwgc28gdGhleSBjb29rIGV2ZW5seS6+nJnvC1ZTaW1tZXIgdGhlIGNhcnJvdHMgaW4gdGhlIHN0b2NrIHVudGlsIHNvZnQuFwECACZCbGVuZCB1bnRpbCBzbW9vdGgugK6NzhsQAZPHoBssTe+BI0VniavN7/ixxJMtAQLItL/UMCAFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cJj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTAtDYXJyb3Qgc291cLDslLpmBQSA/KQCqduFhnGAgOaCuWaYpsDfdiQFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cC5qcGeAhaKieQIECA=="
+    "bytes": "xAMgCpMmwZXY18ODIrcD4Zi2mwQCuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cPGImYYLgIDmgrlmoJO2jRZ+AmQA+/HF2QZYAVRDdXQgdGhlIGNhcnJvdHMgc21hbGwgc28gdGhleSBjb29rIGV2ZW5seS6+nJnvC1ZTaW1tZXIgdGhlIGNhcnJvdHMgaW4gdGhlIHN0b2NrIHVudGlsIHNvZnQuFwECACZCbGVuZCB1bnRpbCBzbW9vdGgugK6NzhsQAZPHoBssTe+BI0VniavN7/ixxJMtAQLItL/UMCAFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cJj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTAtDYXJyb3Qgc291cLDslLpmBQSA/KQCqduFhnGAgOaCuWaYpsDfdiQFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cC5qcGeAhaKieQIECA=="
   },
   {
-    "tag": "RecipeUpdated",
+    "tag": "Recipe",
     "json": {
-      "title": "Carrot soup",
-      "imageUrl": "https://example.com/carrot-soup.jpg",
-      "prepTime": 900000,
-      "cookingTime": 2400000,
-      "servings": 4,
-      "ingredients": [
-        {
-          "name": "Soup",
-          "ingredients": [
-            { "name": "Carrots", "quantity": 500, "unit": "g" },
-            { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
-            { "name": "Salt", "quantity": null, "unit": null }
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "text": "Simmer the carrots in the stock until soft.",
-          "tips": ["Cut the carrots small so they cook evenly."]
-        },
-        { "text": "Blend until smooth.", "tips": [] }
-      ],
-      "sourceName": "Example Kitchen",
-      "id": "AZPHoBssTe+BI0VniavN7w==",
-      "ingredientScale": 2,
-      "rating": 5,
-      "sourceUrl": "https://example.com/carrot-soup",
-      "updatedAt": 1760000600000,
-      "deletedAt": null
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-456789abcdef",
+      "fields": {
+        "title": "Carrot and coriander soup",
+        "imageUrl": "https://example.com/carrot-soup.jpg",
+        "prepTime": 900000,
+        "cookingTime": 2400000,
+        "servings": 4,
+        "ingredients": [
+          {
+            "name": "Soup",
+            "ingredients": [
+              { "name": "Carrots", "quantity": 500, "unit": "g" },
+              { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
+              { "name": "Salt", "quantity": null, "unit": null }
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "text": "Simmer the carrots in the stock until soft.",
+            "tips": ["Cut the carrots small so they cook evenly."]
+          },
+          { "text": "Blend until smooth.", "tips": [] }
+        ],
+        "sourceName": "Example Kitchen",
+        "ingredientScale": 2,
+        "rating": 5,
+        "sourceUrl": "https://example.com/carrot-coriander-soup",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000600000,
+        "deletedAt": 1760000600000
+      }
     },
-    "bytes": "rQMg4Zi2mwQEuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLoCujc4bEAGTx6AbLE3vgSNFZ4mrze/4scSTLQECyLS/1DAgBWh0dHBzOi8vZXhhbXBsZS5jb20vY2Fycm90LXNvdXCY+uucOQQEwO5t4NevpEQCBAjYpfzhSRAFRXhhbXBsZSBLaXRjaGVuyNC2mUwLQ2Fycm90IHNvdXCw7JS6ZgUEgPykAqnbhYZxgJ+vg7lmmKbA33YkBWh0dHBzOi8vZXhhbXBsZS5jb20vY2Fycm90LXNvdXAuanBngIWionkCBAo="
+    "bytes": "9gMgCsc3Xy3g14yQA78D4Zi2mwQEuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cPGImYYLgIDmgrlmoJO2jRZ+AmQA+/HF2QZYAVRDdXQgdGhlIGNhcnJvdHMgc21hbGwgc28gdGhleSBjb29rIGV2ZW5seS6+nJnvC1ZTaW1tZXIgdGhlIGNhcnJvdHMgaW4gdGhlIHN0b2NrIHVudGlsIHNvZnQuFwECACZCbGVuZCB1bnRpbCBzbW9vdGgu+LHEky0HBICfr4O5Zsi0v9QwKgVodHRwczovL2V4YW1wbGUuY29tL2NhcnJvdC1jb3JpYW5kZXItc291cJj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTBlDYXJyb3QgYW5kIGNvcmlhbmRlciBzb3VwsOyUumYFBID8pAKp24WGcYCfr4O5ZpimwN92JAVodHRwczovL2V4YW1wbGUuY29tL2NhcnJvdC1zb3VwLmpwZ4CFoqJ5AgQK4Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtNDU2Nzg5YWJjZGVm"
   },
   {
-    "tag": "RecipeSetIngredientScale",
+    "tag": "Recipe",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-456789abcdef" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLTQ1Njc4OWFiY2RlZg=="
+  },
+  {
+    "tag": "RecipeEdit",
     "json": {
-      "id": "AZPHoBssTe+BI0VniavN7w==",
-      "ingredientScale": 1.5,
-      "updatedAt": 1760000600000
+      "_tag": "set",
+      "row": {
+        "title": "Carrot and ginger soup",
+        "imageUrl": "https://example.com/carrot-soup.jpg",
+        "prepTime": 900000,
+        "cookingTime": 2400000,
+        "servings": 4,
+        "ingredients": [
+          {
+            "name": "Soup",
+            "ingredients": [
+              { "name": "Carrots", "quantity": 500, "unit": "g" },
+              { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
+              { "name": "Salt", "quantity": null, "unit": null }
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "text": "Simmer the carrots in the stock until soft.",
+            "tips": ["Cut the carrots small so they cook evenly."]
+          },
+          { "text": "Blend until smooth.", "tips": [] }
+        ],
+        "sourceName": "Example Kitchen",
+        "id": "AZPHoBssTe+BI0VniavN7w=="
+      }
     },
-    "bytes": "KSDlmLabBB4BgK6NzhsQAZPHoBssTe+BI0VniavN76nbhYZxgJ+vg7lm"
+    "bytes": "/gIgCpMmwZXY18ODIvECuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLoCujc4bEAGTx6AbLE3vgSNFZ4mrze+Y+uucOQQEwO5t4NevpEQCBAjYpfzhSRAFRXhhbXBsZSBLaXRjaGVuyNC2mUwWQ2Fycm90IGFuZCBnaW5nZXIgc291cLDslLpmBQSA/KQCmKbA33YkBWh0dHBzOi8vZXhhbXBsZS5jb20vY2Fycm90LXNvdXAuanBn"
   },
   {
-    "tag": "RecipeDeleted",
-    "json": { "id": "AZPHoBssTe+BI0VniavN7w==", "deletedAt": 1760000600000 },
-    "bytes": "IiCAro3OGxABk8egGyxN74EjRWeJq83v+bHEky2An6+DuWY="
-  },
-  {
-    "tag": "RecipeEditSet",
+    "tag": "RecipeEdit",
     "json": {
-      "title": "Carrot and ginger soup",
-      "imageUrl": "https://example.com/carrot-soup.jpg",
-      "prepTime": 900000,
-      "cookingTime": 2400000,
-      "servings": 4,
-      "ingredients": [
-        {
-          "name": "Soup",
-          "ingredients": [
-            { "name": "Carrots", "quantity": 500, "unit": "g" },
-            { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
-            { "name": "Salt", "quantity": null, "unit": null }
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "text": "Simmer the carrots in the stock until soft.",
-          "tips": ["Cut the carrots small so they cook evenly."]
-        },
-        { "text": "Blend until smooth.", "tips": [] }
-      ],
-      "sourceName": "Example Kitchen",
-      "id": "AZPHoBssTe+BI0VniavN7w=="
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-456789abcdef",
+      "fields": {
+        "title": "Carrot, ginger and lime soup",
+        "imageUrl": "https://example.com/carrot-soup.jpg",
+        "prepTime": 900000,
+        "cookingTime": 2400000,
+        "servings": 4,
+        "ingredients": [
+          {
+            "name": "Soup",
+            "ingredients": [
+              { "name": "Carrots", "quantity": 500, "unit": "g" },
+              { "name": "Vegetable stock", "quantity": 1.5, "unit": "l" },
+              { "name": "Salt", "quantity": null, "unit": null }
+            ]
+          }
+        ],
+        "steps": [
+          {
+            "text": "Simmer the carrots in the stock until soft.",
+            "tips": ["Cut the carrots small so they cook evenly."]
+          },
+          { "text": "Blend until smooth.", "tips": [] }
+        ],
+        "sourceName": "Example Kitchen"
+      }
     },
-    "bytes": "8gIguMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLoCujc4bEAGTx6AbLE3vgSNFZ4mrze+Y+uucOQQEwO5t4NevpEQCBAjYpfzhSRAFRXhhbXBsZSBLaXRjaGVuyNC2mUwWQ2Fycm90IGFuZCBnaW5nZXIgc291cLDslLpmBQSA/KQCmKbA33YkBWh0dHBzOi8vZXhhbXBsZS5jb20vY2Fycm90LXNvdXAuanBn"
+    "bytes": "mAMgCsc3Xy3g14yQA+ECuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLpj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTBxDYXJyb3QsIGdpbmdlciBhbmQgbGltZSBzb3VwsOyUumYFBID8pAKYpsDfdiQFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cC5qcGfghrmFNCQwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy00NTY3ODlhYmNkZWY="
   },
   {
-    "tag": "RecipeEditRemove",
-    "json": { "id": "AZPHoBssTe+BI0VniavN7w==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74EjRWeJq83v"
+    "tag": "RecipeEdit",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-456789abcdef" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLTQ1Njc4OWFiY2RlZg=="
   },
   {
-    "tag": "SettingsSet",
+    "tag": "Setting",
     "json": {
-      "id": "aiCountry",
-      "value": "{\"_tag\":\"Some\",\"value\":\"NZ\"}"
+      "_tag": "set",
+      "row": {
+        "id": "aiCountry",
+        "value": "{\"_tag\":\"Some\",\"value\":\"NZ\"}"
+      }
     },
-    "bytes": "MiCAro3OGwlhaUNvdW50cnnQvNqXIRx7Il90YWciOiJTb21lIiwidmFsdWUiOiJOWiJ9"
+    "bytes": "PSAKkybBldjXw4MiMYCujc4bCWFpQ291bnRyedC82pchHHsiX3RhZyI6IlNvbWUiLCJ2YWx1ZSI6Ik5aIn0="
   },
   {
-    "tag": "TimerAdded",
+    "tag": "Setting",
     "json": {
-      "id": "AZPHoBssTe+BI/7cuph2VA==",
-      "label": "Carrot soup",
-      "duration": 2400000,
-      "expiresAt": 1760002400000,
-      "pausedRemaining": 1500000,
-      "createdAt": 1760000000000,
-      "updatedAt": 1760000000000
+      "_tag": "patch",
+      "key": "aiCountry",
+      "fields": { "value": "{\"_tag\":\"Some\",\"value\":\"NZ\"}" }
     },
-    "bytes": "XSDxiJmGC4CA5oK5ZunQn+gXgPykAoCujc4bEAGTx6AbLE3vgSP+3LqYdlSo3MeCPAUEwI23AbHlu9FdgPyKhblmqduFhnGAgOaCuWbo/+KlewtDYXJyb3Qgc291cA=="
+    "bytes": "PSAKxzdfLeDXjJADItC82pchHHsiX3RhZyI6IlNvbWUiLCJ2YWx1ZSI6Ik5aIn3ghrmFNAlhaUNvdW50cnk="
   },
   {
-    "tag": "TimerUpdated",
+    "tag": "Setting",
+    "json": { "_tag": "remove", "key": "aiCountry" },
+    "bytes": "FSAK6Jpi9OCGuYU0CWFpQ291bnRyeQ=="
+  },
+  {
+    "tag": "Timer",
     "json": {
-      "id": "AZPHoBssTe+BI/7cuph2VA==",
-      "label": "Carrot soup",
-      "duration": 2400000,
-      "expiresAt": 1760002400000,
-      "pausedRemaining": 1500000,
-      "updatedAt": 1760000600000
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI/7cuph2VA==",
+        "label": "Carrot soup",
+        "duration": 2400000,
+        "expiresAt": 1760002400000,
+        "pausedRemaining": 1500000,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
     },
-    "bytes": "UiDp0J/oF4D8pAKAro3OGxABk8egGyxN74Ej/ty6mHZUqNzHgjwFBMCNtwGx5bvRXYD8ioW5ZqnbhYZxgJ+vg7lm6P/ipXsLQ2Fycm90IHNvdXA="
+    "bytes": "aCAKkybBldjXw4MiXPGImYYLgIDmgrlm6dCf6BeA/KQCgK6NzhsQAZPHoBssTe+BI/7cuph2VKjcx4I8BQTAjbcBseW70V2A/IqFuWap24WGcYCA5oK5Zuj/4qV7C0NhcnJvdCBzb3Vw"
   },
   {
-    "tag": "TimerDeleted",
-    "json": { "id": "AZPHoBssTe+BI/7cuph2VA==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74Ej/ty6mHZU"
-  },
-  {
-    "tag": "MealPlanAdd",
+    "tag": "Timer",
     "json": {
-      "id": "AZPHoBssTe+BIwEjRWeJqw==",
-      "recipeId": "AZPHoBssTe+BI0VniavN7w==",
-      "day": "2025-10-13"
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-fedcba987654",
+      "fields": {
+        "label": "Carrot soup, second batch",
+        "duration": 2700000,
+        "expiresAt": 1760002700000,
+        "pausedRemaining": 600000,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000600000
+      }
     },
-    "bytes": "PSCQkq7LBRABk8egGyxN74EjRWeJq83vgK6NzhsQAZPHoBssTe+BIwEjRWeJq+if5JNyCjIwMjUtMTAtMTM="
+    "bytes": "iQEgCsc3Xy3g14yQA1PxiJmGC4CA5oK5ZunQn+gXwMvJAqjcx4I8BASAn0mx5bvRXcDLr4W5ZqnbhYZxgJ+vg7lm6P/ipXsZQ2Fycm90IHNvdXAsIHNlY29uZCBiYXRjaOCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWZlZGNiYTk4NzY1NA=="
   },
   {
-    "tag": "MealPlanSetDay",
-    "json": { "id": "AZPHoBssTe+BIwEjRWeJqw==", "day": "2025-10-14" },
-    "bytes": "JyCAro3OGxABk8egGyxN74EjASNFZ4mr6J/kk3IKMjAyNS0xMC0xNA=="
+    "tag": "Timer",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-fedcba987654" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWZlZGNiYTk4NzY1NA=="
   },
   {
-    "tag": "MealPlanRemove",
-    "json": { "id": "AZPHoBssTe+BIwEjRWeJqw==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74EjASNFZ4mr"
-  },
-  {
-    "tag": "MealPlanDayNoteAdd",
+    "tag": "MealPlanEntry",
     "json": {
-      "id": "AZPHoBssTe+BI7qYdlQyEA==",
-      "day": "2025-10-13",
-      "note": "Leftovers for lunch",
-      "createdAt": 1760000000000,
-      "updatedAt": 1760000000000
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BIwEjRWeJqw==",
+        "recipeId": "AZPHoBssTe+BI0VniavN7w==",
+        "day": "2025-10-13"
+      }
     },
-    "bytes": "ViDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSO6mHZUMhDow8HmSBNMZWZ0b3ZlcnMgZm9yIGx1bmNoqduFhnGAgOaCuWbon+STcgoyMDI1LTEwLTEz"
+    "bytes": "SCAKkybBldjXw4MiPJCSrssFEAGTx6AbLE3vgSNFZ4mrze+Aro3OGxABk8egGyxN74EjASNFZ4mr6J/kk3IKMjAyNS0xMC0xMw=="
   },
   {
-    "tag": "MealPlanDayNoteUpdate",
+    "tag": "MealPlanEntry",
     "json": {
-      "id": "AZPHoBssTe+BI7qYdlQyEA==",
-      "day": "2025-10-13",
-      "note": "Eating out",
-      "updatedAt": 1760000600000
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-0123456789ab",
+      "fields": { "recipeId": "AZPHoBssTe+BI0VniavN7w==", "day": "2025-10-14" }
     },
-    "bytes": "QiCAro3OGxABk8egGyxN74Ejuph2VDIQ6MPB5kgKRWF0aW5nIG91dKnbhYZxgJ+vg7lm6J/kk3IKMjAyNS0xMC0xMw=="
+    "bytes": "XCAKxzdfLeDXjJADJpCSrssFEAGTx6AbLE3vgSNFZ4mrze/on+STcgoyMDI1LTEwLTE04Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtMDEyMzQ1Njc4OWFi"
   },
   {
-    "tag": "MealPlanDayNoteRemove",
-    "json": { "id": "AZPHoBssTe+BI7qYdlQyEA==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74Ejuph2VDIQ"
+    "tag": "MealPlanEntry",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-0123456789ab" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLTAxMjM0NTY3ODlhYg=="
   },
   {
-    "tag": "MenuAdd",
+    "tag": "MealPlanDayNote",
     "json": {
-      "id": "AZPHoBssTe+BI6Gyw9Tl9g==",
-      "name": "Winter warmers",
-      "days": 7,
-      "createdAt": 1760000000000,
-      "updatedAt": 1760000000000
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI7qYdlQyEA==",
+        "day": "2025-10-13",
+        "note": "Leftovers for lunch",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
     },
-    "bytes": "RyDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSOhssPU5faw3rfORg5XaW50ZXIgd2FybWVyc6nbhYZxgIDmgrlm0ai6pHsO"
+    "bytes": "YSAKkybBldjXw4MiVfGImYYLgIDmgrlmgK6NzhsQAZPHoBssTe+BI7qYdlQyEOjDweZIE0xlZnRvdmVycyBmb3IgbHVuY2ip24WGcYCA5oK5Zuif5JNyCjIwMjUtMTAtMTM="
   },
   {
-    "tag": "MenuUpdate",
+    "tag": "MealPlanDayNote",
     "json": {
-      "id": "AZPHoBssTe+BI6Gyw9Tl9g==",
-      "name": "Winter favourites",
-      "days": 5,
-      "updatedAt": 1760000600000
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-ba9876543210",
+      "fields": {
+        "day": "2025-10-14",
+        "note": "Eating out",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000600000
+      }
     },
-    "bytes": "PyCAro3OGxABk8egGyxN74EjobLD1OX2sN63zkYRV2ludGVyIGZhdm91cml0ZXOp24WGcYCfr4O5ZtGouqR7Cg=="
+    "bytes": "bCAKxzdfLeDXjJADNvGImYYLgIDmgrlm6MPB5kgKRWF0aW5nIG91dKnbhYZxgJ+vg7lm6J/kk3IKMjAyNS0xMC0xNOCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWJhOTg3NjU0MzIxMA=="
   },
   {
-    "tag": "MenuRemove",
-    "json": { "id": "AZPHoBssTe+BI6Gyw9Tl9g==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74EjobLD1OX2"
+    "tag": "MealPlanDayNote",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-ba9876543210" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWJhOTg3NjU0MzIxMA=="
   },
   {
-    "tag": "MenuEntryAdd",
+    "tag": "Menu",
     "json": {
-      "id": "AZPHoBssTe+BI6Gyw9Tl9w==",
-      "menuId": "AZPHoBssTe+BI6Gyw9Tl9g==",
-      "recipeId": "AZPHoBssTe+BI0VniavN7w==",
-      "day": 1,
-      "createdAt": 1760000000000,
-      "updatedAt": 1760000000000
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI6Gyw9Tl9g==",
+        "name": "Winter warmers",
+        "days": 7,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
     },
-    "bytes": "XyCQkq7LBRABk8egGyxN74EjRWeJq83v8YiZhguAgOaCuWaAro3OGxABk8egGyxN74EjobLD1OX3uPnH0zAQAZPHoBssTe+BI6Gyw9Tl9qnbhYZxgIDmgrlm6Z/kk3IC"
+    "bytes": "UiAKkybBldjXw4MiRvGImYYLgIDmgrlmgK6NzhsQAZPHoBssTe+BI6Gyw9Tl9rDet85GDldpbnRlciB3YXJtZXJzqduFhnGAgOaCuWbRqLqkew4="
   },
   {
-    "tag": "MenuEntrySetDay",
+    "tag": "Menu",
     "json": {
-      "id": "AZPHoBssTe+BI6Gyw9Tl9w==",
-      "day": 3,
-      "updatedAt": 1760000600000
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
+      "fields": {
+        "name": "Winter favourites",
+        "days": 5,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000600000
+      }
     },
-    "bytes": "KCCAro3OGxABk8egGyxN74EjobLD1OX3qduFhnGAn6+DuWbpn+STcgY="
+    "bytes": "aSAKxzdfLeDXjJADM/GImYYLgIDmgrlmsN63zkYRV2ludGVyIGZhdm91cml0ZXOp24WGcYCfr4O5ZtGouqR7CuCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmNg=="
   },
   {
-    "tag": "MenuEntryRemove",
-    "json": { "id": "AZPHoBssTe+BI6Gyw9Tl9w==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74EjobLD1OX3"
+    "tag": "Menu",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmNg=="
   },
   {
-    "tag": "MenuDayNoteAdd",
+    "tag": "MenuEntry",
     "json": {
-      "id": "AZPHoBssTe+BI6Gyw9Tl+A==",
-      "menuId": "AZPHoBssTe+BI6Gyw9Tl9g==",
-      "day": 2,
-      "note": "Make extra for lunches",
-      "createdAt": 1760000000000,
-      "updatedAt": 1760000000000
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI6Gyw9Tl9w==",
+        "menuId": "AZPHoBssTe+BI6Gyw9Tl9g==",
+        "recipeId": "AZPHoBssTe+BI0VniavN7w==",
+        "day": 1,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
     },
-    "bytes": "ZSDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSOhssPU5fi4+cfTMBABk8egGyxN74EjobLD1OX26MPB5kgWTWFrZSBleHRyYSBmb3IgbHVuY2hlc6nbhYZxgIDmgrlm6Z/kk3IE"
+    "bytes": "aiAKkybBldjXw4MiXpCSrssFEAGTx6AbLE3vgSNFZ4mrze/xiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSOhssPU5fe4+cfTMBABk8egGyxN74EjobLD1OX2qduFhnGAgOaCuWbpn+STcgI="
   },
   {
-    "tag": "MenuDayNoteUpdate",
+    "tag": "MenuEntry",
     "json": {
-      "id": "AZPHoBssTe+BI6Gyw9Tl+A==",
-      "day": 2,
-      "note": "Freeze half",
-      "updatedAt": 1760000600000
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f7",
+      "fields": {
+        "recipeId": "AZPHoBssTe+BI0VniavN7w==",
+        "day": 3,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000600000
+      }
     },
-    "bytes": "OSCAro3OGxABk8egGyxN74EjobLD1OX46MPB5kgLRnJlZXplIGhhbGap24WGcYCfr4O5Zumf5JNyBA=="
+    "bytes": "aCAKxzdfLeDXjJADMpCSrssFEAGTx6AbLE3vgSNFZ4mrze/xiJmGC4CA5oK5ZqnbhYZxgJ+vg7lm6Z/kk3IG4Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtYTFiMmMzZDRlNWY3"
   },
   {
-    "tag": "MenuDayNoteRemove",
-    "json": { "id": "AZPHoBssTe+BI6Gyw9Tl+A==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74EjobLD1OX4"
+    "tag": "MenuEntry",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f7" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmNw=="
   },
   {
-    "tag": "GroceryItemAdded",
+    "tag": "MenuDayNote",
     "json": {
-      "id": "AZPHoBssTe+BI8D/7gAAAQ==",
-      "list": "Weekend",
-      "name": "Carrots",
-      "quantity": "500 g",
-      "aisle": "Produce",
-      "recipeIds": ["AZPHoBssTe+BI0VniavN7w=="],
-      "completed": false,
-      "createdAt": 1760000000000,
-      "updatedAt": 1760000000000
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI6Gyw9Tl+A==",
+        "menuId": "AZPHoBssTe+BI6Gyw9Tl9g==",
+        "day": 2,
+        "note": "Make extra for lunches",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
     },
-    "bytes": "gAEgiIjrvgYIBVdlZWtlbmTxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSPA/+4AAAHA/dHcJQYFNTAwIGew3rfORgdDYXJyb3RzuJbWi1oIBVByb2R1Y2Wp24WGcYCA5oK5ZpiorOJ0EwsBEAGTx6AbLE3vgSNFZ4mrze+TkZCdeg=="
+    "bytes": "cCAKkybBldjXw4MiZPGImYYLgIDmgrlmgK6NzhsQAZPHoBssTe+BI6Gyw9Tl+Lj5x9MwEAGTx6AbLE3vgSOhssPU5fbow8HmSBZNYWtlIGV4dHJhIGZvciBsdW5jaGVzqduFhnGAgOaCuWbpn+STcgQ="
   },
   {
-    "tag": "GroceryItemUpdated",
+    "tag": "MenuDayNote",
     "json": {
-      "id": "AZPHoBssTe+BI8D/7gAAAQ==",
-      "name": "Baby carrots",
-      "quantity": "1 kg",
-      "aisle": "Produce",
-      "recipeIds": ["AZPHoBssTe+BI0VniavN7w=="],
-      "completed": true,
-      "updatedAt": 1760000600000
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8",
+      "fields": {
+        "day": 4,
+        "note": "Freeze half",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000600000
+      }
     },
-    "bytes": "ayCAro3OGxABk8egGyxN74EjwP/uAAABwP3R3CUFBTEga2ew3rfORgxCYWJ5IGNhcnJvdHO4ltaLWggFUHJvZHVjZanbhYZxgJ+vg7lmmKis4nQTCwEQAZPHoBssTe+BI0VniavN75SRkJ16"
+    "bytes": "YyAKxzdfLeDXjJADLfGImYYLgIDmgrlm6MPB5kgLRnJlZXplIGhhbGap24WGcYCfr4O5Zumf5JNyCOCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmOA=="
   },
   {
-    "tag": "GroceryItemToggled",
-    "json": { "id": "AZPHoBssTe+BI8D/7gAAAQ==", "completed": true },
-    "bytes": "HCCAro3OGxABk8egGyxN74EjwP/uAAABlJGQnXo="
+    "tag": "MenuDayNote",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmOA=="
   },
   {
-    "tag": "GroceryItemDeleted",
-    "json": { "id": "AZPHoBssTe+BI8D/7gAAAQ==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74EjwP/uAAAB"
-  },
-  {
-    "tag": "IngredientAisleSet",
-    "json": { "name": "carrots", "aisle": "Produce" },
-    "bytes": "GyCw3rfORgdjYXJyb3RzuJbWi1oHUHJvZHVjZQ=="
-  },
-  {
-    "tag": "IngredientAisleRemoved",
-    "json": { "name": "carrots" },
-    "bytes": "DiCw3rfORgdjYXJyb3Rz"
-  },
-  {
-    "tag": "GroceryAisleOrderSet",
+    "tag": "GroceryItem",
     "json": {
-      "list": "Weekend",
-      "aisle": "Produce",
-      "sortOrder": 2,
-      "updatedAt": 1760000600000
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI8D/7gAAAQ==",
+        "list": "Weekend",
+        "name": "Carrots",
+        "quantity": "500 g",
+        "aisle": "Produce",
+        "recipeIds": ["AZPHoBssTe+BI0VniavN7w=="],
+        "completed": false,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
     },
-    "bytes": "LSCIiOu+BggFV2Vla2VuZJniwNIQBLiW1otaB1Byb2R1Y2Wp24WGcYCfr4O5Zg=="
+    "bytes": "iwEgCpMmwZXY18ODIn+IiOu+BggFV2Vla2VuZPGImYYLgIDmgrlmgK6NzhsQAZPHoBssTe+BI8D/7gAAAcD90dwlBgU1MDAgZ7Det85GB0NhcnJvdHO4ltaLWggFUHJvZHVjZanbhYZxgIDmgrlmmKis4nQTCwEQAZPHoBssTe+BI0VniavN75ORkJ16"
   },
   {
-    "tag": "GroceryItemsDeleted",
-    "json": { "ids": ["AZPHoBssTe+BI8D/7gAAAQ==", "AZPHoBssTe+BI8D/7gAAAg=="] },
-    "bytes": "KiDI1vizQCMCEAGTx6AbLE3vgSPA/+4AAAEQAZPHoBssTe+BI8D/7gAAAg=="
-  },
-  {
-    "tag": "AIMemoryEntryAdded",
+    "tag": "GroceryItem",
     "json": {
-      "id": "AZPHoBssTe+BI6EAAAAACg==",
-      "content": "Prefers metric units",
-      "createdAt": 1760000000000
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-c0ffee000001",
+      "fields": {
+        "list": "Pantry",
+        "name": "Baby carrots",
+        "quantity": "1 kg",
+        "aisle": "Produce",
+        "recipeIds": ["AZPHoBssTe+BI0VniavN7w=="],
+        "completed": true,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000600000
+      }
     },
-    "bytes": "PCDxiJmGC4CA5oK5ZoCujc4bEAGTx6AbLE3vgSOhAAAAAAqQvNivSBRQcmVmZXJzIG1ldHJpYyB1bml0cw=="
+    "bytes": "ogEgCsc3Xy3g14yQA2yIiOu+BgcFUGFudHJ58YiZhguAgOaCuWbA/dHcJQUFMSBrZ7Det85GDEJhYnkgY2Fycm90c7iW1otaCAVQcm9kdWNlqduFhnGAn6+DuWaYqKzidBMLARABk8egGyxN74EjRWeJq83vlJGQnXrghrmFNCQwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy1jMGZmZWUwMDAwMDE="
   },
   {
-    "tag": "AIMemoryEntryRemove",
-    "json": { "id": "AZPHoBssTe+BI6EAAAAACg==" },
-    "bytes": "FyCAro3OGxABk8egGyxN74EjoQAAAAAK"
+    "tag": "GroceryItem",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-c0ffee000001" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWMwZmZlZTAwMDAwMQ=="
   },
   {
-    "tag": "AIMemoryEntriesRemoved",
-    "json": { "ids": ["AZPHoBssTe+BI6EAAAAACg==", "AZPHoBssTe+BI6EAAAAACw=="] },
-    "bytes": "KiDI1vizQCMCEAGTx6AbLE3vgSOhAAAAAAoQAZPHoBssTe+BI6EAAAAACw=="
+    "tag": "IngredientAisle",
+    "json": { "_tag": "set", "row": { "name": "carrots", "aisle": "Produce" } },
+    "bytes": "JiAKkybBldjXw4MiGrDet85GB2NhcnJvdHO4ltaLWgdQcm9kdWNl"
   },
   {
-    "tag": "AiChatTurnAdded",
+    "tag": "IngredientAisle",
     "json": {
-      "id": "AZPHoBssTe+BI6IAAAAACg==",
-      "prompt": "{\"content\":[{\"options\":{},\"role\":\"user\",\"content\":\"What can I make with carrots?\"},{\"options\":{},\"role\":\"assistant\",\"content\":[{\"options\":{},\"type\":\"tool-call\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"params\":{\"query\":\"carrot\"},\"providerExecuted\":false}]},{\"options\":{},\"role\":\"tool\",\"content\":[{\"options\":{},\"type\":\"tool-result\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"isFailure\":false,\"result\":[{\"id\":\"0193c7a0-1b2c-4def-8123-456789abcdef\",\"title\":\"Carrot soup\"}],\"providerExecuted\":false}]},{\"options\":{},\"role\":\"assistant\",\"content\":\"You could make carrot soup.\"}]}"
+      "_tag": "patch",
+      "key": "carrots",
+      "fields": { "aisle": "Pantry" }
     },
-    "bytes": "0gQggK6NzhsQAZPHoBssTe+BI6IAAAAACtiTyflvtAR7ImNvbnRlbnQiOlt7Im9wdGlvbnMiOnt9LCJyb2xlIjoidXNlciIsImNvbnRlbnQiOiJXaGF0IGNhbiBJIG1ha2Ugd2l0aCBjYXJyb3RzPyJ9LHsib3B0aW9ucyI6e30sInJvbGUiOiJhc3Npc3RhbnQiLCJjb250ZW50IjpbeyJvcHRpb25zIjp7fSwidHlwZSI6InRvb2wtY2FsbCIsImlkIjoiY2FsbF8xIiwibmFtZSI6IlNlYXJjaFJlY2lwZXMiLCJwYXJhbXMiOnsicXVlcnkiOiJjYXJyb3QifSwicHJvdmlkZXJFeGVjdXRlZCI6ZmFsc2V9XX0seyJvcHRpb25zIjp7fSwicm9sZSI6InRvb2wiLCJjb250ZW50IjpbeyJvcHRpb25zIjp7fSwidHlwZSI6InRvb2wtcmVzdWx0IiwiaWQiOiJjYWxsXzEiLCJuYW1lIjoiU2VhcmNoUmVjaXBlcyIsImlzRmFpbHVyZSI6ZmFsc2UsInJlc3VsdCI6W3siaWQiOiIwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy00NTY3ODlhYmNkZWYiLCJ0aXRsZSI6IkNhcnJvdCBzb3VwIn1dLCJwcm92aWRlckV4ZWN1dGVkIjpmYWxzZX1dfSx7Im9wdGlvbnMiOnt9LCJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6IllvdSBjb3VsZCBtYWtlIGNhcnJvdCBzb3VwLiJ9XX0="
+    "bytes": "JSAKxzdfLeDXjJADDLiW1otaBlBhbnRyeeCGuYU0B2NhcnJvdHM="
   },
   {
-    "tag": "AiChatTurnsRemoved",
-    "json": { "ids": ["AZPHoBssTe+BI6IAAAAACg==", "AZPHoBssTe+BI6IAAAAACw=="] },
-    "bytes": "KiDI1vizQCMCEAGTx6AbLE3vgSOiAAAAAAoQAZPHoBssTe+BI6IAAAAACw=="
+    "tag": "IngredientAisle",
+    "json": { "_tag": "remove", "key": "carrots" },
+    "bytes": "EyAK6Jpi9OCGuYU0B2NhcnJvdHM="
+  },
+  {
+    "tag": "GroceryAisleOrder",
+    "json": {
+      "_tag": "set",
+      "row": {
+        "list": "Weekend",
+        "aisle": "Produce",
+        "sortOrder": 2,
+        "updatedAt": 1760000600000
+      }
+    },
+    "bytes": "OCAKkybBldjXw4MiLIiI674GCAVXZWVrZW5kmeLA0hAEuJbWi1oHUHJvZHVjZanbhYZxgJ+vg7lm"
+  },
+  {
+    "tag": "GroceryAisleOrder",
+    "json": {
+      "_tag": "patch",
+      "key": "[\"Weekend\",\"Produce\"]",
+      "fields": { "sortOrder": 3, "updatedAt": 1760000600000 }
+    },
+    "bytes": "OCAKxzdfLeDXjJADEZniwNIQBqnbhYZxgJ+vg7lm4Ia5hTQVWyJXZWVrZW5kIiwiUHJvZHVjZSJd"
+  },
+  {
+    "tag": "GroceryAisleOrder",
+    "json": { "_tag": "remove", "key": "[\"Weekend\",\"Produce\"]" },
+    "bytes": "ISAK6Jpi9OCGuYU0FVsiV2Vla2VuZCIsIlByb2R1Y2UiXQ=="
+  },
+  {
+    "tag": "AiMemoryEntry",
+    "json": {
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI6EAAAAACg==",
+        "content": "Prefers metric units",
+        "createdAt": 1760000000000
+      }
+    },
+    "bytes": "RyAKkybBldjXw4MiO/GImYYLgIDmgrlmgK6NzhsQAZPHoBssTe+BI6EAAAAACpC82K9IFFByZWZlcnMgbWV0cmljIHVuaXRz"
+  },
+  {
+    "tag": "AiMemoryEntry",
+    "json": {
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-a1000000000a",
+      "fields": {
+        "content": "Prefers metric units and fan-forced ovens",
+        "createdAt": 1760000000000
+      }
+    },
+    "bytes": "cCAKxzdfLeDXjJADOvGImYYLgIDmgrlmkLzYr0gpUHJlZmVycyBtZXRyaWMgdW5pdHMgYW5kIGZhbi1mb3JjZWQgb3ZlbnPghrmFNCQwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy1hMTAwMDAwMDAwMGE="
+  },
+  {
+    "tag": "AiMemoryEntry",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1000000000a" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExMDAwMDAwMDAwYQ=="
+  },
+  {
+    "tag": "AiChatTurn",
+    "json": {
+      "_tag": "set",
+      "row": {
+        "id": "AZPHoBssTe+BI6IAAAAACg==",
+        "prompt": "{\"content\":[{\"options\":{},\"role\":\"user\",\"content\":\"What can I make with carrots?\"},{\"options\":{},\"role\":\"assistant\",\"content\":[{\"options\":{},\"type\":\"tool-call\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"params\":{\"query\":\"carrot\"},\"providerExecuted\":false}]},{\"options\":{},\"role\":\"tool\",\"content\":[{\"options\":{},\"type\":\"tool-result\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"isFailure\":false,\"result\":[{\"id\":\"0193c7a0-1b2c-4def-8123-456789abcdef\",\"title\":\"Carrot soup\"}],\"providerExecuted\":false}]},{\"options\":{},\"role\":\"assistant\",\"content\":\"You could make carrot soup.\"}]}",
+        "entryTime": 1760000900000
+      }
+    },
+    "bytes": "6QQgCpMmwZXY18ODItwE0dqv4RXA7tODuWaAro3OGxABk8egGyxN74EjogAAAAAK2JPJ+W+0BHsiY29udGVudCI6W3sib3B0aW9ucyI6e30sInJvbGUiOiJ1c2VyIiwiY29udGVudCI6IldoYXQgY2FuIEkgbWFrZSB3aXRoIGNhcnJvdHM/In0seyJvcHRpb25zIjp7fSwicm9sZSI6ImFzc2lzdGFudCIsImNvbnRlbnQiOlt7Im9wdGlvbnMiOnt9LCJ0eXBlIjoidG9vbC1jYWxsIiwiaWQiOiJjYWxsXzEiLCJuYW1lIjoiU2VhcmNoUmVjaXBlcyIsInBhcmFtcyI6eyJxdWVyeSI6ImNhcnJvdCJ9LCJwcm92aWRlckV4ZWN1dGVkIjpmYWxzZX1dfSx7Im9wdGlvbnMiOnt9LCJyb2xlIjoidG9vbCIsImNvbnRlbnQiOlt7Im9wdGlvbnMiOnt9LCJ0eXBlIjoidG9vbC1yZXN1bHQiLCJpZCI6ImNhbGxfMSIsIm5hbWUiOiJTZWFyY2hSZWNpcGVzIiwiaXNGYWlsdXJlIjpmYWxzZSwicmVzdWx0IjpbeyJpZCI6IjAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLTQ1Njc4OWFiY2RlZiIsInRpdGxlIjoiQ2Fycm90IHNvdXAifV0sInByb3ZpZGVyRXhlY3V0ZWQiOmZhbHNlfV19LHsib3B0aW9ucyI6e30sInJvbGUiOiJhc3Npc3RhbnQiLCJjb250ZW50IjoiWW91IGNvdWxkIG1ha2UgY2Fycm90IHNvdXAuIn1dfQ=="
+  },
+  {
+    "tag": "AiChatTurn",
+    "json": {
+      "_tag": "patch",
+      "key": "0193c7a0-1b2c-4def-8123-a2000000000a",
+      "fields": {
+        "prompt": "{\"content\":[{\"options\":{},\"role\":\"user\",\"content\":\"What can I make with carrots?\"},{\"options\":{},\"role\":\"assistant\",\"content\":[{\"options\":{},\"type\":\"tool-call\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"params\":{\"query\":\"carrot\"},\"providerExecuted\":false}]},{\"options\":{},\"role\":\"tool\",\"content\":[{\"options\":{},\"type\":\"tool-result\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"isFailure\":false,\"result\":[{\"id\":\"0193c7a0-1b2c-4def-8123-456789abcdef\",\"title\":\"Carrot soup\"}],\"providerExecuted\":false}]},{\"options\":{},\"role\":\"assistant\",\"content\":\"You could make carrot soup.\"}]}",
+        "entryTime": 1760001000000
+      }
+    },
+    "bytes": "/QQgCsc3Xy3g14yQA8YE0dqv4RWAieCDuWbYk8n5b7QEeyJjb250ZW50IjpbeyJvcHRpb25zIjp7fSwicm9sZSI6InVzZXIiLCJjb250ZW50IjoiV2hhdCBjYW4gSSBtYWtlIHdpdGggY2Fycm90cz8ifSx7Im9wdGlvbnMiOnt9LCJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6W3sib3B0aW9ucyI6e30sInR5cGUiOiJ0b29sLWNhbGwiLCJpZCI6ImNhbGxfMSIsIm5hbWUiOiJTZWFyY2hSZWNpcGVzIiwicGFyYW1zIjp7InF1ZXJ5IjoiY2Fycm90In0sInByb3ZpZGVyRXhlY3V0ZWQiOmZhbHNlfV19LHsib3B0aW9ucyI6e30sInJvbGUiOiJ0b29sIiwiY29udGVudCI6W3sib3B0aW9ucyI6e30sInR5cGUiOiJ0b29sLXJlc3VsdCIsImlkIjoiY2FsbF8xIiwibmFtZSI6IlNlYXJjaFJlY2lwZXMiLCJpc0ZhaWx1cmUiOmZhbHNlLCJyZXN1bHQiOlt7ImlkIjoiMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtNDU2Nzg5YWJjZGVmIiwidGl0bGUiOiJDYXJyb3Qgc291cCJ9XSwicHJvdmlkZXJFeGVjdXRlZCI6ZmFsc2V9XX0seyJvcHRpb25zIjp7fSwicm9sZSI6ImFzc2lzdGFudCIsImNvbnRlbnQiOiJZb3UgY291bGQgbWFrZSBjYXJyb3Qgc291cC4ifV194Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtYTIwMDAwMDAwMDBh"
+  },
+  {
+    "tag": "AiChatTurn",
+    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a2000000000a" },
+    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWEyMDAwMDAwMDAwYQ=="
   }
 ]

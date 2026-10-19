@@ -28,7 +28,8 @@ import {
   writeEventAtom,
 } from "@/EventLog"
 import { QueryBuilder } from "@/IndexedDb"
-import { eventSamples } from "./fixtures/event-samples"
+import { RecipeEvent } from "@/Recipes/Events"
+import { sampleRecipe } from "./fixtures/event-samples"
 import * as Server from "../server/Server"
 import { testIdentity } from "./harness/eventlog"
 
@@ -205,10 +206,10 @@ test("changing the server URL uploads this device's journal to the new server an
     registry.set(syncEnabledAtom, true)
     registry.mount(remoteAtom)
 
-    registry.set(
-      writeEventAtom,
-      eventSamples.find((sample) => sample.event === "RecipeCreated")!,
-    )
+    registry.set(writeEventAtom, {
+      event: RecipeEvent.tag,
+      payload: RecipeEvent.set(sampleRecipe),
+    })
     yield* AtomRegistry.getResult(registry, writeEventAtom, {
       suspendOnWaiting: true,
     })

@@ -13,8 +13,8 @@ export const testIdentity = EventLog.makeIdentity.pipe(
 )
 
 // An entry as another device would have written it. `msecs` sets the entry
-// time, which is what last-writer-wins compares, so scenarios can state the
-// real-time order independently of the order entries arrive in.
+// time, which conflicts between a row's entries resolve by, so scenarios can
+// state the real-time order independently of the order entries arrive in.
 export const makeEntry = <E extends Event.Any>(options: {
   readonly msecs: number
   readonly event: E

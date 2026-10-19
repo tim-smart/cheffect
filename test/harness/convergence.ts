@@ -14,14 +14,11 @@ import { everyOrder } from "./orders"
 
 export type Row = Record<string, unknown>
 
-const withoutLww = ({ _lww, ...fields }: Row): Row => fields
-
-// A store's rows as the next page load would read them, ignoring `_lww`.
+// A store's rows as the next page load would read them.
 export const readTable = (store: string) =>
   Effect.gen(function* () {
     const { indexedDB } = yield* IndexedDb.IndexedDb
-    const rows = yield* readRecords(indexedDB, databaseName, store)
-    return rows.map(withoutLww)
+    return yield* readRecords(indexedDB, databaseName, store)
   })
 
 // Builds the layer for one run: the module's EventLog with the given identity,

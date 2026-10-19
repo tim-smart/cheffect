@@ -10,10 +10,10 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { MealPlanLayer } from "@/MealPlan"
-import { MealPlanEvents } from "@/MealPlan/Events"
+import { MealPlanEntryEvent, MealPlanEvents } from "@/MealPlan/Events"
 import { MealPlanRepo } from "@/MealPlan/Repo"
 import { RecipesLayer } from "@/Recipes"
-import { RecipeEvents } from "@/Recipes/Events"
+import { RecipeEvent, RecipeEvents, recipeDeleted } from "@/Recipes/Events"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { MealPlanEntryIdFromString } from "@/domain/MealPlanEntry"
 import {
@@ -57,9 +57,10 @@ const day = (iso: string) => DateTime.makeUnsafe(iso)
 const monday = day("2025-10-13")
 
 const recipe = (id: typeof soup, title: string) =>
-  Recipe.insert.make({
+  Recipe.make({
     id,
     title,
+    ingredientScale: 1,
     imageUrl: null,
     prepTime: Duration.minutes(10),
     cookingTime: Duration.minutes(30),
@@ -86,18 +87,18 @@ test("the week's entries hide a missing recipe and keep a soft-deleted one", asy
     const log = yield* EventLog.EventLog
     yield* log.write({
       schema,
-      event: "RecipeCreated",
-      payload: recipe(soup, "Soup"),
+      event: RecipeEvent.tag,
+      payload: RecipeEvent.set(recipe(soup, "Soup")),
     })
     yield* log.write({
       schema,
-      event: "RecipeCreated",
-      payload: recipe(pie, "Pie"),
+      event: RecipeEvent.tag,
+      payload: RecipeEvent.set(recipe(pie, "Pie")),
     })
     yield* log.write({
       schema,
-      event: "RecipeDeleted",
-      payload: { id: pie, deletedAt: DateTime.makeUnsafe(2000) },
+      event: RecipeEvent.tag,
+      payload: recipeDeleted(pie, DateTime.makeUnsafe(2000)),
     })
     const plan = [
       ["0193c7a0-1b2c-4def-8123-0123456789a1", soup, "2025-10-14"],
@@ -109,8 +110,12 @@ test("the week's entries hide a missing recipe and keep a soft-deleted one", asy
     for (const [id, recipeId, onDay] of plan) {
       yield* log.write({
         schema,
-        event: "MealPlanAdd",
-        payload: { id: entryId(id), recipeId, day: day(onDay) },
+        event: MealPlanEntryEvent.tag,
+        payload: MealPlanEntryEvent.set({
+          id: entryId(id),
+          recipeId,
+          day: day(onDay),
+        }),
       })
     }
     const repo = yield* MealPlanRepo

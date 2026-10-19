@@ -39,7 +39,7 @@ export const layerCheffect = EventLog.layer(
   Layer.provideMerge(layerFreshIndexedDb),
 )
 
-// Every table's rows as the next page load would read them, ignoring `_lww`.
+// Every table's rows as the next page load would read them.
 export const snapshot = Effect.gen(function* () {
   const state: Record<string, ReadonlyArray<Row>> = {}
   for (const name of tableNames) {

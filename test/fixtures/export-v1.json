@@ -1,0 +1,150 @@
+{
+  "format": "cheffect-export",
+  "version": 1,
+  "events": [
+    {
+      "tag": "RecipeCreated",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-456789abcdef",
+        "title": "Carrot soup",
+        "imageUrl": null,
+        "prepTime": 900000,
+        "cookingTime": 2400000,
+        "servings": 4,
+        "ingredients": [
+          {
+            "name": "Soup",
+            "ingredients": [
+              { "name": "Carrots", "quantity": 500, "unit": "g" },
+              { "name": "Salt", "quantity": null, "unit": null }
+            ]
+          }
+        ],
+        "steps": [{ "text": "Simmer until soft.", "tips": [] }],
+        "sourceName": null,
+        "rating": 4,
+        "sourceUrl": null,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000,
+        "deletedAt": null
+      }
+    },
+    {
+      "tag": "RecipeEditSet",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-456789abcdef",
+        "title": "Carrot and ginger soup",
+        "imageUrl": null,
+        "prepTime": null,
+        "cookingTime": null,
+        "servings": null,
+        "ingredients": [],
+        "steps": [],
+        "sourceName": null
+      }
+    },
+    {
+      "tag": "GroceryItemAdded",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-c0ffee000001",
+        "name": "Carrots",
+        "quantity": "500 g",
+        "aisle": "Produce",
+        "recipeIds": ["0193c7a0-1b2c-4def-8123-456789abcdef"],
+        "completed": false,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
+    },
+    {
+      "tag": "IngredientAisleSet",
+      "payload": { "name": "Carrots", "aisle": "Produce" }
+    },
+    {
+      "tag": "GroceryAisleOrderSet",
+      "payload": {
+        "list": null,
+        "aisle": "Produce",
+        "sortOrder": 2,
+        "updatedAt": 1760000000000
+      }
+    },
+    {
+      "tag": "MealPlanAdd",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-0123456789ab",
+        "recipeId": "0193c7a0-1b2c-4def-8123-456789abcdef",
+        "day": "2025-10-13"
+      }
+    },
+    {
+      "tag": "MealPlanDayNoteAdd",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-ba9876543210",
+        "day": "2025-10-13",
+        "note": "Leftovers for lunch",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
+    },
+    {
+      "tag": "MenuAdd",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
+        "name": "Winter warmers",
+        "days": 7,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
+    },
+    {
+      "tag": "MenuEntryAdd",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f7",
+        "menuId": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
+        "recipeId": "0193c7a0-1b2c-4def-8123-456789abcdef",
+        "day": 1,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
+    },
+    {
+      "tag": "MenuDayNoteAdd",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8",
+        "menuId": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
+        "day": 2,
+        "note": "Make extra for lunches",
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
+    },
+    {
+      "tag": "AIMemoryEntryAdded",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-a1000000000a",
+        "content": "Prefers metric units",
+        "createdAt": 1760000000000
+      }
+    },
+    {
+      "tag": "TimerAdded",
+      "payload": {
+        "id": "0193c7a0-1b2c-4def-8123-fedcba987654",
+        "label": "Carrot soup",
+        "duration": 2400000,
+        "expiresAt": 1760002400000,
+        "pausedRemaining": null,
+        "createdAt": 1760000000000,
+        "updatedAt": 1760000000000
+      }
+    },
+    {
+      "tag": "SettingsSet",
+      "payload": {
+        "id": "aiCountry",
+        "value": "{\"_tag\":\"Some\",\"value\":\"NZ\"}"
+      }
+    }
+  ]
+}

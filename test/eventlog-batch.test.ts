@@ -16,7 +16,12 @@ import {
   writeEvents,
 } from "@/EventLog"
 import { GroceriesLayer } from "@/Groceries"
-import { GroceryEvents } from "@/Groceries/Events"
+import {
+  GroceryEvents,
+  GroceryItemEvent,
+  groceryItemUpdate,
+  IngredientAisleEvent,
+} from "@/Groceries/Events"
 import { QueryBuilder, databaseName, layerDatabase } from "@/IndexedDb"
 import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
 import { generateUuidBytes } from "@/lib/Id"
@@ -35,7 +40,7 @@ import { countRecords, layerFreshIndexedDb } from "./harness/indexeddb"
 
 const device = (
   remote: FakeRemote,
-  handlers: Layer.Layer<never, never, any> = GroceriesLayer,
+  handlers: typeof GroceriesLayer = GroceriesLayer,
 ) => {
   const eventLog = EventLog.layer(
     EventLog.schema(GroceryEvents),
@@ -88,18 +93,29 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
   const milk = item("Milk")
   const eggs = item("Eggs")
   const batch: Array<EventPayload> = [
-    { event: "GroceryItemAdded", payload: milk },
-    { event: "GroceryItemAdded", payload: eggs },
+    { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(milk) },
+    { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(eggs) },
     {
-      event: "GroceryItemUpdated",
-      payload: new GroceryItem({ ...milk, name: "Oat milk" }),
+      event: GroceryItemEvent.tag,
+      payload: groceryItemUpdate(
+        new GroceryItem({ ...milk, name: "Oat milk" }),
+      ),
     },
-    { event: "GroceryItemDeleted", payload: { id: eggs.id } },
     {
-      event: "IngredientAisleSet",
-      payload: { name: "oat milk", aisle: "Dairy & Eggs" },
+      event: GroceryItemEvent.tag,
+      payload: GroceryItemEvent.remove(eggs.idString),
     },
-    { event: "IngredientAisleRemoved", payload: { name: "milk" } },
+    {
+      event: IngredientAisleEvent.tag,
+      payload: IngredientAisleEvent.set({
+        name: "oat milk",
+        aisle: "Dairy & Eggs",
+      }),
+    },
+    {
+      event: IngredientAisleEvent.tag,
+      payload: IngredientAisleEvent.remove("milk"),
+    },
   ]
 
   const result = await Effect.gen(function* () {
@@ -118,7 +134,7 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
       const entries = yield* journalEvents
       return {
         onDisk,
-        events: entries.map((entry) => entry.event),
+        events: entries.map((entry) => [entry.event, entry.primaryKey]),
         ids: entries.map((entry) => entry.idString),
         uploaded: yield* awaitUploads(remote, batch.length),
         items: (yield* readTable("groceryItems")).map((row) => row.name),
@@ -128,18 +144,18 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
 
   assert.deepEqual(result.onDisk, { entries: 6, groceryItems: 1 })
   assert.deepEqual(result.events, [
-    "GroceryItemAdded",
-    "GroceryItemAdded",
-    "GroceryItemUpdated",
-    "GroceryItemDeleted",
-    "IngredientAisleSet",
-    "IngredientAisleRemoved",
+    ["GroceryItem", milk.idString],
+    ["GroceryItem", eggs.idString],
+    ["GroceryItem", milk.idString],
+    ["GroceryItem", eggs.idString],
+    ["IngredientAisle", "oat milk"],
+    ["IngredientAisle", "milk"],
   ])
   assert.deepEqual(result.uploaded, result.ids)
   assert.deepEqual(result.items, ["Oat milk"])
 })
 
-// The delete handler fails, after the adds before it in the batch have run.
+// An item remove fails, after the sets before it in the batch have run.
 const failingDelete = Layer.effectDiscard(
   EventLog.Registry.use((registry) =>
     Effect.sync(() => {
@@ -147,10 +163,13 @@ const failingDelete = Layer.effectDiscard(
         string,
         EventLog.Handlers.Item<any>
       >
-      const handler = handlers.get("GroceryItemDeleted")!
-      handlers.set("GroceryItemDeleted", {
+      const handler = handlers.get(GroceryItemEvent.tag)!
+      handlers.set(GroceryItemEvent.tag, {
         ...handler,
-        handler: () => Effect.die("delete failed"),
+        handler: (options) =>
+          (options.payload as { readonly _tag: string })._tag === "remove"
+            ? Effect.die("delete failed")
+            : handler.handler(options),
       })
     }),
   ),
@@ -166,9 +185,12 @@ test("a handler failure leaves none of its batch written or uploaded", async () 
     return yield* Effect.gen(function* () {
       const failed = yield* Effect.exit(
         writeEvents([
-          { event: "GroceryItemAdded", payload: milk },
-          { event: "GroceryItemAdded", payload: eggs },
-          { event: "GroceryItemDeleted", payload: { id: milk.id } },
+          { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(milk) },
+          { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(eggs) },
+          {
+            event: GroceryItemEvent.tag,
+            payload: GroceryItemEvent.remove(milk.idString),
+          },
         ]),
       )
       const afterFailure = {
@@ -176,7 +198,9 @@ test("a handler failure leaves none of its batch written or uploaded", async () 
         entries: (yield* journalEvents).length,
       }
       // A later batch goes through, and is all the remote ever receives.
-      yield* writeEvents([{ event: "GroceryItemAdded", payload: bread }])
+      yield* writeEvents([
+        { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(bread) },
+      ])
       const uploaded = yield* awaitUploads(remote, 1)
       return {
         failed: Exit.isFailure(failed),

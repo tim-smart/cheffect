@@ -9,10 +9,17 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { MenusLayer } from "@/Menus"
-import { MenuEvents } from "@/Menus/Events"
-import { Menu, MenuIdFromString } from "@/domain/Menu"
-import { MenuDayNote, MenuDayNoteIdFromString } from "@/domain/MenuDayNote"
-import { MenuEntry, MenuEntryIdFromString } from "@/domain/MenuEntry"
+import {
+  MenuDayNoteEvent,
+  MenuEntryEvent,
+  MenuEvent,
+  MenuEvents,
+} from "@/Menus/Events"
+import { MenuRepo } from "@/Menus/Repo"
+import { RecipeRepo } from "@/Recipes/Repo"
+import { MenuIdFromString } from "@/domain/Menu"
+import { MenuDayNoteIdFromString } from "@/domain/MenuDayNote"
+import { MenuEntryIdFromString } from "@/domain/MenuEntry"
 import { RecipeIdFromString } from "@/domain/Recipe"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry } from "./harness/eventlog"
@@ -22,98 +29,70 @@ import {
   only,
   pick,
   readTable,
+  withoutCompaction,
 } from "./harness/convergence"
 
-// The Menus handlers converge whatever order remote entries arrive in.
-// `MenuRemove` is the one handler that writes beyond its own row: it deletes
-// the menu's entries and notes through the `menuId` index. A `MenuUpdate`
-// that shrinks `days` is a plain patch; its writer emits removes for the
-// entries and notes it can see past the new last day.
+// A removed menu stays as a marker. Entries and notes are separate rows, so
+// their writes never conflict with the menu's remove: their handlers skip a
+// write when the menu is marked removed and apply it when the menu hasn't
+// arrived, and the remove deletes whatever the menu has by then.
 //
-// The first add of a row is delivered before the permuted entries: nothing
-// can move or remove a row its device hasn't received. No recipe is ever
-// delivered, because handlers only touch their own tables.
+// Shrinking a menu is a plain patch of `days` and deletes nothing itself: its
+// writer removes the entries and notes it saw on the dropped days.
+//
+// Each order is replayed as a compacted batch, an uncompacted batch and one
+// entry at a time. Compaction drops the winter `set` the remove shadows, so
+// the remove can arrive for a menu that was never stored.
 
-const {
-  MenuAdd,
-  MenuUpdate,
-  MenuRemove,
-  MenuEntryAdd,
-  MenuEntrySetDay,
-  MenuDayNoteAdd,
-  MenuDayNoteUpdate,
-} = MenuEvents.events
+const menu = MenuEvents.events[MenuEvent.tag]
+const menuEntry = MenuEvents.events[MenuEntryEvent.tag]
+const menuDayNote = MenuEvents.events[MenuDayNoteEvent.tag]
 
 const recipeId = Schema.decodeSync(RecipeIdFromString)(
   "0193c7a0-1b2c-4def-8123-456789abcdef",
 )
-
 const winter = Schema.decodeSync(MenuIdFromString)(
   "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
 )
 const summer = Schema.decodeSync(MenuIdFromString)(
   "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f0",
 )
-type MenuId = typeof winter
-
 const soup = Schema.decodeSync(MenuEntryIdFromString)(
   "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f7",
-)
-const stew = Schema.decodeSync(MenuEntryIdFromString)(
-  "0193c7a0-1b2c-4def-8123-a1b2c3d4e5e1",
 )
 const salad = Schema.decodeSync(MenuEntryIdFromString)(
   "0193c7a0-1b2c-4def-8123-a1b2c3d4e5e2",
 )
-type EntryId = typeof soup
-
-const firstNote = Schema.decodeSync(MenuDayNoteIdFromString)(
+const stew = Schema.decodeSync(MenuEntryIdFromString)(
+  "0193c7a0-1b2c-4def-8123-a1b2c3d4e5e1",
+)
+const note = Schema.decodeSync(MenuDayNoteIdFromString)(
   "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8",
 )
-const secondNote = Schema.decodeSync(MenuDayNoteIdFromString)(
-  "0193c7a0-1b2c-4def-8123-a1b2c3d4e5d1",
-)
-const lateNote = Schema.decodeSync(MenuDayNoteIdFromString)(
-  "0193c7a0-1b2c-4def-8123-a1b2c3d4e5d2",
-)
-type NoteId = typeof firstNote
 
-const menuAdded = (id: MenuId, name: string) =>
+const menuSet = (msecs: number, id: typeof winter, name: string) =>
   makeEntry({
-    msecs: 1000,
-    event: MenuAdd,
-    payload: Menu.insert.make({
+    msecs,
+    event: menu,
+    payload: MenuEvent.set({
       id,
       name,
       days: 7,
-      createdAt: DateTime.makeUnsafe(1000),
-      updatedAt: DateTime.makeUnsafe(1000),
-    }),
-  })
-
-const menuUpdated = (
-  msecs: number,
-  id: MenuId,
-  fields: { readonly name: string; readonly days: number },
-) =>
-  makeEntry({
-    msecs,
-    event: MenuUpdate,
-    payload: Menu.update.make({
-      id,
-      ...fields,
+      createdAt: DateTime.makeUnsafe(msecs),
       updatedAt: DateTime.makeUnsafe(msecs),
     }),
   })
 
-const menuRemoved = (msecs: number, id: MenuId) =>
-  makeEntry({ msecs, event: MenuRemove, payload: { id } })
-
-const added = (msecs: number, id: EntryId, menuId: MenuId, day: number) =>
+const entrySet = (
+  msecs: number,
+  id: typeof soup,
+  menuId: typeof winter,
+  day: number,
+) =>
   makeEntry({
     msecs,
-    event: MenuEntryAdd,
-    payload: MenuEntry.insert.make({
+    event: menuEntry,
+    payload: MenuEntryEvent.set({
       id,
       menuId,
       recipeId,
@@ -123,154 +102,133 @@ const added = (msecs: number, id: EntryId, menuId: MenuId, day: number) =>
     }),
   })
 
-const moved = (msecs: number, id: EntryId, day: number) =>
-  makeEntry({
-    msecs,
-    event: MenuEntrySetDay,
-    payload: { id, day, updatedAt: DateTime.makeUnsafe(msecs) },
-  })
-
-const noteAdded = (
-  msecs: number,
-  id: NoteId,
-  menuId: MenuId,
-  day: number,
-  note: string,
-) =>
-  makeEntry({
-    msecs,
-    event: MenuDayNoteAdd,
-    payload: MenuDayNote.insert.make({
-      id,
-      menuId,
-      day,
-      note,
-      createdAt: DateTime.makeUnsafe(msecs),
-      updatedAt: DateTime.makeUnsafe(msecs),
-    }),
-  })
-
-const noteUpdated = (msecs: number, id: NoteId, day: number, note: string) =>
-  makeEntry({
-    msecs,
-    event: MenuDayNoteUpdate,
-    payload: MenuDayNote.update.make({
-      id,
-      day,
-      note,
-      updatedAt: DateTime.makeUnsafe(msecs),
-    }),
-  })
-
-const makeLayer: MakeLayer = (identity, remote) => {
-  const eventLog = EventLog.layer(EventLog.schema(MenuEvents), MenusLayer).pipe(
-    Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
-    Layer.provide(Layer.succeed(EventLog.Identity, identity)),
-  )
-  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
-    Layer.provideMerge(QueryBuilder.layer),
-    Layer.provideMerge(layerDatabase),
-    Layer.provideMerge(Reactivity.layer),
-    Layer.provideMerge(layerFreshIndexedDb),
-  )
-}
+const makeLayer =
+  (handlers: typeof MenusLayer): MakeLayer<MenuRepo> =>
+  (identity, remote) => {
+    const eventLog = EventLog.layer(EventLog.schema(MenuEvents), handlers).pipe(
+      Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
+      Layer.provide(Layer.succeed(EventLog.Identity, identity)),
+    )
+    return Layer.mergeAll(
+      eventLog,
+      remote.pipe(Layer.provide(eventLog)),
+      MenuRepo.layer.pipe(Layer.provide(RecipeRepo.layer)),
+    ).pipe(
+      Layer.provideMerge(QueryBuilder.layer),
+      Layer.provideMerge(layerDatabase),
+      Layer.provideMerge(Reactivity.layer),
+      Layer.provideMerge(layerFreshIndexedDb),
+    )
+  }
 
 const read = Effect.gen(function* () {
+  const repo = yield* MenuRepo
   return {
     menus: yield* readTable("menus"),
     menuEntries: yield* readTable("menuEntries"),
     menuDayNotes: yield* readTable("menuDayNotes"),
+    shown: (yield* repo.all).map((menu) => ({
+      id: menu.idString,
+      name: menu.name,
+      days: menu.days,
+    })),
   }
 })
 
-// A day note Add on a row that exists merges under last-writer-wins, unlike
-// other creates, so two devices importing the same file still agree.
-test("a re-added menu day note merges with concurrent updates under last-writer-wins", async () => {
-  const { menuDayNotes } = await converge({
-    layer: makeLayer,
-    read,
-    setup: [
-      menuAdded(winter, "Winter warmers"),
-      noteAdded(1000, firstNote, winter, 1, "Leftovers"),
-      noteAdded(1000, secondNote, winter, 5, "Takeaway"),
-    ],
-    concurrent: [
-      // A newer add of an existing note writes its fields...
-      noteUpdated(2000, firstNote, 1, "Pizza"),
-      noteAdded(3000, firstNote, winter, 2, "Tacos"),
-      // ...and an older one loses to a newer update.
-      noteAdded(2500, secondNote, winter, 5, "Fish and chips"),
-      noteUpdated(3500, secondNote, 4, "Curry"),
-    ],
-  })
-  assert.deepEqual(
-    menuDayNotes
-      .map((row) => pick(row, ["id", "day", "note"]))
-      .sort((a, b) => Number(a.day) - Number(b.day)),
-    [
-      { id: firstNote, day: 2, note: "Tacos" },
-      { id: secondNote, day: 4, note: "Curry" },
-    ],
-  )
-})
-
-test("removing a menu removes its entries and notes, with writes to them either side of the remove", async () => {
+test("a removed menu ends without entries or notes, whatever writes reach it and in whatever order", async () => {
   const state = await converge({
-    layer: makeLayer,
+    layer: makeLayer(MenusLayer),
+    uncompacted: makeLayer(withoutCompaction(MenusLayer)),
     read,
-    setup: [
-      menuAdded(winter, "Winter warmers"),
-      menuAdded(summer, "Summer"),
-      added(1000, soup, winter, 1),
-      added(1000, salad, summer, 1),
-      noteAdded(1000, firstNote, winter, 1, "Leftovers"),
-      noteAdded(1000, secondNote, summer, 2, "Barbecue"),
-    ],
+    // Summer and its entry are never removed.
+    setup: [menuSet(1000, summer, "Summer"), entrySet(1000, salad, summer, 3)],
     concurrent: [
-      moved(2000, soup, 2),
-      noteUpdated(2500, firstNote, 1, "Pizza"),
-      menuRemoved(3000, winter),
-      // An update from a device that hadn't seen the remove yet can't bring
-      // the menu back.
-      menuUpdated(4000, winter, { name: "Winter", days: 7 }),
-      moved(2500, salad, 3),
+      menuSet(1000, winter, "Winter warmers"),
+      entrySet(1500, soup, winter, 1),
+      makeEntry({
+        msecs: 3000,
+        event: menu,
+        payload: MenuEvent.remove(MenuEvent.keyOf({ id: winter })),
+      }),
+      // From devices that hadn't seen the remove yet.
+      makeEntry({
+        msecs: 3500,
+        event: menuDayNote,
+        payload: MenuDayNoteEvent.set({
+          id: note,
+          menuId: winter,
+          day: 1,
+          note: "Leftovers",
+          createdAt: DateTime.makeUnsafe(3500),
+          updatedAt: DateTime.makeUnsafe(3500),
+        }),
+      }),
+      makeEntry({
+        msecs: 4000,
+        event: menu,
+        payload: MenuEvent.patch(MenuEvent.keyOf({ id: winter }), {
+          name: "Winter",
+          updatedAt: DateTime.makeUnsafe(4000),
+        }),
+      }),
     ],
   })
-  assert.deepEqual(pick(only(state.menus), ["id", "name"]), {
-    id: summer,
-    name: "Summer",
-  })
+  assert.deepEqual(state.shown, [
+    { id: "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f0", name: "Summer", days: 7 },
+  ])
   assert.deepEqual(pick(only(state.menuEntries), ["id", "day"]), {
     id: salad,
     day: 3,
   })
-  assert.deepEqual(pick(only(state.menuDayNotes), ["id", "note"]), {
-    id: secondNote,
-    note: "Barbecue",
-  })
+  assert.deepEqual(state.menuDayNotes, [])
 })
 
-// A shrink is a plain update and deletes nothing itself, so a row its writer
-// never saw survives on a dropped day, where reads don't show it.
+// A row its writer never saw survives on a dropped day, where reads don't
+// show it.
 test("an entry or note added on a dropped day concurrently with the shrink stays there", async () => {
   const state = await converge({
-    layer: makeLayer,
+    layer: makeLayer(MenusLayer),
+    uncompacted: makeLayer(withoutCompaction(MenusLayer)),
     read,
-    setup: [menuAdded(winter, "Winter warmers")],
+    setup: [menuSet(1000, winter, "Winter warmers")],
     concurrent: [
-      menuUpdated(2000, winter, { name: "Winter warmers", days: 5 }),
+      makeEntry({
+        msecs: 2000,
+        event: menu,
+        payload: MenuEvent.patch(MenuEvent.keyOf({ id: winter }), {
+          days: 5,
+          updatedAt: DateTime.makeUnsafe(2000),
+        }),
+      }),
       // Older and newer than the shrink: neither is deleted.
-      added(1500, stew, winter, 6),
-      noteAdded(2500, lateNote, winter, 7, "Curry"),
+      entrySet(1500, stew, winter, 6),
+      makeEntry({
+        msecs: 2500,
+        event: menuDayNote,
+        payload: MenuDayNoteEvent.set({
+          id: note,
+          menuId: winter,
+          day: 7,
+          note: "Curry",
+          createdAt: DateTime.makeUnsafe(2500),
+          updatedAt: DateTime.makeUnsafe(2500),
+        }),
+      }),
     ],
   })
-  assert.deepEqual(pick(only(state.menus), ["days"]), { days: 5 })
+  assert.deepEqual(state.shown, [
+    {
+      id: "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
+      name: "Winter warmers",
+      days: 5,
+    },
+  ])
   assert.deepEqual(pick(only(state.menuEntries), ["id", "day"]), {
     id: stew,
     day: 6,
   })
   assert.deepEqual(pick(only(state.menuDayNotes), ["id", "day", "note"]), {
-    id: lateNote,
+    id: note,
     day: 7,
     note: "Curry",
   })

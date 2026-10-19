@@ -10,7 +10,13 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { RecipesLayer } from "@/Recipes"
-import { RecipeEvents } from "@/Recipes/Events"
+import {
+  RecipeEvent,
+  RecipeEvents,
+  recipeDeleted,
+  recipeIngredientScale,
+  recipeUpdate,
+} from "@/Recipes/Events"
 import {
   Ingredient,
   IngredientsComponent,
@@ -26,23 +32,19 @@ import {
   only,
   pick,
   readTable,
+  withoutCompaction,
 } from "./harness/convergence"
 
 // The Recipes handlers converge whatever order remote entries arrive in:
-// fields merge under last-writer-wins on entry time, and soft delete is just
-// the `deletedAt` field under the same rule.
+// patched fields merge with the newest entry winning, and soft delete is just
+// a patch of `deletedAt` under the same rule.
 //
-// A `RecipeCreated` is delivered before the permuted entries, not among them.
-// An update does nothing when the row is missing, and nothing
-// can edit a recipe its device hasn't received, so the server sequence always
-// puts the create first.
+// The recipe's `set` is delivered before the permuted entries, not among
+// them. A patch does nothing when the row is missing, and nothing can edit a
+// recipe its device hasn't received, so the server sequence always puts the
+// set first. Each order is also replayed uncompacted and one entry at a time.
 
-const {
-  RecipeCreated,
-  RecipeUpdated,
-  RecipeSetIngredientScale,
-  RecipeDeleted,
-} = RecipeEvents.events
+const recipeEvent = RecipeEvents.events[RecipeEvent.tag]
 
 const recipeId = Schema.decodeSync(RecipeIdFromString)(
   "0193c7a0-1b2c-4def-8123-456789abcdef",
@@ -71,16 +73,19 @@ const soup = {
 
 const created = makeEntry({
   msecs: 1000,
-  event: RecipeCreated,
-  payload: Recipe.insert.make({
-    ...soup,
-    id: recipeId,
-    rating: null,
-    sourceUrl: null,
-    createdAt: at(1000),
-    updatedAt: at(1000),
-    deletedAt: null,
-  }),
+  event: recipeEvent,
+  payload: RecipeEvent.set(
+    Recipe.make({
+      ...soup,
+      id: recipeId,
+      ingredientScale: 1,
+      rating: null,
+      sourceUrl: null,
+      createdAt: at(1000),
+      updatedAt: at(1000),
+      deletedAt: null,
+    }),
+  ),
 })
 
 // A whole-form save, as the edit route writes it.
@@ -90,47 +95,56 @@ const updated = (
 ) =>
   makeEntry({
     msecs,
-    event: RecipeUpdated,
-    payload: Recipe.update.make({
-      ...soup,
-      id: recipeId,
-      rating: null,
-      sourceUrl: null,
-      ingredientScale: 1,
-      updatedAt: at(msecs),
-      deletedAt: null,
-      ...fields,
-    }),
+    event: recipeEvent,
+    payload: recipeUpdate(
+      Recipe.update.make({
+        ...soup,
+        id: recipeId,
+        rating: null,
+        sourceUrl: null,
+        ingredientScale: 1,
+        updatedAt: at(msecs),
+        deletedAt: null,
+        ...fields,
+      }),
+    ),
   })
 
 const scaled = (msecs: number, ingredientScale: number) =>
   makeEntry({
     msecs,
-    event: RecipeSetIngredientScale,
-    payload: { id: recipeId, ingredientScale, updatedAt: at(msecs) },
+    event: recipeEvent,
+    payload: recipeIngredientScale(recipeId, ingredientScale, at(msecs)),
   })
 
 const deleted = (msecs: number) =>
   makeEntry({
     msecs,
-    event: RecipeDeleted,
-    payload: { id: recipeId, deletedAt: at(msecs) },
+    event: recipeEvent,
+    payload: recipeDeleted(recipeId, at(msecs)),
   })
 
-const makeLayer: MakeLayer = (identity, remote) => {
-  const eventLog = EventLog.layer(
-    EventLog.schema(RecipeEvents),
-    RecipesLayer,
-  ).pipe(
-    Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
-    Layer.provide(Layer.succeed(EventLog.Identity, identity)),
-  )
-  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
-    Layer.provideMerge(QueryBuilder.layer),
-    Layer.provideMerge(layerDatabase),
-    Layer.provideMerge(Reactivity.layer),
-    Layer.provideMerge(layerFreshIndexedDb),
-  )
+const makeLayer =
+  (handlers: typeof RecipesLayer): MakeLayer =>
+  (identity, remote) => {
+    const eventLog = EventLog.layer(
+      EventLog.schema(RecipeEvents),
+      handlers,
+    ).pipe(
+      Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
+      Layer.provide(Layer.succeed(EventLog.Identity, identity)),
+    )
+    return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+      Layer.provideMerge(QueryBuilder.layer),
+      Layer.provideMerge(layerDatabase),
+      Layer.provideMerge(Reactivity.layer),
+      Layer.provideMerge(layerFreshIndexedDb),
+    )
+  }
+
+const layers = {
+  layer: makeLayer(RecipesLayer),
+  uncompacted: makeLayer(withoutCompaction(RecipesLayer)),
 }
 
 const read = Effect.map(readTable("recipes"), (recipes) => ({ recipes }))
@@ -145,23 +159,25 @@ test("a local whole-Recipe update preserves createdAt", async () => {
       // The edit form supplies a whole Recipe, including a new createdAt.
       yield* log.write({
         schema: EventLog.schema(RecipeEvents),
-        event: "RecipeUpdated",
-        payload: new Recipe({
-          ...soup,
-          id: recipeId,
-          title: "Carrot soup",
-          rating: null,
-          sourceUrl: null,
-          ingredientScale: 2,
-          createdAt: at(2000),
-          updatedAt: at(2000),
-          deletedAt: null,
-        }),
+        event: RecipeEvent.tag,
+        payload: recipeUpdate(
+          new Recipe({
+            ...soup,
+            id: recipeId,
+            title: "Carrot soup",
+            rating: null,
+            sourceUrl: null,
+            ingredientScale: 2,
+            createdAt: at(2000),
+            updatedAt: at(2000),
+            deletedAt: null,
+          }),
+        ),
       })
       return yield* read
     }).pipe(
       Effect.timeout("5 seconds"),
-      Effect.provide(makeLayer(identity, remote.layer)),
+      Effect.provide(makeLayer(RecipesLayer)(identity, remote.layer)),
     )
   }).pipe(Effect.runPromise)
   assert.deepEqual(
@@ -177,14 +193,14 @@ test("a local whole-Recipe update preserves createdAt", async () => {
 
 test("on the same recipe field the newest entry wins, not the newest updatedAt", async () => {
   const { recipes } = await converge({
-    layer: makeLayer,
+    ...layers,
     read,
     setup: [created],
     concurrent: [
       // A device with its clock ahead: its updatedAt is not what decides.
       updated(2000, { title: "Carrot soup", updatedAt: at(9000) }),
       scaled(2500, 3),
-      // A whole-form save stamps every field, ingredientScale included.
+      // A whole-form save writes every field, ingredientScale included.
       updated(3000, { title: "Leek soup" }),
     ],
   })
@@ -196,7 +212,7 @@ test("on the same recipe field the newest entry wins, not the newest updatedAt",
 
 test("a recipe delete newer than an edit keeps the recipe deleted, with the edit applied", async () => {
   const { recipes } = await converge({
-    layer: makeLayer,
+    ...layers,
     read,
     setup: [created],
     concurrent: [updated(2000, { title: "Carrot soup" }), deleted(3000)],
