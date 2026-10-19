@@ -121,7 +121,7 @@ function ModalContent({
     initial: "instant",
     resize: "smooth",
   })
-  const viewport = useVisualViewport()
+  const viewport = useVisualViewport(open)
   const [maximized, setMaximized] = useState(false)
   useEffect(() => {
     setTimeout(scrollToBottom, 10)
@@ -136,7 +136,9 @@ function ModalContent({
         className={cn(
           "flex flex-col fixed z-50 bg-background shadow-2xl inset-x-0 overscroll-none",
           viewport.obstructed
-            ? "top-(--chat-top) h-(--chat-height) pt-[env(safe-area-inset-top)]"
+            ? // paint the sheet below the visible area too, so the page
+              // doesn't show between it and the keyboard's accessory bar
+              "top-(--chat-top) h-(--chat-height) pt-[env(safe-area-inset-top)] after:absolute after:inset-x-0 after:top-full after:h-screen after:bg-background after:pointer-events-none chat-panel:after:hidden"
             : "top-[calc(env(safe-area-inset-top)+0.5rem)] bottom-0 rounded-t-2xl",
           "chat-panel:inset-auto chat-panel:right-4 chat-panel:floating-b chat-panel:rounded-2xl chat-panel:pt-0",
           maximized
@@ -198,7 +200,11 @@ function ModalContent({
           />
         </div>
         {/* Input */}
-        <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
+        <PromptInput
+          onSubmit={scrollToBottom}
+          inputRef={inputRef}
+          viewportObstructed={viewport.obstructed}
+        />
       </div>
     </>
   )
@@ -328,9 +334,11 @@ const inputAtom = Atom.make("").pipe(Atom.setIdleTTL(0))
 function PromptInput({
   inputRef,
   onSubmit,
+  viewportObstructed,
 }: {
   readonly onSubmit: () => void
   readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
+  readonly viewportObstructed: boolean
 }) {
   const [input, setInput] = useAtom(inputAtom)
   const inputTrim = input.trim()
@@ -357,8 +365,6 @@ function PromptInput({
   const isLoading = useAtomValue(sendAtom, AsyncResult.isWaiting)
 
   const clear = useAtomSet(clearAtom)
-
-  const viewportObstructed = useVisualViewport().obstructed
 
   return (
     <form

@@ -13,23 +13,26 @@ export interface VisualViewport {
  * The part of the page that is visible. iOS doesn't resize the page for the
  * keyboard: it shrinks the visual viewport and pans it down the page, so
  * fixed elements have to follow both its size and its offset.
+ *
+ * With `watch`, it is also read every frame, as the iOS simulator showed the
+ * keyboard opening without the page catching up until the user scrolled.
  */
-export const useVisualViewport = (): VisualViewport => {
+export const useVisualViewport = (watch = false): VisualViewport => {
   const [value, setValue] = useState(getVisualViewport)
+  const update = () => {
+    setValue((prev) => {
+      const next = getVisualViewport()
+      return prev.top === next.top &&
+        prev.height === next.height &&
+        prev.obstructed === next.obstructed
+        ? prev
+        : next
+    })
+  }
 
   useLayoutEffect(() => {
     const viewport = window.visualViewport
     if (!viewport) return
-    const update = () => {
-      setValue((prev) => {
-        const next = getVisualViewport()
-        return prev.top === next.top &&
-          prev.height === next.height &&
-          prev.obstructed === next.obstructed
-          ? prev
-          : next
-      })
-    }
     update()
     viewport.addEventListener("resize", update)
     viewport.addEventListener("scroll", update)
@@ -38,6 +41,15 @@ export const useVisualViewport = (): VisualViewport => {
       viewport.removeEventListener("scroll", update)
     }
   }, [])
+
+  useLayoutEffect(() => {
+    if (!watch) return
+    let frame = requestAnimationFrame(function poll() {
+      update()
+      frame = requestAnimationFrame(poll)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [watch])
 
   return value
 }
