@@ -99,12 +99,20 @@ test("an export imports on another device as the same rows", async () => {
   const { exported, exporter } = await run(
     Effect.gen(function* () {
       yield* importAll(v1File)
+      yield* writeEvent({
+        event: RecipeEvent.tag,
+        payload: RecipeEvent.patch("0193c7a0-1b2c-4def-8123-456789abcdef", {
+          ingredientScale: 2.5,
+        }),
+      })
       const exported = Schema.encodeSync(ExportFileJson)(yield* exportAll)
       return { exported, exporter: yield* snapshot }
     }),
   )
   assert.equal(JSON.parse(exported).version, 2)
+  assert.equal(exporter.recipes[0].ingredientScale, 2.5)
   const importer = await run(importAll(exported).pipe(Effect.andThen(snapshot)))
+  assert.equal(importer.recipes[0].ingredientScale, 2.5)
   assert.deepStrictEqual(importer, exporter)
 })
 
