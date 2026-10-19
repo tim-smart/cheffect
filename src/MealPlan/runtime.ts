@@ -6,6 +6,7 @@ import { writeEvent } from "@/EventLog"
 import { uuidString } from "@/lib/Id"
 import { recipesRuntime } from "@/Recipes/runtime"
 import { MealPlanRepo, type PlannedEntry } from "./Repo"
+import { MealPlanEntryEvent, MealPlanDayNoteEvent } from "@/MealPlan/Events"
 
 // The repo shares the recipes runtime, so the join reads the same recipes
 // snapshot and handler writes reload both.
@@ -13,12 +14,10 @@ export const mealPlanRuntime = Atom.runtime((get) =>
   MealPlanRepo.layer.pipe(Layer.provideMerge(get(recipesRuntime.layer))),
 ).pipe(Atom.keepAlive)
 
-// Writes entries and notes as new add entries. Ones that already exist are
-// left alone, so importing the same file twice changes nothing. A note add
-// would merge as the newest write, so existing notes are skipped here rather
-// than reverted to the file's text.
-// A device that has not synced the original row can still emit another Add.
-// With hard deletes, this is not a general delete-wins fix for snapshot imports.
+// Writes entries and notes as new `set` entries. A `set` replaces the whole
+// row, so ones that already exist here are skipped rather than reverted to the
+// file's text, and importing the same file twice changes nothing. A device
+// that has not synced the original row can still write it again.
 export const importMealPlanAtom = mealPlanRuntime.fn<{
   readonly entries: ReadonlyArray<PlannedEntry>
   readonly notes: ReadonlyArray<MealPlanDayNote>
@@ -36,11 +35,17 @@ export const importMealPlanAtom = mealPlanRuntime.fn<{
     )
     for (const entry of entries) {
       if (existingEntries.has(uuidString(entry.id))) continue
-      yield* writeEvent({ event: "MealPlanAdd", payload: entry })
+      yield* writeEvent({
+        event: MealPlanEntryEvent.tag,
+        payload: MealPlanEntryEvent.set(entry),
+      })
     }
     for (const note of notes) {
       if (existing.has(note.idString)) continue
-      yield* writeEvent({ event: "MealPlanDayNoteAdd", payload: note })
+      yield* writeEvent({
+        event: MealPlanDayNoteEvent.tag,
+        payload: MealPlanDayNoteEvent.set(note),
+      })
     }
   }),
 )

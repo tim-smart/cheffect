@@ -23,7 +23,7 @@ import type { MenuDetail } from "@/Menus/Repo"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { useWrite } from "@/EventLog"
-import { Menu } from "@/domain/Menu"
+import { Menu, type MenuId } from "@/domain/Menu"
 import * as DateTime from "effect/DateTime"
 import {
   MealPlanDatePicker,
@@ -45,6 +45,13 @@ import {
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
+import {
+  MenuEvent,
+  MenuEntryEvent,
+  MenuDayNoteEvent,
+  menuEntryDay,
+  menuDayNoteUpdate,
+} from "@/Menus/Events"
 
 export const Route = createFileRoute("/menus/$id")({
   component: MenuDetailPage,
@@ -124,7 +131,10 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
                       return
                     }
                     router.navigate({ to: "/menus" })
-                    write({ event: "MenuRemove", payload: { id: menu.id } })
+                    write({
+                      event: MenuEvent.tag,
+                      payload: MenuEvent.remove({ id: menu.id }),
+                    })
                   }}
                 >
                   <Trash />
@@ -150,12 +160,12 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
             const entry = entries.find((e) => e.idString === active.id)
             if (!entry || entry.day === targetDay) return
             write({
-              event: "MenuEntrySetDay",
-              payload: {
-                id: entry.id,
-                day: targetDay,
-                updatedAt: DateTime.nowUnsafe(),
-              },
+              event: MenuEntryEvent.tag,
+              payload: menuEntryDay(
+                { id: entry.id, menuId: menu.id },
+                targetDay,
+                DateTime.nowUnsafe(),
+              ),
             })
           }}
         >
@@ -237,7 +247,13 @@ function DayListItem({
     const trimmed = noteDraft.trim()
     if (trimmed.length === 0) {
       if (dayNote) {
-        write({ event: "MenuDayNoteRemove", payload: { id: dayNote.id } })
+        write({
+          event: MenuDayNoteEvent.tag,
+          payload: MenuDayNoteEvent.remove({
+            id: dayNote.id,
+            menuId: menu.id,
+          }),
+        })
       }
       return
     }
@@ -245,23 +261,25 @@ function DayListItem({
     if (dayNote) {
       if (trimmed === dayNote.note) return
       write({
-        event: "MenuDayNoteUpdate",
-        payload: {
+        event: MenuDayNoteEvent.tag,
+        payload: menuDayNoteUpdate(menu.id, {
           ...dayNote,
           note: trimmed,
           updatedAt: DateTime.nowUnsafe(),
-        },
+        }),
       })
       return
     }
 
     write({
-      event: "MenuDayNoteAdd",
-      payload: MenuDayNote.fromForm({
-        menuId: menu.id,
-        day,
-        note: trimmed,
-      }),
+      event: MenuDayNoteEvent.tag,
+      payload: MenuDayNoteEvent.set(
+        MenuDayNote.fromForm({
+          menuId: menu.id,
+          day,
+          note: trimmed,
+        }),
+      ),
     })
   }
 
@@ -295,12 +313,14 @@ function DayListItem({
           <SelectRecipeDrawer
             onSelect={(recipe) => {
               write({
-                event: "MenuEntryAdd",
-                payload: MenuEntry.fromForm({
-                  menuId: menu.id,
-                  recipeId: recipe.id,
-                  day,
-                }),
+                event: MenuEntryEvent.tag,
+                payload: MenuEntryEvent.set(
+                  MenuEntry.fromForm({
+                    menuId: menu.id,
+                    recipeId: recipe.id,
+                    day,
+                  }),
+                ),
               })
             }}
           >
@@ -326,7 +346,11 @@ function DayListItem({
         {dayEntries.length > 0 && (
           <div className="divide-y divide-border">
             {dayEntries.map((entry) => (
-              <DayEntryItem key={entry.idString} entry={entry} />
+              <DayEntryItem
+                key={entry.idString}
+                menuId={menu.id}
+                entry={entry}
+              />
             ))}
           </div>
         )}
@@ -343,7 +367,7 @@ function DayListItem({
   )
 }
 
-function DayEntryItem({ entry }: { entry: MenuEntry }) {
+function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
   const { id, recipe } = entry
   const write = useWrite()
 
@@ -434,7 +458,10 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
           size="sm"
           onClick={(e) => {
             e.preventDefault()
-            write({ event: "MenuEntryRemove", payload: { id } })
+            write({
+              event: MenuEntryEvent.tag,
+              payload: MenuEntryEvent.remove({ id, menuId }),
+            })
           }}
           className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600"
         >

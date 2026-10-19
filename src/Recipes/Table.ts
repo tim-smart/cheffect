@@ -1,12 +1,8 @@
-import * as Schema from "effect/Schema"
 import * as IndexedDbTable from "@effect/platform-browser/IndexedDbTable"
-import { Recipe, RecipeEdit } from "@/domain/Recipe"
+import { RecipeEditEvent, RecipeEvent } from "./Events"
 
-// Rows are the domain fields plus the hidden last-writer-wins stamps. The
-// repo strips `_lww` when it decodes a row into the domain model.
-const Lww = Schema.Record(Schema.String, Schema.String)
-
-export const RecipeRow = Schema.Struct({ ...Recipe.fields, _lww: Lww })
+// Rows are stored as their events write them.
+export const RecipeRow = RecipeEvent.schema
 export type RecipeRow = typeof RecipeRow.Type
 
 export class RecipesTable extends IndexedDbTable.make({
@@ -15,13 +11,8 @@ export class RecipesTable extends IndexedDbTable.make({
   keyPath: "id",
 }) {}
 
-// Recipe edits are keyed by recipe id, a reusable key, so a remove keeps the
-// row as a tombstone (`deleted: 1`) and reads skip it.
-export const RecipeEditRow = Schema.Struct({
-  ...RecipeEdit.fields,
-  deleted: Schema.Literals([0, 1]),
-  _lww: Lww,
-})
+// Keyed by recipe id.
+export const RecipeEditRow = RecipeEditEvent.schema
 export type RecipeEditRow = typeof RecipeEditRow.Type
 
 export class RecipeEditsTable extends IndexedDbTable.make({

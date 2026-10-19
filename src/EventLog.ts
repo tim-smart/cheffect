@@ -83,11 +83,13 @@ export type EventPayload =
 // The journal database is named explicitly because its name is also the Web
 // Lock prefix, and the durability barrier opens it by name. `CurrentStoreId`
 // goes to the sync server in plaintext, so it is a fixed value and never the
-// identity.
+// identity. Both are new for rows: the events before them can't be read as
+// rows, so that store isn't synced any more. Its data moves over as an export
+// from the old build imported into this one.
 
-export const journalDatabaseName = "cheffect_events"
+export const journalDatabaseName = "cheffect_journal"
 
-export const storeId: StoreId = StoreId.make("default")
+export const storeId: StoreId = StoreId.make("rows")
 
 // Identity, server URL and Enable Sync
 //

@@ -28,10 +28,10 @@ import {
 } from "@/EventLog"
 import { QueryBuilder, databaseName, layerDatabase } from "@/IndexedDb"
 import { RecipesLayer } from "@/Recipes"
-import { RecipeEvents } from "@/Recipes/Events"
+import { RecipeEvent, RecipeEvents } from "@/Recipes/Events"
 import { RecipeIdFromString } from "@/domain/Recipe"
 import { join, makeShareLink, parseJoinInput } from "@/Sync/Join"
-import { eventSamples } from "./fixtures/event-samples"
+import { sampleRecipe } from "./fixtures/event-samples"
 import { testIdentity } from "./harness/eventlog"
 import { countRecords } from "./harness/indexeddb"
 
@@ -47,10 +47,6 @@ const mealPlanWeekStartCacheKey = "setting:mealPlanWeekStart"
 
 const oldServerUrl = "wss://old.example.com/sync"
 const newServerUrl = "wss://new.example.com/sync"
-
-const recipeCreated = eventSamples.find(
-  (sample) => sample.event === "RecipeCreated",
-)!
 
 const CheffectRecipes = EventLog.schema(RecipeEvents)
 
@@ -332,8 +328,8 @@ const runJoin = (options: {
     )
     yield* Context.get(context, EventLog.EventLog).write({
       schema: CheffectRecipes,
-      event: "RecipeCreated",
-      payload: recipeCreated.payload as any,
+      event: RecipeEvent.tag,
+      payload: RecipeEvent.set(sampleRecipe),
     })
 
     const before = yield* readState(factory, kvs)
@@ -347,8 +343,8 @@ const runJoin = (options: {
         Context.get(context, EventLog.EventLog)
           .write({
             schema: CheffectRecipes,
-            event: "RecipeCreated",
-            payload: { ...recipeCreated.payload, id: lateRecipeId } as any,
+            event: RecipeEvent.tag,
+            payload: RecipeEvent.set({ ...sampleRecipe, id: lateRecipeId }),
           })
           .pipe(Effect.ignore),
       )

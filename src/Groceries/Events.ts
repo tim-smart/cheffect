@@ -1,63 +1,65 @@
 import * as Schema from "effect/Schema"
 import * as EventGroup from "effect/eventlog/EventGroup"
+import * as EventRow from "effect/eventlog/EventRow"
 import {
-  groceryAisleOrderKey,
   GroceryAisleOrder,
+  groceryAisleOrderKey,
 } from "@/domain/GroceryAisleOrder"
-import {
-  GroceryItem,
-  GroceryItemId,
-  normalizeIngredientName,
-} from "@/domain/GroceryItem"
+import { GroceryItem, normalizeIngredientName } from "@/domain/GroceryItem"
 import { IngredientAisle } from "@/domain/IngredientAisle"
-import { uuidString } from "@/lib/Id"
+import { uuidKey } from "@/lib/Id"
 
-// Tags are permanent wire names. A breaking payload change gets a new tag and
-// the old handler stays. Adding or updating an item no longer writes aisles:
-// the writer emits `IngredientAisleSet` and `IngredientAisleRemoved` itself,
-// so `GroceryItemUpdated` drops `previousName` and `userInitiated`.
-// `v1.GroceryItemCleared` and `v1.GroceryItemClearedCompleted` are dropped
-// for `GroceryItemsDeleted`, which carries the ids the writer saw.
+// Tags are permanent wire names. Every stored entry is decoded again with the
+// current row schema, so a field may only be added with a decoding default,
+// or removed. `GroceryAisle` is a literal union: adding an aisle needs every
+// client updated first.
+//
+// Writing an item never touches the aisles: the writer sets and removes the
+// learned aisle itself. Clearing a list removes each item the writer saw, so
+// an item added concurrently on another device survives it.
+export const GroceryItemEvent = EventRow.make("GroceryItem", {
+  key: uuidKey,
+  schema: Schema.Struct(GroceryItem.fields),
+})
+
+// Keyed by the normalised ingredient name.
+export const IngredientAisleEvent = EventRow.make("IngredientAisle", {
+  key: {
+    fields: ["name"],
+    derive: ({ name }) => normalizeIngredientName(name),
+  },
+  schema: IngredientAisle,
+})
+
+// Keyed by the `[list, aisle]` pair, so two devices reordering the same aisle
+// on the same list write the same row.
+export const GroceryAisleOrderEvent = EventRow.make("GroceryAisleOrder", {
+  key: {
+    fields: ["list", "aisle"],
+    derive: ({ list, aisle }) => groceryAisleOrderKey(list, aisle),
+  },
+  schema: GroceryAisleOrder,
+})
+
 export const GroceryEvents = EventGroup.empty
-  .add({
-    tag: "GroceryItemAdded",
-    primaryKey: (item) => uuidString(item.id),
-    payload: GroceryItem.insert,
-  })
-  .add({
-    tag: "GroceryItemUpdated",
-    primaryKey: (item) => uuidString(item.id),
-    payload: GroceryItem.update,
-  })
-  .add({
-    tag: "GroceryItemToggled",
-    primaryKey: ({ id }) => uuidString(id),
-    payload: Schema.Struct({ id: GroceryItemId, completed: Schema.Boolean }),
-  })
-  .add({
-    tag: "GroceryItemDeleted",
-    primaryKey: ({ id }) => uuidString(id),
-    payload: Schema.Struct({ id: GroceryItemId }),
-  })
-  .add({
-    tag: "GroceryItemsDeleted",
-    // A fixed key: the payload has no list, and clears never need to be told
-    // apart from each other.
-    primaryKey: () => "groceryItems",
-    payload: Schema.Struct({ ids: Schema.NonEmptyArray(GroceryItemId) }),
-  })
-  .add({
-    tag: "IngredientAisleSet",
-    primaryKey: ({ name }) => normalizeIngredientName(name),
-    payload: IngredientAisle,
-  })
-  .add({
-    tag: "IngredientAisleRemoved",
-    primaryKey: ({ name }) => normalizeIngredientName(name),
-    payload: Schema.Struct({ name: Schema.String }),
-  })
-  .add({
-    tag: "GroceryAisleOrderSet",
-    primaryKey: ({ list, aisle }) => groceryAisleOrderKey(list, aisle),
-    payload: GroceryAisleOrder,
-  })
+  .add(GroceryItemEvent)
+  .add(IngredientAisleEvent)
+  .add(GroceryAisleOrderEvent)
+
+// What an item update writes, from the whole item. The list and creation
+// time stay as they were.
+export const groceryItemUpdate = (item: GroceryItem) =>
+  GroceryItemEvent.patch(
+    { id: item.id },
+    {
+      name: item.name,
+      quantity: item.quantity,
+      aisle: item.aisle,
+      recipeIds: item.recipeIds,
+      completed: item.completed,
+      updatedAt: item.updatedAt,
+    },
+  )
+
+export const groceryItemCompleted = (item: GroceryItem, completed: boolean) =>
+  GroceryItemEvent.patch({ id: item.id }, { completed })

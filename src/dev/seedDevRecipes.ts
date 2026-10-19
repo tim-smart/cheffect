@@ -14,12 +14,15 @@ import { RecipeRepo } from "@/Recipes/Repo"
 import { recipesRuntime } from "@/Recipes/runtime"
 import { MealPlanEntryId } from "@/domain/MealPlanEntry"
 import { generateUuidBytes } from "@/lib/Id"
+import { RecipeEvent } from "@/Recipes/Events"
 import { MealPlanRepo } from "@/MealPlan/Repo"
 import { mealPlanRuntime } from "@/MealPlan/runtime"
 import { MenuRepo } from "@/Menus/Repo"
 import { menusRuntime } from "@/Menus/runtime"
 import { GroceryRepo } from "@/Groceries/Repo"
 import { addGroceryItem, groceriesRuntime } from "@/Groceries/runtime"
+import { MealPlanEntryEvent } from "@/MealPlan/Events"
+import { MenuEvent, MenuEntryEvent } from "@/Menus/Events"
 
 // Recipes are read through the repo and written through the EventLog. The
 // result is the recipes the other seeds reference.
@@ -34,7 +37,10 @@ const seededRecipesAtom = recipesRuntime.atom(
     }
     const recipes = seedRecipes.map((recipe) => recipe.asRecipe())
     for (const recipe of recipes) {
-      yield* writeEvent({ event: "RecipeCreated", payload: recipe })
+      yield* writeEvent({
+        event: RecipeEvent.tag,
+        payload: RecipeEvent.set(recipe),
+      })
     }
     return recipes
   }),
@@ -65,12 +71,12 @@ const seededMealPlanAtom = mealPlanRuntime.atom(
     for (const [index, offset] of offsets.entries()) {
       const recipe = recipes[index % recipes.length]
       yield* writeEvent({
-        event: "MealPlanAdd",
-        payload: {
+        event: MealPlanEntryEvent.tag,
+        payload: MealPlanEntryEvent.set({
           id: MealPlanEntryId.make(generateUuidBytes()),
           day: DateTime.add(weekStart, { days: offset }),
           recipeId: recipe.id,
-        },
+        }),
       })
     }
   }),
@@ -84,17 +90,19 @@ const seededMenusAtom = menusRuntime.atom(
     const repo = yield* MenuRepo
     if (recipes.length === 0 || (yield* repo.all).length > 0) return
     const menu = Menu.fromForm({ name: "Weeknight Rotation" })
-    yield* writeEvent({ event: "MenuAdd", payload: menu })
+    yield* writeEvent({ event: MenuEvent.tag, payload: MenuEvent.set(menu) })
     const menuDays = [1, 2, 3, 4, 5]
     for (const [index, day] of menuDays.entries()) {
       const recipe = recipes[index % recipes.length]
       yield* writeEvent({
-        event: "MenuEntryAdd",
-        payload: MenuEntry.fromForm({
-          menuId: menu.id,
-          recipeId: recipe.id,
-          day,
-        }),
+        event: MenuEntryEvent.tag,
+        payload: MenuEntryEvent.set(
+          MenuEntry.fromForm({
+            menuId: menu.id,
+            recipeId: recipe.id,
+            day,
+          }),
+        ),
       })
     }
   }),

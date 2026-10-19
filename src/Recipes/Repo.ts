@@ -5,7 +5,6 @@ import * as Option from "effect/Option"
 import * as Stream from "effect/Stream"
 import { Recipe, type RecipeEdit, type SortBy } from "@/domain/Recipe"
 import { uuidString } from "@/lib/Id"
-import { isLive, stripLww } from "@/lib/Lww"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText, foldCase } from "@/lib/text"
 import type { RecipeEditRow, RecipeRow } from "./Table"
@@ -24,7 +23,7 @@ export interface Recipes {
 }
 
 const decodeRecipes = (rows: ReadonlyArray<RecipeRow>): Recipes => {
-  const all = rows.map((row) => new Recipe(stripLww(row)))
+  const all = rows.map((row) => new Recipe(row))
   return {
     all,
     byId: new Map(all.map((recipe) => [recipe.idString, recipe])),
@@ -35,11 +34,7 @@ export type RecipeEdits = ReadonlyMap<string, typeof RecipeEdit.Type>
 
 const decodeRecipeEdits = (rows: ReadonlyArray<RecipeEditRow>): RecipeEdits => {
   const edits = new Map<string, typeof RecipeEdit.Type>()
-  for (const row of rows) {
-    if (!isLive(row)) continue
-    const { deleted: _, ...edit } = stripLww(row)
-    edits.set(uuidString(edit.id), edit)
-  }
+  for (const edit of rows) edits.set(uuidString(edit.id), edit)
   return edits
 }
 

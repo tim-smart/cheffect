@@ -9,6 +9,7 @@ import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
+import { TimerEvent, timerRunningState } from "./Events"
 import { TimerRepo } from "./Repo"
 
 // The repo shares the EventLog runtime's query builder and Reactivity, so
@@ -68,17 +69,19 @@ export const timerUiStateAtom = Atom.make((get) => {
   )
 })
 
-// Pause, resume and add-time compute from this device's snapshot and write
-// the whole timer; the handler keeps only the running state.
-
 export const dismissTimerAtom = timersRuntime.fn<TimerId>()((id) =>
-  writeEvent({ event: "TimerDeleted", payload: { id } }),
+  writeEvent({
+    event: TimerEvent.tag,
+    payload: TimerEvent.remove({ id: id }),
+  }),
 )
 
 export const toggleTimerAtom = timersRuntime.fn<Timer>()((timer) =>
   writeEvent({
-    event: "TimerUpdated",
-    payload: timer.pausedRemaining ? timer.resume() : timer.pause(),
+    event: TimerEvent.tag,
+    payload: timerRunningState(
+      timer.pausedRemaining ? timer.resume() : timer.pause(),
+    ),
   }),
 )
 
@@ -89,8 +92,8 @@ export const addTimerDurationAtom = timersRuntime.fn<{
   Effect.fnUntraced(function* ({ timer, duration }) {
     const now = yield* DateTime.now
     yield* writeEvent({
-      event: "TimerUpdated",
-      payload: timer.add(now, duration),
+      event: TimerEvent.tag,
+      payload: timerRunningState(timer.add(now, duration)),
     })
   }),
 )

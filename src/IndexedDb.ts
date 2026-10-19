@@ -26,7 +26,7 @@ import { TimersTable } from "./Timers/Table"
 export const databaseName = "cheffect"
 
 // All module tables and indexes share one database and schema version.
-export class V1 extends IndexedDbVersion.make(
+const tables = [
   RecipeExtractJobsTable,
   RecipesTable,
   RecipeEditsTable,
@@ -42,7 +42,33 @@ export class V1 extends IndexedDbVersion.make(
   GroceryAisleOrdersTable,
   AiMemoryEntriesTable,
   AiChatTurnsTable,
-) {}
+] as const
+
+export class V1 extends IndexedDbVersion.make(...tables) {}
+
+// Version 2 is rows as `EventRow` writes them. The rows before carry
+// last-writer-wins stamps and tombstones and belong to a store that no longer
+// syncs, so the upgrade clears every synced table; importing an export from
+// the old build brings the data back. Extract jobs are this device's own and
+// stay. The upgrade also makes tabs still on the old build reload.
+export class V2 extends IndexedDbVersion.make(...tables) {}
+
+const syncedTables = [
+  "recipes",
+  "recipeEdits",
+  "settings",
+  "timers",
+  "mealPlan",
+  "mealPlanDayNotes",
+  "menus",
+  "menuEntries",
+  "menuDayNotes",
+  "groceryItems",
+  "ingredientAisles",
+  "groceryAisleOrders",
+  "aiMemoryEntries",
+  "aiChatTurns",
+] as const
 
 export class Database extends IndexedDbDatabase.make(
   V1,
@@ -65,18 +91,23 @@ export class Database extends IndexedDbDatabase.make(
     yield* api.createObjectStore("aiMemoryEntries")
     yield* api.createObjectStore("aiChatTurns")
   }),
+).add(
+  V2,
+  Effect.fn(function* (_, api) {
+    for (const table of syncedTables) yield* api.from(table).clear
+  }),
 ) {}
 
 export type TableName = IndexedDbTable.TableName<
-  IndexedDbVersion.Tables<typeof V1>
+  IndexedDbVersion.Tables<typeof V2>
 >
 export type RowOf<Name extends TableName> = IndexedDbVersion.SchemaWithName<
-  typeof V1,
+  typeof V2,
   Name
 >["Type"]
 
 export const tableNames: ReadonlyArray<TableName> = Array.from(
-  V1.tables.keys(),
+  V2.tables.keys(),
 ) as Array<TableName>
 
 // The database without any browser wiring, for tests and tools.

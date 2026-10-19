@@ -1,8 +1,8 @@
 import * as assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
-import type * as Layer from "effect/Layer"
+import * as Layer from "effect/Layer"
 import type * as EventJournal from "effect/eventlog/EventJournal"
-import type * as EventLog from "effect/eventlog/EventLog"
+import * as EventLog from "effect/eventlog/EventLog"
 import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import { databaseName } from "@/IndexedDb"
 import { makeFakeRemote, testIdentity } from "./eventlog"
@@ -14,50 +14,88 @@ import { everyOrder } from "./orders"
 
 export type Row = Record<string, unknown>
 
-const withoutLww = ({ _lww, ...fields }: Row): Row => fields
-
-// A store's rows as the next page load would read them, ignoring `_lww`.
+// A store's rows as the next page load would read them.
 export const readTable = (store: string) =>
   Effect.gen(function* () {
     const { indexedDB } = yield* IndexedDb.IndexedDb
-    const rows = yield* readRecords(indexedDB, databaseName, store)
-    return rows.map(withoutLww)
+    return yield* readRecords(indexedDB, databaseName, store)
   })
 
 // Builds the layer for one run: the module's EventLog with the given identity,
-// and the fake remote registered next to it.
-export type MakeLayer = (
+// and the fake remote registered next to it. `R` is anything else `read` needs.
+export type MakeLayer<R = never> = (
   identity: EventLog.Identity["Service"],
   remote: Layer.Layer<never, never, EventLog.Registry>,
-) => Layer.Layer<EventLog.EventLog | IndexedDb.IndexedDb, unknown>
+) => Layer.Layer<EventLog.EventLog | IndexedDb.IndexedDb | R, unknown>
+
+// The module's handlers with the compactors it registers left out, so a
+// remote batch replays every entry.
+export const withoutCompaction = <A, E, R>(
+  handlers: Layer.Layer<A, E, R>,
+): Layer.Layer<A, E, R | EventLog.Registry> =>
+  handlers.pipe(
+    Layer.provide(
+      Layer.effect(
+        EventLog.Registry,
+        EventLog.Registry.useSync((registry) =>
+          EventLog.Registry.of({
+            ...registry,
+            registerCompaction: () => Effect.void,
+          }),
+        ),
+      ),
+    ),
+  )
 
 const describe = (entries: ReadonlyArray<EventJournal.Entry>) =>
   entries.map((entry) => `${entry.event}@${entry.createdAtMillis}`).join(", ")
 
 // Delivers `setup`, then `concurrent` in every order, and returns the one
-// state every ordering agrees on.
-export const converge = async <A>(options: {
-  readonly layer: MakeLayer
-  readonly read: Effect.Effect<A, unknown, IndexedDb.IndexedDb>
+// state every ordering agrees on. With `uncompacted`, each order is also
+// replayed as one batch through it and one entry per batch through `layer`.
+export const converge = async <A, R = never>(options: {
+  readonly layer: MakeLayer<R>
+  readonly uncompacted?: MakeLayer<R>
+  readonly read: Effect.Effect<A, unknown, IndexedDb.IndexedDb | R>
   readonly setup?: ReadonlyArray<EventJournal.Entry>
   readonly concurrent: ReadonlyArray<EventJournal.Entry>
 }): Promise<A> => {
   const identity = await Effect.runPromise(testIdentity)
-  const results: Array<{ readonly order: string; readonly state: A }> = []
-  for (const order of everyOrder(options.concurrent)) {
-    const state = await Effect.gen(function* () {
+  const replay = (
+    layer: MakeLayer<R>,
+    batches: ReadonlyArray<ReadonlyArray<EventJournal.Entry>>,
+  ) =>
+    Effect.gen(function* () {
       const remote = yield* makeFakeRemote
       return yield* Effect.gen(function* () {
         yield* remote.deliver(options.setup ?? [])
-        yield* remote.deliver(order)
+        for (const batch of batches) yield* remote.deliver(batch)
         return yield* options.read
       }).pipe(
         // A failing handler stops the replay, and `deliver` would wait forever.
         Effect.timeout("5 seconds"),
-        Effect.provide(options.layer(identity, remote.layer)),
+        Effect.provide(layer(identity, remote.layer)),
       )
     }).pipe(Effect.runPromise)
-    results.push({ order: describe(order), state })
+
+  const results: Array<{ readonly order: string; readonly state: A }> = []
+  for (const order of everyOrder(options.concurrent)) {
+    results.push({
+      order: describe(order),
+      state: await replay(options.layer, [order]),
+    })
+    if (options.uncompacted === undefined) continue
+    results.push({
+      order: `uncompacted ${describe(order)}`,
+      state: await replay(options.uncompacted, [order]),
+    })
+    results.push({
+      order: `one at a time ${describe(order)}`,
+      state: await replay(
+        options.layer,
+        order.map((entry) => [entry]),
+      ),
+    })
   }
   const [first, ...rest] = results
   for (const result of rest) {

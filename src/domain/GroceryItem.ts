@@ -12,6 +12,9 @@ import * as Struct from "effect/Struct"
 import { UnknownToXml } from "./Xml"
 import * as Csv from "@vanillaes/csv"
 
+// Synced in grocery items, learned aisles and aisle orders, and every stored
+// entry is decoded again with the current schema. A new aisle needs every
+// client updated first: an older one drops entries that use it.
 export const GroceryAisle = Schema.Literals([
   "Bakery",
   "Baking Supplies",

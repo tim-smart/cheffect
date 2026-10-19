@@ -15,6 +15,7 @@ import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
 import { toast } from "sonner"
 import { withToast } from "./lib/sonner"
+import { SettingEvent } from "./Settings/Events"
 import { SettingsRepo } from "./Settings/Repo"
 
 // Every setting's encoded value, kept live from the `settings` snapshot.
@@ -74,11 +75,11 @@ const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
     },
     (ctx, newValue: Option.Option<S["Type"]>) => {
       ctx.set(writeEventAtom, {
-        event: "SettingsSet",
-        payload: {
+        event: SettingEvent.tag,
+        payload: SettingEvent.set({
           id: setting.name,
           value: Schema.encodeSync(valueSchema)(newValue),
-        },
+        }),
       })
       if (cacheAtom) {
         ctx.set(cacheAtom, newValue)

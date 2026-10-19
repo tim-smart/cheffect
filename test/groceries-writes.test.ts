@@ -12,7 +12,7 @@ import * as Reactivity from "effect/reactivity/Reactivity"
 import { EventLogClient, eventLogAtom, journalDatabaseName } from "@/EventLog"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { GroceriesLayer } from "@/Groceries"
-import { GroceryEvents } from "@/Groceries/Events"
+import { GroceryEvents, GroceryItemEvent } from "@/Groceries/Events"
 import {
   addToGroceriesAtom,
   groceriesRuntime,
@@ -50,9 +50,10 @@ const layer = EventLogClient.layer.pipe(
   Layer.provideMerge(layerFreshIndexedDb),
 )
 
-const decodeAdded = Schema.decodeUnknownSync(
-  GroceryEvents.events.GroceryItemAdded.payloadSchemaBinary,
-)
+// Indexing the group by tag types the payload as any of its rows.
+const decodeItem = Schema.decodeUnknownSync(
+  GroceryEvents.events[GroceryItemEvent.tag].payloadSchemaBinary,
+) as (bytes: unknown) => typeof GroceryItemEvent.payload.Type
 
 type Mutation<Arg> = Atom.AtomResultFn<Arg, void, unknown>
 
@@ -100,8 +101,9 @@ const addedNames = <Arg>(options: {
       Effect.provideContext(context),
     )
     return entries
-      .filter((entry) => entry.event === "GroceryItemAdded")
-      .map((entry) => decodeAdded(entry.payload).name)
+      .filter((entry) => entry.event === GroceryItemEvent.tag)
+      .map((entry) => decodeItem(entry.payload))
+      .flatMap((payload) => (payload._tag === "set" ? [payload.row.name] : []))
       .sort()
   }).pipe(
     // A recipe batch stays waiting for 3 seconds after its writes.

@@ -44,6 +44,11 @@ import { Placeholder } from "@/components/placeholder"
 import { useEffect, useState } from "react"
 import { useSwipeable } from "react-swipeable"
 import { quantityFormatter } from "@/lib/quantity"
+import {
+  MealPlanEntryEvent,
+  MealPlanDayNoteEvent,
+  mealPlanDayNoteUpdate,
+} from "@/MealPlan/Events"
 
 export const Route = createFileRoute("/plan")({
   component: MealPlanPage,
@@ -95,7 +100,10 @@ export function MealPlanPage() {
   }
 
   const handleRemoveEntry = (id: MealPlanEntryId) => {
-    write({ event: "MealPlanRemove", payload: { id } })
+    write({
+      event: MealPlanEntryEvent.tag,
+      payload: MealPlanEntryEvent.remove({ id: id }),
+    })
   }
 
   const handlers = useSwipeable({
@@ -139,8 +147,8 @@ export function MealPlanPage() {
                       const toRemove = AsyncResult.getOrElse(entries, () => [])
                       toRemove.forEach((entry) => {
                         write({
-                          event: "MealPlanRemove",
-                          payload: { id: entry.id },
+                          event: MealPlanEntryEvent.tag,
+                          payload: MealPlanEntryEvent.remove({ id: entry.id }),
                         })
                       })
                       const notesToRemove = AsyncResult.getOrElse(
@@ -149,8 +157,8 @@ export function MealPlanPage() {
                       )
                       notesToRemove.forEach((note) => {
                         write({
-                          event: "MealPlanDayNoteRemove",
-                          payload: { id: note.id },
+                          event: MealPlanDayNoteEvent.tag,
+                          payload: MealPlanDayNoteEvent.remove({ id: note.id }),
                         })
                       })
                     }}
@@ -300,7 +308,10 @@ function DayListItem({
     const trimmed = noteDraft.trim()
     if (trimmed.length === 0) {
       if (dayNote) {
-        write({ event: "MealPlanDayNoteRemove", payload: { id: dayNote.id } })
+        write({
+          event: MealPlanDayNoteEvent.tag,
+          payload: MealPlanDayNoteEvent.remove({ id: dayNote.id }),
+        })
       }
       return
     }
@@ -308,22 +319,24 @@ function DayListItem({
     if (dayNote) {
       if (trimmed === dayNote.note) return
       write({
-        event: "MealPlanDayNoteUpdate",
-        payload: {
+        event: MealPlanDayNoteEvent.tag,
+        payload: mealPlanDayNoteUpdate({
           ...dayNote,
           note: trimmed,
           updatedAt: DateTime.nowUnsafe(),
-        },
+        }),
       })
       return
     }
 
     write({
-      event: "MealPlanDayNoteAdd",
-      payload: MealPlanDayNote.fromForm({
-        day: date,
-        note: trimmed,
-      }),
+      event: MealPlanDayNoteEvent.tag,
+      payload: MealPlanDayNoteEvent.set(
+        MealPlanDayNote.fromForm({
+          day: date,
+          note: trimmed,
+        }),
+      ),
     })
   }
 
@@ -370,12 +383,12 @@ function DayListItem({
           <SelectRecipeDrawer
             onSelect={(recipe) => {
               write({
-                event: "MealPlanAdd",
-                payload: {
+                event: MealPlanEntryEvent.tag,
+                payload: MealPlanEntryEvent.set({
                   id: MealPlanEntryId.make(generateUuidBytes()),
                   day: date,
                   recipeId: recipe.id,
-                },
+                }),
               })
             }}
           >

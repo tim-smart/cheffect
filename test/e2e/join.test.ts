@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import * as EventGroup from "effect/eventlog/EventGroup"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventLogRemote from "effect/eventlog/EventLogRemote"
@@ -14,10 +13,10 @@ import * as RpcClient from "effect/rpc/RpcClient"
 import * as RpcSerialization from "effect/rpc/RpcSerialization"
 import * as Socket from "effect/socket/Socket"
 import { storeId } from "@/EventLog"
-import { Recipe } from "@/domain/Recipe"
 import { uuidString } from "@/lib/Id"
 import * as Server from "../../server/Server"
-import { eventSamples } from "../fixtures/event-samples"
+import { RecipeEditEvent, RecipeEvent, RecipeEvents } from "@/Recipes/Events"
+import { sampleRecipe } from "../fixtures/event-samples"
 import { testIdentity } from "../harness/eventlog"
 import { hasChromium, sleep, withSeededApp } from "./harness"
 
@@ -33,14 +32,8 @@ const ServerLayer = Server.layer({
 })
 
 // Another device already in the collection, writing the way the app does:
-// the same tag and payload schema, over the encrypted protocol.
-const SharedRecipes = EventLog.schema(
-  EventGroup.empty.add({
-    tag: "RecipeCreated",
-    primaryKey: (recipe) => uuidString(recipe.id),
-    payload: Recipe.insert,
-  }),
-)
+// the same row events, over the encrypted protocol.
+const SharedRecipes = EventLog.schema(RecipeEvents)
 
 const otherDevice = (url: string, identity: EventLog.Identity["Service"]) =>
   EventLogRemote.layerEncrypted.pipe(
@@ -53,8 +46,10 @@ const otherDevice = (url: string, identity: EventLog.Identity["Service"]) =>
     Layer.provideMerge(
       EventLog.layer(
         SharedRecipes,
-        EventLog.group(SharedRecipes.groups[0], (handlers) =>
-          handlers.handle("RecipeCreated", () => Effect.void),
+        EventLog.group(RecipeEvents, (handlers) =>
+          handlers
+            .handle(RecipeEvent.tag, () => Effect.void)
+            .handle(RecipeEditEvent.tag, () => Effect.void),
         ),
       ),
     ),
@@ -63,9 +58,7 @@ const otherDevice = (url: string, identity: EventLog.Identity["Service"]) =>
     Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),
   )
 
-const sharedRecipe = eventSamples.find(
-  (sample) => sample.event === "RecipeCreated",
-)!.payload as typeof Recipe.insert.Type
+const sharedRecipe = sampleRecipe
 
 const recipeLinks = `[...document.querySelectorAll('a[href^="/recipes/"]')].map((a) => a.getAttribute("href"))`
 
@@ -85,8 +78,8 @@ test(
       const device = yield* Layer.build(otherDevice(serverUrl, identity))
       yield* Context.get(device, EventLog.EventLog).write({
         schema: SharedRecipes,
-        event: "RecipeCreated",
-        payload: sharedRecipe,
+        event: RecipeEvent.tag,
+        payload: RecipeEvent.set(sharedRecipe),
       })
       const sharedLink = `/recipes/${uuidString(sharedRecipe.id)}`
 

@@ -12,10 +12,16 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { MenusLayer } from "@/Menus"
-import { MenuEvents } from "@/Menus/Events"
+import {
+  MenuDayNoteEvent,
+  MenuEntryEvent,
+  MenuEvent,
+  MenuEvents,
+  menuUpdate,
+} from "@/Menus/Events"
 import { MenuRepo } from "@/Menus/Repo"
 import { RecipesLayer } from "@/Recipes"
-import { RecipeEvents } from "@/Recipes/Events"
+import { RecipeEvent, RecipeEvents } from "@/Recipes/Events"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { MenuIdFromString } from "@/domain/Menu"
 import { MenuEntryIdFromString } from "@/domain/MenuEntry"
@@ -55,9 +61,10 @@ const entryId = Schema.decodeSync(MenuEntryIdFromString)
 const noteId = Schema.decodeSync(MenuDayNoteIdFromString)
 
 const recipe = (id: typeof soup, title: string) =>
-  Recipe.insert.make({
+  Recipe.make({
     id,
     title,
+    ingredientScale: 1,
     imageUrl: null,
     prepTime: Duration.minutes(10),
     cookingTime: Duration.minutes(30),
@@ -86,19 +93,19 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
     const createdAt = DateTime.makeUnsafe(1000)
     yield* log.write({
       schema,
-      event: "RecipeCreated",
-      payload: recipe(soup, "Soup"),
+      event: RecipeEvent.tag,
+      payload: RecipeEvent.set(recipe(soup, "Soup")),
     })
     yield* log.write({
       schema,
-      event: "MenuAdd",
-      payload: {
+      event: MenuEvent.tag,
+      payload: MenuEvent.set({
         id: menuId,
         name: "Week",
         days: 7,
         createdAt,
         updatedAt: createdAt,
-      },
+      }),
     })
     const rows = [
       {
@@ -115,27 +122,27 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
     for (const row of rows) {
       yield* log.write({
         schema,
-        event: "MenuEntryAdd",
-        payload: {
+        event: MenuEntryEvent.tag,
+        payload: MenuEntryEvent.set({
           id: entryId(row.entry),
           menuId,
           recipeId: soup,
           day: row.day,
           createdAt,
           updatedAt: createdAt,
-        },
+        }),
       })
       yield* log.write({
         schema,
-        event: "MenuDayNoteAdd",
-        payload: {
+        event: MenuDayNoteEvent.tag,
+        payload: MenuDayNoteEvent.set({
           id: noteId(row.note),
           menuId,
           day: row.day,
           note: `Day ${row.day}`,
           createdAt,
           updatedAt: createdAt,
-        },
+        }),
       })
     }
 
@@ -167,13 +174,13 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
     // A shrink emits no removes for concurrent rows its writer never saw.
     yield* log.write({
       schema,
-      event: "MenuUpdate",
-      payload: {
+      event: MenuEvent.tag,
+      payload: menuUpdate({
         id: menuId,
         name: "Week",
         days: 5,
         updatedAt: DateTime.makeUnsafe(2000),
-      },
+      }),
     })
     yield* checkVisible(5, [rows[0]])
     assert.deepEqual(
@@ -187,13 +194,13 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
 
     yield* log.write({
       schema,
-      event: "MenuUpdate",
-      payload: {
+      event: MenuEvent.tag,
+      payload: menuUpdate({
         id: menuId,
         name: "Week",
         days: 7,
         updatedAt: DateTime.makeUnsafe(3000),
-      },
+      }),
     })
     yield* checkVisible(7, rows)
   }).pipe(Effect.timeout("5 seconds"), Effect.provide(layer), Effect.runPromise)

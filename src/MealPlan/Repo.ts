@@ -6,7 +6,6 @@ import * as Stream from "effect/Stream"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntry } from "@/domain/MealPlanEntry"
 import { uuidString } from "@/lib/Id"
-import { stripLww } from "@/lib/Lww"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText } from "@/lib/text"
 import { RecipeRepo, type Recipes } from "@/Recipes/Repo"
@@ -18,16 +17,15 @@ import type { MealPlanDayNoteRow, MealPlanRow } from "./Table"
 // with the recipes snapshot: an entry whose recipe is missing (not synced yet,
 // or never) is hidden, and one whose recipe is soft-deleted still shows.
 
-export type PlannedEntry = Omit<MealPlanRow, "_lww">
+export type PlannedEntry = MealPlanRow
 
 const decodeEntries = (
   rows: ReadonlyArray<MealPlanRow>,
-): ReadonlyArray<PlannedEntry> => rows.map(stripLww)
+): ReadonlyArray<PlannedEntry> => rows
 
 const decodeNotes = (
   rows: ReadonlyArray<MealPlanDayNoteRow>,
-): ReadonlyArray<MealPlanDayNote> =>
-  rows.map((row) => new MealPlanDayNote(stripLww(row)))
+): ReadonlyArray<MealPlanDayNote> => rows.map((row) => new MealPlanDayNote(row))
 
 // The ISO dates of the seven days from `startDay`.
 export const weekDays = (startDay: DateTime.Utc): ReadonlySet<string> => {

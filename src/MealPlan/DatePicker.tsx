@@ -16,6 +16,7 @@ import { useWrite } from "@/EventLog"
 import { generateUuidBytes } from "@/lib/Id"
 import { mealPlanWeekStart } from "@/Settings"
 import * as Option from "effect/Option"
+import { MealPlanEntryEvent, mealPlanEntryDay } from "@/MealPlan/Events"
 
 export type MealPlanDatePickerTarget = Data.TaggedEnum<{
   Existing: {
@@ -75,16 +76,19 @@ export function MealPlanDatePicker({
             )
             MealPlanDatePickerTarget.$match(target, {
               Existing({ id }) {
-                write({ event: "MealPlanSetDay", payload: { id, day } })
+                write({
+                  event: MealPlanEntryEvent.tag,
+                  payload: mealPlanEntryDay(id, day),
+                })
               },
               New({ recipeId }) {
                 write({
-                  event: "MealPlanAdd",
-                  payload: {
+                  event: MealPlanEntryEvent.tag,
+                  payload: MealPlanEntryEvent.set({
                     id: MealPlanEntryId.make(generateUuidBytes()),
                     day,
                     recipeId,
-                  },
+                  }),
                 })
               },
               Menu({ id }) {

@@ -64,6 +64,7 @@ test("converts the sample old export into a file that imports", async () => {
   assert.ok(output !== undefined, "no output file")
 
   const file = Schema.decodeUnknownSync(ExportFileJson)(output)
+  assert.ok(file.version === 1, "the CLI writes a version 1 file")
 
   const tags: Record<string, number> = {}
   for (const event of file.events) tags[event.tag] = (tags[event.tag] ?? 0) + 1
@@ -110,10 +111,9 @@ test("converts the sample old export into a file that imports", async () => {
     [oldRecipe.id],
   )
   assert.equal(state.groceryItems.length, 2)
-  assert.deepEqual(
-    state.ingredientAisles.map((row) => [row.name, row.aisle, row.deleted]),
-    [[normalizeIngredientName(oldItem.name), oldItem.aisle, 0]],
-  )
+  assert.deepEqual(state.ingredientAisles, [
+    { name: normalizeIngredientName(oldItem.name), aisle: oldItem.aisle },
+  ])
   for (const table of [
     "mealPlan",
     "mealPlanDayNotes",

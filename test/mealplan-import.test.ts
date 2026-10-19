@@ -17,7 +17,7 @@ import {
 } from "@/EventLog"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { MealPlanLayer } from "@/MealPlan"
-import { MealPlanEvents } from "@/MealPlan/Events"
+import { MealPlanEntryEvent, MealPlanEvents } from "@/MealPlan/Events"
 import { importMealPlanAtom } from "@/MealPlan/runtime"
 import { RecipesLayer } from "@/Recipes"
 import { RecipeEvents } from "@/Recipes/Events"
@@ -26,15 +26,13 @@ import { RecipeIdFromString } from "@/domain/Recipe"
 import { testIdentity } from "./harness/eventlog"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 
-// Backup import writes a `MealPlanAdd` only for entries this device doesn't
-// have. Meal plan entries hard-delete, so a repeated Add for an entry that
-// exists here would recreate it on a device that has already removed it, and
-// the two devices would disagree.
+// Backup import writes a `set` only for entries this device doesn't have. A
+// `set` replaces the whole row as the newest write, so one for an entry that
+// exists here would undo edits made since the backup.
 //
-// Known limitation, accepted with hard deletes: a device that hasn't synced
-// the original entry yet still writes an Add for it, which can race a remove
-// on another device. This is not a general delete-wins fix for snapshot
-// imports.
+// Known limitation: a device that hasn't synced the original entry yet still
+// writes a `set` for it, which can bring it back after a remove on another
+// device.
 
 // The app's EventLog runtime on fake-indexeddb, with the handlers this test
 // writes through.
@@ -74,8 +72,8 @@ test("importing a backup skips meal plan entries this device already has", async
   const adds = await Effect.gen(function* () {
     const context = yield* Atom.getResult(eventLogAtom)
     yield* writeEvent({
-      event: "MealPlanAdd",
-      payload: { id: planned, recipeId, day: monday },
+      event: MealPlanEntryEvent.tag,
+      payload: MealPlanEntryEvent.set({ id: planned, recipeId, day: monday }),
     }).pipe(Effect.provideContext(context))
 
     registry.set(importMealPlanAtom, {
@@ -91,7 +89,7 @@ test("importing a backup skips meal plan entries this device already has", async
       Effect.provideContext(context),
     )
     return entries
-      .filter((entry) => entry.event === "MealPlanAdd")
+      .filter((entry) => entry.event === MealPlanEntryEvent.tag)
       .map((entry) => entry.primaryKey)
       .sort()
   }).pipe(
@@ -105,6 +103,6 @@ test("importing a backup skips meal plan entries this device already has", async
     ),
     Effect.runPromise,
   )
-  // One Add for the entry that was already here, and one for the new entry.
+  // One set for the entry that was already here, and one for the new entry.
   assert.deepEqual(adds, [plannedIdString, newIdString])
 })

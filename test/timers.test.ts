@@ -10,14 +10,14 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { TimersLayer } from "@/Timers"
-import { TimerEvents } from "@/Timers/Events"
+import { TimerEvent, TimerEvents, timerRunningState } from "@/Timers/Events"
 import { Timer, TimerIdFromString } from "@/domain/Timer"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry, makeFakeRemote, testIdentity } from "./harness/eventlog"
 import { only, pick, readTable } from "./harness/convergence"
 
-// Pause and add-time hand `TimerUpdated` a whole Timer, createdAt included.
-// The handler patches only the running state.
+// Pause and add-time compute a whole Timer, createdAt included, and write a
+// patch of only its running state.
 
 const schema = EventLog.schema(TimerEvents)
 
@@ -32,13 +32,15 @@ const timer = {
 
 const added = makeEntry({
   msecs: 1000,
-  event: TimerEvents.events.TimerAdded,
-  payload: Timer.insert.make({
-    ...timer,
-    pausedRemaining: null,
-    createdAt: DateTime.makeUnsafe(1000),
-    updatedAt: DateTime.makeUnsafe(1000),
-  }),
+  event: TimerEvents.events[TimerEvent.tag],
+  payload: TimerEvent.set(
+    Timer.insert.make({
+      ...timer,
+      pausedRemaining: null,
+      createdAt: DateTime.makeUnsafe(1000),
+      updatedAt: DateTime.makeUnsafe(1000),
+    }),
+  ),
 })
 
 const makeLayer = (
@@ -66,13 +68,15 @@ test("a local whole-Timer update pauses the timer and preserves createdAt", asyn
       const log = yield* EventLog.EventLog
       yield* log.write({
         schema,
-        event: "TimerUpdated",
-        payload: new Timer({
-          ...timer,
-          pausedRemaining: Duration.minutes(4),
-          createdAt: DateTime.makeUnsafe(2000),
-          updatedAt: DateTime.makeUnsafe(2000),
-        }),
+        event: TimerEvent.tag,
+        payload: timerRunningState(
+          new Timer({
+            ...timer,
+            pausedRemaining: Duration.minutes(4),
+            createdAt: DateTime.makeUnsafe(2000),
+            updatedAt: DateTime.makeUnsafe(2000),
+          }),
+        ),
       })
       return yield* readTable("timers")
     }).pipe(

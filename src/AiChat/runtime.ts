@@ -1,8 +1,8 @@
-import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Atom from "effect/reactivity/Atom"
-import { eventLogAtom, writeEvent } from "@/EventLog"
+import { eventLogAtom, writeEvents } from "@/EventLog"
+import { AiMemoryEntryEvent } from "./Events"
 import { AiChatRepo } from "./Repo"
 
 // The repo shares the EventLog runtime's query builder and Reactivity, so
@@ -17,8 +17,11 @@ export const aiChatRuntime = Atom.runtime((get) =>
 export const clearAiMemoryAtom = aiChatRuntime.fn<void>()(
   Effect.fnUntraced(function* () {
     const entries = yield* AiChatRepo.use((repo) => repo.memoryEntries)
-    const ids = entries.map((entry) => entry.id)
-    if (!Array.isArrayNonEmpty(ids)) return
-    yield* writeEvent({ event: "AIMemoryEntriesRemoved", payload: { ids } })
+    yield* writeEvents(
+      entries.map((entry) => ({
+        event: AiMemoryEntryEvent.tag,
+        payload: AiMemoryEntryEvent.remove({ id: entry.id }),
+      })),
+    )
   }),
 )

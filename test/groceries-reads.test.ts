@@ -6,6 +6,7 @@ import * as Layer from "effect/Layer"
 import * as Queue from "effect/Queue"
 import * as Stream from "effect/Stream"
 import { writeEvent } from "@/EventLog"
+import { GroceryItemEvent, groceryItemCompleted } from "@/Groceries/Events"
 import { GroceryRepo } from "@/Groceries/Repo"
 import { addGroceryItems } from "@/Groceries/runtime"
 import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
@@ -46,8 +47,8 @@ test("checking an item off keeps every other item the same value", () =>
     const before = yield* Queue.take(snapshots)
 
     yield* writeEvent({
-      event: "GroceryItemToggled",
-      payload: { id: milk.id, completed: true },
+      event: GroceryItemEvent.tag,
+      payload: groceryItemCompleted(milk, true),
     })
     let after = yield* Queue.take(snapshots)
     while (!byName(after, "Milk").completed) {

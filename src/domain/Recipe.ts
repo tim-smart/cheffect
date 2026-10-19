@@ -22,6 +22,9 @@ export const RecipeIdFromString = UuidFromString(RecipeId).annotate({
   description: "A unique identifier for the recipe.",
 })
 
+// Synced in recipe ingredients, and every stored entry is decoded again with
+// the current schema. A new unit needs every client updated first: an older
+// one drops entries that use it.
 export const Unit = Schema.Literals([
   "g",
   "kg",

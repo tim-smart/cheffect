@@ -76,6 +76,12 @@ import {
   type DragOverEvent,
   type DragEndEvent,
 } from "@dnd-kit/core"
+import {
+  GroceryItemEvent,
+  GroceryAisleOrderEvent,
+  IngredientAisleEvent,
+  groceryItemCompleted,
+} from "@/Groceries/Events"
 
 export const Route = createFileRoute("/groceries")({
   component: GroceryList,
@@ -92,7 +98,6 @@ function GroceryList() {
   const currentList = useAtomValue(groceryCurrentListAtom)
   const result = useAtomValue(groceryCountAtom)
 
-  const write = useWrite()
   const writeEvents = useWriteEvents()
 
   // A clear deletes the items this device shows, so an item added on another
@@ -103,7 +108,12 @@ function GroceryList() {
       items.filter(shown).map((item) => item.id),
     )
     if (!Arr.isArrayNonEmpty(ids)) return
-    write({ event: "GroceryItemsDeleted", payload: { ids } })
+    writeEvents(
+      ids.map((id) => ({
+        event: GroceryItemEvent.tag,
+        payload: GroceryItemEvent.remove({ id: id }),
+      })),
+    )
   }
 
   const clearCompleted = () => clearShown((item) => item.completed)
@@ -124,17 +134,22 @@ function GroceryList() {
           .filter((item) => item.completed)
           .flatMap((item): Array<EventPayload> => [
             {
-              event: "GroceryItemAdded",
-              payload: new GroceryItem({
-                ...item,
-                id: GroceryItemId.make(generateUuidBytes()),
-                list: moveCompletedTargetList,
-                completed: false,
-                createdAt: now,
-                updatedAt: now,
-              }),
+              event: GroceryItemEvent.tag,
+              payload: GroceryItemEvent.set(
+                new GroceryItem({
+                  ...item,
+                  id: GroceryItemId.make(generateUuidBytes()),
+                  list: moveCompletedTargetList,
+                  completed: false,
+                  createdAt: now,
+                  updatedAt: now,
+                }),
+              ),
             },
-            { event: "GroceryItemDeleted", payload: { id: item.id } },
+            {
+              event: GroceryItemEvent.tag,
+              payload: GroceryItemEvent.remove({ id: item.id }),
+            },
           ]),
       ),
     )
@@ -365,8 +380,8 @@ function GroceryListList({
   const toggleItem = useCallback(
     (item: GroceryItem) => {
       write({
-        event: "GroceryItemToggled",
-        payload: { id: item.id, completed: !item.completed },
+        event: GroceryItemEvent.tag,
+        payload: groceryItemCompleted(item, !item.completed),
       })
       if ("vibrate" in navigator) {
         navigator.vibrate(3)
@@ -378,7 +393,10 @@ function GroceryListList({
   const removeItem = useCallback(
     (item: GroceryItem) => {
       beautifyResult(Atom.Reset)
-      write({ event: "GroceryItemDeleted", payload: { id: item.id } })
+      write({
+        event: GroceryItemEvent.tag,
+        payload: GroceryItemEvent.remove({ id: item.id }),
+      })
       if ("vibrate" in navigator) {
         navigator.vibrate(3)
       }
@@ -413,13 +431,13 @@ function GroceryListList({
     const updatedAt = DateTime.nowUnsafe()
     nextOrder.forEach(({ name }, index) => {
       write({
-        event: "GroceryAisleOrderSet",
-        payload: {
+        event: GroceryAisleOrderEvent.tag,
+        payload: GroceryAisleOrderEvent.set({
           list: currentList,
           aisle: name,
           sortOrder: index,
           updatedAt,
-        },
+        }),
       })
     })
   }
@@ -741,7 +759,10 @@ function NameAutoComplete() {
     submitForm(inputRef.current?.form)
   }
   const onRemove = (value: string) => {
-    write({ event: "IngredientAisleRemoved", payload: { name: value } })
+    write({
+      event: IngredientAisleEvent.tag,
+      payload: IngredientAisleEvent.remove({ name: value }),
+    })
   }
   const stopPointer = (event: React.PointerEvent) => {
     event.preventDefault()

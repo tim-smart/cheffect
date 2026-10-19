@@ -30,6 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { MenuEvent, menuUpdate } from "@/Menus/Events"
 
 export const Route = createFileRoute("/menus/")({
   component: MenusPage,
@@ -73,7 +74,7 @@ function AddMenuForm() {
     <MenuForm
       className="max-w-lg mx-auto px-2 sm:px-4"
       onSubmit={(menu) => {
-        write({ event: "MenuAdd", payload: menu })
+        write({ event: MenuEvent.tag, payload: MenuEvent.set(menu) })
         setShowForm(false)
       }}
       onCancel={() => setShowForm(false)}
@@ -146,7 +147,7 @@ function MenuCard({ menu }: { menu: Menu }) {
               <MenuForm
                 initialValue={menu}
                 onSubmit={(updated) => {
-                  write({ event: "MenuUpdate", payload: updated })
+                  write({ event: MenuEvent.tag, payload: menuUpdate(updated) })
                   setEditing(false)
                 }}
                 onCancel={() => setEditing(false)}
@@ -207,7 +208,10 @@ function MenuCard({ menu }: { menu: Menu }) {
               if (!confirm("Are you sure you want to remove this menu?")) {
                 return
               }
-              write({ event: "MenuRemove", payload: { id: menu.id } })
+              write({
+                event: MenuEvent.tag,
+                payload: MenuEvent.remove({ id: menu.id }),
+              })
             }}
           >
             <Trash />
