@@ -131,7 +131,7 @@ test(
 )
 
 test(
-  "on a phone the chat fits the space above the keyboard, wherever iOS pans to",
+  "on a phone the chat fits the space above the keyboard, wherever iOS pans to and in landscape",
   { skip: !hasChromium && "chromium not found", timeout: 180_000 },
   () =>
     withSeededApp(async ({ browser, base, recipeId }) => {
@@ -168,6 +168,23 @@ test(
       assert.ok(
         closed.top <= 16 && closed.bottom === 844,
         `after the keyboard closes the chat spans ${closed.top}-${closed.bottom}px`,
+      )
+
+      // a landscape phone is as wide as a small desktop window, but its
+      // keyboard covers even more of the screen
+      await browser.setViewport(844, 390)
+      await browser.evaluate(`window.__keyboard(180, 0)`)
+      await sleep(500)
+      const landscape = await rectOf(browser, panel)
+      assert.deepEqual(
+        { top: landscape.top, bottom: landscape.bottom },
+        { top: 0, bottom: 210 },
+        "in landscape, the chat covers what's visible",
+      )
+      const field = await rectOf(browser, input)
+      assert.ok(
+        field.bottom <= 210,
+        `in landscape, the message field is under the keyboard at ${field.top}-${field.bottom}px`,
       )
     }),
 )
