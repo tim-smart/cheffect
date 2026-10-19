@@ -131,10 +131,7 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
                       return
                     }
                     router.navigate({ to: "/menus" })
-                    write({
-                      event: MenuEvent.tag,
-                      payload: MenuEvent.remove({ id: menu.id }),
-                    })
+                    write(MenuEvent.remove({ id: menu.id }))
                   }}
                 >
                   <Trash />
@@ -159,14 +156,13 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
             if (targetDay === undefined) return
             const entry = entries.find((e) => e.idString === active.id)
             if (!entry || entry.day === targetDay) return
-            write({
-              event: MenuEntryEvent.tag,
-              payload: menuEntryDay(
+            write(
+              menuEntryDay(
                 { id: entry.id, menuId: menu.id },
                 targetDay,
                 DateTime.nowUnsafe(),
               ),
-            })
+            )
           }}
         >
           <DayList menu={menu} entries={entries} dayNotes={dayNotes} />
@@ -247,40 +243,37 @@ function DayListItem({
     const trimmed = noteDraft.trim()
     if (trimmed.length === 0) {
       if (dayNote) {
-        write({
-          event: MenuDayNoteEvent.tag,
-          payload: MenuDayNoteEvent.remove({
+        write(
+          MenuDayNoteEvent.remove({
             id: dayNote.id,
             menuId: menu.id,
           }),
-        })
+        )
       }
       return
     }
 
     if (dayNote) {
       if (trimmed === dayNote.note) return
-      write({
-        event: MenuDayNoteEvent.tag,
-        payload: menuDayNoteUpdate(menu.id, {
+      write(
+        menuDayNoteUpdate(menu.id, {
           ...dayNote,
           note: trimmed,
           updatedAt: DateTime.nowUnsafe(),
         }),
-      })
+      )
       return
     }
 
-    write({
-      event: MenuDayNoteEvent.tag,
-      payload: MenuDayNoteEvent.set(
+    write(
+      MenuDayNoteEvent.set(
         MenuDayNote.fromForm({
           menuId: menu.id,
           day,
           note: trimmed,
         }),
       ),
-    })
+    )
   }
 
   return (
@@ -312,16 +305,15 @@ function DayListItem({
           </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {
-              write({
-                event: MenuEntryEvent.tag,
-                payload: MenuEntryEvent.set(
+              write(
+                MenuEntryEvent.set(
                   MenuEntry.fromForm({
                     menuId: menu.id,
                     recipeId: recipe.id,
                     day,
                   }),
                 ),
-              })
+              )
             }}
           >
             <SelectRecipeButton />
@@ -458,10 +450,7 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
           size="sm"
           onClick={(e) => {
             e.preventDefault()
-            write({
-              event: MenuEntryEvent.tag,
-              payload: MenuEntryEvent.remove({ id, menuId }),
-            })
+            write(MenuEntryEvent.remove({ id, menuId }))
           }}
           className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600"
         >

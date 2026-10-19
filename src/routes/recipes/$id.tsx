@@ -16,11 +16,7 @@ import { cn, quantityFormatter } from "@/lib/utils"
 import { useWrite } from "@/EventLog"
 import { Timer, TimerId } from "@/domain/Timer"
 import { TimerEvent } from "@/Timers/Events"
-import {
-  RecipeEvent,
-  recipeDeleted,
-  recipeIngredientScale,
-} from "@/Recipes/Events"
+import { recipeDeleted, recipeIngredientScale } from "@/Recipes/Events"
 import { generateUuidBytes } from "@/lib/Id"
 import {
   MealPlanDatePicker,
@@ -160,9 +156,8 @@ export function RecipeDetails({
   const handleStartTimer = (durationMs: number, label: string) => {
     const now = DateTime.nowUnsafe()
     const duration = Duration.millis(durationMs)
-    write({
-      event: TimerEvent.tag,
-      payload: TimerEvent.set(
+    write(
+      TimerEvent.set(
         Timer.insert.make({
           id: TimerId.make(generateUuidBytes()),
           label,
@@ -173,7 +168,7 @@ export function RecipeDetails({
           updatedAt: now,
         }),
       ),
-    })
+    )
   }
 
   const handleDurationKeyDown = (
@@ -305,10 +300,7 @@ export function RecipeDetails({
                     ) {
                       return
                     }
-                    await write({
-                      event: RecipeEvent.tag,
-                      payload: recipeDeleted(recipe.id, DateTime.nowUnsafe()),
-                    })
+                    await write(recipeDeleted(recipe.id, DateTime.nowUnsafe()))
                     return router.history.back()
                   }}
                 >
@@ -547,14 +539,13 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
                 return yield* BigDecimal.fromString(parts[0])
               })
               if (Option.isSome(scale)) {
-                write({
-                  event: RecipeEvent.tag,
-                  payload: recipeIngredientScale(
+                write(
+                  recipeIngredientScale(
                     recipe.id,
                     BigDecimal.toNumberUnsafe(scale.value),
                     DateTime.nowUnsafe(),
                   ),
-                })
+                )
               }
               setOpen(false)
             }}

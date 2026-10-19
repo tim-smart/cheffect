@@ -40,10 +40,7 @@ export const importRecipesAtom = recipesRuntime.fn<ReadonlyArray<Recipe>>()(
     const existing = yield* RecipeRepo.use((repo) => repo.current)
     for (const recipe of recipes) {
       if (existing.byId.has(recipe.idString)) continue
-      yield* writeEvent({
-        event: RecipeEvent.tag,
-        payload: RecipeEvent.set(recipe),
-      })
+      yield* writeEvent(RecipeEvent.set(recipe))
     }
   }),
 )
@@ -110,13 +107,9 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
       ctx.set(
         writeEventAtom,
         Option.match(modified, {
-          onNone: () => ({
-            event: RecipeEditEvent.tag,
-            payload: RecipeEditEvent.remove({ id: recipeId }),
-          }),
-          onSome: (modified) => ({
-            event: RecipeEditEvent.tag,
-            payload: RecipeEditEvent.set({
+          onNone: () => RecipeEditEvent.remove({ id: recipeId }),
+          onSome: (modified) =>
+            RecipeEditEvent.set({
               id: recipeId,
               title: modified.title,
               imageUrl: modified.imageUrl,
@@ -127,7 +120,6 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
               steps: modified.steps,
               sourceName: modified.sourceName,
             }),
-          }),
         }),
       )
     },

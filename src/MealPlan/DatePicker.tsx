@@ -76,20 +76,16 @@ export function MealPlanDatePicker({
             )
             MealPlanDatePickerTarget.$match(target, {
               Existing({ id }) {
-                write({
-                  event: MealPlanEntryEvent.tag,
-                  payload: mealPlanEntryDay(id, day),
-                })
+                write(mealPlanEntryDay(id, day))
               },
               New({ recipeId }) {
-                write({
-                  event: MealPlanEntryEvent.tag,
-                  payload: MealPlanEntryEvent.set({
+                write(
+                  MealPlanEntryEvent.set({
                     id: MealPlanEntryId.make(generateUuidBytes()),
                     day,
                     recipeId,
                   }),
-                })
+                )
               },
               Menu({ id }) {
                 addMenu({

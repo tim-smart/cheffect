@@ -37,10 +37,7 @@ const seededRecipesAtom = recipesRuntime.atom(
     }
     const recipes = seedRecipes.map((recipe) => recipe.asRecipe())
     for (const recipe of recipes) {
-      yield* writeEvent({
-        event: RecipeEvent.tag,
-        payload: RecipeEvent.set(recipe),
-      })
+      yield* writeEvent(RecipeEvent.set(recipe))
     }
     return recipes
   }),
@@ -70,14 +67,13 @@ const seededMealPlanAtom = mealPlanRuntime.atom(
     const offsets = [0, 2, 4, 6]
     for (const [index, offset] of offsets.entries()) {
       const recipe = recipes[index % recipes.length]
-      yield* writeEvent({
-        event: MealPlanEntryEvent.tag,
-        payload: MealPlanEntryEvent.set({
+      yield* writeEvent(
+        MealPlanEntryEvent.set({
           id: MealPlanEntryId.make(generateUuidBytes()),
           day: DateTime.add(weekStart, { days: offset }),
           recipeId: recipe.id,
         }),
-      })
+      )
     }
   }),
 )
@@ -90,20 +86,19 @@ const seededMenusAtom = menusRuntime.atom(
     const repo = yield* MenuRepo
     if (recipes.length === 0 || (yield* repo.all).length > 0) return
     const menu = Menu.fromForm({ name: "Weeknight Rotation" })
-    yield* writeEvent({ event: MenuEvent.tag, payload: MenuEvent.set(menu) })
+    yield* writeEvent(MenuEvent.set(menu))
     const menuDays = [1, 2, 3, 4, 5]
     for (const [index, day] of menuDays.entries()) {
       const recipe = recipes[index % recipes.length]
-      yield* writeEvent({
-        event: MenuEntryEvent.tag,
-        payload: MenuEntryEvent.set(
+      yield* writeEvent(
+        MenuEntryEvent.set(
           MenuEntry.fromForm({
             menuId: menu.id,
             recipeId: recipe.id,
             day,
           }),
         ),
-      })
+      )
     }
   }),
 )

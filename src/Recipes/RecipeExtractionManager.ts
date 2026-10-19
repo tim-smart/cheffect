@@ -31,10 +31,10 @@ export const RecipeExtractionManager = Layer.effectDiscard(
         // Completing the job drops it from the pending stream, which
         // interrupts this fiber, so the recipe is written first and neither
         // write can be cut short.
-        yield* writeEvent({
-          event: RecipeEvent.tag,
-          payload: RecipeEvent.set(recipe),
-        }).pipe(Effect.andThen(jobs.complete(job.id)), Effect.uninterruptible)
+        yield* writeEvent(RecipeEvent.set(recipe)).pipe(
+          Effect.andThen(jobs.complete(job.id)),
+          Effect.uninterruptible,
+        )
         return recipe
       },
       withToast(({ url }) => ({

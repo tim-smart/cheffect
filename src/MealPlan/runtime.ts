@@ -35,17 +35,11 @@ export const importMealPlanAtom = mealPlanRuntime.fn<{
     )
     for (const entry of entries) {
       if (existingEntries.has(uuidString(entry.id))) continue
-      yield* writeEvent({
-        event: MealPlanEntryEvent.tag,
-        payload: MealPlanEntryEvent.set(entry),
-      })
+      yield* writeEvent(MealPlanEntryEvent.set(entry))
     }
     for (const note of notes) {
       if (existing.has(note.idString)) continue
-      yield* writeEvent({
-        event: MealPlanDayNoteEvent.tag,
-        payload: MealPlanDayNoteEvent.set(note),
-      })
+      yield* writeEvent(MealPlanDayNoteEvent.set(note))
     }
   }),
 )

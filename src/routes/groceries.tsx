@@ -108,12 +108,7 @@ function GroceryList() {
       items.filter(shown).map((item) => item.id),
     )
     if (!Arr.isArrayNonEmpty(ids)) return
-    writeEvents(
-      ids.map((id) => ({
-        event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove({ id: id }),
-      })),
-    )
+    writeEvents(ids.map((id) => GroceryItemEvent.remove({ id: id })))
   }
 
   const clearCompleted = () => clearShown((item) => item.completed)
@@ -133,23 +128,17 @@ function GroceryList() {
         items
           .filter((item) => item.completed)
           .flatMap((item): Array<EventPayload> => [
-            {
-              event: GroceryItemEvent.tag,
-              payload: GroceryItemEvent.set(
-                new GroceryItem({
-                  ...item,
-                  id: GroceryItemId.make(generateUuidBytes()),
-                  list: moveCompletedTargetList,
-                  completed: false,
-                  createdAt: now,
-                  updatedAt: now,
-                }),
-              ),
-            },
-            {
-              event: GroceryItemEvent.tag,
-              payload: GroceryItemEvent.remove({ id: item.id }),
-            },
+            GroceryItemEvent.set(
+              new GroceryItem({
+                ...item,
+                id: GroceryItemId.make(generateUuidBytes()),
+                list: moveCompletedTargetList,
+                completed: false,
+                createdAt: now,
+                updatedAt: now,
+              }),
+            ),
+            GroceryItemEvent.remove({ id: item.id }),
           ]),
       ),
     )
@@ -379,10 +368,7 @@ function GroceryListList({
   // Stable, so a row whose item didn't change skips re-rendering.
   const toggleItem = useCallback(
     (item: GroceryItem) => {
-      write({
-        event: GroceryItemEvent.tag,
-        payload: groceryItemCompleted(item, !item.completed),
-      })
+      write(groceryItemCompleted(item, !item.completed))
       if ("vibrate" in navigator) {
         navigator.vibrate(3)
       }
@@ -393,10 +379,7 @@ function GroceryListList({
   const removeItem = useCallback(
     (item: GroceryItem) => {
       beautifyResult(Atom.Reset)
-      write({
-        event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove({ id: item.id }),
-      })
+      write(GroceryItemEvent.remove({ id: item.id }))
       if ("vibrate" in navigator) {
         navigator.vibrate(3)
       }
@@ -430,15 +413,14 @@ function GroceryListList({
     const nextOrder = arrayMove(aisles, fromIndex, toIndex)
     const updatedAt = DateTime.nowUnsafe()
     nextOrder.forEach(({ name }, index) => {
-      write({
-        event: GroceryAisleOrderEvent.tag,
-        payload: GroceryAisleOrderEvent.set({
+      write(
+        GroceryAisleOrderEvent.set({
           list: currentList,
           aisle: name,
           sortOrder: index,
           updatedAt,
         }),
-      })
+      )
     })
   }
 
@@ -759,10 +741,7 @@ function NameAutoComplete() {
     submitForm(inputRef.current?.form)
   }
   const onRemove = (value: string) => {
-    write({
-      event: IngredientAisleEvent.tag,
-      payload: IngredientAisleEvent.remove({ name: value }),
-    })
+    write(IngredientAisleEvent.remove({ name: value }))
   }
   const stopPointer = (event: React.PointerEvent) => {
     event.preventDefault()

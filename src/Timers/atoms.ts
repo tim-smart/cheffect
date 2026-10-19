@@ -70,19 +70,13 @@ export const timerUiStateAtom = Atom.make((get) => {
 })
 
 export const dismissTimerAtom = timersRuntime.fn<TimerId>()((id) =>
-  writeEvent({
-    event: TimerEvent.tag,
-    payload: TimerEvent.remove({ id: id }),
-  }),
+  writeEvent(TimerEvent.remove({ id: id })),
 )
 
 export const toggleTimerAtom = timersRuntime.fn<Timer>()((timer) =>
-  writeEvent({
-    event: TimerEvent.tag,
-    payload: timerRunningState(
-      timer.pausedRemaining ? timer.resume() : timer.pause(),
-    ),
-  }),
+  writeEvent(
+    timerRunningState(timer.pausedRemaining ? timer.resume() : timer.pause()),
+  ),
 )
 
 export const addTimerDurationAtom = timersRuntime.fn<{
@@ -91,9 +85,6 @@ export const addTimerDurationAtom = timersRuntime.fn<{
 }>()(
   Effect.fnUntraced(function* ({ timer, duration }) {
     const now = yield* DateTime.now
-    yield* writeEvent({
-      event: TimerEvent.tag,
-      payload: timerRunningState(timer.add(now, duration)),
-    })
+    yield* writeEvent(timerRunningState(timer.add(now, duration)))
   }),
 )
