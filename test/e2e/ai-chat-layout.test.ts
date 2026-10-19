@@ -36,6 +36,12 @@ const rectOf = (browser: Browser, element: string) =>
 // Replaces window.visualViewport. `__keyboard(height, offsetTop)` raises a
 // keyboard of that height with the visual viewport panned `offsetTop` down
 // the page; `__keyboard(0, 0)` lowers it.
+//
+// `__keyboardOnOpen(height, offsetTop)` raises the keyboard when the chat is
+// next opened, which focuses the message field. It does it the way the iOS
+// simulator showed on first open: the keyboard finishes rising and the view
+// pans without the page seeing a resize or scroll event, until the user
+// scrolls.
 const keyboardStandIn = `(() => {
   let keyboard = 0
   let offsetTop = 0
@@ -55,6 +61,15 @@ const keyboardStandIn = `(() => {
     offsetTop = top
     viewport.dispatchEvent(new Event("resize"))
     viewport.dispatchEvent(new Event("scroll"))
+  }
+  window.__keyboardOnOpen = (height, top) => {
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest('[aria-label="Open AI Chat"]')) return
+      setTimeout(() => {
+        keyboard = height
+        offsetTop = top
+      }, 250)
+    }, { capture: true, once: true })
   }
 })()`
 
@@ -139,12 +154,22 @@ test(
       await enableAi(browser, base)
       await browser.addInitScript(keyboardStandIn)
       await openRecipe(browser, base, recipeId)
-      await openChat(browser)
 
       const visible = (keyboard: number, offsetTop: number) => ({
         top: offsetTop,
         bottom: offsetTop + 844 - keyboard,
       })
+
+      // opening the chat raises the keyboard and pans the view all the way
+      await browser.evaluate(`window.__keyboardOnOpen(336, 336)`)
+      await openChat(browser)
+      await sleep(1000)
+      const firstOpen = await rectOf(browser, panel)
+      assert.deepEqual(
+        { top: firstOpen.top, bottom: firstOpen.bottom },
+        visible(336, 336),
+        "on first open, the chat covers what's visible before the user scrolls",
+      )
       for (const offsetTop of [0, 200]) {
         await browser.evaluate(`window.__keyboard(336, ${offsetTop})`)
         await sleep(500)
