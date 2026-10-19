@@ -74,10 +74,13 @@ function SystemTheme() {
 function DisableScroll() {
   const aiChatOpen = useAtomValue(aiChatOpenAtom)
   useLayoutEffect(() => {
-    if (aiChatOpen) {
-      document.body.classList.add("overflow-hidden", "md:overflow-auto")
-    } else {
-      document.body.classList.remove("overflow-hidden", "md:overflow-auto")
+    // iOS Safari can still scroll the page when only <body> is locked
+    for (const element of [document.documentElement, document.body]) {
+      if (aiChatOpen) {
+        element.classList.add("overflow-hidden", "md:overflow-auto")
+      } else {
+        element.classList.remove("overflow-hidden", "md:overflow-auto")
+      }
     }
   }, [aiChatOpen])
   return <div className="overflow-hidden hidden" />

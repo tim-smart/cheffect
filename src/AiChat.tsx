@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button"
 import {
   Eraser,
   FileText,
+  Maximize2,
   MessageSquare,
+  Minimize2,
   Paperclip,
   Send,
   Square,
@@ -25,7 +27,7 @@ import {
 } from "./AiChat/AiChatService"
 import { router } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
-import { useIsViewportObstructed, useViewportObstructed } from "./lib/hooks"
+import { useVisualViewport } from "./lib/hooks"
 
 export function AiChatModal() {
   const aiEnabled = useAtomValue(isAiEnabledAtom)
@@ -93,7 +95,7 @@ export function AiChatModal() {
       {/* Mobile overlay (blocks interaction) */}
       <div ref={ref} className={isOpen ? "" : "hidden"}>
         <div
-          className="fixed inset-0 z-50 bg-black/50 md:hidden"
+          className="fixed inset-0 z-50 bg-black/50 touch-none md:hidden"
           onClick={() => setIsOpen(false)}
         />
         <ModalContent
@@ -115,51 +117,72 @@ function ModalContent({
   readonly onClose: () => void
   readonly open: boolean
 }) {
-  const containerRef = useRef<HTMLDivElement>(null)
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
     initial: "instant",
     resize: "smooth",
   })
-  const viewportObstructed = useViewportObstructed()
+  const viewport = useVisualViewport()
+  const [maximized, setMaximized] = useState(false)
   useEffect(() => {
-    setTimeout(() => {
-      inputRef.current?.scrollIntoView({ behavior: "instant" })
-      scrollToBottom()
-    }, 10)
-  }, [viewportObstructed > 0, open])
+    setTimeout(scrollToBottom, 10)
+  }, [viewport.obstructed, open])
 
   return (
     <>
+      {/* Mobile: a sheet over the screen that, while the keyboard is up,
+          covers exactly the visible part of the page. Desktop: a panel above
+          the floating buttons, or most of the window when maximized. */}
       <div
-        ref={containerRef}
         className={cn(
-          "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:floating-b md:w-[30rem] md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
-          viewportObstructed > 0
-            ? "md:rounded-2xl"
-            : "top-[15vh]! rounded-t-2xl md:rounded-2xl",
+          "flex flex-col fixed z-50 bg-background shadow-2xl inset-x-0 overscroll-none",
+          viewport.obstructed
+            ? "top-(--chat-top) h-(--chat-height) pt-[env(safe-area-inset-top)]"
+            : "top-[calc(env(safe-area-inset-top)+0.5rem)] bottom-0 rounded-t-2xl",
+          "md:inset-auto md:right-4 md:floating-b md:rounded-2xl md:pt-0",
+          maximized
+            ? "md:top-4 md:h-auto md:w-[min(64rem,calc(100vw-2rem))]"
+            : "md:top-auto md:w-[26rem] md:h-128 md:max-h-[calc(100dvh-7.5rem)]",
         )}
         onClick={(e) => e.stopPropagation()}
-        style={{ top: viewportObstructed }}
+        style={
+          {
+            "--chat-top": `${viewport.top}px`,
+            "--chat-height": `${viewport.height}px`,
+          } as React.CSSProperties
+        }
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border pl-4 pr-2 py-2">
+        <div className="flex items-center justify-between border-b border-border pl-4 pr-2 py-2 touch-none">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">AI Sous-chef</h2>
           </div>
-          <Button
-            onClick={() => onClose()}
-            className="rounded-full"
-            size="icon"
-            variant="ghost"
-          >
-            <X />
-          </Button>
+          <div className="flex items-center">
+            <Button
+              onClick={() => setMaximized(!maximized)}
+              className="rounded-full hidden md:inline-flex"
+              size="icon"
+              variant="ghost"
+              aria-label={maximized ? "Restore chat size" : "Maximize chat"}
+              title={maximized ? "Restore size" : "Maximize"}
+            >
+              {maximized ? <Minimize2 /> : <Maximize2 />}
+            </Button>
+            <Button
+              onClick={() => onClose()}
+              className="rounded-full"
+              size="icon"
+              variant="ghost"
+              aria-label="Close chat"
+            >
+              <X />
+            </Button>
+          </div>
         </div>
         {/* Messages */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4 bg-card"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 bg-card"
           onClick={(e) => {
             if (!(e.target instanceof HTMLAnchorElement)) return
             e.preventDefault()
@@ -335,7 +358,7 @@ function PromptInput({
 
   const clear = useAtomSet(clearAtom)
 
-  const viewportObstructed = useIsViewportObstructed()
+  const viewportObstructed = useVisualViewport().obstructed
 
   return (
     <form

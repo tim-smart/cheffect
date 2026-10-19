@@ -1,64 +1,55 @@
 import { useLayoutEffect, useState } from "react"
 
-export const useViewportObstructed = () => {
-  const [value, setValue] = useState(getViewportObstructed)
-
-  if (!("visualViewport" in window)) {
-    return value
-  }
-
-  useLayoutEffect(() => {
-    const updateHeight = () => {
-      setValue(getViewportObstructed())
-    }
-    window.visualViewport!.addEventListener("resize", updateHeight)
-    return () => {
-      window.visualViewport!.removeEventListener("resize", updateHeight)
-    }
-  }, [])
-
-  return value
+export interface VisualViewport {
+  /** Distance from the top of the layout viewport to the visible area */
+  readonly top: number
+  /** Height of the visible area */
+  readonly height: number
+  /** Whether something, like the on-screen keyboard, covers the page */
+  readonly obstructed: boolean
 }
 
-export const useIsViewportObstructed = () => {
-  const [value, setValue] = useState(isViewportObstructed)
-
-  if (!("visualViewport" in window)) {
-    return value
-  }
+/**
+ * The part of the page that is visible. iOS doesn't resize the page for the
+ * keyboard: it shrinks the visual viewport and pans it down the page, so
+ * fixed elements have to follow both its size and its offset.
+ */
+export const useVisualViewport = (): VisualViewport => {
+  const [value, setValue] = useState(getVisualViewport)
 
   useLayoutEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
     const update = () => {
-      setValue(isViewportObstructed())
+      setValue((prev) => {
+        const next = getVisualViewport()
+        return prev.top === next.top &&
+          prev.height === next.height &&
+          prev.obstructed === next.obstructed
+          ? prev
+          : next
+      })
     }
-    window.visualViewport!.addEventListener("resize", update)
+    update()
+    viewport.addEventListener("resize", update)
+    viewport.addEventListener("scroll", update)
     return () => {
-      window.visualViewport!.removeEventListener("resize", update)
+      viewport.removeEventListener("resize", update)
+      viewport.removeEventListener("scroll", update)
     }
   }, [])
 
   return value
 }
 
-const getViewportObstructed = () => {
-  const self: typeof globalThis = window as any
-
-  if (!("visualViewport" in window)) {
-    return 0
+const getVisualViewport = (): VisualViewport => {
+  const viewport = window.visualViewport
+  if (!viewport) {
+    return { top: 0, height: window.innerHeight, obstructed: false }
   }
-
-  return Math.max(
-    0,
-    Math.ceil(self.innerHeight - window.visualViewport!.height),
-  )
-}
-
-const isViewportObstructed = () => {
-  const self: typeof globalThis = window as any
-
-  if (!("visualViewport" in window)) {
-    return false
+  return {
+    top: Math.max(0, Math.round(viewport.offsetTop)),
+    height: Math.round(viewport.height),
+    obstructed: window.innerHeight - viewport.height >= 1,
   }
-
-  return self.innerHeight > window.visualViewport!.height
 }
