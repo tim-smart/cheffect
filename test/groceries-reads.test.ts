@@ -46,10 +46,7 @@ test("checking an item off keeps every other item the same value", () =>
       items.find((item) => item.name === name)!
     const before = yield* Queue.take(snapshots)
 
-    yield* writeEvent({
-      event: GroceryItemEvent.tag,
-      payload: groceryItemCompleted(milk, true),
-    })
+    yield* writeEvent(groceryItemCompleted(milk, true))
     let after = yield* Queue.take(snapshots)
     while (!byName(after, "Milk").completed) {
       after = yield* Queue.take(snapshots)

@@ -85,7 +85,7 @@ const created = makeEntry({
       updatedAt: at(1000),
       deletedAt: null,
     }),
-  ),
+  ).payload,
 })
 
 // A whole-form save, as the edit route writes it.
@@ -107,21 +107,22 @@ const updated = (
         deletedAt: null,
         ...fields,
       }),
-    ),
+    ).payload,
   })
 
 const scaled = (msecs: number, ingredientScale: number) =>
   makeEntry({
     msecs,
     event: recipeEvent,
-    payload: recipeIngredientScale(recipeId, ingredientScale, at(msecs)),
+    payload: recipeIngredientScale(recipeId, ingredientScale, at(msecs))
+      .payload,
   })
 
 const deleted = (msecs: number) =>
   makeEntry({
     msecs,
     event: recipeEvent,
-    payload: recipeDeleted(recipeId, at(msecs)),
+    payload: recipeDeleted(recipeId, at(msecs)).payload,
   })
 
 const makeLayer =
@@ -159,8 +160,7 @@ test("a local whole-Recipe update preserves createdAt", async () => {
       // The edit form supplies a whole Recipe, including a new createdAt.
       yield* log.write({
         schema: EventLog.schema(RecipeEvents),
-        event: RecipeEvent.tag,
-        payload: recipeUpdate(
+        ...recipeUpdate(
           new Recipe({
             ...soup,
             id: recipeId,

@@ -91,15 +91,10 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
     const log = yield* EventLog.EventLog
     const repo = yield* MenuRepo
     const createdAt = DateTime.makeUnsafe(1000)
+    yield* log.write({ schema, ...RecipeEvent.set(recipe(soup, "Soup")) })
     yield* log.write({
       schema,
-      event: RecipeEvent.tag,
-      payload: RecipeEvent.set(recipe(soup, "Soup")),
-    })
-    yield* log.write({
-      schema,
-      event: MenuEvent.tag,
-      payload: MenuEvent.set({
+      ...MenuEvent.set({
         id: menuId,
         name: "Week",
         days: 7,
@@ -122,8 +117,7 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
     for (const row of rows) {
       yield* log.write({
         schema,
-        event: MenuEntryEvent.tag,
-        payload: MenuEntryEvent.set({
+        ...MenuEntryEvent.set({
           id: entryId(row.entry),
           menuId,
           recipeId: soup,
@@ -134,8 +128,7 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
       })
       yield* log.write({
         schema,
-        event: MenuDayNoteEvent.tag,
-        payload: MenuDayNoteEvent.set({
+        ...MenuDayNoteEvent.set({
           id: noteId(row.note),
           menuId,
           day: row.day,
@@ -174,8 +167,7 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
     // A shrink emits no removes for concurrent rows its writer never saw.
     yield* log.write({
       schema,
-      event: MenuEvent.tag,
-      payload: menuUpdate({
+      ...menuUpdate({
         id: menuId,
         name: "Week",
         days: 5,
@@ -194,8 +186,7 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
 
     yield* log.write({
       schema,
-      event: MenuEvent.tag,
-      payload: menuUpdate({
+      ...menuUpdate({
         id: menuId,
         name: "Week",
         days: 7,

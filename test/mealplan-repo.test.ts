@@ -85,20 +85,11 @@ const recipe = (id: typeof soup, title: string) =>
 test("the week's entries hide a missing recipe and keep a soft-deleted one", async () => {
   const week = await Effect.gen(function* () {
     const log = yield* EventLog.EventLog
+    yield* log.write({ schema, ...RecipeEvent.set(recipe(soup, "Soup")) })
+    yield* log.write({ schema, ...RecipeEvent.set(recipe(pie, "Pie")) })
     yield* log.write({
       schema,
-      event: RecipeEvent.tag,
-      payload: RecipeEvent.set(recipe(soup, "Soup")),
-    })
-    yield* log.write({
-      schema,
-      event: RecipeEvent.tag,
-      payload: RecipeEvent.set(recipe(pie, "Pie")),
-    })
-    yield* log.write({
-      schema,
-      event: RecipeEvent.tag,
-      payload: recipeDeleted(pie, DateTime.makeUnsafe(2000)),
+      ...recipeDeleted(pie, DateTime.makeUnsafe(2000)),
     })
     const plan = [
       ["0193c7a0-1b2c-4def-8123-0123456789a1", soup, "2025-10-14"],
@@ -110,8 +101,7 @@ test("the week's entries hide a missing recipe and keep a soft-deleted one", asy
     for (const [id, recipeId, onDay] of plan) {
       yield* log.write({
         schema,
-        event: MealPlanEntryEvent.tag,
-        payload: MealPlanEntryEvent.set({
+        ...MealPlanEntryEvent.set({
           id: entryId(id),
           recipeId,
           day: day(onDay),

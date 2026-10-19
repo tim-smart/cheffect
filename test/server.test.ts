@@ -206,10 +206,7 @@ test("changing the server URL uploads this device's journal to the new server an
     registry.set(syncEnabledAtom, true)
     registry.mount(remoteAtom)
 
-    registry.set(writeEventAtom, {
-      event: RecipeEvent.tag,
-      payload: RecipeEvent.set(sampleRecipe),
-    })
+    registry.set(writeEventAtom, RecipeEvent.set(sampleRecipe))
     yield* AtomRegistry.getResult(registry, writeEventAtom, {
       suspendOnWaiting: true,
     })

@@ -93,29 +93,15 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
   const milk = item("Milk")
   const eggs = item("Eggs")
   const batch: Array<EventPayload> = [
-    { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(milk) },
-    { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(eggs) },
-    {
-      event: GroceryItemEvent.tag,
-      payload: groceryItemUpdate(
-        new GroceryItem({ ...milk, name: "Oat milk" }),
-      ),
-    },
-    {
-      event: GroceryItemEvent.tag,
-      payload: GroceryItemEvent.remove({ id: eggs.id }),
-    },
-    {
-      event: IngredientAisleEvent.tag,
-      payload: IngredientAisleEvent.set({
-        name: "oat milk",
-        aisle: "Dairy & Eggs",
-      }),
-    },
-    {
-      event: IngredientAisleEvent.tag,
-      payload: IngredientAisleEvent.remove({ name: "milk" }),
-    },
+    GroceryItemEvent.set(milk),
+    GroceryItemEvent.set(eggs),
+    groceryItemUpdate(new GroceryItem({ ...milk, name: "Oat milk" })),
+    GroceryItemEvent.remove({ id: eggs.id }),
+    IngredientAisleEvent.set({
+      name: "oat milk",
+      aisle: "Dairy & Eggs",
+    }),
+    IngredientAisleEvent.remove({ name: "milk" }),
   ]
 
   const result = await Effect.gen(function* () {
@@ -185,12 +171,9 @@ test("a handler failure leaves none of its batch written or uploaded", async () 
     return yield* Effect.gen(function* () {
       const failed = yield* Effect.exit(
         writeEvents([
-          { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(milk) },
-          { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(eggs) },
-          {
-            event: GroceryItemEvent.tag,
-            payload: GroceryItemEvent.remove({ id: milk.id }),
-          },
+          GroceryItemEvent.set(milk),
+          GroceryItemEvent.set(eggs),
+          GroceryItemEvent.remove({ id: milk.id }),
         ]),
       )
       const afterFailure = {
@@ -198,9 +181,7 @@ test("a handler failure leaves none of its batch written or uploaded", async () 
         entries: (yield* journalEvents).length,
       }
       // A later batch goes through, and is all the remote ever receives.
-      yield* writeEvents([
-        { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(bread) },
-      ])
+      yield* writeEvents([GroceryItemEvent.set(bread)])
       const uploaded = yield* awaitUploads(remote, 1)
       return {
         failed: Exit.isFailure(failed),

@@ -61,14 +61,14 @@ const memoryAdded = (msecs: number, id: typeof peanuts, content: string) =>
         content,
         createdAt: DateTime.makeUnsafe(msecs),
       }),
-    ),
+    ).payload,
   })
 
 const memoryRemoved = (msecs: number, id: typeof peanuts) =>
   makeEntry({
     msecs,
     event: memoryEvent,
-    payload: AiMemoryEntryEvent.remove({ id }),
+    payload: AiMemoryEntryEvent.remove({ id }).payload,
   })
 
 // A turn holding a single user message, so history order reads off the text,
@@ -81,14 +81,14 @@ const turnAdded = (msecs: number, id: typeof firstTurn, text: string) =>
       id,
       prompt: Schema.encodeSync(PromptJson)(Prompt.make(text)),
       entryTime: msecs,
-    }),
+    }).payload,
   })
 
 const turnRemoved = (msecs: number, id: typeof firstTurn) =>
   makeEntry({
     msecs,
     event: turnEvent,
-    payload: AiChatTurnEvent.remove({ id }),
+    payload: AiChatTurnEvent.remove({ id }).payload,
   })
 
 const userTexts = (prompt: Prompt.Prompt) =>

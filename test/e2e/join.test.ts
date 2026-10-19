@@ -78,8 +78,7 @@ test(
       const device = yield* Layer.build(otherDevice(serverUrl, identity))
       yield* Context.get(device, EventLog.EventLog).write({
         schema: SharedRecipes,
-        event: RecipeEvent.tag,
-        payload: RecipeEvent.set(sharedRecipe),
+        ...RecipeEvent.set(sharedRecipe),
       })
       const sharedLink = `/recipes/${uuidString(sharedRecipe.id)}`
 

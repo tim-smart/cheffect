@@ -80,7 +80,7 @@ const menuSet = (msecs: number, id: typeof winter, name: string) =>
       days: 7,
       createdAt: DateTime.makeUnsafe(msecs),
       updatedAt: DateTime.makeUnsafe(msecs),
-    }),
+    }).payload,
   })
 
 const entrySet = (
@@ -99,7 +99,7 @@ const entrySet = (
       day,
       createdAt: DateTime.makeUnsafe(msecs),
       updatedAt: DateTime.makeUnsafe(msecs),
-    }),
+    }).payload,
   })
 
 const makeLayer =
@@ -148,7 +148,7 @@ test("a removed menu ends without entries or notes, whatever writes reach it and
       makeEntry({
         msecs: 3000,
         event: menu,
-        payload: MenuEvent.remove({ id: winter }),
+        payload: MenuEvent.remove({ id: winter }).payload,
       }),
       // From devices that hadn't seen the remove yet.
       makeEntry({
@@ -161,7 +161,7 @@ test("a removed menu ends without entries or notes, whatever writes reach it and
           note: "Leftovers",
           createdAt: DateTime.makeUnsafe(3500),
           updatedAt: DateTime.makeUnsafe(3500),
-        }),
+        }).payload,
       }),
       makeEntry({
         msecs: 4000,
@@ -172,7 +172,7 @@ test("a removed menu ends without entries or notes, whatever writes reach it and
             name: "Winter",
             updatedAt: DateTime.makeUnsafe(4000),
           },
-        ),
+        ).payload,
       }),
     ],
   })
@@ -204,7 +204,7 @@ test("an entry or note added on a dropped day concurrently with the shrink stays
             days: 5,
             updatedAt: DateTime.makeUnsafe(2000),
           },
-        ),
+        ).payload,
       }),
       // Older and newer than the shrink: neither is deleted.
       entrySet(1500, stew, winter, 6),
@@ -218,7 +218,7 @@ test("an entry or note added on a dropped day concurrently with the shrink stays
           note: "Curry",
           createdAt: DateTime.makeUnsafe(2500),
           updatedAt: DateTime.makeUnsafe(2500),
-        }),
+        }).payload,
       }),
     ],
   })

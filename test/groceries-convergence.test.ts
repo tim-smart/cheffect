@@ -70,7 +70,7 @@ const added = (id: ItemId, name: string, msecs = 1000) =>
         createdAt: DateTime.makeUnsafe(msecs),
         updatedAt: DateTime.makeUnsafe(msecs),
       }),
-    ),
+    ).payload,
   })
 
 const updated = (
@@ -90,7 +90,7 @@ const updated = (
         recipeIds: null,
         updatedAt: DateTime.makeUnsafe(msecs),
       },
-    ),
+    ).payload,
   })
 
 const toggled = (msecs: number, id: ItemId, completed: boolean) =>
@@ -102,28 +102,28 @@ const toggled = (msecs: number, id: ItemId, completed: boolean) =>
       {
         completed,
       },
-    ),
+    ).payload,
   })
 
 const deleted = (msecs: number, id: ItemId) =>
   makeEntry({
     msecs,
     event: itemEvent,
-    payload: GroceryItemEvent.remove({ id }),
+    payload: GroceryItemEvent.remove({ id }).payload,
   })
 
 const aisleSet = (msecs: number, name: string, aisle: GroceryAisle) =>
   makeEntry({
     msecs,
     event: aisleEvent,
-    payload: IngredientAisleEvent.set({ name, aisle }),
+    payload: IngredientAisleEvent.set({ name, aisle }).payload,
   })
 
 const aisleRemoved = (msecs: number, name: string) =>
   makeEntry({
     msecs,
     event: aisleEvent,
-    payload: IngredientAisleEvent.remove({ name }),
+    payload: IngredientAisleEvent.remove({ name }).payload,
   })
 
 const makeLayer =
