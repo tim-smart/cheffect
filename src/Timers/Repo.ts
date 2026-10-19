@@ -3,7 +3,6 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Stream from "effect/Stream"
 import { Timer } from "@/domain/Timer"
-import { stripLww } from "@/lib/Lww"
 import { makeSnapshot } from "@/lib/Snapshot"
 import type { TimerRow } from "./Table"
 
@@ -11,7 +10,7 @@ import type { TimerRow } from "./Table"
 // timers started in the same millisecond in the same order.
 const decodeTimers = (rows: ReadonlyArray<TimerRow>): ReadonlyArray<Timer> =>
   rows
-    .map((row) => new Timer(stripLww(row)))
+    .map((row) => new Timer(row))
     .sort(
       (a, b) =>
         a.createdAt.epochMilliseconds - b.createdAt.epochMilliseconds ||

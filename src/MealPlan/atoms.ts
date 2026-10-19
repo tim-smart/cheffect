@@ -13,6 +13,11 @@ import { RecipeRepo } from "@/Recipes/Repo"
 import { mealPlanWeekStart } from "@/Settings"
 import { latestNoteByDay, MealPlanRepo, weekEntries, weekNotes } from "./Repo"
 import { mealPlanRuntime } from "./runtime"
+import {
+  MealPlanEntryEvent,
+  MealPlanDayNoteEvent,
+  mealPlanDayNoteUpdate,
+} from "@/MealPlan/Events"
 
 // The week being viewed
 
@@ -86,12 +91,12 @@ export const addMenuToMealPlanAtom = mealPlanRuntime.fn<{
 
     for (const entry of entries) {
       yield* writeEvent({
-        event: "MealPlanAdd",
-        payload: {
+        event: MealPlanEntryEvent.tag,
+        payload: MealPlanEntryEvent.set({
           id: MealPlanEntryId.make(generateUuidBytes()),
           day: DateTime.add(startDate, { days: entry.day - 1 }),
           recipeId: entry.recipe.id,
-        },
+        }),
       })
     }
 
@@ -101,19 +106,21 @@ export const addMenuToMealPlanAtom = mealPlanRuntime.fn<{
       if (existing) {
         if (existing.note === note.note) continue
         yield* writeEvent({
-          event: "MealPlanDayNoteUpdate",
-          payload: {
+          event: MealPlanDayNoteEvent.tag,
+          payload: mealPlanDayNoteUpdate({
             ...existing,
             note: note.note,
             updatedAt: yield* DateTime.now,
-          },
+          }),
         })
         continue
       }
 
       yield* writeEvent({
-        event: "MealPlanDayNoteAdd",
-        payload: MealPlanDayNote.fromForm({ day, note: note.note }),
+        event: MealPlanDayNoteEvent.tag,
+        payload: MealPlanDayNoteEvent.set(
+          MealPlanDayNote.fromForm({ day, note: note.note }),
+        ),
       })
     }
   }),

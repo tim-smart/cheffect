@@ -1,137 +1,37 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import * as Option from "effect/Option"
-import type * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
-import type { RecipeId } from "./domain/Recipe"
+import * as EventRow from "effect/eventlog/EventRow"
 import { QueryBuilder } from "./IndexedDb"
-import * as Compaction from "./lib/Compaction"
-import { eventFields } from "./lib/eventFields"
-import { applyLww, lwwRemove, lwwSet, stampAll } from "./lib/Lww"
-import { RecipeEvents } from "./Recipes/Events"
-import type { RecipeRow } from "./Recipes/Table"
-
-// Handlers converge whatever order remote entries arrive in: a
-// create inserts only when the row is missing, updates patch fields under
-// last-writer-wins and do nothing when the row is missing, and recipe edits
-// keep tombstones because their key is the recipe id.
-
-const { events } = RecipeEvents
-const createdFields = eventFields(events.RecipeCreated.payload)
-const updatedFields = eventFields(events.RecipeUpdated.payload)
-const scaleFields = eventFields(events.RecipeSetIngredientScale.payload)
-const deletedFields = eventFields(events.RecipeDeleted.payload)
-const editFields = eventFields(events.RecipeEditSet.payload)
+import { uuidBytes } from "./lib/Id"
+import { tableRowHandler } from "./lib/rowHandler"
+import { RecipeEditEvent, RecipeEvent, RecipeEvents } from "./Recipes/Events"
 
 const RecipesHandlers = EventLog.group(RecipeEvents, (handlers) =>
   Effect.gen(function* () {
     const db = yield* QueryBuilder
-    const recipes = db.from("recipes")
-    const recipeEdits = db.from("recipeEdits")
-
-    const recipeRow = (id: RecipeId) =>
-      recipes
-        .select()
-        .equals(id)
-        .limit(1)
-        .pipe(Effect.map((rows) => rows[0]))
-    const editRow = (id: RecipeId) =>
-      recipeEdits
-        .select()
-        .equals(id)
-        .limit(1)
-        .pipe(Effect.map((rows) => Option.fromUndefinedOr(rows[0])))
-
-    const patchRecipe = Effect.fnUntraced(function* (
-      id: RecipeId,
-      patch: Partial<Omit<RecipeRow, "_lww">>,
-      entry: EventJournal.Entry,
-    ) {
-      const row = yield* recipeRow(id)
-      if (row === undefined) return
-      const next = applyLww(row, patch, entry)
-      if (next !== row) yield* recipes.upsert(next)
-    })
-
     return handlers
-      .handle("RecipeCreated", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          if ((yield* recipeRow(payload.id)) !== undefined) return
-          yield* recipes.insert(
-            stampAll({ ...createdFields(payload), ingredientScale: 1 }, entry),
-          )
-        }).pipe(Effect.orDie),
+      .handle(
+        RecipeEvent.tag,
+        tableRowHandler(db, "recipes", RecipeEvent, { tableKey: uuidBytes }),
       )
-      .handle("RecipeUpdated", ({ payload, entry }) =>
-        patchRecipe(payload.id, updatedFields(payload), entry).pipe(
-          Effect.orDie,
-        ),
-      )
-      .handle("RecipeSetIngredientScale", ({ payload, entry }) =>
-        patchRecipe(payload.id, scaleFields(payload), entry).pipe(Effect.orDie),
-      )
-      .handle("RecipeDeleted", ({ payload, entry }) =>
-        patchRecipe(payload.id, deletedFields(payload), entry).pipe(
-          Effect.orDie,
-        ),
-      )
-      .handle("RecipeEditSet", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const row = yield* editRow(payload.id)
-          yield* recipeEdits.upsert(
-            lwwSet(Option.getOrUndefined(row), editFields(payload), entry),
-          )
-        }).pipe(Effect.orDie),
-      )
-      .handle("RecipeEditRemove", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const row = yield* editRow(payload.id)
-          yield* recipeEdits.upsert(
-            lwwRemove(
-              Option.getOrUndefined(row),
-              {
-                id: payload.id,
-                title: "",
-                imageUrl: null,
-                prepTime: null,
-                cookingTime: null,
-                servings: null,
-                ingredients: [],
-                steps: [],
-                sourceName: null,
-              },
-              entry,
-            ),
-          )
-        }).pipe(Effect.orDie),
+      .handle(
+        RecipeEditEvent.tag,
+        tableRowHandler(db, "recipeEdits", RecipeEditEvent, {
+          tableKey: uuidBytes,
+        }),
       )
   }),
 )
 
 const RecipesReactivity = EventLog.groupReactivity(RecipeEvents, {
-  RecipeCreated: ["recipes"],
-  RecipeUpdated: ["recipes"],
-  RecipeSetIngredientScale: ["recipes"],
-  RecipeDeleted: ["recipes"],
-  RecipeEditSet: ["recipeEdits"],
-  RecipeEditRemove: ["recipeEdits"],
-})
-
-const RecipesCompaction = Compaction.layer(RecipeEvents, {
-  RecipeCreated: () => Compaction.create("recipes"),
-  RecipeUpdated: (payload) =>
-    Compaction.patch("recipes", updatedFields(payload)),
-  RecipeSetIngredientScale: (payload) =>
-    Compaction.patch("recipes", scaleFields(payload)),
-  RecipeDeleted: (payload) =>
-    Compaction.patch("recipes", deletedFields(payload)),
-  RecipeEditSet: (payload) =>
-    Compaction.set("recipeEdits", editFields(payload)),
-  RecipeEditRemove: () => Compaction.keep("recipeEdits"),
+  [RecipeEvent.tag]: ["recipes"],
+  [RecipeEditEvent.tag]: ["recipeEdits"],
 })
 
 export const RecipesLayer = Layer.mergeAll(
   RecipesHandlers,
   RecipesReactivity,
-  RecipesCompaction,
+  EventRow.compaction(RecipeEvents, RecipeEvent),
+  EventRow.compaction(RecipeEvents, RecipeEditEvent),
 )

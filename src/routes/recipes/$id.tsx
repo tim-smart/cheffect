@@ -15,6 +15,12 @@ import { parseStepDurations } from "@/lib/stepDurations"
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useWrite } from "@/EventLog"
 import { Timer, TimerId } from "@/domain/Timer"
+import { TimerEvent } from "@/Timers/Events"
+import {
+  RecipeEvent,
+  recipeDeleted,
+  recipeIngredientScale,
+} from "@/Recipes/Events"
 import { generateUuidBytes } from "@/lib/Id"
 import {
   MealPlanDatePicker,
@@ -155,16 +161,18 @@ export function RecipeDetails({
     const now = DateTime.nowUnsafe()
     const duration = Duration.millis(durationMs)
     write({
-      event: "TimerAdded",
-      payload: Timer.insert.make({
-        id: TimerId.make(generateUuidBytes()),
-        label,
-        duration,
-        expiresAt: DateTime.addDuration(now, duration),
-        pausedRemaining: null,
-        createdAt: now,
-        updatedAt: now,
-      }),
+      event: TimerEvent.tag,
+      payload: TimerEvent.set(
+        Timer.insert.make({
+          id: TimerId.make(generateUuidBytes()),
+          label,
+          duration,
+          expiresAt: DateTime.addDuration(now, duration),
+          pausedRemaining: null,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ),
     })
   }
 
@@ -298,11 +306,8 @@ export function RecipeDetails({
                       return
                     }
                     await write({
-                      event: "RecipeDeleted",
-                      payload: {
-                        id: recipe.id,
-                        deletedAt: DateTime.nowUnsafe(),
-                      },
+                      event: RecipeEvent.tag,
+                      payload: recipeDeleted(recipe.id, DateTime.nowUnsafe()),
                     })
                     return router.history.back()
                   }}
@@ -543,12 +548,12 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
               })
               if (Option.isSome(scale)) {
                 write({
-                  event: "RecipeSetIngredientScale",
-                  payload: {
-                    id: recipe.id,
-                    ingredientScale: BigDecimal.toNumberUnsafe(scale.value),
-                    updatedAt: DateTime.nowUnsafe(),
-                  },
+                  event: RecipeEvent.tag,
+                  payload: recipeIngredientScale(
+                    recipe.id,
+                    BigDecimal.toNumberUnsafe(scale.value),
+                    DateTime.nowUnsafe(),
+                  ),
                 })
               }
               setOpen(false)

@@ -2,6 +2,7 @@ import { writeEvent } from "@/EventLog"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import type { RecipeExtractJob } from "@/domain/RecipeExtractJob"
 import { uuidString } from "@/lib/Id"
+import { RecipeEvent } from "./Events"
 import { withToast } from "@/lib/sonner"
 import { tryWebLock } from "@/lib/WebLock"
 import { router } from "@/Router"
@@ -30,10 +31,10 @@ export const RecipeExtractionManager = Layer.effectDiscard(
         // Completing the job drops it from the pending stream, which
         // interrupts this fiber, so the recipe is written first and neither
         // write can be cut short.
-        yield* writeEvent({ event: "RecipeCreated", payload: recipe }).pipe(
-          Effect.andThen(jobs.complete(job.id)),
-          Effect.uninterruptible,
-        )
+        yield* writeEvent({
+          event: RecipeEvent.tag,
+          payload: RecipeEvent.set(recipe),
+        }).pipe(Effect.andThen(jobs.complete(job.id)), Effect.uninterruptible)
         return recipe
       },
       withToast(({ url }) => ({

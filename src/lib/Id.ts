@@ -86,3 +86,11 @@ export const familyById =
     const decode = Schema.decodeSync(fromString)
     return Atom.family((id: string) => f(decode(id)))
   }
+
+// The `EventRow` key of a row with a UUID `id`: its string form, which is also
+// the entry's primary key. `patch` and `remove` carry this string, so their
+// handlers turn it back into bytes with `uuidBytes`.
+export const uuidKey = {
+  fields: ["id"],
+  derive: ({ id }: { readonly id: Uint8Array }) => uuidString(id),
+} as const

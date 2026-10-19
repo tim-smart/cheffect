@@ -45,6 +45,14 @@ import {
 import { cn, quantityFormatter } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
+import {
+  MenuEvent,
+  MenuEntryEvent,
+  MenuDayNoteEvent,
+  menuEntryDay,
+  menuDayNoteUpdate,
+} from "@/Menus/Events"
+import { uuidString } from "@/lib/Id"
 
 export const Route = createFileRoute("/menus/$id")({
   component: MenuDetailPage,
@@ -124,7 +132,10 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
                       return
                     }
                     router.navigate({ to: "/menus" })
-                    write({ event: "MenuRemove", payload: { id: menu.id } })
+                    write({
+                      event: MenuEvent.tag,
+                      payload: MenuEvent.remove(uuidString(menu.id)),
+                    })
                   }}
                 >
                   <Trash />
@@ -150,12 +161,8 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
             const entry = entries.find((e) => e.idString === active.id)
             if (!entry || entry.day === targetDay) return
             write({
-              event: "MenuEntrySetDay",
-              payload: {
-                id: entry.id,
-                day: targetDay,
-                updatedAt: DateTime.nowUnsafe(),
-              },
+              event: MenuEntryEvent.tag,
+              payload: menuEntryDay(entry.id, targetDay, DateTime.nowUnsafe()),
             })
           }}
         >
@@ -237,7 +244,10 @@ function DayListItem({
     const trimmed = noteDraft.trim()
     if (trimmed.length === 0) {
       if (dayNote) {
-        write({ event: "MenuDayNoteRemove", payload: { id: dayNote.id } })
+        write({
+          event: MenuDayNoteEvent.tag,
+          payload: MenuDayNoteEvent.remove(uuidString(dayNote.id)),
+        })
       }
       return
     }
@@ -245,23 +255,25 @@ function DayListItem({
     if (dayNote) {
       if (trimmed === dayNote.note) return
       write({
-        event: "MenuDayNoteUpdate",
-        payload: {
+        event: MenuDayNoteEvent.tag,
+        payload: menuDayNoteUpdate({
           ...dayNote,
           note: trimmed,
           updatedAt: DateTime.nowUnsafe(),
-        },
+        }),
       })
       return
     }
 
     write({
-      event: "MenuDayNoteAdd",
-      payload: MenuDayNote.fromForm({
-        menuId: menu.id,
-        day,
-        note: trimmed,
-      }),
+      event: MenuDayNoteEvent.tag,
+      payload: MenuDayNoteEvent.set(
+        MenuDayNote.fromForm({
+          menuId: menu.id,
+          day,
+          note: trimmed,
+        }),
+      ),
     })
   }
 
@@ -295,12 +307,14 @@ function DayListItem({
           <SelectRecipeDrawer
             onSelect={(recipe) => {
               write({
-                event: "MenuEntryAdd",
-                payload: MenuEntry.fromForm({
-                  menuId: menu.id,
-                  recipeId: recipe.id,
-                  day,
-                }),
+                event: MenuEntryEvent.tag,
+                payload: MenuEntryEvent.set(
+                  MenuEntry.fromForm({
+                    menuId: menu.id,
+                    recipeId: recipe.id,
+                    day,
+                  }),
+                ),
               })
             }}
           >
@@ -434,7 +448,10 @@ function DayEntryItem({ entry }: { entry: MenuEntry }) {
           size="sm"
           onClick={(e) => {
             e.preventDefault()
-            write({ event: "MenuEntryRemove", payload: { id } })
+            write({
+              event: MenuEntryEvent.tag,
+              payload: MenuEntryEvent.remove(uuidString(id)),
+            })
           }}
           className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600"
         >

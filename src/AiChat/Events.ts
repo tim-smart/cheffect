@@ -1,39 +1,33 @@
 import * as Schema from "effect/Schema"
 import * as EventGroup from "effect/eventlog/EventGroup"
+import * as EventRow from "effect/eventlog/EventRow"
 import { AiChatTurnId } from "@/domain/AiChatTurn"
-import { AiMemoryEntry, AiMemoryEntryId } from "@/domain/AiMemoryEntry"
-import { uuidString } from "@/lib/Id"
+import { AiMemoryEntry } from "@/domain/AiMemoryEntry"
+import { uuidKey } from "@/lib/Id"
 
-// Tags are permanent wire names. A breaking payload change gets a new tag and
-// the old handler stays. `v1.AIMemoryClear` is dropped for
-// `AIMemoryEntriesRemoved`, which carries the ids the writer saw. Chat
-// history moves out of `key_values` into one `AiChatTurnAdded` per finished
-// turn, and clearing the chat removes the turns it saw.
+// Tags are permanent wire names. Every stored entry is decoded again with the
+// current row schema, so a field may only be added with a decoding default,
+// or removed.
+//
+// Clearing memory or the chat removes each row the writer saw, so one added
+// concurrently on another device survives.
+export const AiMemoryEntryEvent = EventRow.make("AiMemoryEntry", {
+  key: uuidKey,
+  schema: Schema.Struct(AiMemoryEntry.fields),
+})
+
+// `prompt` is the turn's messages as `PromptJson`. `entryTime` is when the
+// writer saved the turn, in epoch millis. History sorts by it, with the id as
+// the tiebreak, so every device reads the turns in the same order.
+export const AiChatTurnEvent = EventRow.make("AiChatTurn", {
+  key: uuidKey,
+  schema: Schema.Struct({
+    id: AiChatTurnId,
+    prompt: Schema.String,
+    entryTime: Schema.Number,
+  }),
+})
+
 export const AiChatEvents = EventGroup.empty
-  .add({
-    tag: "AIMemoryEntryAdded",
-    primaryKey: (entry) => uuidString(entry.id),
-    payload: AiMemoryEntry.insert,
-  })
-  .add({
-    tag: "AIMemoryEntryRemove",
-    primaryKey: ({ id }) => uuidString(id),
-    payload: Schema.Struct({ id: AiMemoryEntryId }),
-  })
-  .add({
-    tag: "AIMemoryEntriesRemoved",
-    // A fixed key per table, as for `GroceryItemsDeleted`.
-    primaryKey: () => "aiMemoryEntries",
-    payload: Schema.Struct({ ids: Schema.NonEmptyArray(AiMemoryEntryId) }),
-  })
-  .add({
-    tag: "AiChatTurnAdded",
-    primaryKey: ({ id }) => uuidString(id),
-    // `prompt` is the turn's messages as `PromptJson`.
-    payload: Schema.Struct({ id: AiChatTurnId, prompt: Schema.String }),
-  })
-  .add({
-    tag: "AiChatTurnsRemoved",
-    primaryKey: () => "aiChatTurns",
-    payload: Schema.Struct({ ids: Schema.NonEmptyArray(AiChatTurnId) }),
-  })
+  .add(AiMemoryEntryEvent)
+  .add(AiChatTurnEvent)

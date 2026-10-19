@@ -5,10 +5,16 @@ import * as Effect from "effect/Effect"
 import * as Stream from "effect/Stream"
 import type { Menu } from "@/domain/Menu"
 import { writeEvent } from "@/EventLog"
-import { idEquals } from "@/lib/Id"
+import { idEquals, uuidString } from "@/lib/Id"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { menuDetail, MenuRepo, recipeCounts } from "./Repo"
 import { menusRuntime } from "./runtime"
+import {
+  MenuEvent,
+  MenuEntryEvent,
+  MenuDayNoteEvent,
+  menuUpdate,
+} from "@/Menus/Events"
 
 // Reads
 
@@ -71,21 +77,21 @@ export const setMenuDaysAtom = menusRuntime.fn<{
       for (const entry of yield* repo.entries) {
         if (!idEquals(entry.menuId, menu.id) || entry.day <= days) continue
         yield* writeEvent({
-          event: "MenuEntryRemove",
-          payload: { id: entry.id },
+          event: MenuEntryEvent.tag,
+          payload: MenuEntryEvent.remove(uuidString(entry.id)),
         })
       }
       for (const note of yield* repo.notes) {
         if (!idEquals(note.menuId, menu.id) || note.day <= days) continue
         yield* writeEvent({
-          event: "MenuDayNoteRemove",
-          payload: { id: note.id },
+          event: MenuDayNoteEvent.tag,
+          payload: MenuDayNoteEvent.remove(uuidString(note.id)),
         })
       }
     }
     yield* writeEvent({
-      event: "MenuUpdate",
-      payload: { ...menu, days, updatedAt: yield* DateTime.now },
+      event: MenuEvent.tag,
+      payload: menuUpdate({ ...menu, days, updatedAt: yield* DateTime.now }),
     })
   }),
 )

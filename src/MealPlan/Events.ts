@@ -1,45 +1,45 @@
+import type * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
 import * as Model from "effect/schema/Model"
 import * as EventGroup from "effect/eventlog/EventGroup"
-import { MealPlanDayNote, MealPlanDayNoteId } from "@/domain/MealPlanDayNote"
+import * as EventRow from "effect/eventlog/EventRow"
+import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntryId } from "@/domain/MealPlanEntry"
 import { RecipeId } from "@/domain/Recipe"
-import { uuidString } from "@/lib/Id"
+import { uuidKey, uuidString } from "@/lib/Id"
 
-// Tags are permanent wire names. A breaking payload change gets a new tag and
-// the old handler stays.
+// Tags are permanent wire names. Every stored entry is decoded again with the
+// current row schema, so a field may only be added with a decoding default,
+// or removed.
+//
+// An entry keeps its recipe's id; the repo joins it with the recipes
+// snapshot. `day` is the ISO date string the domain encodes.
+export const MealPlanEntryEvent = EventRow.make("MealPlanEntry", {
+  key: uuidKey,
+  schema: Schema.Struct({
+    id: MealPlanEntryId,
+    recipeId: RecipeId,
+    day: Model.Date,
+  }),
+})
+
+export const MealPlanDayNoteEvent = EventRow.make("MealPlanDayNote", {
+  key: uuidKey,
+  schema: Schema.Struct(MealPlanDayNote.fields),
+})
+
 export const MealPlanEvents = EventGroup.empty
-  .add({
-    tag: "MealPlanAdd",
-    primaryKey: ({ id }) => uuidString(id),
-    payload: Schema.Struct({
-      id: MealPlanEntryId,
-      recipeId: RecipeId,
-      day: Model.Date,
-    }),
-  })
-  .add({
-    tag: "MealPlanSetDay",
-    primaryKey: ({ id }) => uuidString(id),
-    payload: Schema.Struct({ id: MealPlanEntryId, day: Model.Date }),
-  })
-  .add({
-    tag: "MealPlanRemove",
-    primaryKey: ({ id }) => uuidString(id),
-    payload: Schema.Struct({ id: MealPlanEntryId }),
-  })
-  .add({
-    tag: "MealPlanDayNoteAdd",
-    primaryKey: (note) => uuidString(note.id),
-    payload: MealPlanDayNote.insert,
-  })
-  .add({
-    tag: "MealPlanDayNoteUpdate",
-    primaryKey: (note) => uuidString(note.id),
-    payload: MealPlanDayNote.update,
-  })
-  .add({
-    tag: "MealPlanDayNoteRemove",
-    primaryKey: ({ id }) => uuidString(id),
-    payload: Schema.Struct({ id: MealPlanDayNoteId }),
+  .add(MealPlanEntryEvent)
+  .add(MealPlanDayNoteEvent)
+
+export const mealPlanEntryDay = (id: MealPlanEntryId, day: DateTime.Utc) =>
+  MealPlanEntryEvent.patch(uuidString(id), { day })
+
+export const mealPlanDayNoteUpdate = (
+  note: typeof MealPlanDayNote.update.Type,
+) =>
+  MealPlanDayNoteEvent.patch(uuidString(note.id), {
+    day: note.day,
+    note: note.note,
+    updatedAt: note.updatedAt,
   })

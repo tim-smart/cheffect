@@ -7,7 +7,6 @@ import { Menu } from "@/domain/Menu"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { uuidString } from "@/lib/Id"
-import { stripLww } from "@/lib/Lww"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText } from "@/lib/text"
 import { RecipeRepo, type Recipes } from "@/Recipes/Repo"
@@ -16,15 +15,15 @@ import type { MenuDayNoteRow, MenuEntryRow, MenuRow } from "./Table"
 // Reads
 //
 // Every read is a pure function over the table snapshots, and every read of a
-// menu's entries and notes goes through the menu. Two kinds of stored row
-// never show: one whose menu is gone (added concurrently with its remove),
-// and one past the menu's last day (written concurrently with a shrink that
-// didn't see it). Entries are joined with the recipes snapshot: an entry
+// menu's entries and notes goes through the menu. Removed menus are markers
+// and never show. Two kinds of stored row never show either: one whose menu
+// hasn't arrived yet, and one past the menu's last day (written concurrently
+// with a shrink that didn't see it). Entries are joined with the recipes snapshot: an entry
 // whose recipe is missing is hidden, and one whose recipe is soft-deleted
 // still shows.
 
-export type StoredMenuEntry = Omit<MenuEntryRow, "_lww">
-export type StoredMenuDayNote = Omit<MenuDayNoteRow, "_lww">
+export type StoredMenuEntry = MenuEntryRow
+export type StoredMenuDayNote = MenuDayNoteRow
 
 export interface Menus {
   // By name.
@@ -44,7 +43,8 @@ const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
 const decodeMenus = (rows: ReadonlyArray<MenuRow>): Menus => {
   const all = rows
-    .map((row) => new Menu(stripLww(row)))
+    .filter((row) => !row.removed)
+    .map(({ removed: _, ...row }) => new Menu(row))
     .sort(
       (a, b) =>
         compareText(a.name, b.name) || compareIds(a.idString, b.idString),
@@ -57,11 +57,11 @@ const decodeMenus = (rows: ReadonlyArray<MenuRow>): Menus => {
 
 const decodeEntries = (
   rows: ReadonlyArray<MenuEntryRow>,
-): ReadonlyArray<StoredMenuEntry> => rows.map(stripLww)
+): ReadonlyArray<StoredMenuEntry> => rows
 
 const decodeNotes = (
   rows: ReadonlyArray<MenuDayNoteRow>,
-): ReadonlyArray<StoredMenuDayNote> => rows.map(stripLww)
+): ReadonlyArray<StoredMenuDayNote> => rows
 
 export const findMenu = (menus: Menus, id: string): Option.Option<Menu> =>
   Option.fromUndefinedOr(menus.byId.get(id.toLowerCase()))

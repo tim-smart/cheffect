@@ -1,60 +1,44 @@
-import type * as DateTime from "effect/DateTime"
+import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
-import { Menu, type MenuId } from "./domain/Menu"
-import { MenuDayNote, type MenuDayNoteId } from "./domain/MenuDayNote"
-import { MenuEntry, type MenuEntryId } from "./domain/MenuEntry"
+import * as EventRow from "effect/eventlog/EventRow"
+import { MenuId } from "./domain/Menu"
+import { MenuDayNoteId } from "./domain/MenuDayNote"
+import { MenuEntryId } from "./domain/MenuEntry"
 import { QueryBuilder, withWriteTransaction } from "./IndexedDb"
-import * as Compaction from "./lib/Compaction"
-import { eventFields } from "./lib/eventFields"
-import { uuidString } from "./lib/Id"
-import { applyLww, stampAll } from "./lib/Lww"
-import { MenuEvents } from "./Menus/Events"
+import { uuidBytes } from "./lib/Id"
+import {
+  MenuDayNoteEvent,
+  MenuEntryEvent,
+  MenuEvent,
+  MenuEvents,
+} from "./Menus/Events"
+import type { MenuRow } from "./Menus/Table"
 
-// Handlers converge whatever order remote entries arrive in: adds
-// insert only when the row is missing, `MenuUpdate`, `MenuEntrySetDay` and
-// note updates patch under last-writer-wins and do nothing when the row is
-// missing, and removes hard-delete, so a late update can't bring a row back.
-// A day note add on an existing row (a re-import) merges under
-// last-writer-wins.
+// Entries and notes are separate rows from their menu, so a menu remove
+// doesn't conflict with a concurrent write to one of them. A removed menu
+// stays as a marker, and every replica ends without the entries and notes of
+// removed menus, whatever the delivery order:
 //
-// `MenuRemove` also deletes the menu's entries and notes through the `menuId`
-// index. A `MenuUpdate` that shrinks `days` deletes nothing: its writer emits
-// removes for the entries and notes it saw on the dropped days, so a
-// concurrent write it never saw survives, past the last day where reads don't
-// show it. An entry or note can also outlive its menu when it was added
-// concurrently with the remove; reads go through the menu, so it never shows.
+// - The menu `remove` marks the menu and deletes its entries and notes. It
+//   writes the marker even when the menu was never stored, e.g. when
+//   compaction dropped the `set` it shadows.
+// - An entry or note `set` or `patch` is skipped when its menu is marked, and
+//   applied when the menu hasn't arrived yet.
+// - A menu `patch` skips a marker, and the marker's fields are blank, so it
+//   holds the same values on every replica.
+//
+// Removing a menu is final: no writer sets a removed menu's id again, and an
+// import skips rows this device has entries for. Markers stay.
 
-const menuFields = eventFields(Menu.insert)
-const entryFields = eventFields(MenuEntry.insert)
-const noteFields = eventFields(MenuDayNote.insert)
-
-const menuUpdate = ({ name, days, updatedAt }: typeof Menu.update.Type) => ({
-  name,
-  days,
-  updatedAt,
-})
-
-const entryDay = ({
-  day,
-  updatedAt,
-}: {
-  readonly day: number
-  readonly updatedAt: DateTime.Utc
-}) => ({
-  day,
-  updatedAt,
-})
-
-const noteUpdate = ({
-  day,
-  note,
-  updatedAt,
-}: typeof MenuDayNote.update.Type) => ({
-  day,
-  note,
-  updatedAt,
+const marker = (id: MenuId): MenuRow => ({
+  id,
+  name: "",
+  days: 0,
+  createdAt: DateTime.makeUnsafe(0),
+  updatedAt: DateTime.makeUnsafe(0),
+  removed: true,
 })
 
 const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
@@ -71,122 +55,102 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
         .limit(1)
         .pipe(Effect.map((rows) => rows[0]))
 
-    const entryRow = (id: MenuEntryId) =>
-      entries
-        .select()
-        .equals(id)
-        .limit(1)
-        .pipe(Effect.map((rows) => rows[0]))
-
-    const noteRow = (id: MenuDayNoteId) =>
-      notes
-        .select()
-        .equals(id)
-        .limit(1)
-        .pipe(Effect.map((rows) => rows[0]))
+    const menuRemoved = (id: MenuId) =>
+      menuRow(id).pipe(Effect.map((row) => row?.removed === true))
 
     return handlers
-      .handle("MenuAdd", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          if ((yield* menuRow(payload.id)) !== undefined) return
-          yield* menus.insert(stampAll(menuFields(payload), entry))
-        }).pipe(Effect.orDie),
+      .handle(
+        MenuEvent.tag,
+        EventRow.handler(MenuEvent, {
+          set: (menu) =>
+            menus.upsert({ ...menu, removed: false }).pipe(Effect.orDie),
+          patch: (key, fields) =>
+            Effect.gen(function* () {
+              const row = yield* menuRow(MenuId.make(uuidBytes(key)))
+              if (row === undefined || row.removed) return
+              yield* menus.upsert({ ...row, ...fields })
+            }).pipe(Effect.orDie),
+          remove: (key) =>
+            Effect.gen(function* () {
+              const id = MenuId.make(uuidBytes(key))
+              yield* menus.upsert(marker(id))
+              yield* entries.delete("menuId").equals(id)
+              yield* notes.delete("menuId").equals(id)
+            }).pipe(
+              withWriteTransaction(db, [
+                "menus",
+                "menuEntries",
+                "menuDayNotes",
+              ]),
+              Effect.orDie,
+            ),
+        }),
       )
-      .handle("MenuUpdate", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const row = yield* menuRow(payload.id)
-          if (row === undefined) return
-          const next = applyLww(row, menuUpdate(payload), entry)
-          if (next !== row) yield* menus.upsert(next)
-        }).pipe(Effect.orDie),
+      .handle(
+        MenuEntryEvent.tag,
+        EventRow.handler(MenuEntryEvent, {
+          set: (entry) =>
+            Effect.gen(function* () {
+              if (yield* menuRemoved(entry.menuId)) return
+              yield* entries.upsert(entry)
+            }).pipe(Effect.orDie),
+          patch: (key, fields) =>
+            Effect.gen(function* () {
+              const [row] = yield* entries
+                .select()
+                .equals(MenuEntryId.make(uuidBytes(key)))
+                .limit(1)
+              if (row === undefined) return
+              const next = { ...row, ...fields }
+              if (yield* menuRemoved(next.menuId)) return
+              yield* entries.upsert(next)
+            }).pipe(Effect.orDie),
+          remove: (key) =>
+            entries
+              .delete()
+              .equals(MenuEntryId.make(uuidBytes(key)))
+              .pipe(Effect.orDie),
+        }),
       )
-      .handle("MenuRemove", ({ payload }) =>
-        Effect.gen(function* () {
-          yield* menus.delete().equals(payload.id)
-          yield* entries.delete("menuId").equals(payload.id)
-          yield* notes.delete("menuId").equals(payload.id)
-        }).pipe(
-          withWriteTransaction(db, ["menus", "menuEntries", "menuDayNotes"]),
-          Effect.orDie,
-        ),
-      )
-      .handle("MenuEntryAdd", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          if ((yield* entryRow(payload.id)) !== undefined) return
-          yield* entries.insert(stampAll(entryFields(payload), entry))
-        }).pipe(Effect.orDie),
-      )
-      .handle("MenuEntrySetDay", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const row = yield* entryRow(payload.id)
-          if (row === undefined) return
-          const next = applyLww(row, entryDay(payload), entry)
-          if (next !== row) yield* entries.upsert(next)
-        }).pipe(Effect.orDie),
-      )
-      .handle("MenuEntryRemove", ({ payload }) =>
-        entries.delete().equals(payload.id).pipe(Effect.orDie),
-      )
-      .handle("MenuDayNoteAdd", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const row = yield* noteRow(payload.id)
-          const fields = noteFields(payload)
-          if (row === undefined) {
-            yield* notes.insert(stampAll(fields, entry))
-            return
-          }
-          const next = applyLww(row, fields, entry)
-          if (next !== row) yield* notes.upsert(next)
-        }).pipe(Effect.orDie),
-      )
-      .handle("MenuDayNoteUpdate", ({ payload, entry }) =>
-        Effect.gen(function* () {
-          const row = yield* noteRow(payload.id)
-          if (row === undefined) return
-          const next = applyLww(row, noteUpdate(payload), entry)
-          if (next !== row) yield* notes.upsert(next)
-        }).pipe(Effect.orDie),
-      )
-      .handle("MenuDayNoteRemove", ({ payload }) =>
-        notes.delete().equals(payload.id).pipe(Effect.orDie),
+      .handle(
+        MenuDayNoteEvent.tag,
+        EventRow.handler(MenuDayNoteEvent, {
+          set: (note) =>
+            Effect.gen(function* () {
+              if (yield* menuRemoved(note.menuId)) return
+              yield* notes.upsert(note)
+            }).pipe(Effect.orDie),
+          patch: (key, fields) =>
+            Effect.gen(function* () {
+              const [row] = yield* notes
+                .select()
+                .equals(MenuDayNoteId.make(uuidBytes(key)))
+                .limit(1)
+              if (row === undefined) return
+              const next = { ...row, ...fields }
+              if (yield* menuRemoved(next.menuId)) return
+              yield* notes.upsert(next)
+            }).pipe(Effect.orDie),
+          remove: (key) =>
+            notes
+              .delete()
+              .equals(MenuDayNoteId.make(uuidBytes(key)))
+              .pipe(Effect.orDie),
+        }),
       )
   }),
 )
 
 const MenuReactivity = EventLog.groupReactivity(MenuEvents, {
-  MenuAdd: ["menus"],
-  MenuUpdate: ["menus"],
-  MenuRemove: ["menus", "menuEntries", "menuDayNotes"],
-  MenuEntryAdd: ["menuEntries"],
-  MenuEntrySetDay: ["menuEntries"],
-  MenuEntryRemove: ["menuEntries"],
-  MenuDayNoteAdd: ["menuDayNotes"],
-  MenuDayNoteUpdate: ["menuDayNotes"],
-  MenuDayNoteRemove: ["menuDayNotes"],
-})
-
-// `MenuRemove` deletes the menu's entries and notes through their `menuId`,
-// which a day note Add can change, so it's a `keep` without a table. The
-// menu's own entries before it are replayed too.
-const MenuCompaction = Compaction.layer(MenuEvents, {
-  MenuAdd: () => Compaction.create("menus"),
-  MenuUpdate: (payload) => Compaction.patch("menus", menuUpdate(payload)),
-  MenuRemove: () => Compaction.keep(),
-  MenuEntryAdd: () => Compaction.create("menuEntries"),
-  MenuEntrySetDay: (payload) =>
-    Compaction.patch("menuEntries", entryDay(payload)),
-  MenuEntryRemove: ({ id }) =>
-    Compaction.remove("menuEntries", [uuidString(id)]),
-  MenuDayNoteAdd: (payload) =>
-    Compaction.set("menuDayNotes", noteFields(payload)),
-  MenuDayNoteUpdate: (payload) =>
-    Compaction.patch("menuDayNotes", noteUpdate(payload)),
-  MenuDayNoteRemove: ({ id }) =>
-    Compaction.remove("menuDayNotes", [uuidString(id)]),
+  [MenuEvent.tag]: ["menus", "menuEntries", "menuDayNotes"],
+  [MenuEntryEvent.tag]: ["menuEntries"],
+  [MenuDayNoteEvent.tag]: ["menuDayNotes"],
 })
 
 export const MenusLayer = Layer.mergeAll(
   MenuHandlers,
   MenuReactivity,
-  MenuCompaction,
+  EventRow.compaction(MenuEvents, MenuEvent),
+  EventRow.compaction(MenuEvents, MenuEntryEvent),
+  EventRow.compaction(MenuEvents, MenuDayNoteEvent),
 )

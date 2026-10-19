@@ -9,8 +9,7 @@ import {
   normalizeIngredientName,
   PANTRY_GROCERY_LIST_NAME,
 } from "@/domain/GroceryItem"
-import { uuidString } from "@/lib/Id"
-import { isLive, stripLww } from "@/lib/Lww"
+import { idEquals, uuidString } from "@/lib/Id"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText, includesFolded } from "@/lib/text"
 import type {
@@ -21,22 +20,32 @@ import type {
 
 // Reads
 //
-// Every read is a pure function over the table snapshots. Ingredient
-// aisle and aisle order tombstones never show. An item whose recipe is gone
-// still shows; the recipe chip renders nothing for it.
+// Every read is a pure function over the table snapshots. An item whose
+// recipe is gone still shows; the recipe chip renders nothing for it.
 
 // The learned aisle of each ingredient, by normalised name, in key order.
 export type IngredientAisles = ReadonlyMap<string, GroceryAisle>
 
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
-// Every write to an item re-stamps the fields it changes, so a row with the
-// same stamps as last time holds the same values.
-const sameStamps = (a: GroceryItemRow["_lww"], b: GroceryItemRow["_lww"]) => {
-  const keys = Object.keys(a)
-  if (keys.length !== Object.keys(b).length) return false
-  return keys.every((key) => a[key] === b[key])
-}
+const sameRecipeIds = (
+  a: GroceryItemRow["recipeIds"],
+  b: GroceryItemRow["recipeIds"],
+) =>
+  a === null || b === null
+    ? a === b
+    : a.length === b.length && a.every((id, i) => idEquals(id, b[i]))
+
+// Whether two rows for the same item hold the same values.
+const sameRow = (a: GroceryItemRow, b: GroceryItemRow) =>
+  a.list === b.list &&
+  a.name === b.name &&
+  a.quantity === b.quantity &&
+  a.aisle === b.aisle &&
+  a.completed === b.completed &&
+  sameRecipeIds(a.recipeIds, b.recipeIds) &&
+  a.createdAt.epochMilliseconds === b.createdAt.epochMilliseconds &&
+  a.updatedAt.epochMilliseconds === b.updatedAt.epochMilliseconds
 
 interface DecodedItem {
   readonly row: GroceryItemRow
@@ -54,9 +63,9 @@ const makeItemDecoder = () => {
       const id = uuidString(row.id)
       const previous = decoded.get(id)
       const entry =
-        previous !== undefined && sameStamps(previous.row._lww, row._lww)
+        previous !== undefined && sameRow(previous.row, row)
           ? previous
-          : { row, item: new GroceryItem(stripLww(row)) }
+          : { row, item: new GroceryItem(row) }
       next.set(id, entry)
       return entry.item
     })
@@ -67,12 +76,7 @@ const makeItemDecoder = () => {
 
 const decodeAisles = (
   rows: ReadonlyArray<IngredientAisleRow>,
-): IngredientAisles =>
-  new Map(rows.filter(isLive).map((row) => [row.name, row.aisle]))
-
-const decodeAisleOrders = (
-  rows: ReadonlyArray<GroceryAisleOrderRow>,
-): ReadonlyArray<GroceryAisleOrderRow> => rows.filter(isLive)
+): IngredientAisles => new Map(rows.map((row) => [row.name, row.aisle]))
 
 // A list's items by name. `null` is the default list.
 export const listItems = (
@@ -159,9 +163,7 @@ export class GroceryRepo extends Context.Service<GroceryRepo>()(
       return {
         itemsStream: items.stream.pipe(Stream.map(decodeItems)),
         aislesStream: aisles.stream.pipe(Stream.map(decodeAisles)),
-        aisleOrdersStream: aisleOrders.stream.pipe(
-          Stream.map(decodeAisleOrders),
-        ),
+        aisleOrdersStream: aisleOrders.stream,
         // Every item on every list: for export, import and the dev seed.
         items: currentItems,
         list: (list: string | null) =>

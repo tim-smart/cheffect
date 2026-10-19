@@ -4,7 +4,6 @@ import * as Atom from "effect/reactivity/Atom"
 import {
   ExtractedRecipe,
   Recipe,
-  RecipeEdit,
   RecipeIdFromString,
   SortByValue,
 } from "@/domain/Recipe"
@@ -14,9 +13,11 @@ import * as Schema from "effect/Schema"
 import * as Stream from "effect/Stream"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { eventLogAtom, writeEvent, writeEventAtom } from "@/EventLog"
+import { RecipeEditEvent, RecipeEvent } from "./Events"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { findRecipe, findRecipeEdit, RecipeRepo, searchRecipes } from "./Repo"
 import { kvsRuntime } from "@/lib/atom"
+import { uuidString } from "@/lib/Id"
 
 // The repos share the EventLog runtime's query builder and Reactivity, so
 // handler writes reload their snapshots. Kept apart from `atoms.ts` so modules
@@ -32,12 +33,18 @@ export const liveRecipesAtom = recipesRuntime.fn<void>()(() =>
   RecipeRepo.use((repo) => repo.live),
 )
 
-// Writes recipes as new `RecipeCreated` entries. A recipe that already exists
-// is left alone, so importing the same file twice changes nothing.
+// Writes recipes as new `set` entries. A `set` replaces the whole recipe, so
+// one that already exists here is skipped, and importing the same file twice
+// changes nothing.
 export const importRecipesAtom = recipesRuntime.fn<ReadonlyArray<Recipe>>()(
   Effect.fnUntraced(function* (recipes) {
+    const existing = yield* RecipeRepo.use((repo) => repo.current)
     for (const recipe of recipes) {
-      yield* writeEvent({ event: "RecipeCreated", payload: recipe })
+      if (existing.byId.has(recipe.idString)) continue
+      yield* writeEvent({
+        event: RecipeEvent.tag,
+        payload: RecipeEvent.set(recipe),
+      })
     }
   }),
 )
@@ -105,12 +112,12 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
         writeEventAtom,
         Option.match(modified, {
           onNone: () => ({
-            event: "RecipeEditRemove" as const,
-            payload: { id: recipeId },
+            event: RecipeEditEvent.tag,
+            payload: RecipeEditEvent.remove(uuidString(recipeId)),
           }),
           onSome: (modified) => ({
-            event: "RecipeEditSet" as const,
-            payload: RecipeEdit.make({
+            event: RecipeEditEvent.tag,
+            payload: RecipeEditEvent.set({
               id: recipeId,
               title: modified.title,
               imageUrl: modified.imageUrl,

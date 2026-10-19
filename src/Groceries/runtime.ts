@@ -4,6 +4,7 @@ import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
 import {
+  type GroceryAisle,
   GroceryItem,
   type GroceryItemId,
   normalizeIngredientName,
@@ -15,6 +16,12 @@ import {
   writeEvent,
   writeEvents,
 } from "@/EventLog"
+import { uuidString } from "@/lib/Id"
+import {
+  GroceryItemEvent,
+  groceryItemUpdate,
+  IngredientAisleEvent,
+} from "./Events"
 import { GroceryRepo, learnedAisle } from "./Repo"
 
 // The repo shares the EventLog runtime's query builder and Reactivity, so
@@ -36,35 +43,39 @@ interface ItemWriteOptions {
   readonly userInitiated?: boolean | undefined
 }
 
-type AisleEvent = Extract<
-  EventPayload,
-  { readonly event: "IngredientAisleSet" | "IngredientAisleRemoved" }
->
+// What an item write teaches: the aisle to set for its name, and the
+// previous name whose aisle goes.
+interface AisleLesson {
+  readonly name: string
+  readonly aisle: GroceryAisle | null
+}
 
-const aisleEvents = (
+const aisleLessons = (
   item: GroceryItem,
   options: ItemWriteOptions,
   hasAisle: (name: string) => boolean,
-): Array<AisleEvent> => {
+): Array<AisleLesson> => {
   if (item.aisle === null) return []
-  const events: Array<AisleEvent> = []
+  const lessons: Array<AisleLesson> = []
   const name = normalizeIngredientName(item.name)
   if (options.userInitiated || !hasAisle(name)) {
-    events.push({
-      event: "IngredientAisleSet",
-      payload: { name, aisle: item.aisle },
-    })
+    lessons.push({ name, aisle: item.aisle })
   }
-  if (options.previousName === undefined) return events
+  if (options.previousName === undefined) return lessons
   const previousName = normalizeIngredientName(options.previousName)
   if (previousName !== name) {
-    events.push({
-      event: "IngredientAisleRemoved",
-      payload: { name: previousName },
-    })
+    lessons.push({ name: previousName, aisle: null })
   }
-  return events
+  return lessons
 }
+
+const aisleEvent = ({ name, aisle }: AisleLesson): EventPayload => ({
+  event: IngredientAisleEvent.tag,
+  payload:
+    aisle === null
+      ? IngredientAisleEvent.remove(name)
+      : IngredientAisleEvent.set({ name, aisle }),
+})
 
 const learnAisle = Effect.fnUntraced(function* (
   item: GroceryItem,
@@ -73,13 +84,16 @@ const learnAisle = Effect.fnUntraced(function* (
   if (item.aisle === null) return
   const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
   const hasAisle = (name: string) => Option.isSome(learnedAisle(aisles, name))
-  for (const event of aisleEvents(item, options, hasAisle)) {
-    yield* writeEvent(event)
+  for (const lesson of aisleLessons(item, options, hasAisle)) {
+    yield* writeEvent(aisleEvent(lesson))
   }
 })
 
 export const addGroceryItem = Effect.fnUntraced(function* (item: GroceryItem) {
-  yield* writeEvent({ event: "GroceryItemAdded", payload: item })
+  yield* writeEvent({
+    event: GroceryItemEvent.tag,
+    payload: GroceryItemEvent.set(item),
+  })
   yield* learnAisle(item, {})
 })
 
@@ -87,7 +101,10 @@ export const updateGroceryItem = Effect.fnUntraced(function* (
   item: GroceryItem,
   options: ItemWriteOptions = {},
 ) {
-  yield* writeEvent({ event: "GroceryItemUpdated", payload: item })
+  yield* writeEvent({
+    event: GroceryItemEvent.tag,
+    payload: groceryItemUpdate(item),
+  })
   yield* learnAisle(item, options)
 })
 
@@ -99,13 +116,13 @@ export const updateGroceryItem = Effect.fnUntraced(function* (
 // or removed.
 
 export type GroceryItemWrite =
-  | { readonly event: "GroceryItemAdded"; readonly item: GroceryItem }
+  | { readonly op: "add"; readonly item: GroceryItem }
   | {
-      readonly event: "GroceryItemUpdated"
+      readonly op: "update"
       readonly item: GroceryItem
       readonly previousName?: string | undefined
     }
-  | { readonly event: "GroceryItemDeleted"; readonly id: GroceryItemId }
+  | { readonly op: "remove"; readonly id: GroceryItemId }
 
 export const writeGroceryItems = Effect.fnUntraced(function* (
   writes: ReadonlyArray<GroceryItemWrite>,
@@ -117,27 +134,32 @@ export const writeGroceryItems = Effect.fnUntraced(function* (
     taught.get(name) ?? Option.isSome(learnedAisle(aisles, name))
   const events: Array<EventPayload> = []
   for (const write of writes) {
-    if (write.event === "GroceryItemDeleted") {
-      events.push({ event: write.event, payload: { id: write.id } })
+    if (write.op === "remove") {
+      events.push({
+        event: GroceryItemEvent.tag,
+        payload: GroceryItemEvent.remove(uuidString(write.id)),
+      })
       continue
     }
-    events.push({ event: write.event, payload: write.item })
+    events.push({
+      event: GroceryItemEvent.tag,
+      payload:
+        write.op === "add"
+          ? GroceryItemEvent.set(write.item)
+          : groceryItemUpdate(write.item),
+    })
     const options =
-      write.event === "GroceryItemUpdated"
-        ? { previousName: write.previousName }
-        : {}
-    for (const event of aisleEvents(write.item, options, hasAisle)) {
-      taught.set(event.payload.name, event.event === "IngredientAisleSet")
-      events.push(event)
+      write.op === "update" ? { previousName: write.previousName } : {}
+    for (const lesson of aisleLessons(write.item, options, hasAisle)) {
+      taught.set(lesson.name, lesson.aisle !== null)
+      events.push(aisleEvent(lesson))
     }
   }
   yield* writeEvents(events)
 })
 
 export const addGroceryItems = (items: ReadonlyArray<GroceryItem>) =>
-  writeGroceryItems(
-    items.map((item) => ({ event: "GroceryItemAdded", item }) as const),
-  )
+  writeGroceryItems(items.map((item) => ({ op: "add", item }) as const))
 
 export const updateGroceryItems = (
   writes: ReadonlyArray<{
@@ -148,14 +170,12 @@ export const updateGroceryItems = (
   writeGroceryItems(
     writes.map(
       ({ item, previousName }) =>
-        ({ event: "GroceryItemUpdated", item, previousName }) as const,
+        ({ op: "update", item, previousName }) as const,
     ),
   )
 
 export const deleteGroceryItems = (ids: ReadonlyArray<GroceryItemId>) =>
-  writeGroceryItems(
-    ids.map((id) => ({ event: "GroceryItemDeleted", id }) as const),
-  )
+  writeGroceryItems(ids.map((id) => ({ op: "remove", id }) as const))
 
 // Mutations
 //

@@ -55,7 +55,7 @@ import {
 import { RecipeRepo } from "@/Recipes/Repo"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { generateUuidBytes, uuidString } from "@/lib/Id"
-import { type EventPayload, writeEvent } from "@/EventLog"
+import { type EventPayload, writeEvent, writeEvents } from "@/EventLog"
 import { Menu, MenuId } from "@/domain/Menu"
 import {
   AiMemoryEntry,
@@ -63,10 +63,25 @@ import {
   AiMemoryEntryIdFromString,
 } from "@/domain/AiMemoryEntry"
 import { AiChatTurnId, PromptJson } from "@/domain/AiChatTurn"
+import { AiChatTurnEvent, AiMemoryEntryEvent } from "./Events"
 import { AiChatRepo } from "./Repo"
 import { aiChatRuntime } from "./runtime"
 import { Timer, TimerId } from "@/domain/Timer"
+import { TimerEvent } from "@/Timers/Events"
+import { RecipeEvent, recipeIngredientScale } from "@/Recipes/Events"
 import * as Duration from "effect/Duration"
+import {
+  MealPlanEntryEvent,
+  MealPlanDayNoteEvent,
+  mealPlanDayNoteUpdate,
+} from "@/MealPlan/Events"
+import { GroceryItemEvent } from "@/Groceries/Events"
+import {
+  MenuEvent,
+  MenuEntryEvent,
+  MenuDayNoteEvent,
+  menuDayNoteUpdate,
+} from "@/Menus/Events"
 
 const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
@@ -102,7 +117,10 @@ const ToolkitLayer = toolkit.toLayer(
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
         const newRecipe = recipe.asRecipe()
-        yield* write({ event: "RecipeCreated", payload: newRecipe })
+        yield* write({
+          event: RecipeEvent.tag,
+          payload: RecipeEvent.set(newRecipe),
+        })
         return {
           _tag: "Transient",
           value: { recipeId: newRecipe.idString },
@@ -132,12 +150,12 @@ const ToolkitLayer = toolkit.toLayer(
         }
         // Only the scale, so a concurrent edit to the recipe isn't undone.
         yield* write({
-          event: "RecipeSetIngredientScale",
-          payload: {
-            id: original.value.id,
-            ingredientScale: scale,
-            updatedAt: yield* DateTime.now,
-          },
+          event: RecipeEvent.tag,
+          payload: recipeIngredientScale(
+            original.value.id,
+            scale,
+            yield* DateTime.now,
+          ),
         })
         return {
           _tag: "Transient",
@@ -212,8 +230,8 @@ const ToolkitLayer = toolkit.toLayer(
           if (Option.isSome(source)) {
             collectRecipeIds(source.value)
             yield* write({
-              event: "GroceryItemDeleted",
-              payload: { id: source.value.id },
+              event: GroceryItemEvent.tag,
+              payload: GroceryItemEvent.remove(uuidString(source.value.id)),
             })
           }
         }
@@ -237,8 +255,8 @@ const ToolkitLayer = toolkit.toLayer(
         const item = yield* groceries.byId(id).pipe(Effect.orDie)
         if (Option.isSome(item)) {
           yield* write({
-            event: "GroceryItemDeleted",
-            payload: { id: item.value.id },
+            event: GroceryItemEvent.tag,
+            payload: GroceryItemEvent.remove(uuidString(item.value.id)),
           })
         }
         return { _tag: "Transient", value: null }
@@ -280,8 +298,8 @@ const ToolkitLayer = toolkit.toLayer(
         if (trimmed.length === 0) {
           if (existing) {
             yield* write({
-              event: "MenuDayNoteRemove",
-              payload: { id: existing.id },
+              event: MenuDayNoteEvent.tag,
+              payload: MenuDayNoteEvent.remove(uuidString(existing.id)),
             })
           }
           return {
@@ -293,12 +311,12 @@ const ToolkitLayer = toolkit.toLayer(
         if (existing) {
           if (existing.note !== trimmed) {
             yield* write({
-              event: "MenuDayNoteUpdate",
-              payload: {
+              event: MenuDayNoteEvent.tag,
+              payload: menuDayNoteUpdate({
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
-              },
+              }),
             })
           }
           return {
@@ -308,12 +326,14 @@ const ToolkitLayer = toolkit.toLayer(
         }
 
         yield* write({
-          event: "MenuDayNoteAdd",
-          payload: MenuDayNote.fromForm({
-            menuId: menu.value.menu.id,
-            day,
-            note: trimmed,
-          }),
+          event: MenuDayNoteEvent.tag,
+          payload: MenuDayNoteEvent.set(
+            MenuDayNote.fromForm({
+              menuId: menu.value.menu.id,
+              day,
+              note: trimmed,
+            }),
+          ),
         })
         return {
           _tag: "Transient",
@@ -327,7 +347,7 @@ const ToolkitLayer = toolkit.toLayer(
           createdAt: DateTime.nowUnsafe(),
           updatedAt: DateTime.nowUnsafe(),
         })
-        yield* write({ event: "MenuAdd", payload: newMenu })
+        yield* write({ event: MenuEvent.tag, payload: MenuEvent.set(newMenu) })
         return {
           _tag: "Transient",
           value: newMenu,
@@ -347,12 +367,14 @@ const ToolkitLayer = toolkit.toLayer(
             .pipe(Effect.orDie)
           if (Option.isNone(recipe)) continue
           yield* write({
-            event: "MenuEntryAdd",
-            payload: MenuEntry.fromForm({
-              menuId: menu.value.menu.id,
-              recipeId: recipe.value.id,
-              day: menuEntry.day,
-            }),
+            event: MenuEntryEvent.tag,
+            payload: MenuEntryEvent.set(
+              MenuEntry.fromForm({
+                menuId: menu.value.menu.id,
+                recipeId: recipe.value.id,
+                day: menuEntry.day,
+              }),
+            ),
           })
         }
         return {
@@ -364,8 +386,8 @@ const ToolkitLayer = toolkit.toLayer(
         const entryId = Schema.decodeOption(MenuEntryIdFromString)(id)
         if (Option.isSome(entryId)) {
           yield* write({
-            event: "MenuEntryRemove",
-            payload: { id: entryId.value },
+            event: MenuEntryEvent.tag,
+            payload: MenuEntryEvent.remove(uuidString(entryId.value)),
           })
         }
         return {
@@ -414,8 +436,8 @@ const ToolkitLayer = toolkit.toLayer(
         if (trimmed.length === 0) {
           if (existing) {
             yield* write({
-              event: "MealPlanDayNoteRemove",
-              payload: { id: existing.id },
+              event: MealPlanDayNoteEvent.tag,
+              payload: MealPlanDayNoteEvent.remove(uuidString(existing.id)),
             })
           }
           return {
@@ -427,12 +449,12 @@ const ToolkitLayer = toolkit.toLayer(
         if (existing) {
           if (existing.note !== trimmed) {
             yield* write({
-              event: "MealPlanDayNoteUpdate",
-              payload: {
+              event: MealPlanDayNoteEvent.tag,
+              payload: mealPlanDayNoteUpdate({
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
-              },
+              }),
             })
           }
           return {
@@ -442,11 +464,13 @@ const ToolkitLayer = toolkit.toLayer(
         }
 
         yield* write({
-          event: "MealPlanDayNoteAdd",
-          payload: MealPlanDayNote.fromForm({
-            day: normalizedDay,
-            note: trimmed,
-          }),
+          event: MealPlanDayNoteEvent.tag,
+          payload: MealPlanDayNoteEvent.set(
+            MealPlanDayNote.fromForm({
+              day: normalizedDay,
+              note: trimmed,
+            }),
+          ),
         })
         return {
           _tag: "Transient",
@@ -460,12 +484,12 @@ const ToolkitLayer = toolkit.toLayer(
             .pipe(Effect.orDie)
           if (Option.isNone(recipe)) continue
           yield* write({
-            event: "MealPlanAdd",
-            payload: {
+            event: MealPlanEntryEvent.tag,
+            payload: MealPlanEntryEvent.set({
               id: MealPlanEntryId.make(generateUuidBytes()),
               day: mealPlanEntry.day,
               recipeId: recipe.value.id,
-            },
+            }),
           })
         }
         return {
@@ -477,8 +501,8 @@ const ToolkitLayer = toolkit.toLayer(
         const entryId = Schema.decodeOption(MealPlanEntryIdFromString)(id)
         if (Option.isSome(entryId)) {
           yield* write({
-            event: "MealPlanRemove",
-            payload: { id: entryId.value },
+            event: MealPlanEntryEvent.tag,
+            payload: MealPlanEntryEvent.remove(uuidString(entryId.value)),
           })
         }
         return {
@@ -497,12 +521,14 @@ const ToolkitLayer = toolkit.toLayer(
       }),
       SaveLearning: Effect.fnUntraced(function* ({ content }) {
         yield* write({
-          event: "AIMemoryEntryAdded",
-          payload: new AiMemoryEntry({
-            id: AiMemoryEntryId.make(generateUuidBytes()),
-            content,
-            createdAt: DateTime.nowUnsafe(),
-          }),
+          event: AiMemoryEntryEvent.tag,
+          payload: AiMemoryEntryEvent.set(
+            new AiMemoryEntry({
+              id: AiMemoryEntryId.make(generateUuidBytes()),
+              content,
+              createdAt: DateTime.nowUnsafe(),
+            }),
+          ),
         })
         return {
           _tag: "Transient",
@@ -513,8 +539,8 @@ const ToolkitLayer = toolkit.toLayer(
         const entryId = Schema.decodeOption(AiMemoryEntryIdFromString)(id)
         if (Option.isSome(entryId)) {
           yield* write({
-            event: "AIMemoryEntryRemove",
-            payload: { id: entryId.value },
+            event: AiMemoryEntryEvent.tag,
+            payload: AiMemoryEntryEvent.remove(uuidString(entryId.value)),
           })
         }
         return {
@@ -540,7 +566,7 @@ const ToolkitLayer = toolkit.toLayer(
           createdAt: now,
           updatedAt: now,
         })
-        yield* write({ event: "TimerAdded", payload: timer })
+        yield* write({ event: TimerEvent.tag, payload: TimerEvent.set(timer) })
         return {
           _tag: "Transient",
           value: {
@@ -566,6 +592,8 @@ class AiChatService extends Context.Service<AiChatService>()(
       >()
       const write = (payload: EventPayload) =>
         writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
+      const writeMany = (payloads: ReadonlyArray<EventPayload>) =>
+        writeEvents(payloads).pipe(Effect.provideContext(context), Effect.orDie)
       const baseSystemPrompt = `You are a professional chef working for Cheffect. Your goal is to assist users in working with recipes, creating meal plan menus, and answering any cooking-related questions they may have.
 
 You should be concise and informative in your responses, sacrificing some grammar for brevity when necessary. Avoid asking follow-up questions and instead provide direct answers or suggestions. You are a short, sharp and direct chef. "Yes chef!" is a good motto to follow.
@@ -756,14 +784,16 @@ ${MenuEntry.toXml(entries)}`
         sending = false
         const messages = shown.content.slice(previous.content.length)
         if (messages.length === 0) return
+        const now = yield* DateTime.now
         yield* write({
-          event: "AiChatTurnAdded",
-          payload: {
+          event: AiChatTurnEvent.tag,
+          payload: AiChatTurnEvent.set({
             id: AiChatTurnId.make(generateUuidBytes()),
             prompt: Schema.encodeSync(PromptJson)(
               Prompt.fromMessages(messages),
             ),
-          },
+            entryTime: now.epochMilliseconds,
+          }),
         })
       })
 
@@ -854,8 +884,12 @@ ${MenuEntry.toXml(entries)}`
       const clear = Effect.gen(function* () {
         const ids = yield* repo.turnIds.pipe(Effect.orDie)
         yield* Ref.set(chat.history, Prompt.empty)
-        if (!Array.isArrayNonEmpty(ids)) return
-        yield* write({ event: "AiChatTurnsRemoved", payload: { ids } })
+        yield* writeMany(
+          ids.map((id) => ({
+            event: AiChatTurnEvent.tag,
+            payload: AiChatTurnEvent.remove(uuidString(id)),
+          })),
+        )
       })
 
       return { send, clear } as const

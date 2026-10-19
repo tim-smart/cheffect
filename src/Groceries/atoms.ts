@@ -127,7 +127,7 @@ export const beautifyGroceriesAtom = beautifyRuntime
       // Every change is collected first and written as one batch, so a long
       // list is one write rather than a few per item.
       const writes: Array<GroceryItemWrite> = removed.map((item) => ({
-        event: "GroceryItemDeleted",
+        op: "remove",
         id: item.id,
       }))
       for (const item of updated) {
@@ -139,7 +139,7 @@ export const beautifyGroceriesAtom = beautifyRuntime
           prev.list !== PANTRY_GROCERY_LIST_NAME &&
           pantryItemNames.has(item.nameNormalized)
         ) {
-          writes.push({ event: "GroceryItemDeleted", id: item.id })
+          writes.push({ op: "remove", id: item.id })
           continue
         }
         let nextItem = item
@@ -150,7 +150,7 @@ export const beautifyGroceriesAtom = beautifyRuntime
           }
         }
         writes.push({
-          event: "GroceryItemUpdated",
+          op: "update",
           item: nextItem,
           previousName: prev?.name,
         })

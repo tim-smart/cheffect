@@ -5,6 +5,7 @@ import type * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import type * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import type { IndexedDbQueryError } from "@effect/platform-browser/IndexedDbQueryBuilder"
+import { AiMemoryEntryEvent } from "./AiChat/Events"
 import {
   AiMemoryEntry,
   AiMemoryEntryIdFromString,
@@ -23,16 +24,31 @@ import { MenuEntry, MenuEntryIdFromString } from "./domain/MenuEntry"
 import { Recipe, RecipeEdit, RecipeIdFromString } from "./domain/Recipe"
 import { Timer, TimerIdFromString } from "./domain/Timer"
 import { CheffectEvents, durabilityBarrier } from "./EventLog"
+import {
+  GroceryAisleOrderEvent,
+  GroceryItemEvent,
+  IngredientAisleEvent,
+} from "./Groceries/Events"
 import { QueryBuilder } from "./IndexedDb"
-import { eventFields } from "./lib/eventFields"
-import { isLive } from "./lib/Lww"
-import { SettingsEvents } from "./Settings/Events"
+import { MealPlanDayNoteEvent, MealPlanEntryEvent } from "./MealPlan/Events"
+import { MenuDayNoteEvent, MenuEntryEvent, MenuEvent } from "./Menus/Events"
+import { RecipeEditEvent, RecipeEvent } from "./Recipes/Events"
+import { SettingEvent } from "./Settings/Events"
+import { TimerEvent } from "./Timers/Events"
 
 // Export files
 //
-// "Export all data", "Import all data" and the LiveStore conversion CLI share
-// one versioned file: a list of create and set events from the catalogue,
-// each payload in its event's JSON codec with UUIDs as canonical strings.
+// "Export all data" and "Import all data" share one versioned file, with UUIDs
+// as canonical strings. Version 2 is a list of rows, each a `set` of its row
+// event in the event's JSON codec. Version 1 is a list of the create and set
+// events from before rows; files exported then, and the LiveStore conversion
+// CLI, still import.
+
+const RecipeIdsFromString = Schema.NullOr(
+  Schema.NonEmptyArray(RecipeIdFromString),
+)
+
+// Version 1
 
 const exportEvent = <const Tag extends string, S extends Schema.Top>(
   tag: Tag,
@@ -42,10 +58,6 @@ const exportEvent = <const Tag extends string, S extends Schema.Top>(
     tag: Schema.Literal(tag),
     payload: Schema.toCodecJson(payload),
   })
-
-const RecipeIdsFromString = Schema.NullOr(
-  Schema.NonEmptyArray(RecipeIdFromString),
-)
 
 export const ExportEvent = Schema.Union([
   exportEvent(
@@ -116,27 +128,168 @@ export const ExportEvent = Schema.Union([
     "TimerAdded",
     Timer.insert.mapFields((fields) => ({ ...fields, id: TimerIdFromString })),
   ),
-  exportEvent("SettingsSet", SettingsEvents.events.SettingsSet.payload),
+  exportEvent(
+    "SettingsSet",
+    Schema.Struct({ id: Schema.String, value: Schema.String }),
+  ),
 ])
 export type ExportEvent = typeof ExportEvent.Type
 
-export const ExportFile = Schema.Struct({
+const ExportFileV1 = Schema.Struct({
   format: Schema.Literal("cheffect-export"),
   version: Schema.Literal(1),
   events: Schema.Array(ExportEvent),
 })
+
+// Version 2
+
+const exportRow = <const Tag extends string, S extends Schema.Top>(
+  tag: Tag,
+  row: S,
+) =>
+  Schema.Struct({
+    tag: Schema.Literal(tag),
+    row: Schema.toCodecJson(row),
+  })
+
+export const ExportRow = Schema.Union([
+  exportRow(
+    RecipeEvent.tag,
+    RecipeEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: RecipeIdFromString,
+    })),
+  ),
+  exportRow(
+    RecipeEditEvent.tag,
+    RecipeEditEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: RecipeIdFromString,
+    })),
+  ),
+  exportRow(
+    GroceryItemEvent.tag,
+    GroceryItemEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: GroceryItemIdFromString,
+      recipeIds: RecipeIdsFromString,
+    })),
+  ),
+  exportRow(IngredientAisleEvent.tag, IngredientAisleEvent.schema),
+  exportRow(GroceryAisleOrderEvent.tag, GroceryAisleOrderEvent.schema),
+  exportRow(
+    MealPlanEntryEvent.tag,
+    MealPlanEntryEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: MealPlanEntryIdFromString,
+      recipeId: RecipeIdFromString,
+    })),
+  ),
+  exportRow(
+    MealPlanDayNoteEvent.tag,
+    MealPlanDayNoteEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: MealPlanDayNoteIdFromString,
+    })),
+  ),
+  exportRow(
+    MenuEvent.tag,
+    MenuEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: MenuIdFromString,
+    })),
+  ),
+  exportRow(
+    MenuEntryEvent.tag,
+    MenuEntryEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: MenuEntryIdFromString,
+      menuId: MenuIdFromString,
+      recipeId: RecipeIdFromString,
+    })),
+  ),
+  exportRow(
+    MenuDayNoteEvent.tag,
+    MenuDayNoteEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: MenuDayNoteIdFromString,
+      menuId: MenuIdFromString,
+    })),
+  ),
+  exportRow(
+    AiMemoryEntryEvent.tag,
+    AiMemoryEntryEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: AiMemoryEntryIdFromString,
+    })),
+  ),
+  exportRow(
+    TimerEvent.tag,
+    TimerEvent.schema.mapFields((fields) => ({
+      ...fields,
+      id: TimerIdFromString,
+    })),
+  ),
+  exportRow(SettingEvent.tag, SettingEvent.schema),
+])
+export type ExportRow = typeof ExportRow.Type
+
+const ExportFileV2 = Schema.Struct({
+  format: Schema.Literal("cheffect-export"),
+  version: Schema.Literal(2),
+  rows: Schema.Array(ExportRow),
+})
+
+export const ExportFile = Schema.Union([ExportFileV1, ExportFileV2])
 export type ExportFile = typeof ExportFile.Type
 
 export const ExportFileJson = Schema.fromJsonString(ExportFile)
+
+// A version 1 event as the row it creates. A recipe created then had no
+// ingredient scale, and an item added without a list is on the default one.
+const rowFromEvent = (event: ExportEvent): ExportRow => {
+  switch (event.tag) {
+    case "RecipeCreated":
+      return {
+        tag: RecipeEvent.tag,
+        row: { ...event.payload, ingredientScale: 1 },
+      }
+    case "RecipeEditSet":
+      return { tag: RecipeEditEvent.tag, row: event.payload }
+    case "GroceryItemAdded":
+      return {
+        tag: GroceryItemEvent.tag,
+        row: { ...event.payload, list: event.payload.list ?? null },
+      }
+    case "IngredientAisleSet":
+      return { tag: IngredientAisleEvent.tag, row: event.payload }
+    case "GroceryAisleOrderSet":
+      return { tag: GroceryAisleOrderEvent.tag, row: event.payload }
+    case "MealPlanAdd":
+      return { tag: MealPlanEntryEvent.tag, row: event.payload }
+    case "MealPlanDayNoteAdd":
+      return { tag: MealPlanDayNoteEvent.tag, row: event.payload }
+    case "MenuAdd":
+      return { tag: MenuEvent.tag, row: event.payload }
+    case "MenuEntryAdd":
+      return { tag: MenuEntryEvent.tag, row: event.payload }
+    case "MenuDayNoteAdd":
+      return { tag: MenuDayNoteEvent.tag, row: event.payload }
+    case "AIMemoryEntryAdded":
+      return { tag: AiMemoryEntryEvent.tag, row: event.payload }
+    case "TimerAdded":
+      return { tag: TimerEvent.tag, row: event.payload }
+    case "SettingsSet":
+      return { tag: SettingEvent.tag, row: event.payload }
+  }
+}
 
 // Export
 //
 // Read straight from the tables, so an active search can't narrow it and it
 // works offline before the remote connects. Leaves out soft-deleted recipes,
-// tombstones, chat history, extract jobs and the API key. The sync key and
-// server URL live in localStorage and never get here. Each row is the fewest
-// events that carry it: a recipe is one `RecipeCreated`, so its ingredient
-// scale isn't kept.
+// removed menus, chat history, extract jobs and the API key. The sync key and
+// server URL live in localStorage and never get here.
 
 const excludedSettings = new Set(["openAiApiKey"])
 
@@ -146,91 +299,79 @@ export const exportAll: Effect.Effect<
   QueryBuilder
 > = Effect.gen(function* () {
   const db = yield* QueryBuilder
-  const events: Array<ExportEvent> = []
-  const add = <Tag extends ExportEvent["tag"]>(
+  const rows: Array<ExportRow> = []
+  const add = <Tag extends ExportRow["tag"]>(
     tag: Tag,
-    payload: Extract<ExportEvent, { readonly tag: Tag }>["payload"],
+    row: Extract<ExportRow, { readonly tag: Tag }>["row"],
   ) => {
-    events.push({ tag, payload } as ExportEvent)
+    rows.push({ tag, row } as ExportRow)
   }
 
-  const recipeFields = eventFields(Recipe.insert)
   for (const row of yield* db.from("recipes").select()) {
-    if (row.deletedAt === null) add("RecipeCreated", recipeFields(row))
+    if (row.deletedAt === null) add(RecipeEvent.tag, row)
   }
-  const editFields = eventFields(RecipeEdit)
   for (const row of yield* db.from("recipeEdits").select()) {
-    if (isLive(row)) add("RecipeEditSet", editFields(row))
+    add(RecipeEditEvent.tag, row)
   }
-  const itemFields = eventFields(GroceryItem.insert)
   for (const row of yield* db.from("groceryItems").select()) {
-    add("GroceryItemAdded", itemFields(row))
+    add(GroceryItemEvent.tag, row)
   }
   for (const row of yield* db.from("ingredientAisles").select()) {
-    if (isLive(row)) {
-      add("IngredientAisleSet", { name: row.name, aisle: row.aisle })
-    }
+    add(IngredientAisleEvent.tag, row)
   }
-  const orderFields = eventFields(GroceryAisleOrder)
-  for (const row of yield* db.from("groceryAisleOrders").select()) {
-    if (isLive(row)) add("GroceryAisleOrderSet", orderFields(row))
+  for (const { id: _, ...row } of yield* db
+    .from("groceryAisleOrders")
+    .select()) {
+    add(GroceryAisleOrderEvent.tag, row)
   }
   for (const row of yield* db.from("mealPlan").select()) {
-    add("MealPlanAdd", { id: row.id, recipeId: row.recipeId, day: row.day })
+    add(MealPlanEntryEvent.tag, row)
   }
-  const mealPlanNoteFields = eventFields(MealPlanDayNote.insert)
   for (const row of yield* db.from("mealPlanDayNotes").select()) {
-    add("MealPlanDayNoteAdd", mealPlanNoteFields(row))
+    add(MealPlanDayNoteEvent.tag, row)
   }
-  const menuFields = eventFields(Menu.insert)
-  for (const row of yield* db.from("menus").select()) {
-    add("MenuAdd", menuFields(row))
+  for (const { removed, ...row } of yield* db.from("menus").select()) {
+    if (!removed) add(MenuEvent.tag, row)
   }
-  const menuEntryFields = eventFields(MenuEntry.insert)
   for (const row of yield* db.from("menuEntries").select()) {
-    add("MenuEntryAdd", menuEntryFields(row))
+    add(MenuEntryEvent.tag, row)
   }
-  const menuNoteFields = eventFields(MenuDayNote.insert)
   for (const row of yield* db.from("menuDayNotes").select()) {
-    add("MenuDayNoteAdd", menuNoteFields(row))
+    add(MenuDayNoteEvent.tag, row)
   }
-  const memoryFields = eventFields(AiMemoryEntry.insert)
   for (const row of yield* db.from("aiMemoryEntries").select()) {
-    add("AIMemoryEntryAdded", memoryFields(row))
+    add(AiMemoryEntryEvent.tag, row)
   }
-  const timerFields = eventFields(Timer.insert)
   for (const row of yield* db.from("timers").select()) {
-    add("TimerAdded", timerFields(row))
+    add(TimerEvent.tag, row)
   }
   for (const row of yield* db.from("settings").select()) {
-    if (!excludedSettings.has(row.id)) {
-      add("SettingsSet", { id: row.id, value: row.value })
-    }
+    if (!excludedSettings.has(row.id)) add(SettingEvent.tag, row)
   }
 
-  return { format: "cheffect-export", version: 1, events }
+  return { format: "cheffect-export", version: 2, rows }
 })
 
 // Import
 //
 // The whole file is decoded before anything is written, so a bad file writes
-// nothing. Events are replayed as ordinary writes and sync like any other,
-// with one durability barrier at the end. It merges rather than restores:
+// nothing. Each row is replayed as an ordinary `set` and syncs like any
+// other, with one durability barrier at the end. It merges rather than
+// restores:
 //
-// - A create this device has already seen (its entry is in the journal) is
-//   skipped. Handlers already ignore a create for a row that exists, and this
-//   also keeps hard-deleted rows deleted, which a handler can't tell apart
-//   from rows it has never had.
-// - Sets on natural keys (drafts, aisles, aisle orders, settings) are always
-//   written, so they overwrite what is here as the newest entries.
+// - A row with a random id that this device has already seen (it has an
+//   entry for it in the journal) is skipped. This keeps edits made since,
+//   and keeps removed rows removed.
+// - Rows with natural keys (drafts, aisles, aisle orders, settings) are
+//   always written, so they overwrite what is here as the newest entries.
 //
 // A crash part way leaves a partial import, fixed by importing again.
 
-const naturalKeyTags: ReadonlySet<ExportEvent["tag"]> = new Set([
-  "RecipeEditSet",
-  "IngredientAisleSet",
-  "GroceryAisleOrderSet",
-  "SettingsSet",
+const naturalKeyTags: ReadonlySet<ExportRow["tag"]> = new Set([
+  RecipeEditEvent.tag,
+  IngredientAisleEvent.tag,
+  GroceryAisleOrderEvent.tag,
+  SettingEvent.tag,
 ])
 
 const primaryKeys = new Map(
@@ -253,19 +394,21 @@ export const importAll = Effect.fnUntraced(function* (
   EventLog.EventLog | QueryBuilder | IndexedDb.IndexedDb
 > {
   const file = yield* Schema.decodeEffect(ExportFileJson)(text)
+  const rows = file.version === 1 ? file.events.map(rowFromEvent) : file.rows
   const log = yield* EventLog.EventLog
   const seen = new Set(
     (yield* log.entries).map((entry) =>
       entryKey(entry.event, entry.primaryKey),
     ),
   )
-  for (const { tag, payload } of file.events) {
+  for (const { tag, row } of rows) {
+    const payload = { _tag: "set", row } as const
     if (!naturalKeyTags.has(tag)) {
       const key = entryKey(tag, primaryKeys.get(tag)!(payload))
       if (seen.has(key)) continue
       seen.add(key)
     }
-    // The file's events are a subset of the catalogue's, as for `writeEvent`.
+    // Every row is a `set` of its row event, as for `writeEvent`.
     const write: Effect.Effect<unknown, EventJournal.EventJournalError> =
       log.write({ schema: CheffectEvents, event: tag, payload } as any)
     yield* write
