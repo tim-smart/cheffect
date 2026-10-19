@@ -37,18 +37,22 @@ const rectOf = (browser: Browser, element: string) =>
 // keyboard of that height with the visual viewport panned `offsetTop` down
 // the page; `__keyboard(0, 0)` lowers it.
 //
+// iOS 26 can also shrink innerHeight to the visual viewport's height while
+// the keyboard is up, which `__keyboard(height, offsetTop, true)` does too.
+//
 // `__keyboardOnOpen(height, offsetTop)` raises the keyboard when the chat is
-// next opened, which focuses the message field. It does it the way the iOS
-// simulator showed on first open: the keyboard finishes rising and the view
-// pans without the page seeing a resize or scroll event, until the user
-// scrolls.
+// next opened, which focuses the message field, in the order the iOS 26.3
+// simulator logged on first open: the keyboard rises, then the view pans
+// and innerHeight drops to the visual viewport's height.
 const keyboardStandIn = `(() => {
+  const layoutHeight = Object.getOwnPropertyDescriptor(window, "innerHeight").get.bind(window)
   let keyboard = 0
   let offsetTop = 0
+  let shrinkLayout = false
   const viewport = new EventTarget()
   Object.defineProperties(viewport, {
     width: { get: () => innerWidth },
-    height: { get: () => innerHeight - keyboard },
+    height: { get: () => layoutHeight() - keyboard },
     offsetTop: { get: () => offsetTop },
     offsetLeft: { get: () => 0 },
     pageTop: { get: () => scrollY + offsetTop },
@@ -56,9 +60,14 @@ const keyboardStandIn = `(() => {
     scale: { get: () => 1 },
   })
   Object.defineProperty(window, "visualViewport", { configurable: true, get: () => viewport })
-  window.__keyboard = (height, top) => {
+  Object.defineProperty(window, "innerHeight", {
+    configurable: true,
+    get: () => layoutHeight() - (shrinkLayout ? keyboard : 0),
+  })
+  window.__keyboard = (height, top, shrink = false) => {
     keyboard = height
     offsetTop = top
+    shrinkLayout = shrink
     viewport.dispatchEvent(new Event("resize"))
     viewport.dispatchEvent(new Event("scroll"))
   }
@@ -67,8 +76,14 @@ const keyboardStandIn = `(() => {
       if (!event.target.closest('[aria-label="Open AI Chat"]')) return
       setTimeout(() => {
         keyboard = height
+        viewport.dispatchEvent(new Event("resize"))
+      }, 100)
+      setTimeout(() => {
         offsetTop = top
-      }, 250)
+        shrinkLayout = true
+        dispatchEvent(new Event("resize"))
+        viewport.dispatchEvent(new Event("scroll"))
+      }, 150)
     }, { capture: true, once: true })
   }
 })()`
@@ -150,26 +165,29 @@ test(
   { skip: !hasChromium && "chromium not found", timeout: 180_000 },
   () =>
     withSeededApp(async ({ browser, base, recipeId }) => {
-      await browser.setViewport(390, 844)
+      // the screen Safari reported on an iPhone 17 Pro, iOS 26.3
+      await browser.setViewport(402, 714)
       await enableAi(browser, base)
       await browser.addInitScript(keyboardStandIn)
       await openRecipe(browser, base, recipeId)
 
-      const visible = (keyboard: number, offsetTop: number) => ({
-        top: offsetTop,
-        bottom: offsetTop + 844 - keyboard,
-      })
-
-      // opening the chat raises the keyboard and pans the view all the way
-      await browser.evaluate(`window.__keyboardOnOpen(336, 336)`)
+      // opening the chat raises the keyboard and pans the view all the way,
+      // leaving innerHeight and the visual viewport both 377px tall
+      await browser.evaluate(`window.__keyboardOnOpen(337, 337)`)
       await openChat(browser)
       await sleep(1000)
       const firstOpen = await rectOf(browser, panel)
       assert.deepEqual(
         { top: firstOpen.top, bottom: firstOpen.bottom },
-        visible(336, 336),
+        { top: 337, bottom: 714 },
         "on first open, the chat covers what's visible before the user scrolls",
       )
+
+      await browser.setViewport(390, 844)
+      const visible = (keyboard: number, offsetTop: number) => ({
+        top: offsetTop,
+        bottom: offsetTop + 844 - keyboard,
+      })
       for (const offsetTop of [0, 200]) {
         await browser.evaluate(`window.__keyboard(336, ${offsetTop})`)
         await sleep(500)
@@ -210,6 +228,22 @@ test(
       assert.ok(
         field.bottom <= 210,
         `in landscape, the message field is under the keyboard at ${field.top}-${field.bottom}px`,
+      )
+
+      // the installed app in landscape left the chat only 126px, panned 69px
+      await browser.setViewport(874, 402)
+      await browser.evaluate(`window.__keyboard(276, 69)`)
+      await sleep(500)
+      const short = await rectOf(browser, panel)
+      assert.deepEqual(
+        { top: short.top, bottom: short.bottom },
+        { top: 69, bottom: 195 },
+        "in a 126px landscape space, the chat covers what's visible",
+      )
+      const shortField = await rectOf(browser, input)
+      assert.ok(
+        shortField.bottom <= short.bottom,
+        `in a 126px landscape space, the message field runs ${shortField.bottom - short.bottom}px past the chat`,
       )
     }),
 )
