@@ -68,13 +68,10 @@ const aisleLessons = (
   return lessons
 }
 
-const aisleEvent = ({ name, aisle }: AisleLesson): EventPayload => ({
-  event: IngredientAisleEvent.tag,
-  payload:
-    aisle === null
-      ? IngredientAisleEvent.remove({ name })
-      : IngredientAisleEvent.set({ name, aisle }),
-})
+const aisleEvent = ({ name, aisle }: AisleLesson): EventPayload =>
+  aisle === null
+    ? IngredientAisleEvent.remove({ name })
+    : IngredientAisleEvent.set({ name, aisle })
 
 const learnAisle = Effect.fnUntraced(function* (
   item: GroceryItem,
@@ -89,10 +86,7 @@ const learnAisle = Effect.fnUntraced(function* (
 })
 
 export const addGroceryItem = Effect.fnUntraced(function* (item: GroceryItem) {
-  yield* writeEvent({
-    event: GroceryItemEvent.tag,
-    payload: GroceryItemEvent.set(item),
-  })
+  yield* writeEvent(GroceryItemEvent.set(item))
   yield* learnAisle(item, {})
 })
 
@@ -100,10 +94,7 @@ export const updateGroceryItem = Effect.fnUntraced(function* (
   item: GroceryItem,
   options: ItemWriteOptions = {},
 ) {
-  yield* writeEvent({
-    event: GroceryItemEvent.tag,
-    payload: groceryItemUpdate(item),
-  })
+  yield* writeEvent(groceryItemUpdate(item))
   yield* learnAisle(item, options)
 })
 
@@ -134,19 +125,14 @@ export const writeGroceryItems = Effect.fnUntraced(function* (
   const events: Array<EventPayload> = []
   for (const write of writes) {
     if (write.op === "remove") {
-      events.push({
-        event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove({ id: write.id }),
-      })
+      events.push(GroceryItemEvent.remove({ id: write.id }))
       continue
     }
-    events.push({
-      event: GroceryItemEvent.tag,
-      payload:
-        write.op === "add"
-          ? GroceryItemEvent.set(write.item)
-          : groceryItemUpdate(write.item),
-    })
+    events.push(
+      write.op === "add"
+        ? GroceryItemEvent.set(write.item)
+        : groceryItemUpdate(write.item),
+    )
     const options =
       write.op === "update" ? { previousName: write.previousName } : {}
     for (const lesson of aisleLessons(write.item, options, hasAisle)) {

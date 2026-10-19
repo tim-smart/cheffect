@@ -74,13 +74,13 @@ const makeAtom = <S extends Schema.Codec<any, any>>(setting: Setting<S>) => {
       return result
     },
     (ctx, newValue: Option.Option<S["Type"]>) => {
-      ctx.set(writeEventAtom, {
-        event: SettingEvent.tag,
-        payload: SettingEvent.set({
+      ctx.set(
+        writeEventAtom,
+        SettingEvent.set({
           id: setting.name,
           value: Schema.encodeSync(valueSchema)(newValue),
         }),
-      })
+      )
       if (cacheAtom) {
         ctx.set(cacheAtom, newValue)
       }

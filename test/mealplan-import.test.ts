@@ -71,10 +71,9 @@ test("importing a backup skips meal plan entries this device already has", async
   const unmount = registry.mount(eventLogAtom)
   const adds = await Effect.gen(function* () {
     const context = yield* Atom.getResult(eventLogAtom)
-    yield* writeEvent({
-      event: MealPlanEntryEvent.tag,
-      payload: MealPlanEntryEvent.set({ id: planned, recipeId, day: monday }),
-    }).pipe(Effect.provideContext(context))
+    yield* writeEvent(
+      MealPlanEntryEvent.set({ id: planned, recipeId, day: monday }),
+    ).pipe(Effect.provideContext(context))
 
     registry.set(importMealPlanAtom, {
       entries: [

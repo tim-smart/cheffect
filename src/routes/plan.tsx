@@ -100,10 +100,7 @@ export function MealPlanPage() {
   }
 
   const handleRemoveEntry = (id: MealPlanEntryId) => {
-    write({
-      event: MealPlanEntryEvent.tag,
-      payload: MealPlanEntryEvent.remove({ id: id }),
-    })
+    write(MealPlanEntryEvent.remove({ id: id }))
   }
 
   const handlers = useSwipeable({
@@ -146,20 +143,14 @@ export function MealPlanPage() {
                       }
                       const toRemove = AsyncResult.getOrElse(entries, () => [])
                       toRemove.forEach((entry) => {
-                        write({
-                          event: MealPlanEntryEvent.tag,
-                          payload: MealPlanEntryEvent.remove({ id: entry.id }),
-                        })
+                        write(MealPlanEntryEvent.remove({ id: entry.id }))
                       })
                       const notesToRemove = AsyncResult.getOrElse(
                         dayNotes,
                         () => [],
                       )
                       notesToRemove.forEach((note) => {
-                        write({
-                          event: MealPlanDayNoteEvent.tag,
-                          payload: MealPlanDayNoteEvent.remove({ id: note.id }),
-                        })
+                        write(MealPlanDayNoteEvent.remove({ id: note.id }))
                       })
                     }}
                   >
@@ -308,36 +299,31 @@ function DayListItem({
     const trimmed = noteDraft.trim()
     if (trimmed.length === 0) {
       if (dayNote) {
-        write({
-          event: MealPlanDayNoteEvent.tag,
-          payload: MealPlanDayNoteEvent.remove({ id: dayNote.id }),
-        })
+        write(MealPlanDayNoteEvent.remove({ id: dayNote.id }))
       }
       return
     }
 
     if (dayNote) {
       if (trimmed === dayNote.note) return
-      write({
-        event: MealPlanDayNoteEvent.tag,
-        payload: mealPlanDayNoteUpdate({
+      write(
+        mealPlanDayNoteUpdate({
           ...dayNote,
           note: trimmed,
           updatedAt: DateTime.nowUnsafe(),
         }),
-      })
+      )
       return
     }
 
-    write({
-      event: MealPlanDayNoteEvent.tag,
-      payload: MealPlanDayNoteEvent.set(
+    write(
+      MealPlanDayNoteEvent.set(
         MealPlanDayNote.fromForm({
           day: date,
           note: trimmed,
         }),
       ),
-    })
+    )
   }
 
   return (
@@ -382,14 +368,13 @@ function DayListItem({
           </Button>
           <SelectRecipeDrawer
             onSelect={(recipe) => {
-              write({
-                event: MealPlanEntryEvent.tag,
-                payload: MealPlanEntryEvent.set({
+              write(
+                MealPlanEntryEvent.set({
                   id: MealPlanEntryId.make(generateUuidBytes()),
                   day: date,
                   recipeId: recipe.id,
                 }),
-              })
+              )
             }}
           >
             <SelectRecipeButton />

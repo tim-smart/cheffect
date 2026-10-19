@@ -208,270 +208,159 @@ const recipeKey = { id: recipeId }
 const { id: _, ...extractedFields } = extracted
 
 export const eventSamples: ReadonlyArray<EventPayload> = [
-  { event: RecipeEvent.tag, payload: RecipeEvent.set(sampleRecipe) },
-  {
-    event: RecipeEvent.tag,
-    payload: RecipeEvent.patch(recipeKey, {
-      ...extractedFields,
-      title: "Carrot and coriander soup",
-      ingredientScale: 2,
-      rating: Rating.make(5),
-      sourceUrl: "https://example.com/carrot-coriander-soup",
-      createdAt,
-      updatedAt,
-      deletedAt: updatedAt,
-    }),
-  },
-  { event: RecipeEvent.tag, payload: RecipeEvent.remove(recipeKey) },
-  {
-    event: RecipeEditEvent.tag,
-    payload: RecipeEditEvent.set(
-      RecipeEdit.make({ ...extracted, title: "Carrot and ginger soup" }),
-    ),
-  },
-  {
-    event: RecipeEditEvent.tag,
-    payload: RecipeEditEvent.patch(recipeKey, {
-      ...extractedFields,
-      title: "Carrot, ginger and lime soup",
-    }),
-  },
-  { event: RecipeEditEvent.tag, payload: RecipeEditEvent.remove(recipeKey) },
-  {
-    event: SettingEvent.tag,
-    payload: SettingEvent.set({ id: "aiCountry", value: settingValue }),
-  },
-  {
-    event: SettingEvent.tag,
-    payload: SettingEvent.patch("aiCountry", { value: settingValue }),
-  },
-  { event: SettingEvent.tag, payload: SettingEvent.remove("aiCountry") },
-  { event: TimerEvent.tag, payload: TimerEvent.set(timer) },
-  {
-    event: TimerEvent.tag,
-    payload: TimerEvent.patch(timer, {
-      label: "Carrot soup, second batch",
-      duration: Duration.minutes(45),
-      expiresAt: DateTime.makeUnsafe(1_760_002_700_000),
-      pausedRemaining: Duration.minutes(10),
-      createdAt,
-      updatedAt,
-    }),
-  },
-  {
-    event: TimerEvent.tag,
-    payload: TimerEvent.remove(timer),
-  },
-  {
-    event: MealPlanEntryEvent.tag,
-    payload: MealPlanEntryEvent.set({
-      id: mealPlanEntryId,
-      recipeId,
+  RecipeEvent.set(sampleRecipe),
+  RecipeEvent.patch(recipeKey, {
+    ...extractedFields,
+    title: "Carrot and coriander soup",
+    ingredientScale: 2,
+    rating: Rating.make(5),
+    sourceUrl: "https://example.com/carrot-coriander-soup",
+    createdAt,
+    updatedAt,
+    deletedAt: updatedAt,
+  }),
+  RecipeEvent.remove(recipeKey),
+  RecipeEditEvent.set(
+    RecipeEdit.make({ ...extracted, title: "Carrot and ginger soup" }),
+  ),
+  RecipeEditEvent.patch(recipeKey, {
+    ...extractedFields,
+    title: "Carrot, ginger and lime soup",
+  }),
+  RecipeEditEvent.remove(recipeKey),
+  SettingEvent.set({ id: "aiCountry", value: settingValue }),
+  SettingEvent.patch("aiCountry", { value: settingValue }),
+  SettingEvent.remove("aiCountry"),
+  TimerEvent.set(timer),
+  TimerEvent.patch(timer, {
+    label: "Carrot soup, second batch",
+    duration: Duration.minutes(45),
+    expiresAt: DateTime.makeUnsafe(1_760_002_700_000),
+    pausedRemaining: Duration.minutes(10),
+    createdAt,
+    updatedAt,
+  }),
+  TimerEvent.remove(timer),
+  MealPlanEntryEvent.set({
+    id: mealPlanEntryId,
+    recipeId,
+    day: monday,
+  }),
+  MealPlanEntryEvent.patch({ id: mealPlanEntryId }, { recipeId, day: tuesday }),
+  MealPlanEntryEvent.remove({ id: mealPlanEntryId }),
+  MealPlanDayNoteEvent.set(
+    MealPlanDayNote.insert.make({
+      id: mealPlanDayNoteId,
       day: monday,
+      note: "Leftovers for lunch",
+      createdAt,
+      updatedAt: createdAt,
     }),
-  },
-  {
-    event: MealPlanEntryEvent.tag,
-    payload: MealPlanEntryEvent.patch(
-      { id: mealPlanEntryId },
-      { recipeId, day: tuesday },
-    ),
-  },
-  {
-    event: MealPlanEntryEvent.tag,
-    payload: MealPlanEntryEvent.remove({ id: mealPlanEntryId }),
-  },
-  {
-    event: MealPlanDayNoteEvent.tag,
-    payload: MealPlanDayNoteEvent.set(
-      MealPlanDayNote.insert.make({
-        id: mealPlanDayNoteId,
-        day: monday,
-        note: "Leftovers for lunch",
-        createdAt,
-        updatedAt: createdAt,
-      }),
-    ),
-  },
-  {
-    event: MealPlanDayNoteEvent.tag,
-    payload: MealPlanDayNoteEvent.patch(
-      { id: mealPlanDayNoteId },
-      { day: tuesday, note: "Eating out", createdAt, updatedAt },
-    ),
-  },
-  {
-    event: MealPlanDayNoteEvent.tag,
-    payload: MealPlanDayNoteEvent.remove({ id: mealPlanDayNoteId }),
-  },
-  {
-    event: MenuEvent.tag,
-    payload: MenuEvent.set(
-      Menu.insert.make({
-        id: menuId,
-        name: "Winter warmers",
-        days: 7,
-        createdAt,
-        updatedAt: createdAt,
-      }),
-    ),
-  },
-  {
-    event: MenuEvent.tag,
-    payload: MenuEvent.patch(
-      { id: menuId },
-      {
-        name: "Winter favourites",
-        days: 5,
-        createdAt,
-        updatedAt,
-      },
-    ),
-  },
-  {
-    event: MenuEvent.tag,
-    payload: MenuEvent.remove({ id: menuId }),
-  },
-  { event: MenuEntryEvent.tag, payload: MenuEntryEvent.set(menuEntry) },
-  {
-    event: MenuEntryEvent.tag,
-    payload: MenuEntryEvent.patch(menuEntry, {
-      recipeId,
-      day: 3,
+  ),
+  MealPlanDayNoteEvent.patch(
+    { id: mealPlanDayNoteId },
+    { day: tuesday, note: "Eating out", createdAt, updatedAt },
+  ),
+  MealPlanDayNoteEvent.remove({ id: mealPlanDayNoteId }),
+  MenuEvent.set(
+    Menu.insert.make({
+      id: menuId,
+      name: "Winter warmers",
+      days: 7,
+      createdAt,
+      updatedAt: createdAt,
+    }),
+  ),
+  MenuEvent.patch(
+    { id: menuId },
+    {
+      name: "Winter favourites",
+      days: 5,
       createdAt,
       updatedAt,
+    },
+  ),
+  MenuEvent.remove({ id: menuId }),
+  MenuEntryEvent.set(menuEntry),
+  MenuEntryEvent.patch(menuEntry, {
+    recipeId,
+    day: 3,
+    createdAt,
+    updatedAt,
+  }),
+  MenuEntryEvent.remove(menuEntry),
+  MenuDayNoteEvent.set(menuDayNote),
+  MenuDayNoteEvent.patch(menuDayNote, {
+    day: 4,
+    note: "Freeze half",
+    createdAt,
+    updatedAt,
+  }),
+  MenuDayNoteEvent.remove(menuDayNote),
+  GroceryItemEvent.set(
+    GroceryItem.make({
+      id: groceryItemId,
+      list: "Weekend",
+      name: "Carrots",
+      quantity: "500 g",
+      aisle: "Produce",
+      recipeIds: [recipeId],
+      completed: false,
+      createdAt,
+      updatedAt: createdAt,
     }),
-  },
-  {
-    event: MenuEntryEvent.tag,
-    payload: MenuEntryEvent.remove(menuEntry),
-  },
-  { event: MenuDayNoteEvent.tag, payload: MenuDayNoteEvent.set(menuDayNote) },
-  {
-    event: MenuDayNoteEvent.tag,
-    payload: MenuDayNoteEvent.patch(menuDayNote, {
-      day: 4,
-      note: "Freeze half",
+  ),
+  GroceryItemEvent.patch(
+    { id: groceryItemId },
+    {
+      list: "Pantry",
+      name: "Baby carrots",
+      quantity: "1 kg",
+      aisle: "Produce",
+      recipeIds: [recipeId],
+      completed: true,
       createdAt,
       updatedAt,
+    },
+  ),
+  GroceryItemEvent.remove({ id: groceryItemId }),
+  IngredientAisleEvent.set({ name: "carrots", aisle: "Produce" }),
+  IngredientAisleEvent.patch({ name: "carrots" }, { aisle: "Pantry" }),
+  IngredientAisleEvent.remove({ name: "carrots" }),
+  GroceryAisleOrderEvent.set({
+    list: "Weekend",
+    aisle: "Produce",
+    sortOrder: 2,
+    updatedAt,
+  }),
+  GroceryAisleOrderEvent.patch(
+    { list: "Weekend", aisle: "Produce" },
+    { sortOrder: 3, updatedAt },
+  ),
+  GroceryAisleOrderEvent.remove({
+    list: "Weekend",
+    aisle: "Produce",
+  }),
+  AiMemoryEntryEvent.set(
+    AiMemoryEntry.insert.make({
+      id: aiMemoryEntryId,
+      content: "Prefers metric units",
+      createdAt,
     }),
-  },
-  {
-    event: MenuDayNoteEvent.tag,
-    payload: MenuDayNoteEvent.remove(menuDayNote),
-  },
-  {
-    event: GroceryItemEvent.tag,
-    payload: GroceryItemEvent.set(
-      GroceryItem.make({
-        id: groceryItemId,
-        list: "Weekend",
-        name: "Carrots",
-        quantity: "500 g",
-        aisle: "Produce",
-        recipeIds: [recipeId],
-        completed: false,
-        createdAt,
-        updatedAt: createdAt,
-      }),
-    ),
-  },
-  {
-    event: GroceryItemEvent.tag,
-    payload: GroceryItemEvent.patch(
-      { id: groceryItemId },
-      {
-        list: "Pantry",
-        name: "Baby carrots",
-        quantity: "1 kg",
-        aisle: "Produce",
-        recipeIds: [recipeId],
-        completed: true,
-        createdAt,
-        updatedAt,
-      },
-    ),
-  },
-  {
-    event: GroceryItemEvent.tag,
-    payload: GroceryItemEvent.remove({ id: groceryItemId }),
-  },
-  {
-    event: IngredientAisleEvent.tag,
-    payload: IngredientAisleEvent.set({ name: "carrots", aisle: "Produce" }),
-  },
-  {
-    event: IngredientAisleEvent.tag,
-    payload: IngredientAisleEvent.patch(
-      { name: "carrots" },
-      { aisle: "Pantry" },
-    ),
-  },
-  {
-    event: IngredientAisleEvent.tag,
-    payload: IngredientAisleEvent.remove({ name: "carrots" }),
-  },
-  {
-    event: GroceryAisleOrderEvent.tag,
-    payload: GroceryAisleOrderEvent.set({
-      list: "Weekend",
-      aisle: "Produce",
-      sortOrder: 2,
-      updatedAt,
-    }),
-  },
-  {
-    event: GroceryAisleOrderEvent.tag,
-    payload: GroceryAisleOrderEvent.patch(
-      { list: "Weekend", aisle: "Produce" },
-      { sortOrder: 3, updatedAt },
-    ),
-  },
-  {
-    event: GroceryAisleOrderEvent.tag,
-    payload: GroceryAisleOrderEvent.remove({
-      list: "Weekend",
-      aisle: "Produce",
-    }),
-  },
-  {
-    event: AiMemoryEntryEvent.tag,
-    payload: AiMemoryEntryEvent.set(
-      AiMemoryEntry.insert.make({
-        id: aiMemoryEntryId,
-        content: "Prefers metric units",
-        createdAt,
-      }),
-    ),
-  },
-  {
-    event: AiMemoryEntryEvent.tag,
-    payload: AiMemoryEntryEvent.patch(
-      { id: aiMemoryEntryId },
-      { content: "Prefers metric units and fan-forced ovens", createdAt },
-    ),
-  },
-  {
-    event: AiMemoryEntryEvent.tag,
-    payload: AiMemoryEntryEvent.remove({ id: aiMemoryEntryId }),
-  },
-  {
-    event: AiChatTurnEvent.tag,
-    payload: AiChatTurnEvent.set({
-      id: aiChatTurnId,
-      prompt: aiChatTurnPrompt,
-      entryTime: 1_760_000_900_000,
-    }),
-  },
-  {
-    event: AiChatTurnEvent.tag,
-    payload: AiChatTurnEvent.patch(
-      { id: aiChatTurnId },
-      { prompt: aiChatTurnPrompt, entryTime: 1_760_001_000_000 },
-    ),
-  },
-  {
-    event: AiChatTurnEvent.tag,
-    payload: AiChatTurnEvent.remove({ id: aiChatTurnId }),
-  },
+  ),
+  AiMemoryEntryEvent.patch(
+    { id: aiMemoryEntryId },
+    { content: "Prefers metric units and fan-forced ovens", createdAt },
+  ),
+  AiMemoryEntryEvent.remove({ id: aiMemoryEntryId }),
+  AiChatTurnEvent.set({
+    id: aiChatTurnId,
+    prompt: aiChatTurnPrompt,
+    entryTime: 1_760_000_900_000,
+  }),
+  AiChatTurnEvent.patch(
+    { id: aiChatTurnId },
+    { prompt: aiChatTurnPrompt, entryTime: 1_760_001_000_000 },
+  ),
+  AiChatTurnEvent.remove({ id: aiChatTurnId }),
 ]

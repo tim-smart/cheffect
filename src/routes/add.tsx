@@ -14,7 +14,7 @@ function AddRecipe() {
   const write = useWrite()
   async function onSubmit(data: typeof RecipeFormSchema.schema.Type) {
     const recipe = Schema.decodeSync(RecipeInsert)(data)
-    await write({ event: RecipeEvent.tag, payload: RecipeEvent.set(recipe) })
+    await write(RecipeEvent.set(recipe))
     router.navigate({ to: "/recipes/$id", params: { id: recipe.idString } })
   }
   return (

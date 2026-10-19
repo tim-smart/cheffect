@@ -9,12 +9,7 @@ import { idEquals } from "@/lib/Id"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { menuDetail, MenuRepo, recipeCounts } from "./Repo"
 import { menusRuntime } from "./runtime"
-import {
-  MenuEvent,
-  MenuEntryEvent,
-  MenuDayNoteEvent,
-  menuUpdate,
-} from "@/Menus/Events"
+import { MenuEntryEvent, MenuDayNoteEvent, menuUpdate } from "@/Menus/Events"
 
 // Reads
 
@@ -76,28 +71,25 @@ export const setMenuDaysAtom = menusRuntime.fn<{
       const repo = yield* MenuRepo
       for (const entry of yield* repo.entries) {
         if (!idEquals(entry.menuId, menu.id) || entry.day <= days) continue
-        yield* writeEvent({
-          event: MenuEntryEvent.tag,
-          payload: MenuEntryEvent.remove({
+        yield* writeEvent(
+          MenuEntryEvent.remove({
             id: entry.id,
             menuId: entry.menuId,
           }),
-        })
+        )
       }
       for (const note of yield* repo.notes) {
         if (!idEquals(note.menuId, menu.id) || note.day <= days) continue
-        yield* writeEvent({
-          event: MenuDayNoteEvent.tag,
-          payload: MenuDayNoteEvent.remove({
+        yield* writeEvent(
+          MenuDayNoteEvent.remove({
             id: note.id,
             menuId: note.menuId,
           }),
-        })
+        )
       }
     }
-    yield* writeEvent({
-      event: MenuEvent.tag,
-      payload: menuUpdate({ ...menu, days, updatedAt: yield* DateTime.now }),
-    })
+    yield* writeEvent(
+      menuUpdate({ ...menu, days, updatedAt: yield* DateTime.now }),
+    )
   }),
 )

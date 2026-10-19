@@ -105,15 +105,14 @@ test("an export imports on another device as the same rows", async () => {
   const { exported, exporter } = await run(
     Effect.gen(function* () {
       yield* importAll(v1File)
-      yield* writeEvent({
-        event: RecipeEvent.tag,
-        payload: RecipeEvent.patch(
+      yield* writeEvent(
+        RecipeEvent.patch(
           { id: recipeId },
           {
             ingredientScale: 2.5,
           },
         ),
-      })
+      )
       const exported = Schema.encodeSync(ExportFileJson)(yield* exportAll)
       return { exported, exporter: yield* snapshot }
     }),
@@ -132,19 +131,15 @@ test("an import leaves a row deleted or edited here as it is", async () => {
   const { before, after } = await run(
     Effect.gen(function* () {
       yield* importAll(v1File)
-      yield* writeEvent({
-        event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove({ id: groceryItemId }),
-      })
-      yield* writeEvent({
-        event: MenuEvent.tag,
-        payload: menuUpdate({
+      yield* writeEvent(GroceryItemEvent.remove({ id: groceryItemId }))
+      yield* writeEvent(
+        menuUpdate({
           id: menuId,
           name: "Winter favourites",
           days: 5,
           updatedAt: DateTime.makeUnsafe(1_770_000_000_000),
         }),
-      })
+      )
       const before = yield* snapshot
       yield* importAll(v1File)
       return { before, after: yield* snapshot }
@@ -196,41 +191,23 @@ const otherRecipe = { ...sampleRecipe, id: otherRecipeId }
 test("an export leaves out deleted recipes, removed drafts and menus, the API key and chat history", async () => {
   const exported = await runSeeded(
     seed([
-      { event: RecipeEvent.tag, payload: RecipeEvent.set(sampleRecipe) },
-      { event: RecipeEvent.tag, payload: RecipeEvent.set(otherRecipe) },
-      {
-        event: RecipeEvent.tag,
-        payload: recipeDeleted(otherRecipeId, sampleRecipe.updatedAt),
-      },
-      {
-        event: RecipeEditEvent.tag,
-        payload: RecipeEditEvent.set(sampleRecipe),
-      },
-      {
-        event: RecipeEditEvent.tag,
-        payload: RecipeEditEvent.remove({ id: sampleRecipe.id }),
-      },
-      {
-        event: MenuEvent.tag,
-        payload: MenuEvent.remove({ id: menuId }),
-      },
-      {
-        event: SettingEvent.tag,
-        payload: SettingEvent.set({
-          id: "openAiApiKey",
-          value: '{"_tag":"Some","value":"sk-1"}',
-        }),
-      },
-      {
-        event: AiChatTurnEvent.tag,
-        payload: AiChatTurnEvent.set({
-          id: Schema.decodeSync(AiChatTurnIdFromString)(
-            "0193c7a0-1b2c-4def-8123-a2000000000a",
-          ),
-          prompt: "[]",
-          entryTime: 1_000,
-        }),
-      },
+      RecipeEvent.set(sampleRecipe),
+      RecipeEvent.set(otherRecipe),
+      recipeDeleted(otherRecipeId, sampleRecipe.updatedAt),
+      RecipeEditEvent.set(sampleRecipe),
+      RecipeEditEvent.remove({ id: sampleRecipe.id }),
+      MenuEvent.remove({ id: menuId }),
+      SettingEvent.set({
+        id: "openAiApiKey",
+        value: '{"_tag":"Some","value":"sk-1"}',
+      }),
+      AiChatTurnEvent.set({
+        id: Schema.decodeSync(AiChatTurnIdFromString)(
+          "0193c7a0-1b2c-4def-8123-a2000000000a",
+        ),
+        prompt: "[]",
+        entryTime: 1_000,
+      }),
     ]),
     exportAll.pipe(Effect.map(Schema.encodeSync(ExportFileJson))),
   )

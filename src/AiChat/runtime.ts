@@ -18,10 +18,7 @@ export const clearAiMemoryAtom = aiChatRuntime.fn<void>()(
   Effect.fnUntraced(function* () {
     const entries = yield* AiChatRepo.use((repo) => repo.memoryEntries)
     yield* writeEvents(
-      entries.map((entry) => ({
-        event: AiMemoryEntryEvent.tag,
-        payload: AiMemoryEntryEvent.remove({ id: entry.id }),
-      })),
+      entries.map((entry) => AiMemoryEntryEvent.remove({ id: entry.id })),
     )
   }),
 )

@@ -59,7 +59,7 @@ const noteAdded = (msecs: number, id: NoteId, onDay: string, note: string) =>
         createdAt: DateTime.makeUnsafe(msecs),
         updatedAt: DateTime.makeUnsafe(msecs),
       }),
-    ),
+    ).payload,
   })
 
 const noteUpdated = (msecs: number, id: NoteId, onDay: string, note: string) =>
@@ -73,7 +73,7 @@ const noteUpdated = (msecs: number, id: NoteId, onDay: string, note: string) =>
         note,
         updatedAt: DateTime.makeUnsafe(msecs),
       },
-    ),
+    ).payload,
   })
 
 const makeLayer =

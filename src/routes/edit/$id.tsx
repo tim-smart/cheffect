@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Recipe } from "@/domain/Recipe"
 import { RecipeInsert } from "@/domain/RecipeForm"
 import { useWrite } from "@/EventLog"
-import { RecipeEvent, recipeUpdate } from "@/Recipes/Events"
+import { recipeUpdate } from "@/Recipes/Events"
 import { recipeFormByIdAtom } from "@/Recipes/atoms"
 import { Display, RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
@@ -43,9 +43,8 @@ function EditRecipeScreen() {
               const formRecipe = Schema.decodeSync(RecipeInsert)(data)
               // history.back() can leave the document, so wait for the edit to
               // be persisted first
-              await write({
-                event: RecipeEvent.tag,
-                payload: recipeUpdate(
+              await write(
+                recipeUpdate(
                   Recipe.update.make({
                     ...formRecipe,
                     id: recipe.id,
@@ -53,7 +52,7 @@ function EditRecipeScreen() {
                     updatedAt: DateTime.nowUnsafe(),
                   }),
                 ),
-              }).finally(() => setSaving(false))
+              ).finally(() => setSaving(false))
               if (router.history.length > 1) {
                 return router.history.back()
               }

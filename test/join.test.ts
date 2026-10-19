@@ -328,8 +328,7 @@ const runJoin = (options: {
     )
     yield* Context.get(context, EventLog.EventLog).write({
       schema: CheffectRecipes,
-      event: RecipeEvent.tag,
-      payload: RecipeEvent.set(sampleRecipe),
+      ...RecipeEvent.set(sampleRecipe),
     })
 
     const before = yield* readState(factory, kvs)
@@ -343,8 +342,7 @@ const runJoin = (options: {
         Context.get(context, EventLog.EventLog)
           .write({
             schema: CheffectRecipes,
-            event: RecipeEvent.tag,
-            payload: RecipeEvent.set({ ...sampleRecipe, id: lateRecipeId }),
+            ...RecipeEvent.set({ ...sampleRecipe, id: lateRecipeId }),
           })
           .pipe(Effect.ignore),
       )

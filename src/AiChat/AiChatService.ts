@@ -117,10 +117,7 @@ const ToolkitLayer = toolkit.toLayer(
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
         const newRecipe = recipe.asRecipe()
-        yield* write({
-          event: RecipeEvent.tag,
-          payload: RecipeEvent.set(newRecipe),
-        })
+        yield* write(RecipeEvent.set(newRecipe))
         return {
           _tag: "Transient",
           value: { recipeId: newRecipe.idString },
@@ -149,14 +146,9 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
         // Only the scale, so a concurrent edit to the recipe isn't undone.
-        yield* write({
-          event: RecipeEvent.tag,
-          payload: recipeIngredientScale(
-            original.value.id,
-            scale,
-            yield* DateTime.now,
-          ),
-        })
+        yield* write(
+          recipeIngredientScale(original.value.id, scale, yield* DateTime.now),
+        )
         return {
           _tag: "Transient",
           value: null,
@@ -229,10 +221,7 @@ const ToolkitLayer = toolkit.toLayer(
           const source = yield* groceries.byId(sourceId).pipe(Effect.orDie)
           if (Option.isSome(source)) {
             collectRecipeIds(source.value)
-            yield* write({
-              event: GroceryItemEvent.tag,
-              payload: GroceryItemEvent.remove({ id: source.value.id }),
-            })
+            yield* write(GroceryItemEvent.remove({ id: source.value.id }))
           }
         }
 
@@ -254,10 +243,7 @@ const ToolkitLayer = toolkit.toLayer(
       DeleteGroceryItem: Effect.fnUntraced(function* ({ id }) {
         const item = yield* groceries.byId(id).pipe(Effect.orDie)
         if (Option.isSome(item)) {
-          yield* write({
-            event: GroceryItemEvent.tag,
-            payload: GroceryItemEvent.remove({ id: item.value.id }),
-          })
+          yield* write(GroceryItemEvent.remove({ id: item.value.id }))
         }
         return { _tag: "Transient", value: null }
       }),
@@ -297,13 +283,12 @@ const ToolkitLayer = toolkit.toLayer(
         const trimmed = note.trim()
         if (trimmed.length === 0) {
           if (existing) {
-            yield* write({
-              event: MenuDayNoteEvent.tag,
-              payload: MenuDayNoteEvent.remove({
+            yield* write(
+              MenuDayNoteEvent.remove({
                 id: existing.id,
                 menuId: menu.value.menu.id,
               }),
-            })
+            )
           }
           return {
             _tag: "Transient",
@@ -313,14 +298,13 @@ const ToolkitLayer = toolkit.toLayer(
 
         if (existing) {
           if (existing.note !== trimmed) {
-            yield* write({
-              event: MenuDayNoteEvent.tag,
-              payload: menuDayNoteUpdate(menu.value.menu.id, {
+            yield* write(
+              menuDayNoteUpdate(menu.value.menu.id, {
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
               }),
-            })
+            )
           }
           return {
             _tag: "Transient",
@@ -328,16 +312,15 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
 
-        yield* write({
-          event: MenuDayNoteEvent.tag,
-          payload: MenuDayNoteEvent.set(
+        yield* write(
+          MenuDayNoteEvent.set(
             MenuDayNote.fromForm({
               menuId: menu.value.menu.id,
               day,
               note: trimmed,
             }),
           ),
-        })
+        )
         return {
           _tag: "Transient",
           value: null,
@@ -350,7 +333,7 @@ const ToolkitLayer = toolkit.toLayer(
           createdAt: DateTime.nowUnsafe(),
           updatedAt: DateTime.nowUnsafe(),
         })
-        yield* write({ event: MenuEvent.tag, payload: MenuEvent.set(newMenu) })
+        yield* write(MenuEvent.set(newMenu))
         return {
           _tag: "Transient",
           value: newMenu,
@@ -369,16 +352,15 @@ const ToolkitLayer = toolkit.toLayer(
             .byId(menuEntry.recipeId)
             .pipe(Effect.orDie)
           if (Option.isNone(recipe)) continue
-          yield* write({
-            event: MenuEntryEvent.tag,
-            payload: MenuEntryEvent.set(
+          yield* write(
+            MenuEntryEvent.set(
               MenuEntry.fromForm({
                 menuId: menu.value.menu.id,
                 recipeId: recipe.value.id,
                 day: menuEntry.day,
               }),
             ),
-          })
+          )
         }
         return {
           _tag: "Transient",
@@ -392,13 +374,12 @@ const ToolkitLayer = toolkit.toLayer(
           (entry) => uuidString(entry.id) === id.toLowerCase(),
         )
         if (entry !== undefined) {
-          yield* write({
-            event: MenuEntryEvent.tag,
-            payload: MenuEntryEvent.remove({
+          yield* write(
+            MenuEntryEvent.remove({
               id: entry.id,
               menuId: entry.menuId,
             }),
-          })
+          )
         }
         return {
           _tag: "Transient",
@@ -445,10 +426,7 @@ const ToolkitLayer = toolkit.toLayer(
         const trimmed = note.trim()
         if (trimmed.length === 0) {
           if (existing) {
-            yield* write({
-              event: MealPlanDayNoteEvent.tag,
-              payload: MealPlanDayNoteEvent.remove({ id: existing.id }),
-            })
+            yield* write(MealPlanDayNoteEvent.remove({ id: existing.id }))
           }
           return {
             _tag: "Transient",
@@ -458,14 +436,13 @@ const ToolkitLayer = toolkit.toLayer(
 
         if (existing) {
           if (existing.note !== trimmed) {
-            yield* write({
-              event: MealPlanDayNoteEvent.tag,
-              payload: mealPlanDayNoteUpdate({
+            yield* write(
+              mealPlanDayNoteUpdate({
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
               }),
-            })
+            )
           }
           return {
             _tag: "Transient",
@@ -473,15 +450,14 @@ const ToolkitLayer = toolkit.toLayer(
           }
         }
 
-        yield* write({
-          event: MealPlanDayNoteEvent.tag,
-          payload: MealPlanDayNoteEvent.set(
+        yield* write(
+          MealPlanDayNoteEvent.set(
             MealPlanDayNote.fromForm({
               day: normalizedDay,
               note: trimmed,
             }),
           ),
-        })
+        )
         return {
           _tag: "Transient",
           value: null,
@@ -493,14 +469,13 @@ const ToolkitLayer = toolkit.toLayer(
             .byId(mealPlanEntry.recipeId)
             .pipe(Effect.orDie)
           if (Option.isNone(recipe)) continue
-          yield* write({
-            event: MealPlanEntryEvent.tag,
-            payload: MealPlanEntryEvent.set({
+          yield* write(
+            MealPlanEntryEvent.set({
               id: MealPlanEntryId.make(generateUuidBytes()),
               day: mealPlanEntry.day,
               recipeId: recipe.value.id,
             }),
-          })
+          )
         }
         return {
           _tag: "Transient",
@@ -510,10 +485,7 @@ const ToolkitLayer = toolkit.toLayer(
       RemoveMealPlanEntry: Effect.fnUntraced(function* ({ id }) {
         const entryId = Schema.decodeOption(MealPlanEntryIdFromString)(id)
         if (Option.isSome(entryId)) {
-          yield* write({
-            event: MealPlanEntryEvent.tag,
-            payload: MealPlanEntryEvent.remove({ id: entryId.value }),
-          })
+          yield* write(MealPlanEntryEvent.remove({ id: entryId.value }))
         }
         return {
           _tag: "Transient",
@@ -530,16 +502,15 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       SaveLearning: Effect.fnUntraced(function* ({ content }) {
-        yield* write({
-          event: AiMemoryEntryEvent.tag,
-          payload: AiMemoryEntryEvent.set(
+        yield* write(
+          AiMemoryEntryEvent.set(
             new AiMemoryEntry({
               id: AiMemoryEntryId.make(generateUuidBytes()),
               content,
               createdAt: DateTime.nowUnsafe(),
             }),
           ),
-        })
+        )
         return {
           _tag: "Transient",
           value: null,
@@ -548,10 +519,7 @@ const ToolkitLayer = toolkit.toLayer(
       RemoveLearning: Effect.fnUntraced(function* ({ id }) {
         const entryId = Schema.decodeOption(AiMemoryEntryIdFromString)(id)
         if (Option.isSome(entryId)) {
-          yield* write({
-            event: AiMemoryEntryEvent.tag,
-            payload: AiMemoryEntryEvent.remove({ id: entryId.value }),
-          })
+          yield* write(AiMemoryEntryEvent.remove({ id: entryId.value }))
         }
         return {
           _tag: "Transient",
@@ -576,7 +544,7 @@ const ToolkitLayer = toolkit.toLayer(
           createdAt: now,
           updatedAt: now,
         })
-        yield* write({ event: TimerEvent.tag, payload: TimerEvent.set(timer) })
+        yield* write(TimerEvent.set(timer))
         return {
           _tag: "Transient",
           value: {
@@ -795,16 +763,15 @@ ${MenuEntry.toXml(entries)}`
         const messages = shown.content.slice(previous.content.length)
         if (messages.length === 0) return
         const now = yield* DateTime.now
-        yield* write({
-          event: AiChatTurnEvent.tag,
-          payload: AiChatTurnEvent.set({
+        yield* write(
+          AiChatTurnEvent.set({
             id: AiChatTurnId.make(generateUuidBytes()),
             prompt: Schema.encodeSync(PromptJson)(
               Prompt.fromMessages(messages),
             ),
             entryTime: now.epochMilliseconds,
           }),
-        })
+        )
       })
 
       const send = Effect.fnUntraced(
@@ -894,12 +861,7 @@ ${MenuEntry.toXml(entries)}`
       const clear = Effect.gen(function* () {
         const ids = yield* repo.turnIds.pipe(Effect.orDie)
         yield* Ref.set(chat.history, Prompt.empty)
-        yield* writeMany(
-          ids.map((id) => ({
-            event: AiChatTurnEvent.tag,
-            payload: AiChatTurnEvent.remove({ id: id }),
-          })),
-        )
+        yield* writeMany(ids.map((id) => AiChatTurnEvent.remove({ id: id })))
       })
 
       return { send, clear } as const

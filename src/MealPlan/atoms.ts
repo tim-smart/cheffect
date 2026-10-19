@@ -90,14 +90,13 @@ export const addMenuToMealPlanAtom = mealPlanRuntime.fn<{
     )
 
     for (const entry of entries) {
-      yield* writeEvent({
-        event: MealPlanEntryEvent.tag,
-        payload: MealPlanEntryEvent.set({
+      yield* writeEvent(
+        MealPlanEntryEvent.set({
           id: MealPlanEntryId.make(generateUuidBytes()),
           day: DateTime.add(startDate, { days: entry.day - 1 }),
           recipeId: entry.recipe.id,
         }),
-      })
+      )
     }
 
     for (const note of dayNotes) {
@@ -105,23 +104,21 @@ export const addMenuToMealPlanAtom = mealPlanRuntime.fn<{
       const existing = mealPlanNoteByDay.get(DateTime.formatIsoDate(day))
       if (existing) {
         if (existing.note === note.note) continue
-        yield* writeEvent({
-          event: MealPlanDayNoteEvent.tag,
-          payload: mealPlanDayNoteUpdate({
+        yield* writeEvent(
+          mealPlanDayNoteUpdate({
             ...existing,
             note: note.note,
             updatedAt: yield* DateTime.now,
           }),
-        })
+        )
         continue
       }
 
-      yield* writeEvent({
-        event: MealPlanDayNoteEvent.tag,
-        payload: MealPlanDayNoteEvent.set(
+      yield* writeEvent(
+        MealPlanDayNoteEvent.set(
           MealPlanDayNote.fromForm({ day, note: note.note }),
         ),
-      })
+      )
     }
   }),
 )

@@ -90,10 +90,7 @@ export const recipeFormByIdAtom = Atom.family((id: string) =>
 const recipeIdFromString = Schema.decodeSync(RecipeIdFromString)
 
 const recipeEditRemove = (id: RecipeId) =>
-  writeEvent({
-    event: RecipeEditEvent.tag,
-    payload: RecipeEditEvent.remove({ id: id }),
-  })
+  writeEvent(RecipeEditEvent.remove({ id: id }))
 
 export const createRecipeAtom = extractRuntime
   .fn<string>()(
@@ -112,10 +109,7 @@ export const recipeFromImagesAtom = extractRuntime.fn<FileList>()(
       const extracted = yield* helpers.recipesFromImages(files)
       const recipes = Array.map(extracted, (r) => r.asRecipe())
       for (const recipe of recipes) {
-        yield* writeEvent({
-          event: RecipeEvent.tag,
-          payload: RecipeEvent.set(recipe),
-        })
+        yield* writeEvent(RecipeEvent.set(recipe))
       }
       return recipes
     },
@@ -163,16 +157,15 @@ export const saveModifiedRecipeAtom = recipesRuntime.fn<string>()(
     const recipe = yield* repo.byId(id)
     const modified = yield* repo.editById(id)
     if (Option.isNone(recipe) || Option.isNone(modified)) return
-    yield* writeEvent({
-      event: RecipeEvent.tag,
-      payload: recipeUpdate(
+    yield* writeEvent(
+      recipeUpdate(
         new Recipe({
           ...recipe.value,
           ...modified.value,
           updatedAt: yield* DateTime.now,
         }),
       ),
-    })
+    )
     yield* recipeEditRemove(recipe.value.id)
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
   }),
@@ -192,10 +185,7 @@ export const newModifiedRecipeAtom = recipesRuntime.fn<string>()(
       createdAt: now,
       updatedAt: now,
     })
-    yield* writeEvent({
-      event: RecipeEvent.tag,
-      payload: RecipeEvent.set(newRecipe),
-    })
+    yield* writeEvent(RecipeEvent.set(newRecipe))
     yield* recipeEditRemove(recipe.value.id)
     get.registry.update(showOriginalRecipeAtom, HashSet.remove(id))
     router.navigate({ to: "/recipes/$id", params: { id: newRecipe.idString } })

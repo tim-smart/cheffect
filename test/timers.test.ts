@@ -40,7 +40,7 @@ const added = makeEntry({
       createdAt: DateTime.makeUnsafe(1000),
       updatedAt: DateTime.makeUnsafe(1000),
     }),
-  ),
+  ).payload,
 })
 
 const makeLayer = (
@@ -68,8 +68,7 @@ test("a local whole-Timer update pauses the timer and preserves createdAt", asyn
       const log = yield* EventLog.EventLog
       yield* log.write({
         schema,
-        event: TimerEvent.tag,
-        payload: timerRunningState(
+        ...timerRunningState(
           new Timer({
             ...timer,
             pausedRemaining: Duration.minutes(4),
