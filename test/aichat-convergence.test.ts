@@ -68,7 +68,7 @@ const memoryRemoved = (msecs: number, id: typeof peanuts) =>
   makeEntry({
     msecs,
     event: memoryEvent,
-    payload: AiMemoryEntryEvent.remove(AiMemoryEntryEvent.keyOf({ id })),
+    payload: AiMemoryEntryEvent.remove({ id }),
   })
 
 // A turn holding a single user message, so history order reads off the text,
@@ -88,7 +88,7 @@ const turnRemoved = (msecs: number, id: typeof firstTurn) =>
   makeEntry({
     msecs,
     event: turnEvent,
-    payload: AiChatTurnEvent.remove(AiChatTurnEvent.keyOf({ id })),
+    payload: AiChatTurnEvent.remove({ id }),
   })
 
 const userTexts = (prompt: Prompt.Prompt) =>

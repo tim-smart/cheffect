@@ -15,6 +15,7 @@ import { MenuEvent, menuUpdate } from "@/Menus/Events"
 import { RecipeEditEvent, RecipeEvent, recipeDeleted } from "@/Recipes/Events"
 import { SettingEvent } from "@/Settings/Events"
 import { AiChatTurnIdFromString } from "@/domain/AiChatTurn"
+import { GroceryItemIdFromString } from "@/domain/GroceryItem"
 import { MenuIdFromString } from "@/domain/Menu"
 import { RecipeIdFromString } from "@/domain/Recipe"
 import { sampleRecipe } from "./fixtures/event-samples"
@@ -50,7 +51,12 @@ const exportedTables = [
   "settings",
 ] as const
 
-const groceryItemId = "0193c7a0-1b2c-4def-8123-c0ffee000001"
+const recipeId = Schema.decodeSync(RecipeIdFromString)(
+  "0193c7a0-1b2c-4def-8123-456789abcdef",
+)
+const groceryItemId = Schema.decodeSync(GroceryItemIdFromString)(
+  "0193c7a0-1b2c-4def-8123-c0ffee000001",
+)
 const menuId = Schema.decodeSync(MenuIdFromString)(
   "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
 )
@@ -101,9 +107,12 @@ test("an export imports on another device as the same rows", async () => {
       yield* importAll(v1File)
       yield* writeEvent({
         event: RecipeEvent.tag,
-        payload: RecipeEvent.patch("0193c7a0-1b2c-4def-8123-456789abcdef", {
-          ingredientScale: 2.5,
-        }),
+        payload: RecipeEvent.patch(
+          { id: recipeId },
+          {
+            ingredientScale: 2.5,
+          },
+        ),
       })
       const exported = Schema.encodeSync(ExportFileJson)(yield* exportAll)
       return { exported, exporter: yield* snapshot }
@@ -125,7 +134,7 @@ test("an import leaves a row deleted or edited here as it is", async () => {
       yield* importAll(v1File)
       yield* writeEvent({
         event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove(groceryItemId),
+        payload: GroceryItemEvent.remove({ id: groceryItemId }),
       })
       yield* writeEvent({
         event: MenuEvent.tag,
@@ -199,11 +208,11 @@ test("an export leaves out deleted recipes, removed drafts and menus, the API ke
       },
       {
         event: RecipeEditEvent.tag,
-        payload: RecipeEditEvent.remove(sampleRecipe.idString),
+        payload: RecipeEditEvent.remove({ id: sampleRecipe.id }),
       },
       {
         event: MenuEvent.tag,
-        payload: MenuEvent.remove(MenuEvent.keyOf({ id: menuId })),
+        payload: MenuEvent.remove({ id: menuId }),
       },
       {
         event: SettingEvent.tag,

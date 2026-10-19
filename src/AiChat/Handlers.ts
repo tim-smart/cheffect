@@ -3,7 +3,6 @@ import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventRow from "effect/eventlog/EventRow"
 import { QueryBuilder } from "@/IndexedDb"
-import { uuidBytes } from "@/lib/Id"
 import { tableRowHandler } from "@/lib/rowHandler"
 import { AiChatEvents, AiChatTurnEvent, AiMemoryEntryEvent } from "./Events"
 
@@ -17,13 +16,13 @@ const AiChatHandlers = EventLog.group(AiChatEvents, (handlers) =>
       .handle(
         AiMemoryEntryEvent.tag,
         tableRowHandler(db, "aiMemoryEntries", AiMemoryEntryEvent, {
-          tableKey: uuidBytes,
+          tableKey: ({ id }) => id,
         }),
       )
       .handle(
         AiChatTurnEvent.tag,
         tableRowHandler(db, "aiChatTurns", AiChatTurnEvent, {
-          tableKey: uuidBytes,
+          tableKey: ({ id }) => id,
         }),
       )
   }),

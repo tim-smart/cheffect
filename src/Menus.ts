@@ -4,10 +4,7 @@ import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventRow from "effect/eventlog/EventRow"
 import { MenuId } from "./domain/Menu"
-import { MenuDayNoteId } from "./domain/MenuDayNote"
-import { MenuEntryId } from "./domain/MenuEntry"
 import { QueryBuilder, withWriteTransaction } from "./IndexedDb"
-import { uuidBytes } from "./lib/Id"
 import {
   MenuDayNoteEvent,
   MenuEntryEvent,
@@ -66,13 +63,13 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
             menus.upsert({ ...menu, removed: false }).pipe(Effect.orDie),
           patch: (key, fields) =>
             Effect.gen(function* () {
-              const row = yield* menuRow(MenuId.make(uuidBytes(key)))
+              const row = yield* menuRow(key.id)
               if (row === undefined || row.removed) return
               yield* menus.upsert({ ...row, ...fields })
             }).pipe(Effect.orDie),
           remove: (key) =>
             Effect.gen(function* () {
-              const id = MenuId.make(uuidBytes(key))
+              const id = key.id
               yield* menus.upsert(marker(id))
               yield* entries.delete("menuId").equals(id)
               yield* notes.delete("menuId").equals(id)
@@ -96,20 +93,13 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
             }).pipe(Effect.orDie),
           patch: (key, fields) =>
             Effect.gen(function* () {
-              const [row] = yield* entries
-                .select()
-                .equals(MenuEntryId.make(uuidBytes(key)))
-                .limit(1)
+              const [row] = yield* entries.select().equals(key.id).limit(1)
               if (row === undefined) return
               const next = { ...row, ...fields }
               if (yield* menuRemoved(next.menuId)) return
               yield* entries.upsert(next)
             }).pipe(Effect.orDie),
-          remove: (key) =>
-            entries
-              .delete()
-              .equals(MenuEntryId.make(uuidBytes(key)))
-              .pipe(Effect.orDie),
+          remove: (key) => entries.delete().equals(key.id).pipe(Effect.orDie),
         }),
       )
       .handle(
@@ -122,20 +112,13 @@ const MenuHandlers = EventLog.group(MenuEvents, (handlers) =>
             }).pipe(Effect.orDie),
           patch: (key, fields) =>
             Effect.gen(function* () {
-              const [row] = yield* notes
-                .select()
-                .equals(MenuDayNoteId.make(uuidBytes(key)))
-                .limit(1)
+              const [row] = yield* notes.select().equals(key.id).limit(1)
               if (row === undefined) return
               const next = { ...row, ...fields }
               if (yield* menuRemoved(next.menuId)) return
               yield* notes.upsert(next)
             }).pipe(Effect.orDie),
-          remove: (key) =>
-            notes
-              .delete()
-              .equals(MenuDayNoteId.make(uuidBytes(key)))
-              .pipe(Effect.orDie),
+          remove: (key) => notes.delete().equals(key.id).pipe(Effect.orDie),
         }),
       )
   }),

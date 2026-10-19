@@ -1,7 +1,6 @@
 import { nowAtom } from "@/atoms"
 import type { Timer, TimerId } from "@/domain/Timer"
 import { eventLogAtom, writeEvent } from "@/EventLog"
-import { uuidString } from "@/lib/Id"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import * as Data from "effect/Data"
@@ -73,7 +72,7 @@ export const timerUiStateAtom = Atom.make((get) => {
 export const dismissTimerAtom = timersRuntime.fn<TimerId>()((id) =>
   writeEvent({
     event: TimerEvent.tag,
-    payload: TimerEvent.remove(uuidString(id)),
+    payload: TimerEvent.remove({ id: id }),
   }),
 )
 

@@ -49,14 +49,17 @@ export const GroceryEvents = EventGroup.empty
 // What an item update writes, from the whole item. The list and creation
 // time stay as they were.
 export const groceryItemUpdate = (item: GroceryItem) =>
-  GroceryItemEvent.patch(item.idString, {
-    name: item.name,
-    quantity: item.quantity,
-    aisle: item.aisle,
-    recipeIds: item.recipeIds,
-    completed: item.completed,
-    updatedAt: item.updatedAt,
-  })
+  GroceryItemEvent.patch(
+    { id: item.id },
+    {
+      name: item.name,
+      quantity: item.quantity,
+      aisle: item.aisle,
+      recipeIds: item.recipeIds,
+      completed: item.completed,
+      updatedAt: item.updatedAt,
+    },
+  )
 
 export const groceryItemCompleted = (item: GroceryItem, completed: boolean) =>
-  GroceryItemEvent.patch(item.idString, { completed })
+  GroceryItemEvent.patch({ id: item.id }, { completed })

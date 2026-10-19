@@ -31,7 +31,7 @@ import {
 } from "@/MealPlan/DatePicker"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntry, MealPlanEntryId } from "@/domain/MealPlanEntry"
-import { generateUuidBytes, uuidString } from "@/lib/Id"
+import { generateUuidBytes } from "@/lib/Id"
 import { AddToGroceriesButton } from "@/Groceries/AddButton"
 import * as Iterable from "effect/Iterable"
 import {
@@ -102,7 +102,7 @@ export function MealPlanPage() {
   const handleRemoveEntry = (id: MealPlanEntryId) => {
     write({
       event: MealPlanEntryEvent.tag,
-      payload: MealPlanEntryEvent.remove(uuidString(id)),
+      payload: MealPlanEntryEvent.remove({ id: id }),
     })
   }
 
@@ -148,9 +148,7 @@ export function MealPlanPage() {
                       toRemove.forEach((entry) => {
                         write({
                           event: MealPlanEntryEvent.tag,
-                          payload: MealPlanEntryEvent.remove(
-                            uuidString(entry.id),
-                          ),
+                          payload: MealPlanEntryEvent.remove({ id: entry.id }),
                         })
                       })
                       const notesToRemove = AsyncResult.getOrElse(
@@ -160,9 +158,7 @@ export function MealPlanPage() {
                       notesToRemove.forEach((note) => {
                         write({
                           event: MealPlanDayNoteEvent.tag,
-                          payload: MealPlanDayNoteEvent.remove(
-                            uuidString(note.id),
-                          ),
+                          payload: MealPlanDayNoteEvent.remove({ id: note.id }),
                         })
                       })
                     }}
@@ -314,7 +310,7 @@ function DayListItem({
       if (dayNote) {
         write({
           event: MealPlanDayNoteEvent.tag,
-          payload: MealPlanDayNoteEvent.remove(uuidString(dayNote.id)),
+          payload: MealPlanDayNoteEvent.remove({ id: dayNote.id }),
         })
       }
       return

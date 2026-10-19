@@ -4,7 +4,7 @@ import * as EventGroup from "effect/eventlog/EventGroup"
 import * as EventRow from "effect/eventlog/EventRow"
 import { Recipe, RecipeEdit, type RecipeId } from "@/domain/Recipe"
 import { patchFields } from "@/lib/eventFields"
-import { uuidKey, uuidString } from "@/lib/Id"
+import { uuidKey } from "@/lib/Id"
 
 // Tags are permanent wire names. Every stored entry is decoded again with the
 // current row schema, so a field may only be added with a decoding default,
@@ -33,14 +33,14 @@ const updateFields = patchFields(Recipe.update)
 
 // Every field a recipe update writes, from a value that may carry more.
 export const recipeUpdate = (recipe: typeof Recipe.update.Type) =>
-  RecipeEvent.patch(uuidString(recipe.id), updateFields(recipe))
+  RecipeEvent.patch({ id: recipe.id }, updateFields(recipe))
 
 // Only the scale, so a concurrent edit to the recipe isn't undone.
 export const recipeIngredientScale = (
   id: RecipeId,
   ingredientScale: number,
   updatedAt: DateTime.Utc,
-) => RecipeEvent.patch(uuidString(id), { ingredientScale, updatedAt })
+) => RecipeEvent.patch({ id: id }, { ingredientScale, updatedAt })
 
 export const recipeDeleted = (id: RecipeId, deletedAt: DateTime.Utc) =>
-  RecipeEvent.patch(uuidString(id), { deletedAt })
+  RecipeEvent.patch({ id: id }, { deletedAt })

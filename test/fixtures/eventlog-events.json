@@ -42,7 +42,7 @@
     "tag": "Recipe",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-456789abcdef",
+      "key": { "id": "AZPHoBssTe+BI0VniavN7w==" },
       "fields": {
         "title": "Carrot and coriander soup",
         "imageUrl": "https://example.com/carrot-soup.jpg",
@@ -75,12 +75,12 @@
         "deletedAt": 1760000600000
       }
     },
-    "bytes": "9gMgCsc3Xy3g14yQA78D4Zi2mwQEuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cPGImYYLgIDmgrlmoJO2jRZ+AmQA+/HF2QZYAVRDdXQgdGhlIGNhcnJvdHMgc21hbGwgc28gdGhleSBjb29rIGV2ZW5seS6+nJnvC1ZTaW1tZXIgdGhlIGNhcnJvdHMgaW4gdGhlIHN0b2NrIHVudGlsIHNvZnQuFwECACZCbGVuZCB1bnRpbCBzbW9vdGgu+LHEky0HBICfr4O5Zsi0v9QwKgVodHRwczovL2V4YW1wbGUuY29tL2NhcnJvdC1jb3JpYW5kZXItc291cJj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTBlDYXJyb3QgYW5kIGNvcmlhbmRlciBzb3VwsOyUumYFBID8pAKp24WGcYCfr4O5ZpimwN92JAVodHRwczovL2V4YW1wbGUuY29tL2NhcnJvdC1zb3VwLmpwZ4CFoqJ5AgQK4Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtNDU2Nzg5YWJjZGVm"
+    "bytes": "6AMgCsc3Xy3g14yQA78D4Zi2mwQEuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cPGImYYLgIDmgrlmoJO2jRZ+AmQA+/HF2QZYAVRDdXQgdGhlIGNhcnJvdHMgc21hbGwgc28gdGhleSBjb29rIGV2ZW5seS6+nJnvC1ZTaW1tZXIgdGhlIGNhcnJvdHMgaW4gdGhlIHN0b2NrIHVudGlsIHNvZnQuFwECACZCbGVuZCB1bnRpbCBzbW9vdGgu+LHEky0HBICfr4O5Zsi0v9QwKgVodHRwczovL2V4YW1wbGUuY29tL2NhcnJvdC1jb3JpYW5kZXItc291cJj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTBlDYXJyb3QgYW5kIGNvcmlhbmRlciBzb3VwsOyUumYFBID8pAKp24WGcYCfr4O5ZpimwN92JAVodHRwczovL2V4YW1wbGUuY29tL2NhcnJvdC1zb3VwLmpwZ4CFoqJ5AgQK4Ia5hTQWgK6NzhsQAZPHoBssTe+BI0VniavN7w=="
   },
   {
     "tag": "Recipe",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-456789abcdef" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLTQ1Njc4OWFiY2RlZg=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI0VniavN7w==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSNFZ4mrze8="
   },
   {
     "tag": "RecipeEdit",
@@ -119,7 +119,7 @@
     "tag": "RecipeEdit",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-456789abcdef",
+      "key": { "id": "AZPHoBssTe+BI0VniavN7w==" },
       "fields": {
         "title": "Carrot, ginger and lime soup",
         "imageUrl": "https://example.com/carrot-soup.jpg",
@@ -146,12 +146,12 @@
         "sourceName": "Example Kitchen"
       }
     },
-    "bytes": "mAMgCsc3Xy3g14yQA+ECuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLpj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTBxDYXJyb3QsIGdpbmdlciBhbmQgbGltZSBzb3VwsOyUumYFBID8pAKYpsDfdiQFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cC5qcGfghrmFNCQwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy00NTY3ODlhYmNkZWY="
+    "bytes": "igMgCsc3Xy3g14yQA+ECuMDSuQRYAVYAh6iaR4oBAx8A2J/K2wQGBOgH5vvm6QgOQ2Fycm90c4e01MUOBAVnGAEGBB4BHlZlZ2V0YWJsZSBzdG9jawQFbAoBAgIIU2FsdAIC5vvm6QgIU291cKCTto0WfgJkAPvxxdkGWAFUQ3V0IHRoZSBjYXJyb3RzIHNtYWxsIHNvIHRoZXkgY29vayBldmVubHkuvpyZ7wtWU2ltbWVyIHRoZSBjYXJyb3RzIGluIHRoZSBzdG9jayB1bnRpbCBzb2Z0LhcBAgAmQmxlbmQgdW50aWwgc21vb3RoLpj665w5BATA7m3g16+kRAIECNil/OFJEAVFeGFtcGxlIEtpdGNoZW7I0LaZTBxDYXJyb3QsIGdpbmdlciBhbmQgbGltZSBzb3VwsOyUumYFBID8pAKYpsDfdiQFaHR0cHM6Ly9leGFtcGxlLmNvbS9jYXJyb3Qtc291cC5qcGfghrmFNBaAro3OGxABk8egGyxN74EjRWeJq83v"
   },
   {
     "tag": "RecipeEdit",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-456789abcdef" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLTQ1Njc4OWFiY2RlZg=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI0VniavN7w==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSNFZ4mrze8="
   },
   {
     "tag": "Setting",
@@ -198,7 +198,7 @@
     "tag": "Timer",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-fedcba987654",
+      "key": { "id": "AZPHoBssTe+BI/7cuph2VA==" },
       "fields": {
         "label": "Carrot soup, second batch",
         "duration": 2700000,
@@ -208,12 +208,12 @@
         "updatedAt": 1760000600000
       }
     },
-    "bytes": "iQEgCsc3Xy3g14yQA1PxiJmGC4CA5oK5ZunQn+gXwMvJAqjcx4I8BASAn0mx5bvRXcDLr4W5ZqnbhYZxgJ+vg7lm6P/ipXsZQ2Fycm90IHNvdXAsIHNlY29uZCBiYXRjaOCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWZlZGNiYTk4NzY1NA=="
+    "bytes": "eyAKxzdfLeDXjJADU/GImYYLgIDmgrlm6dCf6BfAy8kCqNzHgjwEBICfSbHlu9FdwMuvhblmqduFhnGAn6+DuWbo/+KlexlDYXJyb3Qgc291cCwgc2Vjb25kIGJhdGNo4Ia5hTQWgK6NzhsQAZPHoBssTe+BI/7cuph2VA=="
   },
   {
     "tag": "Timer",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-fedcba987654" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWZlZGNiYTk4NzY1NA=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI/7cuph2VA==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSP+3LqYdlQ="
   },
   {
     "tag": "MealPlanEntry",
@@ -231,15 +231,15 @@
     "tag": "MealPlanEntry",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-0123456789ab",
+      "key": { "id": "AZPHoBssTe+BIwEjRWeJqw==" },
       "fields": { "recipeId": "AZPHoBssTe+BI0VniavN7w==", "day": "2025-10-14" }
     },
-    "bytes": "XCAKxzdfLeDXjJADJpCSrssFEAGTx6AbLE3vgSNFZ4mrze/on+STcgoyMDI1LTEwLTE04Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtMDEyMzQ1Njc4OWFi"
+    "bytes": "TiAKxzdfLeDXjJADJpCSrssFEAGTx6AbLE3vgSNFZ4mrze/on+STcgoyMDI1LTEwLTE04Ia5hTQWgK6NzhsQAZPHoBssTe+BIwEjRWeJqw=="
   },
   {
     "tag": "MealPlanEntry",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-0123456789ab" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLTAxMjM0NTY3ODlhYg=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BIwEjRWeJqw==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSMBI0Vnias="
   },
   {
     "tag": "MealPlanDayNote",
@@ -259,7 +259,7 @@
     "tag": "MealPlanDayNote",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-ba9876543210",
+      "key": { "id": "AZPHoBssTe+BI7qYdlQyEA==" },
       "fields": {
         "day": "2025-10-14",
         "note": "Eating out",
@@ -267,12 +267,12 @@
         "updatedAt": 1760000600000
       }
     },
-    "bytes": "bCAKxzdfLeDXjJADNvGImYYLgIDmgrlm6MPB5kgKRWF0aW5nIG91dKnbhYZxgJ+vg7lm6J/kk3IKMjAyNS0xMC0xNOCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWJhOTg3NjU0MzIxMA=="
+    "bytes": "XiAKxzdfLeDXjJADNvGImYYLgIDmgrlm6MPB5kgKRWF0aW5nIG91dKnbhYZxgJ+vg7lm6J/kk3IKMjAyNS0xMC0xNOCGuYU0FoCujc4bEAGTx6AbLE3vgSO6mHZUMhA="
   },
   {
     "tag": "MealPlanDayNote",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-ba9876543210" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWJhOTg3NjU0MzIxMA=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI7qYdlQyEA==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSO6mHZUMhA="
   },
   {
     "tag": "Menu",
@@ -292,7 +292,7 @@
     "tag": "Menu",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6",
+      "key": { "id": "AZPHoBssTe+BI6Gyw9Tl9g==" },
       "fields": {
         "name": "Winter favourites",
         "days": 5,
@@ -300,12 +300,12 @@
         "updatedAt": 1760000600000
       }
     },
-    "bytes": "aSAKxzdfLeDXjJADM/GImYYLgIDmgrlmsN63zkYRV2ludGVyIGZhdm91cml0ZXOp24WGcYCfr4O5ZtGouqR7CuCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmNg=="
+    "bytes": "WyAKxzdfLeDXjJADM/GImYYLgIDmgrlmsN63zkYRV2ludGVyIGZhdm91cml0ZXOp24WGcYCfr4O5ZtGouqR7CuCGuYU0FoCujc4bEAGTx6AbLE3vgSOhssPU5fY="
   },
   {
     "tag": "Menu",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f6" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmNg=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI6Gyw9Tl9g==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSOhssPU5fY="
   },
   {
     "tag": "MenuEntry",
@@ -326,7 +326,10 @@
     "tag": "MenuEntry",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f7",
+      "key": {
+        "id": "AZPHoBssTe+BI6Gyw9Tl9w==",
+        "menuId": "AZPHoBssTe+BI6Gyw9Tl9g=="
+      },
       "fields": {
         "recipeId": "AZPHoBssTe+BI0VniavN7w==",
         "day": 3,
@@ -334,12 +337,18 @@
         "updatedAt": 1760000600000
       }
     },
-    "bytes": "aCAKxzdfLeDXjJADMpCSrssFEAGTx6AbLE3vgSNFZ4mrze/xiJmGC4CA5oK5ZqnbhYZxgJ+vg7lm6Z/kk3IG4Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtYTFiMmMzZDRlNWY3"
+    "bytes": "cCAKxzdfLeDXjJADMpCSrssFEAGTx6AbLE3vgSNFZ4mrze/xiJmGC4CA5oK5ZqnbhYZxgJ+vg7lm6Z/kk3IG4Ia5hTQsgK6NzhsQAZPHoBssTe+BI6Gyw9Tl97j5x9MwEAGTx6AbLE3vgSOhssPU5fY="
   },
   {
     "tag": "MenuEntry",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f7" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmNw=="
+    "json": {
+      "_tag": "remove",
+      "key": {
+        "id": "AZPHoBssTe+BI6Gyw9Tl9w==",
+        "menuId": "AZPHoBssTe+BI6Gyw9Tl9g=="
+      }
+    },
+    "bytes": "OCAK6Jpi9OCGuYU0LICujc4bEAGTx6AbLE3vgSOhssPU5fe4+cfTMBABk8egGyxN74EjobLD1OX2"
   },
   {
     "tag": "MenuDayNote",
@@ -360,7 +369,10 @@
     "tag": "MenuDayNote",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8",
+      "key": {
+        "id": "AZPHoBssTe+BI6Gyw9Tl+A==",
+        "menuId": "AZPHoBssTe+BI6Gyw9Tl9g=="
+      },
       "fields": {
         "day": 4,
         "note": "Freeze half",
@@ -368,12 +380,18 @@
         "updatedAt": 1760000600000
       }
     },
-    "bytes": "YyAKxzdfLeDXjJADLfGImYYLgIDmgrlm6MPB5kgLRnJlZXplIGhhbGap24WGcYCfr4O5Zumf5JNyCOCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmOA=="
+    "bytes": "ayAKxzdfLeDXjJADLfGImYYLgIDmgrlm6MPB5kgLRnJlZXplIGhhbGap24WGcYCfr4O5Zumf5JNyCOCGuYU0LICujc4bEAGTx6AbLE3vgSOhssPU5fi4+cfTMBABk8egGyxN74EjobLD1OX2"
   },
   {
     "tag": "MenuDayNote",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f8" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExYjJjM2Q0ZTVmOA=="
+    "json": {
+      "_tag": "remove",
+      "key": {
+        "id": "AZPHoBssTe+BI6Gyw9Tl+A==",
+        "menuId": "AZPHoBssTe+BI6Gyw9Tl9g=="
+      }
+    },
+    "bytes": "OCAK6Jpi9OCGuYU0LICujc4bEAGTx6AbLE3vgSOhssPU5fi4+cfTMBABk8egGyxN74EjobLD1OX2"
   },
   {
     "tag": "GroceryItem",
@@ -397,7 +415,7 @@
     "tag": "GroceryItem",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-c0ffee000001",
+      "key": { "id": "AZPHoBssTe+BI8D/7gAAAQ==" },
       "fields": {
         "list": "Pantry",
         "name": "Baby carrots",
@@ -409,12 +427,12 @@
         "updatedAt": 1760000600000
       }
     },
-    "bytes": "ogEgCsc3Xy3g14yQA2yIiOu+BgcFUGFudHJ58YiZhguAgOaCuWbA/dHcJQUFMSBrZ7Det85GDEJhYnkgY2Fycm90c7iW1otaCAVQcm9kdWNlqduFhnGAn6+DuWaYqKzidBMLARABk8egGyxN74EjRWeJq83vlJGQnXrghrmFNCQwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy1jMGZmZWUwMDAwMDE="
+    "bytes": "lAEgCsc3Xy3g14yQA2yIiOu+BgcFUGFudHJ58YiZhguAgOaCuWbA/dHcJQUFMSBrZ7Det85GDEJhYnkgY2Fycm90c7iW1otaCAVQcm9kdWNlqduFhnGAn6+DuWaYqKzidBMLARABk8egGyxN74EjRWeJq83vlJGQnXrghrmFNBaAro3OGxABk8egGyxN74EjwP/uAAAB"
   },
   {
     "tag": "GroceryItem",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-c0ffee000001" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWMwZmZlZTAwMDAwMQ=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI8D/7gAAAQ==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSPA/+4AAAE="
   },
   {
     "tag": "IngredientAisle",
@@ -425,15 +443,15 @@
     "tag": "IngredientAisle",
     "json": {
       "_tag": "patch",
-      "key": "carrots",
+      "key": { "name": "carrots" },
       "fields": { "aisle": "Pantry" }
     },
-    "bytes": "JSAKxzdfLeDXjJADDLiW1otaBlBhbnRyeeCGuYU0B2NhcnJvdHM="
+    "bytes": "KyAKxzdfLeDXjJADDLiW1otaBlBhbnRyeeCGuYU0DbDet85GB2NhcnJvdHM="
   },
   {
     "tag": "IngredientAisle",
-    "json": { "_tag": "remove", "key": "carrots" },
-    "bytes": "EyAK6Jpi9OCGuYU0B2NhcnJvdHM="
+    "json": { "_tag": "remove", "key": { "name": "carrots" } },
+    "bytes": "GSAK6Jpi9OCGuYU0DbDet85GB2NhcnJvdHM="
   },
   {
     "tag": "GroceryAisleOrder",
@@ -452,15 +470,18 @@
     "tag": "GroceryAisleOrder",
     "json": {
       "_tag": "patch",
-      "key": "[\"Weekend\",\"Produce\"]",
+      "key": { "list": "Weekend", "aisle": "Produce" },
       "fields": { "sortOrder": 3, "updatedAt": 1760000600000 }
     },
-    "bytes": "OCAKxzdfLeDXjJADEZniwNIQBqnbhYZxgJ+vg7lm4Ia5hTQVWyJXZWVrZW5kIiwiUHJvZHVjZSJd"
+    "bytes": "PiAKxzdfLeDXjJADEZniwNIQBqnbhYZxgJ+vg7lm4Ia5hTQbiIjrvgYIBVdlZWtlbmS4ltaLWgdQcm9kdWNl"
   },
   {
     "tag": "GroceryAisleOrder",
-    "json": { "_tag": "remove", "key": "[\"Weekend\",\"Produce\"]" },
-    "bytes": "ISAK6Jpi9OCGuYU0FVsiV2Vla2VuZCIsIlByb2R1Y2UiXQ=="
+    "json": {
+      "_tag": "remove",
+      "key": { "list": "Weekend", "aisle": "Produce" }
+    },
+    "bytes": "JyAK6Jpi9OCGuYU0G4iI674GCAVXZWVrZW5kuJbWi1oHUHJvZHVjZQ=="
   },
   {
     "tag": "AiMemoryEntry",
@@ -478,18 +499,18 @@
     "tag": "AiMemoryEntry",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-a1000000000a",
+      "key": { "id": "AZPHoBssTe+BI6EAAAAACg==" },
       "fields": {
         "content": "Prefers metric units and fan-forced ovens",
         "createdAt": 1760000000000
       }
     },
-    "bytes": "cCAKxzdfLeDXjJADOvGImYYLgIDmgrlmkLzYr0gpUHJlZmVycyBtZXRyaWMgdW5pdHMgYW5kIGZhbi1mb3JjZWQgb3ZlbnPghrmFNCQwMTkzYzdhMC0xYjJjLTRkZWYtODEyMy1hMTAwMDAwMDAwMGE="
+    "bytes": "YiAKxzdfLeDXjJADOvGImYYLgIDmgrlmkLzYr0gpUHJlZmVycyBtZXRyaWMgdW5pdHMgYW5kIGZhbi1mb3JjZWQgb3ZlbnPghrmFNBaAro3OGxABk8egGyxN74EjoQAAAAAK"
   },
   {
     "tag": "AiMemoryEntry",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a1000000000a" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWExMDAwMDAwMDAwYQ=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI6EAAAAACg==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSOhAAAAAAo="
   },
   {
     "tag": "AiChatTurn",
@@ -507,17 +528,17 @@
     "tag": "AiChatTurn",
     "json": {
       "_tag": "patch",
-      "key": "0193c7a0-1b2c-4def-8123-a2000000000a",
+      "key": { "id": "AZPHoBssTe+BI6IAAAAACg==" },
       "fields": {
         "prompt": "{\"content\":[{\"options\":{},\"role\":\"user\",\"content\":\"What can I make with carrots?\"},{\"options\":{},\"role\":\"assistant\",\"content\":[{\"options\":{},\"type\":\"tool-call\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"params\":{\"query\":\"carrot\"},\"providerExecuted\":false}]},{\"options\":{},\"role\":\"tool\",\"content\":[{\"options\":{},\"type\":\"tool-result\",\"id\":\"call_1\",\"name\":\"SearchRecipes\",\"isFailure\":false,\"result\":[{\"id\":\"0193c7a0-1b2c-4def-8123-456789abcdef\",\"title\":\"Carrot soup\"}],\"providerExecuted\":false}]},{\"options\":{},\"role\":\"assistant\",\"content\":\"You could make carrot soup.\"}]}",
         "entryTime": 1760001000000
       }
     },
-    "bytes": "/QQgCsc3Xy3g14yQA8YE0dqv4RWAieCDuWbYk8n5b7QEeyJjb250ZW50IjpbeyJvcHRpb25zIjp7fSwicm9sZSI6InVzZXIiLCJjb250ZW50IjoiV2hhdCBjYW4gSSBtYWtlIHdpdGggY2Fycm90cz8ifSx7Im9wdGlvbnMiOnt9LCJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6W3sib3B0aW9ucyI6e30sInR5cGUiOiJ0b29sLWNhbGwiLCJpZCI6ImNhbGxfMSIsIm5hbWUiOiJTZWFyY2hSZWNpcGVzIiwicGFyYW1zIjp7InF1ZXJ5IjoiY2Fycm90In0sInByb3ZpZGVyRXhlY3V0ZWQiOmZhbHNlfV19LHsib3B0aW9ucyI6e30sInJvbGUiOiJ0b29sIiwiY29udGVudCI6W3sib3B0aW9ucyI6e30sInR5cGUiOiJ0b29sLXJlc3VsdCIsImlkIjoiY2FsbF8xIiwibmFtZSI6IlNlYXJjaFJlY2lwZXMiLCJpc0ZhaWx1cmUiOmZhbHNlLCJyZXN1bHQiOlt7ImlkIjoiMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtNDU2Nzg5YWJjZGVmIiwidGl0bGUiOiJDYXJyb3Qgc291cCJ9XSwicHJvdmlkZXJFeGVjdXRlZCI6ZmFsc2V9XX0seyJvcHRpb25zIjp7fSwicm9sZSI6ImFzc2lzdGFudCIsImNvbnRlbnQiOiJZb3UgY291bGQgbWFrZSBjYXJyb3Qgc291cC4ifV194Ia5hTQkMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtYTIwMDAwMDAwMDBh"
+    "bytes": "7wQgCsc3Xy3g14yQA8YE0dqv4RWAieCDuWbYk8n5b7QEeyJjb250ZW50IjpbeyJvcHRpb25zIjp7fSwicm9sZSI6InVzZXIiLCJjb250ZW50IjoiV2hhdCBjYW4gSSBtYWtlIHdpdGggY2Fycm90cz8ifSx7Im9wdGlvbnMiOnt9LCJyb2xlIjoiYXNzaXN0YW50IiwiY29udGVudCI6W3sib3B0aW9ucyI6e30sInR5cGUiOiJ0b29sLWNhbGwiLCJpZCI6ImNhbGxfMSIsIm5hbWUiOiJTZWFyY2hSZWNpcGVzIiwicGFyYW1zIjp7InF1ZXJ5IjoiY2Fycm90In0sInByb3ZpZGVyRXhlY3V0ZWQiOmZhbHNlfV19LHsib3B0aW9ucyI6e30sInJvbGUiOiJ0b29sIiwiY29udGVudCI6W3sib3B0aW9ucyI6e30sInR5cGUiOiJ0b29sLXJlc3VsdCIsImlkIjoiY2FsbF8xIiwibmFtZSI6IlNlYXJjaFJlY2lwZXMiLCJpc0ZhaWx1cmUiOmZhbHNlLCJyZXN1bHQiOlt7ImlkIjoiMDE5M2M3YTAtMWIyYy00ZGVmLTgxMjMtNDU2Nzg5YWJjZGVmIiwidGl0bGUiOiJDYXJyb3Qgc291cCJ9XSwicHJvdmlkZXJFeGVjdXRlZCI6ZmFsc2V9XX0seyJvcHRpb25zIjp7fSwicm9sZSI6ImFzc2lzdGFudCIsImNvbnRlbnQiOiJZb3UgY291bGQgbWFrZSBjYXJyb3Qgc291cC4ifV194Ia5hTQWgK6NzhsQAZPHoBssTe+BI6IAAAAACg=="
   },
   {
     "tag": "AiChatTurn",
-    "json": { "_tag": "remove", "key": "0193c7a0-1b2c-4def-8123-a2000000000a" },
-    "bytes": "MCAK6Jpi9OCGuYU0JDAxOTNjN2EwLTFiMmMtNGRlZi04MTIzLWEyMDAwMDAwMDAwYQ=="
+    "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI6IAAAAACg==" } },
+    "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSOiAAAAAAo="
   }
 ]

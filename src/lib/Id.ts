@@ -87,9 +87,9 @@ export const familyById =
     return Atom.family((id: string) => f(decode(id)))
   }
 
-// The `EventRow` key of a row with a UUID `id`: its string form, which is also
-// the entry's primary key. `patch` and `remove` carry this string, so their
-// handlers turn it back into bytes with `uuidBytes`.
+// The `EventRow` key of a row with a UUID `id`. `patch` and `remove` carry
+// `{ id }`, and the entry's primary key is the id's string form, which reads
+// better in the journal than the default encoding of the bytes.
 export const uuidKey = {
   fields: ["id"],
   derive: ({ id }: { readonly id: Uint8Array }) => uuidString(id),

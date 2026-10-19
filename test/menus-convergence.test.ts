@@ -148,7 +148,7 @@ test("a removed menu ends without entries or notes, whatever writes reach it and
       makeEntry({
         msecs: 3000,
         event: menu,
-        payload: MenuEvent.remove(MenuEvent.keyOf({ id: winter })),
+        payload: MenuEvent.remove({ id: winter }),
       }),
       // From devices that hadn't seen the remove yet.
       makeEntry({
@@ -166,10 +166,13 @@ test("a removed menu ends without entries or notes, whatever writes reach it and
       makeEntry({
         msecs: 4000,
         event: menu,
-        payload: MenuEvent.patch(MenuEvent.keyOf({ id: winter }), {
-          name: "Winter",
-          updatedAt: DateTime.makeUnsafe(4000),
-        }),
+        payload: MenuEvent.patch(
+          { id: winter },
+          {
+            name: "Winter",
+            updatedAt: DateTime.makeUnsafe(4000),
+          },
+        ),
       }),
     ],
   })
@@ -195,10 +198,13 @@ test("an entry or note added on a dropped day concurrently with the shrink stays
       makeEntry({
         msecs: 2000,
         event: menu,
-        payload: MenuEvent.patch(MenuEvent.keyOf({ id: winter }), {
-          days: 5,
-          updatedAt: DateTime.makeUnsafe(2000),
-        }),
+        payload: MenuEvent.patch(
+          { id: winter },
+          {
+            days: 5,
+            updatedAt: DateTime.makeUnsafe(2000),
+          },
+        ),
       }),
       // Older and newer than the shrink: neither is deleted.
       entrySet(1500, stew, winter, 6),

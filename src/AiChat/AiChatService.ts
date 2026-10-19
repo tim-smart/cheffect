@@ -26,7 +26,7 @@ import { mealPlanRuntime } from "@/MealPlan/runtime"
 import { menuByIdAtom } from "@/Menus/atoms"
 import { MenuRepo } from "@/Menus/Repo"
 import { menusRuntime } from "@/Menus/runtime"
-import { MenuEntry, MenuEntryIdFromString } from "@/domain/MenuEntry"
+import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
 import type { RecipeId } from "@/domain/Recipe"
@@ -231,7 +231,7 @@ const ToolkitLayer = toolkit.toLayer(
             collectRecipeIds(source.value)
             yield* write({
               event: GroceryItemEvent.tag,
-              payload: GroceryItemEvent.remove(uuidString(source.value.id)),
+              payload: GroceryItemEvent.remove({ id: source.value.id }),
             })
           }
         }
@@ -256,7 +256,7 @@ const ToolkitLayer = toolkit.toLayer(
         if (Option.isSome(item)) {
           yield* write({
             event: GroceryItemEvent.tag,
-            payload: GroceryItemEvent.remove(uuidString(item.value.id)),
+            payload: GroceryItemEvent.remove({ id: item.value.id }),
           })
         }
         return { _tag: "Transient", value: null }
@@ -299,7 +299,10 @@ const ToolkitLayer = toolkit.toLayer(
           if (existing) {
             yield* write({
               event: MenuDayNoteEvent.tag,
-              payload: MenuDayNoteEvent.remove(uuidString(existing.id)),
+              payload: MenuDayNoteEvent.remove({
+                id: existing.id,
+                menuId: menu.value.menu.id,
+              }),
             })
           }
           return {
@@ -312,7 +315,7 @@ const ToolkitLayer = toolkit.toLayer(
           if (existing.note !== trimmed) {
             yield* write({
               event: MenuDayNoteEvent.tag,
-              payload: menuDayNoteUpdate({
+              payload: menuDayNoteUpdate(menu.value.menu.id, {
                 ...existing,
                 note: trimmed,
                 updatedAt: DateTime.nowUnsafe(),
@@ -383,11 +386,18 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       RemoveMenuEntry: Effect.fnUntraced(function* ({ id }) {
-        const entryId = Schema.decodeOption(MenuEntryIdFromString)(id)
-        if (Option.isSome(entryId)) {
+        // A remove names the entry's menu, so it goes through the stored
+        // entry; one this device doesn't have has nothing to remove.
+        const entry = (yield* menus.entries.pipe(Effect.orDie)).find(
+          (entry) => uuidString(entry.id) === id.toLowerCase(),
+        )
+        if (entry !== undefined) {
           yield* write({
             event: MenuEntryEvent.tag,
-            payload: MenuEntryEvent.remove(uuidString(entryId.value)),
+            payload: MenuEntryEvent.remove({
+              id: entry.id,
+              menuId: entry.menuId,
+            }),
           })
         }
         return {
@@ -437,7 +447,7 @@ const ToolkitLayer = toolkit.toLayer(
           if (existing) {
             yield* write({
               event: MealPlanDayNoteEvent.tag,
-              payload: MealPlanDayNoteEvent.remove(uuidString(existing.id)),
+              payload: MealPlanDayNoteEvent.remove({ id: existing.id }),
             })
           }
           return {
@@ -502,7 +512,7 @@ const ToolkitLayer = toolkit.toLayer(
         if (Option.isSome(entryId)) {
           yield* write({
             event: MealPlanEntryEvent.tag,
-            payload: MealPlanEntryEvent.remove(uuidString(entryId.value)),
+            payload: MealPlanEntryEvent.remove({ id: entryId.value }),
           })
         }
         return {
@@ -540,7 +550,7 @@ const ToolkitLayer = toolkit.toLayer(
         if (Option.isSome(entryId)) {
           yield* write({
             event: AiMemoryEntryEvent.tag,
-            payload: AiMemoryEntryEvent.remove(uuidString(entryId.value)),
+            payload: AiMemoryEntryEvent.remove({ id: entryId.value }),
           })
         }
         return {
@@ -887,7 +897,7 @@ ${MenuEntry.toXml(entries)}`
         yield* writeMany(
           ids.map((id) => ({
             event: AiChatTurnEvent.tag,
-            payload: AiChatTurnEvent.remove(uuidString(id)),
+            payload: AiChatTurnEvent.remove({ id: id }),
           })),
         )
       })

@@ -17,7 +17,6 @@ import { RecipeEditEvent, RecipeEvent } from "./Events"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { findRecipe, findRecipeEdit, RecipeRepo, searchRecipes } from "./Repo"
 import { kvsRuntime } from "@/lib/atom"
-import { uuidString } from "@/lib/Id"
 
 // The repos share the EventLog runtime's query builder and Reactivity, so
 // handler writes reload their snapshots. Kept apart from `atoms.ts` so modules
@@ -113,7 +112,7 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
         Option.match(modified, {
           onNone: () => ({
             event: RecipeEditEvent.tag,
-            payload: RecipeEditEvent.remove(uuidString(recipeId)),
+            payload: RecipeEditEvent.remove({ id: recipeId }),
           }),
           onSome: (modified) => ({
             event: RecipeEditEvent.tag,

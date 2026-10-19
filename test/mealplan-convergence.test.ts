@@ -66,11 +66,14 @@ const noteUpdated = (msecs: number, id: NoteId, onDay: string, note: string) =>
   makeEntry({
     msecs,
     event: noteEvent,
-    payload: MealPlanDayNoteEvent.patch(MealPlanDayNoteEvent.keyOf({ id }), {
-      day: day(onDay),
-      note,
-      updatedAt: DateTime.makeUnsafe(msecs),
-    }),
+    payload: MealPlanDayNoteEvent.patch(
+      { id },
+      {
+        day: day(onDay),
+        note,
+        updatedAt: DateTime.makeUnsafe(msecs),
+      },
+    ),
   })
 
 const makeLayer =

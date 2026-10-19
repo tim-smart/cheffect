@@ -17,8 +17,11 @@ export const TimerEvents = EventGroup.empty.add(TimerEvent)
 // Pause, resume and add-time compute the whole timer from this device's
 // snapshot, but write only its running state.
 export const timerRunningState = (timer: Timer) =>
-  TimerEvent.patch(timer.idString, {
-    duration: timer.duration,
-    expiresAt: timer.expiresAt,
-    pausedRemaining: timer.pausedRemaining,
-  })
+  TimerEvent.patch(
+    { id: timer.id },
+    {
+      duration: timer.duration,
+      expiresAt: timer.expiresAt,
+      pausedRemaining: timer.pausedRemaining,
+    },
+  )

@@ -202,7 +202,7 @@ const menuDayNote = MenuDayNote.insert.make({
   updatedAt: createdAt,
 })
 
-const recipeKey = RecipeEvent.keyOf({ id: recipeId })
+const recipeKey = { id: recipeId }
 
 // A patch never writes the key.
 const { id: _, ...extractedFields } = extracted
@@ -249,7 +249,7 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   { event: TimerEvent.tag, payload: TimerEvent.set(timer) },
   {
     event: TimerEvent.tag,
-    payload: TimerEvent.patch(TimerEvent.keyOf(timer), {
+    payload: TimerEvent.patch(timer, {
       label: "Carrot soup, second batch",
       duration: Duration.minutes(45),
       expiresAt: DateTime.makeUnsafe(1_760_002_700_000),
@@ -260,7 +260,7 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   },
   {
     event: TimerEvent.tag,
-    payload: TimerEvent.remove(TimerEvent.keyOf(timer)),
+    payload: TimerEvent.remove(timer),
   },
   {
     event: MealPlanEntryEvent.tag,
@@ -273,15 +273,13 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: MealPlanEntryEvent.tag,
     payload: MealPlanEntryEvent.patch(
-      MealPlanEntryEvent.keyOf({ id: mealPlanEntryId }),
+      { id: mealPlanEntryId },
       { recipeId, day: tuesday },
     ),
   },
   {
     event: MealPlanEntryEvent.tag,
-    payload: MealPlanEntryEvent.remove(
-      MealPlanEntryEvent.keyOf({ id: mealPlanEntryId }),
-    ),
+    payload: MealPlanEntryEvent.remove({ id: mealPlanEntryId }),
   },
   {
     event: MealPlanDayNoteEvent.tag,
@@ -298,15 +296,13 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: MealPlanDayNoteEvent.tag,
     payload: MealPlanDayNoteEvent.patch(
-      MealPlanDayNoteEvent.keyOf({ id: mealPlanDayNoteId }),
+      { id: mealPlanDayNoteId },
       { day: tuesday, note: "Eating out", createdAt, updatedAt },
     ),
   },
   {
     event: MealPlanDayNoteEvent.tag,
-    payload: MealPlanDayNoteEvent.remove(
-      MealPlanDayNoteEvent.keyOf({ id: mealPlanDayNoteId }),
-    ),
+    payload: MealPlanDayNoteEvent.remove({ id: mealPlanDayNoteId }),
   },
   {
     event: MenuEvent.tag,
@@ -322,21 +318,24 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   },
   {
     event: MenuEvent.tag,
-    payload: MenuEvent.patch(MenuEvent.keyOf({ id: menuId }), {
-      name: "Winter favourites",
-      days: 5,
-      createdAt,
-      updatedAt,
-    }),
+    payload: MenuEvent.patch(
+      { id: menuId },
+      {
+        name: "Winter favourites",
+        days: 5,
+        createdAt,
+        updatedAt,
+      },
+    ),
   },
   {
     event: MenuEvent.tag,
-    payload: MenuEvent.remove(MenuEvent.keyOf({ id: menuId })),
+    payload: MenuEvent.remove({ id: menuId }),
   },
   { event: MenuEntryEvent.tag, payload: MenuEntryEvent.set(menuEntry) },
   {
     event: MenuEntryEvent.tag,
-    payload: MenuEntryEvent.patch(MenuEntryEvent.keyOf(menuEntry), {
+    payload: MenuEntryEvent.patch(menuEntry, {
       recipeId,
       day: 3,
       createdAt,
@@ -345,12 +344,12 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   },
   {
     event: MenuEntryEvent.tag,
-    payload: MenuEntryEvent.remove(MenuEntryEvent.keyOf(menuEntry)),
+    payload: MenuEntryEvent.remove(menuEntry),
   },
   { event: MenuDayNoteEvent.tag, payload: MenuDayNoteEvent.set(menuDayNote) },
   {
     event: MenuDayNoteEvent.tag,
-    payload: MenuDayNoteEvent.patch(MenuDayNoteEvent.keyOf(menuDayNote), {
+    payload: MenuDayNoteEvent.patch(menuDayNote, {
       day: 4,
       note: "Freeze half",
       createdAt,
@@ -359,7 +358,7 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   },
   {
     event: MenuDayNoteEvent.tag,
-    payload: MenuDayNoteEvent.remove(MenuDayNoteEvent.keyOf(menuDayNote)),
+    payload: MenuDayNoteEvent.remove(menuDayNote),
   },
   {
     event: GroceryItemEvent.tag,
@@ -380,7 +379,7 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: GroceryItemEvent.tag,
     payload: GroceryItemEvent.patch(
-      GroceryItemEvent.keyOf({ id: groceryItemId }),
+      { id: groceryItemId },
       {
         list: "Pantry",
         name: "Baby carrots",
@@ -395,9 +394,7 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   },
   {
     event: GroceryItemEvent.tag,
-    payload: GroceryItemEvent.remove(
-      GroceryItemEvent.keyOf({ id: groceryItemId }),
-    ),
+    payload: GroceryItemEvent.remove({ id: groceryItemId }),
   },
   {
     event: IngredientAisleEvent.tag,
@@ -405,11 +402,14 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   },
   {
     event: IngredientAisleEvent.tag,
-    payload: IngredientAisleEvent.patch("carrots", { aisle: "Pantry" }),
+    payload: IngredientAisleEvent.patch(
+      { name: "carrots" },
+      { aisle: "Pantry" },
+    ),
   },
   {
     event: IngredientAisleEvent.tag,
-    payload: IngredientAisleEvent.remove("carrots"),
+    payload: IngredientAisleEvent.remove({ name: "carrots" }),
   },
   {
     event: GroceryAisleOrderEvent.tag,
@@ -423,15 +423,16 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: GroceryAisleOrderEvent.tag,
     payload: GroceryAisleOrderEvent.patch(
-      GroceryAisleOrderEvent.keyOf({ list: "Weekend", aisle: "Produce" }),
+      { list: "Weekend", aisle: "Produce" },
       { sortOrder: 3, updatedAt },
     ),
   },
   {
     event: GroceryAisleOrderEvent.tag,
-    payload: GroceryAisleOrderEvent.remove(
-      GroceryAisleOrderEvent.keyOf({ list: "Weekend", aisle: "Produce" }),
-    ),
+    payload: GroceryAisleOrderEvent.remove({
+      list: "Weekend",
+      aisle: "Produce",
+    }),
   },
   {
     event: AiMemoryEntryEvent.tag,
@@ -446,15 +447,13 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: AiMemoryEntryEvent.tag,
     payload: AiMemoryEntryEvent.patch(
-      AiMemoryEntryEvent.keyOf({ id: aiMemoryEntryId }),
+      { id: aiMemoryEntryId },
       { content: "Prefers metric units and fan-forced ovens", createdAt },
     ),
   },
   {
     event: AiMemoryEntryEvent.tag,
-    payload: AiMemoryEntryEvent.remove(
-      AiMemoryEntryEvent.keyOf({ id: aiMemoryEntryId }),
-    ),
+    payload: AiMemoryEntryEvent.remove({ id: aiMemoryEntryId }),
   },
   {
     event: AiChatTurnEvent.tag,
@@ -467,14 +466,12 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
   {
     event: AiChatTurnEvent.tag,
     payload: AiChatTurnEvent.patch(
-      AiChatTurnEvent.keyOf({ id: aiChatTurnId }),
+      { id: aiChatTurnId },
       { prompt: aiChatTurnPrompt, entryTime: 1_760_001_000_000 },
     ),
   },
   {
     event: AiChatTurnEvent.tag,
-    payload: AiChatTurnEvent.remove(
-      AiChatTurnEvent.keyOf({ id: aiChatTurnId }),
-    ),
+    payload: AiChatTurnEvent.remove({ id: aiChatTurnId }),
   },
 ]

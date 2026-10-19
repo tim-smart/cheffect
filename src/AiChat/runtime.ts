@@ -2,7 +2,6 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Atom from "effect/reactivity/Atom"
 import { eventLogAtom, writeEvents } from "@/EventLog"
-import { uuidString } from "@/lib/Id"
 import { AiMemoryEntryEvent } from "./Events"
 import { AiChatRepo } from "./Repo"
 
@@ -21,7 +20,7 @@ export const clearAiMemoryAtom = aiChatRuntime.fn<void>()(
     yield* writeEvents(
       entries.map((entry) => ({
         event: AiMemoryEntryEvent.tag,
-        payload: AiMemoryEntryEvent.remove(uuidString(entry.id)),
+        payload: AiMemoryEntryEvent.remove({ id: entry.id }),
       })),
     )
   }),

@@ -2,7 +2,7 @@ import type * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
 import * as EventGroup from "effect/eventlog/EventGroup"
 import * as EventRow from "effect/eventlog/EventRow"
-import { Menu } from "@/domain/Menu"
+import { Menu, type MenuId } from "@/domain/Menu"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { MenuEntry, type MenuEntryId } from "@/domain/MenuEntry"
 import { uuidKey, uuidString } from "@/lib/Id"
@@ -44,21 +44,27 @@ export const MenuEvents = EventGroup.empty
   .add(MenuDayNoteEvent)
 
 export const menuUpdate = (menu: typeof Menu.update.Type) =>
-  MenuEvent.patch(uuidString(menu.id), {
-    name: menu.name,
-    days: menu.days,
-    updatedAt: menu.updatedAt,
-  })
+  MenuEvent.patch(
+    { id: menu.id },
+    {
+      name: menu.name,
+      days: menu.days,
+      updatedAt: menu.updatedAt,
+    },
+  )
 
+// An entry's or note's key includes its menu, so a patch or remove names it.
 export const menuEntryDay = (
-  id: MenuEntryId,
+  key: { readonly id: MenuEntryId; readonly menuId: MenuId },
   day: number,
   updatedAt: DateTime.Utc,
-) => MenuEntryEvent.patch(uuidString(id), { day, updatedAt })
+) => MenuEntryEvent.patch(key, { day, updatedAt })
 
-export const menuDayNoteUpdate = (note: typeof MenuDayNote.update.Type) =>
-  MenuDayNoteEvent.patch(uuidString(note.id), {
-    day: note.day,
-    note: note.note,
-    updatedAt: note.updatedAt,
-  })
+export const menuDayNoteUpdate = (
+  menuId: MenuId,
+  note: typeof MenuDayNote.update.Type,
+) =>
+  MenuDayNoteEvent.patch(
+    { id: note.id, menuId },
+    { day: note.day, note: note.note, updatedAt: note.updatedAt },
+  )

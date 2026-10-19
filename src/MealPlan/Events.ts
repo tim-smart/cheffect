@@ -6,7 +6,7 @@ import * as EventRow from "effect/eventlog/EventRow"
 import { MealPlanDayNote } from "@/domain/MealPlanDayNote"
 import { MealPlanEntryId } from "@/domain/MealPlanEntry"
 import { RecipeId } from "@/domain/Recipe"
-import { uuidKey, uuidString } from "@/lib/Id"
+import { uuidKey } from "@/lib/Id"
 
 // Tags are permanent wire names. Every stored entry is decoded again with the
 // current row schema, so a field may only be added with a decoding default,
@@ -33,13 +33,16 @@ export const MealPlanEvents = EventGroup.empty
   .add(MealPlanDayNoteEvent)
 
 export const mealPlanEntryDay = (id: MealPlanEntryId, day: DateTime.Utc) =>
-  MealPlanEntryEvent.patch(uuidString(id), { day })
+  MealPlanEntryEvent.patch({ id: id }, { day })
 
 export const mealPlanDayNoteUpdate = (
   note: typeof MealPlanDayNote.update.Type,
 ) =>
-  MealPlanDayNoteEvent.patch(uuidString(note.id), {
-    day: note.day,
-    note: note.note,
-    updatedAt: note.updatedAt,
-  })
+  MealPlanDayNoteEvent.patch(
+    { id: note.id },
+    {
+      day: note.day,
+      note: note.note,
+      updatedAt: note.updatedAt,
+    },
+  )

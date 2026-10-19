@@ -16,7 +16,6 @@ import {
   writeEvent,
   writeEvents,
 } from "@/EventLog"
-import { uuidString } from "@/lib/Id"
 import {
   GroceryItemEvent,
   groceryItemUpdate,
@@ -73,7 +72,7 @@ const aisleEvent = ({ name, aisle }: AisleLesson): EventPayload => ({
   event: IngredientAisleEvent.tag,
   payload:
     aisle === null
-      ? IngredientAisleEvent.remove(name)
+      ? IngredientAisleEvent.remove({ name })
       : IngredientAisleEvent.set({ name, aisle }),
 })
 
@@ -137,7 +136,7 @@ export const writeGroceryItems = Effect.fnUntraced(function* (
     if (write.op === "remove") {
       events.push({
         event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove(uuidString(write.id)),
+        payload: GroceryItemEvent.remove({ id: write.id }),
       })
       continue
     }

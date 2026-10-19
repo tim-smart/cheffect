@@ -22,7 +22,7 @@ import * as Exit from "effect/Exit"
 import { toast } from "sonner"
 import { writeEvent } from "@/EventLog"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
-import { generateUuidBytes, uuidString } from "@/lib/Id"
+import { generateUuidBytes } from "@/lib/Id"
 import { RecipeEditEvent, RecipeEvent, recipeUpdate } from "./Events"
 import { RecipeRepo, searchRecipes } from "./Repo"
 import {
@@ -92,7 +92,7 @@ const recipeIdFromString = Schema.decodeSync(RecipeIdFromString)
 const recipeEditRemove = (id: RecipeId) =>
   writeEvent({
     event: RecipeEditEvent.tag,
-    payload: RecipeEditEvent.remove(uuidString(id)),
+    payload: RecipeEditEvent.remove({ id: id }),
   })
 
 export const createRecipeAtom = extractRuntime

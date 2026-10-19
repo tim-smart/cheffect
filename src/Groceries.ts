@@ -9,10 +9,9 @@ import {
   IngredientAisleEvent,
 } from "./Groceries/Events"
 import { QueryBuilder } from "./IndexedDb"
-import { uuidBytes } from "./lib/Id"
 import { tableRowHandler } from "./lib/rowHandler"
 
-// Aisles and aisle orders are stored under their derived keys: the
+// Aisles and aisle orders are stored under their primary keys: the
 // normalised name, and the `[list, aisle]` key.
 
 const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
@@ -22,21 +21,27 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
       .handle(
         GroceryItemEvent.tag,
         tableRowHandler(db, "groceryItems", GroceryItemEvent, {
-          tableKey: uuidBytes,
+          tableKey: ({ id }) => id,
         }),
       )
       .handle(
         IngredientAisleEvent.tag,
         tableRowHandler(db, "ingredientAisles", IngredientAisleEvent, {
-          tableKey: (name) => name,
-          toRecord: ({ aisle }, name) => ({ name, aisle }),
+          tableKey: IngredientAisleEvent.keyOf,
+          toRecord: (row) => ({
+            name: IngredientAisleEvent.keyOf(row),
+            aisle: row.aisle,
+          }),
         }),
       )
       .handle(
         GroceryAisleOrderEvent.tag,
         tableRowHandler(db, "groceryAisleOrders", GroceryAisleOrderEvent, {
-          tableKey: (id) => id,
-          toRecord: (order, id) => ({ id, ...order }),
+          tableKey: GroceryAisleOrderEvent.keyOf,
+          toRecord: (order) => ({
+            id: GroceryAisleOrderEvent.keyOf(order),
+            ...order,
+          }),
         }),
       )
   }),

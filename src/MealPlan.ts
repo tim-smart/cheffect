@@ -3,7 +3,6 @@ import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventRow from "effect/eventlog/EventRow"
 import { QueryBuilder } from "./IndexedDb"
-import { uuidBytes } from "./lib/Id"
 import { tableRowHandler } from "./lib/rowHandler"
 import {
   MealPlanDayNoteEvent,
@@ -18,13 +17,13 @@ const MealPlanHandlers = EventLog.group(MealPlanEvents, (handlers) =>
       .handle(
         MealPlanEntryEvent.tag,
         tableRowHandler(db, "mealPlan", MealPlanEntryEvent, {
-          tableKey: uuidBytes,
+          tableKey: ({ id }) => id,
         }),
       )
       .handle(
         MealPlanDayNoteEvent.tag,
         tableRowHandler(db, "mealPlanDayNotes", MealPlanDayNoteEvent, {
-          tableKey: uuidBytes,
+          tableKey: ({ id }) => id,
         }),
       )
   }),

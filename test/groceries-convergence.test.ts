@@ -81,29 +81,35 @@ const updated = (
   makeEntry({
     msecs,
     event: itemEvent,
-    payload: GroceryItemEvent.patch(GroceryItemEvent.keyOf({ id }), {
-      ...fields,
-      quantity: "2",
-      aisle: "Produce",
-      recipeIds: null,
-      updatedAt: DateTime.makeUnsafe(msecs),
-    }),
+    payload: GroceryItemEvent.patch(
+      { id },
+      {
+        ...fields,
+        quantity: "2",
+        aisle: "Produce",
+        recipeIds: null,
+        updatedAt: DateTime.makeUnsafe(msecs),
+      },
+    ),
   })
 
 const toggled = (msecs: number, id: ItemId, completed: boolean) =>
   makeEntry({
     msecs,
     event: itemEvent,
-    payload: GroceryItemEvent.patch(GroceryItemEvent.keyOf({ id }), {
-      completed,
-    }),
+    payload: GroceryItemEvent.patch(
+      { id },
+      {
+        completed,
+      },
+    ),
   })
 
 const deleted = (msecs: number, id: ItemId) =>
   makeEntry({
     msecs,
     event: itemEvent,
-    payload: GroceryItemEvent.remove(GroceryItemEvent.keyOf({ id })),
+    payload: GroceryItemEvent.remove({ id }),
   })
 
 const aisleSet = (msecs: number, name: string, aisle: GroceryAisle) =>
@@ -117,7 +123,7 @@ const aisleRemoved = (msecs: number, name: string) =>
   makeEntry({
     msecs,
     event: aisleEvent,
-    payload: IngredientAisleEvent.remove(IngredientAisleEvent.keyOf({ name })),
+    payload: IngredientAisleEvent.remove({ name }),
   })
 
 const makeLayer =

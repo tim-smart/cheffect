@@ -3,7 +3,6 @@ import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventRow from "effect/eventlog/EventRow"
 import { QueryBuilder } from "./IndexedDb"
-import { uuidBytes } from "./lib/Id"
 import { tableRowHandler } from "./lib/rowHandler"
 import { RecipeEditEvent, RecipeEvent, RecipeEvents } from "./Recipes/Events"
 
@@ -13,12 +12,14 @@ const RecipesHandlers = EventLog.group(RecipeEvents, (handlers) =>
     return handlers
       .handle(
         RecipeEvent.tag,
-        tableRowHandler(db, "recipes", RecipeEvent, { tableKey: uuidBytes }),
+        tableRowHandler(db, "recipes", RecipeEvent, {
+          tableKey: ({ id }) => id,
+        }),
       )
       .handle(
         RecipeEditEvent.tag,
         tableRowHandler(db, "recipeEdits", RecipeEditEvent, {
-          tableKey: uuidBytes,
+          tableKey: ({ id }) => id,
         }),
       )
   }),

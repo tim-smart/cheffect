@@ -111,7 +111,7 @@ function GroceryList() {
     writeEvents(
       ids.map((id) => ({
         event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove(uuidString(id)),
+        payload: GroceryItemEvent.remove({ id: id }),
       })),
     )
   }
@@ -148,7 +148,7 @@ function GroceryList() {
             },
             {
               event: GroceryItemEvent.tag,
-              payload: GroceryItemEvent.remove(uuidString(item.id)),
+              payload: GroceryItemEvent.remove({ id: item.id }),
             },
           ]),
       ),
@@ -395,7 +395,7 @@ function GroceryListList({
       beautifyResult(Atom.Reset)
       write({
         event: GroceryItemEvent.tag,
-        payload: GroceryItemEvent.remove(uuidString(item.id)),
+        payload: GroceryItemEvent.remove({ id: item.id }),
       })
       if ("vibrate" in navigator) {
         navigator.vibrate(3)
@@ -761,9 +761,7 @@ function NameAutoComplete() {
   const onRemove = (value: string) => {
     write({
       event: IngredientAisleEvent.tag,
-      payload: IngredientAisleEvent.remove(
-        IngredientAisleEvent.keyOf({ name: value }),
-      ),
+      payload: IngredientAisleEvent.remove({ name: value }),
     })
   }
   const stopPointer = (event: React.PointerEvent) => {

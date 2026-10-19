@@ -3,7 +3,6 @@ import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventRow from "effect/eventlog/EventRow"
 import { QueryBuilder } from "./IndexedDb"
-import { uuidBytes } from "./lib/Id"
 import { tableRowHandler } from "./lib/rowHandler"
 import { TimerEvent, TimerEvents } from "./Timers/Events"
 
@@ -12,7 +11,7 @@ const TimersHandlers = EventLog.group(TimerEvents, (handlers) =>
     const db = yield* QueryBuilder
     return handlers.handle(
       TimerEvent.tag,
-      tableRowHandler(db, "timers", TimerEvent, { tableKey: uuidBytes }),
+      tableRowHandler(db, "timers", TimerEvent, { tableKey: ({ id }) => id }),
     )
   }),
 )

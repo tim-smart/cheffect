@@ -31,7 +31,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MenuEvent, menuUpdate } from "@/Menus/Events"
-import { uuidString } from "@/lib/Id"
 
 export const Route = createFileRoute("/menus/")({
   component: MenusPage,
@@ -211,7 +210,7 @@ function MenuCard({ menu }: { menu: Menu }) {
               }
               write({
                 event: MenuEvent.tag,
-                payload: MenuEvent.remove(uuidString(menu.id)),
+                payload: MenuEvent.remove({ id: menu.id }),
               })
             }}
           >

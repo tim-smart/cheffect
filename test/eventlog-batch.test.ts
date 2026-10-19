@@ -103,7 +103,7 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
     },
     {
       event: GroceryItemEvent.tag,
-      payload: GroceryItemEvent.remove(eggs.idString),
+      payload: GroceryItemEvent.remove({ id: eggs.id }),
     },
     {
       event: IngredientAisleEvent.tag,
@@ -114,7 +114,7 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
     },
     {
       event: IngredientAisleEvent.tag,
-      payload: IngredientAisleEvent.remove("milk"),
+      payload: IngredientAisleEvent.remove({ name: "milk" }),
     },
   ]
 
@@ -189,7 +189,7 @@ test("a handler failure leaves none of its batch written or uploaded", async () 
           { event: GroceryItemEvent.tag, payload: GroceryItemEvent.set(eggs) },
           {
             event: GroceryItemEvent.tag,
-            payload: GroceryItemEvent.remove(milk.idString),
+            payload: GroceryItemEvent.remove({ id: milk.id }),
           },
         ]),
       )
