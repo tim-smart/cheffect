@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { TimerList } from "@/Timers/TimerList"
 import { Button } from "@/components/ui/button"
 import {
+  ChevronDown,
   Eraser,
   FileText,
   Maximize2,
@@ -122,6 +123,10 @@ function ModalContent({
     resize: "smooth",
   })
   const viewport = useVisualViewport()
+  // Safari in landscape can leave less room than the message field needs:
+  // the chat becomes a single row with the field and a way to hide the
+  // keyboard
+  const cramped = viewport.obstructed && viewport.height < 64
   const [maximized, setMaximized] = useState(false)
   // With nothing of the page visible the chat can't be seen, so lower the
   // keyboard to get the screen back
@@ -198,7 +203,10 @@ function ModalContent({
         {/* Messages */}
         <div
           ref={scrollRef}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 bg-card"
+          className={cn(
+            "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 bg-card",
+            cramped && "hidden",
+          )}
           onClick={(e) => {
             if (!(e.target instanceof HTMLAnchorElement)) return
             e.preventDefault()
@@ -218,6 +226,7 @@ function ModalContent({
           onSubmit={scrollToBottom}
           inputRef={inputRef}
           viewportObstructed={viewport.obstructed}
+          cramped={cramped}
         />
       </div>
     </>
@@ -349,10 +358,12 @@ function PromptInput({
   inputRef,
   onSubmit,
   viewportObstructed,
+  cramped,
 }: {
   readonly onSubmit: () => void
   readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
   readonly viewportObstructed: boolean
+  readonly cramped: boolean
 }) {
   const [input, setInput] = useAtom(inputAtom)
   const inputTrim = input.trim()
@@ -386,9 +397,10 @@ function PromptInput({
       className={cn(
         "border-t border-border p-2 pl-1 z-10",
         viewportObstructed ? "" : "nav-pb chat-panel:pb-2!",
+        cramped && "flex-1 min-h-0 p-0 border-0",
       )}
     >
-      <div className="flex gap-2 pl-15">
+      <div className={cn("flex gap-2 pl-15", cramped && "hidden")}>
         {(files ? Array.from(files) : []).map((file) => (
           <div key={file.name} className="relative">
             {file.type.startsWith("image/") ? (
@@ -430,8 +442,13 @@ function PromptInput({
           </div>
         ))}
       </div>
-      <div className="flex gap-2 items-center">
-        <div className="flex">
+      <div
+        className={cn(
+          "flex gap-2 items-center",
+          cramped && "h-full items-stretch gap-0",
+        )}
+      >
+        <div className={cn("flex", cramped && "hidden")}>
           <Button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
@@ -497,13 +514,33 @@ function PromptInput({
             handleSubmit(e)
           }}
           placeholder="Type your message..."
-          className="flex-1 rounded-lg border-2 border-border bg-card px-3 py-2 text-base focus:border-primary focus:outline-none field-sizing-content resize-none"
+          className={cn(
+            "flex-1 rounded-lg border-2 border-border bg-card px-3 py-2 text-base focus:border-primary focus:outline-none field-sizing-content resize-none",
+            // keep 16px text so iOS doesn't zoom, and scroll extra lines
+            // inside the field
+            cramped &&
+              "h-full min-h-0 py-0 border-0 rounded-none leading-tight [field-sizing:fixed]",
+          )}
           autoFocus
         />
+        {cramped && (
+          <button
+            type="button"
+            aria-label="Hide keyboard"
+            className="h-full shrink-0 flex items-center gap-1 px-5 text-xs leading-none font-medium text-primary"
+            onClick={() => inputRef.current?.blur()}
+          >
+            <ChevronDown className="size-4" />
+            Hide keyboard
+          </button>
+        )}
         <Button
           type="submit"
           size="icon"
-          className="h-10 w-10 rounded-full bg-primary hover:bg-orange-700"
+          className={cn(
+            "h-10 w-10 rounded-full bg-primary hover:bg-orange-700",
+            cramped && "hidden",
+          )}
           disabled={!isLoading && !inputTrim}
           onClick={() => {
             if (!(isLoading && !inputTrim)) return
