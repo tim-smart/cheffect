@@ -28,7 +28,7 @@ import {
 } from "./AiChat/AiChatService"
 import { router } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
-import { useVisualViewport } from "./lib/hooks"
+import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
 import { ViewportDebug, viewportDebug } from "./lib/ViewportDebug"
 
 export function AiChatModal() {
@@ -105,7 +105,7 @@ export function AiChatModal() {
           onClose={() => setIsOpen(false)}
           open={isOpen}
         />
-        {viewportDebug && <ViewportDebug open={isOpen} />}
+        {viewportDebug && <ViewportDebug />}
       </div>
     </>
   )
@@ -130,6 +130,16 @@ function ModalContent({
   // keyboard
   const cramped = viewport.obstructed && viewport.height < 64
   const [maximized, setMaximized] = useState(false)
+  // Where Chromium can say where the keyboard is, have it overlay the page
+  // while the chat is open; see `virtualKeyboard`
+  useEffect(() => {
+    const keyboard = virtualKeyboard
+    if (!open || !keyboard) return
+    keyboard.overlaysContent = true
+    return () => {
+      keyboard.overlaysContent = false
+    }
+  }, [open])
   // With nothing of the page visible the chat can't be seen, so lower the
   // keyboard to get the screen back
   useEffect(() => {

@@ -1,19 +1,12 @@
 import { useEffect, useState } from "react"
+import { virtualKeyboard } from "./hooks"
 
 // Temporary: shows the viewport readings behind the AI chat's layout, so a
 // screenshot from an affected phone captures them. Open the app with
-// `?viewport-debug` to enable it, or `?viewport-debug=vk` to also have
-// Chromium's VirtualKeyboard API report the keyboard while the chat is open.
-const mode = new URLSearchParams(location.search).get("viewport-debug")
-export const viewportDebug = mode !== null
-
-interface VirtualKeyboard {
-  overlaysContent: boolean
-  readonly boundingRect: DOMRect
-}
-const virtualKeyboard = (
-  navigator as Navigator & { readonly virtualKeyboard?: VirtualKeyboard }
-).virtualKeyboard
+// `?viewport-debug` to enable it.
+export const viewportDebug = new URLSearchParams(location.search).has(
+  "viewport-debug",
+)
 
 const inset = (name: string) => {
   const probe = document.createElement("div")
@@ -53,16 +46,9 @@ const read = () => {
   ]
 }
 
-export function ViewportDebug({ open }: { readonly open: boolean }) {
+export function ViewportDebug() {
   const [lines, setLines] = useState(read)
   const [top, setTop] = useState(0)
-  useEffect(() => {
-    if (mode !== "vk" || !open || !virtualKeyboard) return
-    virtualKeyboard.overlaysContent = true
-    return () => {
-      virtualKeyboard.overlaysContent = false
-    }
-  }, [open])
   useEffect(() => {
     const timer = setInterval(() => {
       setLines(read())

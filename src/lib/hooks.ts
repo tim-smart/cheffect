@@ -15,6 +15,21 @@ export interface VisualViewport {
   readonly collapsed: boolean
 }
 
+interface VirtualKeyboard extends EventTarget {
+  overlaysContent: boolean
+  readonly boundingRect: DOMRect
+}
+
+/**
+ * Chromium's VirtualKeyboard API. With `overlaysContent` set, the keyboard
+ * covers the page without resizing it and reports where it is. On an Android
+ * phone, Chrome drawing under the gesture bar reported a visual viewport that
+ * ran 24px behind the keyboard, while this reported the keyboard's real top.
+ */
+export const virtualKeyboard = (
+  navigator as Navigator & { readonly virtualKeyboard?: VirtualKeyboard }
+).virtualKeyboard
+
 /**
  * The part of the page that is visible. iOS doesn't resize the page for the
  * keyboard: it shrinks the visual viewport and pans it down the page, so
@@ -34,9 +49,11 @@ export const useVisualViewport = (): VisualViewport => {
     update()
     viewport.addEventListener("resize", update)
     viewport.addEventListener("scroll", update)
+    virtualKeyboard?.addEventListener("geometrychange", update)
     return () => {
       viewport.removeEventListener("resize", update)
       viewport.removeEventListener("scroll", update)
+      virtualKeyboard?.removeEventListener("geometrychange", update)
     }
   }, [])
 
@@ -72,8 +89,21 @@ const getVisualViewport = (): Omit<VisualViewport, "collapsed"> => {
   if (!viewport) {
     return { top: 0, height: window.innerHeight, obstructed: false }
   }
+  const top = Math.max(0, Math.round(viewport.offsetTop))
+  // Chrome 124 reported the right height with a wrong top, so measure from
+  // the bottom of the page
+  const keyboard = virtualKeyboard?.overlaysContent
+    ? virtualKeyboard.boundingRect.height
+    : 0
+  if (keyboard > 0) {
+    return {
+      top,
+      height: Math.round(window.innerHeight - keyboard) - top,
+      obstructed: true,
+    }
+  }
   return {
-    top: Math.max(0, Math.round(viewport.offsetTop)),
+    top,
     height: Math.round(viewport.height),
     // iOS 26 can shrink innerHeight to match while the keyboard is up, but
     // then it has panned the visual viewport down the page

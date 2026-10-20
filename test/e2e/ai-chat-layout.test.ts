@@ -19,6 +19,10 @@ const hideKeyboard = `document.querySelector('button[aria-label="Hide keyboard"]
 // height with the visual viewport panned `offsetTop` down the page, and
 // resolves once the page has rendered. The keyboard lowers, as on iOS, when
 // the message field loses focus.
+//
+// `__virtualKeyboard(height)` stands in for Chromium's VirtualKeyboard API: it
+// reports a keyboard of that height at the bottom of the page, but only once
+// the page has asked the keyboard to overlay it.
 const keyboardStandIn = `(() => {
   const layoutHeight = Object.getOwnPropertyDescriptor(window, "innerHeight").get.bind(window)
   let keyboard = 0
@@ -45,6 +49,24 @@ const keyboardStandIn = `(() => {
     innerHeightOverride = innerHeight
     viewport.dispatchEvent(new Event("resize"))
     viewport.dispatchEvent(new Event("scroll"))
+    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  }
+  let virtualKeyboardHeight = 0
+  let overlaysContent = false
+  const virtualKeyboard = new EventTarget()
+  Object.defineProperties(virtualKeyboard, {
+    overlaysContent: { get: () => overlaysContent, set: (value) => { overlaysContent = value } },
+    boundingRect: {
+      get: () => {
+        const height = overlaysContent ? virtualKeyboardHeight : 0
+        return new DOMRect(0, innerHeight - height, innerWidth, height)
+      },
+    },
+  })
+  Object.defineProperty(navigator, "virtualKeyboard", { configurable: true, get: () => virtualKeyboard })
+  window.__virtualKeyboard = (height) => {
+    virtualKeyboardHeight = height
+    virtualKeyboard.dispatchEvent(new Event("geometrychange"))
     return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   }
   setInterval(() => {
@@ -148,6 +170,26 @@ test(
           offsetTop + height - keyboard,
         )
       }
+
+      // Chrome 155 on Android draws the page under the gesture bar, and its
+      // visual viewport ran 24px behind the keyboard. With the keyboard
+      // overlaying the page, its VirtualKeyboard API had it right: a 777px
+      // viewport with a 378px keyboard on top, from 399px (from the phone).
+      await browser.setViewport(411, 777)
+      await browser.evaluate(`window.__keyboard(0, 0)`)
+      await browser.evaluate(`window.__virtualKeyboard(378)`)
+      await assertFits(browser, "Android Chrome", 0, 399)
+
+      // closing the chat gives other fields the usual keyboard back
+      await browser.evaluate(`window.__virtualKeyboard(0)`)
+      await browser.click(
+        `document.querySelector('button[aria-label="Close chat"]')`,
+      )
+      assert.equal(
+        await browser.evaluate(`navigator.virtualKeyboard.overlaysContent`),
+        false,
+        "the keyboard still overlays the page after closing the chat",
+      )
     }),
 )
 
