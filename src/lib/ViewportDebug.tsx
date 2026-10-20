@@ -8,6 +8,54 @@ export const viewportDebug = new URLSearchParams(location.search).has(
   "viewport-debug",
 )
 
+// The latest keyboard, viewport and focus events, with the readings at the
+// time of each
+const trace: Array<string> = []
+const startedAt = performance.now()
+const record = (event: string) => {
+  const viewport = window.visualViewport
+  const keyboard = virtualKeyboard
+    ? `${virtualKeyboard.overlaysContent ? "on" : "off"} ${Math.round(virtualKeyboard.boundingRect.top)}/${Math.round(virtualKeyboard.boundingRect.height)}`
+    : "-"
+  const seconds = ((performance.now() - startedAt) / 1000).toFixed(2)
+  trace.push(
+    `${seconds} ${event} ih ${innerHeight} vv ${viewport ? Math.round(viewport.height) : "-"} kb ${keyboard}`,
+  )
+  if (trace.length > 16) trace.shift()
+}
+if (viewportDebug) {
+  for (const event of ["resize", "scroll"]) {
+    window.visualViewport?.addEventListener(event, () => record(`vv.${event}`))
+  }
+  window.addEventListener("resize", () => record("win.resize"))
+  virtualKeyboard?.addEventListener("geometrychange", () => record("geometry"))
+  for (const event of ["pointerdown", "focusin", "focusout"]) {
+    document.addEventListener(
+      event,
+      (e) => record(`${event} ${(e.target as Element).tagName.toLowerCase()}`),
+      true,
+    )
+  }
+  if (virtualKeyboard) {
+    const keyboard = virtualKeyboard
+    const overlays = Object.getOwnPropertyDescriptor(
+      Object.getPrototypeOf(keyboard),
+      "overlaysContent",
+    )
+    if (overlays?.get && overlays.set) {
+      const { get, set } = overlays
+      Object.defineProperty(keyboard, "overlaysContent", {
+        configurable: true,
+        get: () => get.call(keyboard),
+        set: (value: boolean) => {
+          set.call(keyboard, value)
+          record(`overlay ${value ? "on" : "off"}`)
+        },
+      })
+    }
+  }
+}
+
 const inset = (name: string) => {
   const probe = document.createElement("div")
   // a margin, unlike a height, keeps the negative fallback
@@ -43,6 +91,7 @@ const read = () => {
       ? `vk overlays ${virtualKeyboard.overlaysContent} top ${virtualKeyboard.boundingRect.top.toFixed(1)} h ${virtualKeyboard.boundingRect.height.toFixed(1)} env h ${inset("keyboard-inset-height")}`
       : "vk n/a",
     `chat ${rect(field?.closest(".fixed"))} field ${rect(field)} focus ${document.activeElement?.tagName.toLowerCase()}`,
+    ...trace,
   ]
 }
 
