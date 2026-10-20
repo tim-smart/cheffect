@@ -148,17 +148,6 @@ test(
           offsetTop + height - keyboard,
         )
       }
-
-      // Chrome on Android, drawing under the gesture bar with
-      // viewport-fit=cover, reported a visual viewport that ran on 24px
-      // behind the keyboard, the gesture bar's height (from the screenshot)
-      await browser.setViewport(411, 801)
-      await browser.evaluate(`(() => {
-        Object.defineProperty(navigator, "userAgent", { value: navigator.userAgent + " Android" })
-        document.documentElement.style.setProperty("--keyboard-overlap", "24px")
-      })()`)
-      await browser.evaluate(`window.__keyboard(380, 0)`)
-      await assertFits(browser, "Android Chrome", 0, 397)
     }),
 )
 

@@ -9,13 +9,6 @@
    elsewhere, including landscape phones, which are as wide as a desktop */
 @custom-variant chat-panel (@media (width >= 48rem) and (height >= 30rem));
 
-:root {
-  /* Chrome on Android draws under the gesture bar with viewport-fit=cover,
-     and on an Android phone its visual viewport ran this far behind the
-     keyboard. Browsers without the inset fall back to 0. */
-  --keyboard-overlap: env(safe-area-max-inset-bottom, 0px);
-}
-
 @tailwind utilities;
 
 @plugin "@tailwindcss/typography";

@@ -72,25 +72,12 @@ const getVisualViewport = (): Omit<VisualViewport, "collapsed"> => {
   if (!viewport) {
     return { top: 0, height: window.innerHeight, obstructed: false }
   }
-  // iOS 26 can shrink innerHeight to match while the keyboard is up, but
-  // then it has panned the visual viewport down the page
-  const obstructed =
-    window.innerHeight - viewport.height >= 1 || viewport.offsetTop >= 1
   return {
     top: Math.max(0, Math.round(viewport.offsetTop)),
-    height: Math.round(
-      viewport.height - (obstructed ? androidKeyboardOverlap() : 0),
-    ),
-    obstructed,
+    height: Math.round(viewport.height),
+    // iOS 26 can shrink innerHeight to match while the keyboard is up, but
+    // then it has panned the visual viewport down the page
+    obstructed:
+      window.innerHeight - viewport.height >= 1 || viewport.offsetTop >= 1,
   }
 }
-
-/** See `--keyboard-overlap` in index.css */
-const androidKeyboardOverlap = () =>
-  /Android/.test(navigator.userAgent)
-    ? parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--keyboard-overlap",
-        ),
-      ) || 0
-    : 0
