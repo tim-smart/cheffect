@@ -2,10 +2,18 @@ import { useEffect, useState } from "react"
 
 // Temporary: shows the viewport readings behind the AI chat's layout, so a
 // screenshot from an affected phone captures them. Open the app with
-// `?viewport-debug` to enable it.
-export const viewportDebug = new URLSearchParams(location.search).has(
-  "viewport-debug",
-)
+// `?viewport-debug` to enable it, or `?viewport-debug=vk` to also have
+// Chromium's VirtualKeyboard API report the keyboard while the chat is open.
+const mode = new URLSearchParams(location.search).get("viewport-debug")
+export const viewportDebug = mode !== null
+
+interface VirtualKeyboard {
+  overlaysContent: boolean
+  readonly boundingRect: DOMRect
+}
+const virtualKeyboard = (
+  navigator as Navigator & { readonly virtualKeyboard?: VirtualKeyboard }
+).virtualKeyboard
 
 const inset = (name: string) => {
   const probe = document.createElement("div")
@@ -37,13 +45,24 @@ const read = () => {
       ? `vv h ${viewport.height.toFixed(1)} top ${viewport.offsetTop.toFixed(1)} scale ${viewport.scale.toFixed(2)}`
       : "vv n/a",
     `inset bottom ${inset("safe-area-inset-bottom")} max ${inset("safe-area-max-inset-bottom")} top ${inset("safe-area-inset-top")}`,
+    `screen ${screen.width}×${screen.height} outer ${outerWidth}×${outerHeight}`,
+    virtualKeyboard
+      ? `vk overlays ${virtualKeyboard.overlaysContent} top ${virtualKeyboard.boundingRect.top.toFixed(1)} h ${virtualKeyboard.boundingRect.height.toFixed(1)} env h ${inset("keyboard-inset-height")}`
+      : "vk n/a",
     `chat ${rect(field?.closest(".fixed"))} field ${rect(field)} focus ${document.activeElement?.tagName.toLowerCase()}`,
   ]
 }
 
-export function ViewportDebug() {
+export function ViewportDebug({ open }: { readonly open: boolean }) {
   const [lines, setLines] = useState(read)
   const [top, setTop] = useState(0)
+  useEffect(() => {
+    if (mode !== "vk" || !open || !virtualKeyboard) return
+    virtualKeyboard.overlaysContent = true
+    return () => {
+      virtualKeyboard.overlaysContent = false
+    }
+  }, [open])
   useEffect(() => {
     const timer = setInterval(() => {
       setLines(read())

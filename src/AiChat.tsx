@@ -105,7 +105,7 @@ export function AiChatModal() {
           onClose={() => setIsOpen(false)}
           open={isOpen}
         />
-        {viewportDebug && <ViewportDebug />}
+        {viewportDebug && <ViewportDebug open={isOpen} />}
       </div>
     </>
   )
