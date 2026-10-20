@@ -84,6 +84,27 @@ const nextVisualViewport = (
     : { ...reading, collapsed: false }
 }
 
+// On an Android phone, Chrome 155 draws the page under the gesture bar. The
+// first keyboard moved the page above the bar, shrinking it by the bar's
+// height, but a keyboard raised again left the page under the bar while still
+// measuring itself without it, so the keyboard reached that much higher than
+// its rect said. Remember the page's height with the keyboard down, and how
+// far a keyboard shrank it, for each page width.
+let keyboardDown = { width: 0, height: 0 }
+let keyboardShrink = { width: 0, height: 0 }
+
+const keyboardBottom = (): number => {
+  const { innerWidth: width, innerHeight: height } = window
+  const shrink = keyboardDown.width === width ? keyboardDown.height - height : 0
+  if (shrink > 0) {
+    keyboardShrink = { width, height: shrink }
+    return height
+  }
+  return keyboardShrink.width === width
+    ? height - keyboardShrink.height
+    : height
+}
+
 const getVisualViewport = (): Omit<VisualViewport, "collapsed"> => {
   const viewport = window.visualViewport
   if (!viewport) {
@@ -98,10 +119,11 @@ const getVisualViewport = (): Omit<VisualViewport, "collapsed"> => {
   if (keyboard > 0) {
     return {
       top,
-      height: Math.round(window.innerHeight - keyboard) - top,
+      height: Math.round(keyboardBottom() - keyboard) - top,
       obstructed: true,
     }
   }
+  keyboardDown = { width: window.innerWidth, height: window.innerHeight }
   return {
     top,
     height: Math.round(viewport.height),

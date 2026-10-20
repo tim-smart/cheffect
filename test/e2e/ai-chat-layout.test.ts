@@ -20,9 +20,10 @@ const hideKeyboard = `document.querySelector('button[aria-label="Hide keyboard"]
 // resolves once the page has rendered. The keyboard lowers, as on iOS, when
 // the message field loses focus.
 //
-// `__virtualKeyboard(height)` stands in for Chromium's VirtualKeyboard API: it
-// reports a keyboard of that height at the bottom of the page, but only once
-// the page has asked the keyboard to overlay it.
+// `__virtualKeyboard(height, innerHeight?)` stands in for Chromium's
+// VirtualKeyboard API: it reports a keyboard of that height at the bottom of
+// the page, but only once the page has asked the keyboard to overlay it, with
+// the page `innerHeight` tall while it's up.
 const keyboardStandIn = `(() => {
   const layoutHeight = Object.getOwnPropertyDescriptor(window, "innerHeight").get.bind(window)
   let keyboard = 0
@@ -64,8 +65,9 @@ const keyboardStandIn = `(() => {
     },
   })
   Object.defineProperty(navigator, "virtualKeyboard", { configurable: true, get: () => virtualKeyboard })
-  window.__virtualKeyboard = (height) => {
+  window.__virtualKeyboard = (height, innerHeight) => {
     virtualKeyboardHeight = height
+    innerHeightOverride = innerHeight
     virtualKeyboard.dispatchEvent(new Event("geometrychange"))
     return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   }
@@ -171,14 +173,19 @@ test(
         )
       }
 
-      // Chrome 155 on Android draws the page under the gesture bar, and its
-      // visual viewport ran 24px behind the keyboard. With the keyboard
-      // overlaying the page, its VirtualKeyboard API had it right: a 777px
-      // viewport with a 378px keyboard on top, from 399px (from the phone).
-      await browser.setViewport(411, 777)
+      // Chrome 155 on an Android phone, from its event trace: the page is
+      // 801px tall under the gesture bar. The first keyboard moved it above
+      // the bar to 777px, with a 378px keyboard from 399px. After a dismissal
+      // the page was 801px again, and the next keyboard left it there,
+      // reported 378px from 423px, while Gboard was drawn from 399px.
+      await browser.setViewport(411, 801)
       await browser.evaluate(`window.__keyboard(0, 0)`)
+      await browser.evaluate(`window.__virtualKeyboard(0)`)
+      await browser.evaluate(`window.__virtualKeyboard(378, 777)`)
+      await assertFits(browser, "Android Chrome, first keyboard", 0, 399)
+      await browser.evaluate(`window.__virtualKeyboard(0)`)
       await browser.evaluate(`window.__virtualKeyboard(378)`)
-      await assertFits(browser, "Android Chrome", 0, 399)
+      await assertFits(browser, "Android Chrome, next keyboard", 0, 399)
 
       // closing the chat gives other fields the usual keyboard back
       await browser.evaluate(`window.__virtualKeyboard(0)`)
