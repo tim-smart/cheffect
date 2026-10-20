@@ -29,7 +29,6 @@ import {
 import { router } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
-import { ViewportDebug, viewportDebug } from "./lib/ViewportDebug"
 
 export function AiChatModal() {
   const aiEnabled = useAtomValue(isAiEnabledAtom)
@@ -105,7 +104,6 @@ export function AiChatModal() {
           onClose={() => setIsOpen(false)}
           open={isOpen}
         />
-        {viewportDebug && <ViewportDebug />}
       </div>
     </>
   )
