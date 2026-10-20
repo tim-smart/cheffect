@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from "react"
 import { TimerList } from "@/Timers/TimerList"
 import { Button } from "@/components/ui/button"
 import {
+  ChevronDown,
   Eraser,
   FileText,
+  Maximize2,
   MessageSquare,
+  Minimize2,
   Paperclip,
   Send,
   Square,
@@ -25,7 +28,7 @@ import {
 } from "./AiChat/AiChatService"
 import { router } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
-import { useIsViewportObstructed, useViewportObstructed } from "./lib/hooks"
+import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
 
 export function AiChatModal() {
   const aiEnabled = useAtomValue(isAiEnabledAtom)
@@ -93,7 +96,7 @@ export function AiChatModal() {
       {/* Mobile overlay (blocks interaction) */}
       <div ref={ref} className={isOpen ? "" : "hidden"}>
         <div
-          className="fixed inset-0 z-50 bg-black/50 md:hidden"
+          className="fixed inset-0 z-50 bg-black/50 touch-none chat-panel:hidden"
           onClick={() => setIsOpen(false)}
         />
         <ModalContent
@@ -115,51 +118,105 @@ function ModalContent({
   readonly onClose: () => void
   readonly open: boolean
 }) {
-  const containerRef = useRef<HTMLDivElement>(null)
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
     initial: "instant",
     resize: "smooth",
   })
-  const viewportObstructed = useViewportObstructed()
+  const viewport = useVisualViewport()
+  // Safari in landscape can leave less room than the message field needs:
+  // the chat becomes a single row with the field and a way to hide the
+  // keyboard
+  const cramped = viewport.obstructed && viewport.height < 64
+  const [maximized, setMaximized] = useState(false)
+  // Where Chromium can say where the keyboard is, have it overlay the page
+  // while the chat is open; see `virtualKeyboard`
   useEffect(() => {
-    setTimeout(() => {
-      inputRef.current?.scrollIntoView({ behavior: "instant" })
-      scrollToBottom()
-    }, 10)
-  }, [viewportObstructed > 0, open])
+    const keyboard = virtualKeyboard
+    if (!open || !keyboard) return
+    keyboard.overlaysContent = true
+    return () => {
+      keyboard.overlaysContent = false
+    }
+  }, [open])
+  // With nothing of the page visible the chat can't be seen, so lower the
+  // keyboard to get the screen back
+  useEffect(() => {
+    if (!open || !viewport.collapsed) return
+    if (document.activeElement === inputRef.current) inputRef.current?.blur()
+  }, [open, viewport.collapsed])
+  useEffect(() => {
+    setTimeout(scrollToBottom, 10)
+  }, [viewport.obstructed, open])
 
   return (
     <>
+      {/* Mobile: a sheet over the screen that, while the keyboard is up,
+          covers exactly the visible part of the page. Desktop: a panel above
+          the floating buttons, or most of the window when maximized. */}
       <div
-        ref={containerRef}
         className={cn(
-          "flex fixed z-50 bg-background shadow-2xl inset-x-0 bottom-0 md:inset-auto md:right-4 md:floating-b md:w-[30rem] md:h-150 flex-col transition-[top] duration-75 md:top-auto!",
-          viewportObstructed > 0
-            ? "md:rounded-2xl"
-            : "top-[15vh]! rounded-t-2xl md:rounded-2xl",
+          "flex flex-col fixed z-50 bg-background shadow-2xl inset-x-0 overscroll-none",
+          viewport.obstructed
+            ? // paint the sheet below the visible area too, so the page
+              // doesn't show between it and the keyboard's accessory bar
+              "top-(--chat-top) h-(--chat-height) pt-[env(safe-area-inset-top)] after:absolute after:inset-x-0 after:top-full after:h-screen after:bg-background after:pointer-events-none chat-panel:after:hidden"
+            : "top-[calc(env(safe-area-inset-top)+0.5rem)] bottom-0 rounded-t-2xl",
+          "chat-panel:inset-auto chat-panel:right-4 chat-panel:floating-b chat-panel:rounded-2xl chat-panel:pt-0",
+          maximized
+            ? "chat-panel:top-4 chat-panel:h-auto chat-panel:w-[min(64rem,calc(100vw-2rem))]"
+            : "chat-panel:top-auto chat-panel:w-[26rem] chat-panel:h-128 chat-panel:max-h-[calc(100dvh-7.5rem)]",
         )}
         onClick={(e) => e.stopPropagation()}
-        style={{ top: viewportObstructed }}
+        style={
+          {
+            "--chat-top": `${viewport.top}px`,
+            "--chat-height": `${viewport.height}px`,
+          } as React.CSSProperties
+        }
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border pl-4 pr-2 py-2">
+        <div
+          className={cn(
+            "flex items-center justify-between border-b border-border pl-4 pr-2 py-2 touch-none",
+            // too short for the header and the message field: keep the
+            // field, the header returns with the keyboard down
+            viewport.obstructed && viewport.height < 160 && "hidden",
+            "chat-panel:flex",
+          )}
+        >
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold">AI Sous-chef</h2>
           </div>
-          <Button
-            onClick={() => onClose()}
-            className="rounded-full"
-            size="icon"
-            variant="ghost"
-          >
-            <X />
-          </Button>
+          <div className="flex items-center">
+            <Button
+              onClick={() => setMaximized(!maximized)}
+              className="rounded-full hidden chat-panel:inline-flex"
+              size="icon"
+              variant="ghost"
+              aria-label={maximized ? "Restore chat size" : "Maximize chat"}
+              title={maximized ? "Restore size" : "Maximize"}
+            >
+              {maximized ? <Minimize2 /> : <Maximize2 />}
+            </Button>
+            <Button
+              onClick={() => onClose()}
+              className="rounded-full"
+              size="icon"
+              variant="ghost"
+              aria-label="Close chat"
+            >
+              <X />
+            </Button>
+          </div>
         </div>
         {/* Messages */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4 bg-card"
+          className={cn(
+            "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 bg-card",
+            cramped && "hidden",
+          )}
           onClick={(e) => {
             if (!(e.target instanceof HTMLAnchorElement)) return
             e.preventDefault()
@@ -175,7 +232,12 @@ function ModalContent({
           />
         </div>
         {/* Input */}
-        <PromptInput onSubmit={scrollToBottom} inputRef={inputRef} />
+        <PromptInput
+          onSubmit={scrollToBottom}
+          inputRef={inputRef}
+          viewportObstructed={viewport.obstructed}
+          cramped={cramped}
+        />
       </div>
     </>
   )
@@ -201,7 +263,7 @@ function MessagesList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col gap-2 text-center h-full items-center justify-center text-muted-foreground mb-0">
+      <div className="flex flex-col gap-2 text-center h-full items-center justify-center text-muted-foreground mb-0 py-4">
         <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
         <p>Ask me anything about recipes or meal planning!</p>
         <div className="flex flex-wrap justify-center mt-2 gap-2">
@@ -225,7 +287,7 @@ function MessagesList({
     )
   }
   return (
-    <div ref={ref} className="space-y-3">
+    <div ref={ref} className="space-y-3 py-4">
       {messages.filter(isVisualMessage).map((message, i) =>
         message.role === "tool" ? (
           <div
@@ -305,9 +367,13 @@ const inputAtom = Atom.make("").pipe(Atom.setIdleTTL(0))
 function PromptInput({
   inputRef,
   onSubmit,
+  viewportObstructed,
+  cramped,
 }: {
   readonly onSubmit: () => void
   readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
+  readonly viewportObstructed: boolean
+  readonly cramped: boolean
 }) {
   const [input, setInput] = useAtom(inputAtom)
   const inputTrim = input.trim()
@@ -335,17 +401,16 @@ function PromptInput({
 
   const clear = useAtomSet(clearAtom)
 
-  const viewportObstructed = useIsViewportObstructed()
-
   return (
     <form
       onSubmit={handleSubmit}
       className={cn(
         "border-t border-border p-2 pl-1 z-10",
-        viewportObstructed ? "" : "nav-pb md:pb-2!",
+        viewportObstructed ? "" : "nav-pb chat-panel:pb-2!",
+        cramped && "flex-1 min-h-0 p-0 border-0",
       )}
     >
-      <div className="flex gap-2 pl-15">
+      <div className={cn("flex gap-2 pl-15", cramped && "hidden")}>
         {(files ? Array.from(files) : []).map((file) => (
           <div key={file.name} className="relative">
             {file.type.startsWith("image/") ? (
@@ -387,8 +452,13 @@ function PromptInput({
           </div>
         ))}
       </div>
-      <div className="flex gap-2 items-center">
-        <div className="flex">
+      <div
+        className={cn(
+          "flex gap-2 items-center",
+          cramped && "h-full items-stretch gap-0",
+        )}
+      >
+        <div className={cn("flex", cramped && "hidden")}>
           <Button
             type="button"
             onMouseDown={(e) => e.preventDefault()}
@@ -454,13 +524,33 @@ function PromptInput({
             handleSubmit(e)
           }}
           placeholder="Type your message..."
-          className="flex-1 rounded-lg border-2 border-border bg-card px-3 py-2 text-base focus:border-primary focus:outline-none field-sizing-content resize-none"
+          className={cn(
+            "flex-1 rounded-lg border-2 border-border bg-card px-3 py-2 text-base focus:border-primary focus:outline-none field-sizing-content resize-none",
+            // keep 16px text so iOS doesn't zoom, and scroll extra lines
+            // inside the field
+            cramped &&
+              "h-full min-h-0 py-0 border-0 rounded-none leading-tight [field-sizing:fixed]",
+          )}
           autoFocus
         />
+        {cramped && (
+          <button
+            type="button"
+            aria-label="Hide keyboard"
+            className="h-full shrink-0 flex items-center gap-1 px-5 text-xs leading-none font-medium text-primary"
+            onClick={() => inputRef.current?.blur()}
+          >
+            <ChevronDown className="size-4" />
+            Hide keyboard
+          </button>
+        )}
         <Button
           type="submit"
           size="icon"
-          className="h-10 w-10 rounded-full bg-primary hover:bg-orange-700"
+          className={cn(
+            "h-10 w-10 rounded-full bg-primary hover:bg-orange-700",
+            cramped && "hidden",
+          )}
           disabled={!isLoading && !inputTrim}
           onClick={() => {
             if (!(isLoading && !inputTrim)) return

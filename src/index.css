@@ -5,6 +5,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* The chat is a panel in the corner on desktops and a sheet over the screen
+   elsewhere, including landscape phones, which are as wide as a desktop */
+@custom-variant chat-panel (@media (width >= 48rem) and (height >= 30rem));
+
 @tailwind utilities;
 
 @plugin "@tailwindcss/typography";

@@ -116,14 +116,26 @@ test(
           // settings atoms encode them, then reloads.
           const stored = (name: string, value: unknown) =>
             `localStorage.getItem(${JSON.stringify(name)}) === ${JSON.stringify(JSON.stringify(value))}`
-          await browser.waitFor(
-            [
-              stored("cheffect:identity", key),
-              stored("cheffect:syncServerUrl", serverUrl),
-              stored("cheffect:syncEnabled", true),
-            ].join(" && "),
-            30_000,
-          )
+          await browser
+            .waitFor(
+              [
+                stored("cheffect:identity", key),
+                stored("cheffect:syncServerUrl", serverUrl),
+                stored("cheffect:syncEnabled", true),
+              ].join(" && "),
+              30_000,
+            )
+            .catch(async (error) => {
+              // CI has timed out here twice without a local repro: say where
+              // the join stopped, e.g. still joining or a blocked screen
+              const page = await browser.evaluate<string>(`JSON.stringify({
+                href: location.href,
+                dialog: [...(${dialog}?.querySelectorAll("button") ?? [])].map((b) => b.textContent.trim()),
+                identity: localStorage.getItem("cheffect:identity") !== null,
+                page: document.body.innerText.slice(0, 300),
+              })`)
+              throw new Error(`${error.message}\nPage: ${page}`)
+            })
 
           // The joined collection arrives from the server, and nothing from
           // the old one is left, or re-seeded.

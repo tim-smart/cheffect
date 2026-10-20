@@ -202,12 +202,26 @@ const launchBrowser = async (profile: string) => {
       )
     }
   }
-  /** Emulates a phone screen of the given size, in CSS pixels. */
-  const setViewport = (width: number, height: number) =>
+  /**
+   * Emulates a screen of the given size, in CSS pixels: a phone by default,
+   * or a desktop window with `{ mobile: false }`.
+   */
+  const setViewport = (
+    width: number,
+    height: number,
+    { mobile = true }: { readonly mobile?: boolean } = {},
+  ) =>
     sendOrCrash(
       "Emulation.setDeviceMetricsOverride",
-      { width, height, deviceScaleFactor: 1, mobile: true },
+      { width, height, deviceScaleFactor: 1, mobile },
       `setViewport(${width}, ${height})`,
+    )
+  /** Runs `source` in every document loaded from now on, before its scripts. */
+  const addInitScript = (source: string) =>
+    sendOrCrash(
+      "Page.addScriptToEvaluateOnNewDocument",
+      { source },
+      "addInitScript",
     )
   const close = async () => {
     ws.close()
@@ -227,7 +241,15 @@ const launchBrowser = async (profile: string) => {
     // let the rest of the process group release the profile
     killGroup("SIGKILL")
   }
-  return { evaluate, waitFor, navigate, click, setViewport, close }
+  return {
+    evaluate,
+    waitFor,
+    navigate,
+    click,
+    setViewport,
+    addInitScript,
+    close,
+  }
 }
 
 export type Browser = Awaited<ReturnType<typeof launchBrowser>>
