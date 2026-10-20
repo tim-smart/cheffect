@@ -20,9 +20,12 @@ const hideKeyboard = `document.querySelector('button[aria-label="Hide keyboard"]
 // resolves once the page has rendered. The keyboard lowers, as on iOS, when
 // the message field loses focus.
 //
-// `__virtualKeyboard(height)` stands in for Chromium's VirtualKeyboard API: it
-// reports a keyboard of that height at the bottom of the page, but only once
-// the page has asked the keyboard to overlay it.
+// `__virtualKeyboard(height, gestureBar?)` stands in for Chromium's
+// VirtualKeyboard API: it reports a keyboard of that height at the bottom of
+// the page, but only once the page has asked the keyboard to overlay it. As
+// Chrome 155 did on an Android phone, a page drawn under a gesture bar only
+// moves above it for a keyboard that rises after overlay mode is turned on;
+// a keyboard rising again without that leaves the page under the bar.
 const keyboardStandIn = `(() => {
   const layoutHeight = Object.getOwnPropertyDescriptor(window, "innerHeight").get.bind(window)
   let keyboard = 0
@@ -53,9 +56,16 @@ const keyboardStandIn = `(() => {
   }
   let virtualKeyboardHeight = 0
   let overlaysContent = false
+  let overlaysSinceKeyboard = false
   const virtualKeyboard = new EventTarget()
   Object.defineProperties(virtualKeyboard, {
-    overlaysContent: { get: () => overlaysContent, set: (value) => { overlaysContent = value } },
+    overlaysContent: {
+      get: () => overlaysContent,
+      set: (value) => {
+        if (value && !overlaysContent) overlaysSinceKeyboard = true
+        overlaysContent = value
+      },
+    },
     boundingRect: {
       get: () => {
         const height = overlaysContent ? virtualKeyboardHeight : 0
@@ -64,8 +74,14 @@ const keyboardStandIn = `(() => {
     },
   })
   Object.defineProperty(navigator, "virtualKeyboard", { configurable: true, get: () => virtualKeyboard })
-  window.__virtualKeyboard = (height) => {
+  window.__virtualKeyboard = (height, gestureBar = 0) => {
     virtualKeyboardHeight = height
+    if (height > 0 && overlaysSinceKeyboard) {
+      innerHeightOverride = layoutHeight() - gestureBar
+    } else if (height === 0) {
+      innerHeightOverride = undefined
+      overlaysSinceKeyboard = false
+    }
     virtualKeyboard.dispatchEvent(new Event("geometrychange"))
     return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   }
@@ -171,14 +187,19 @@ test(
         )
       }
 
-      // Chrome 155 on Android draws the page under the gesture bar, and its
-      // visual viewport ran 24px behind the keyboard. With the keyboard
-      // overlaying the page, its VirtualKeyboard API had it right: a 777px
-      // viewport with a 378px keyboard on top, from 399px (from the phone).
-      await browser.setViewport(411, 777)
+      // Chrome 155 on Android draws the page under the 24px gesture bar, and
+      // its visual viewport ran 24px behind the keyboard. With the keyboard
+      // overlaying the page, its VirtualKeyboard API had it right: the page
+      // moved above the bar to 777px, with a 378px keyboard from 399px. That
+      // must hold after dismissing the keyboard and tapping the field again.
+      await browser.setViewport(411, 801)
       await browser.evaluate(`window.__keyboard(0, 0)`)
-      await browser.evaluate(`window.__virtualKeyboard(378)`)
-      await assertFits(browser, "Android Chrome", 0, 399)
+      for (const time of ["first", "second", "third"]) {
+        await browser.evaluate(`window.__virtualKeyboard(378, 24)`)
+        await assertFits(browser, `Android Chrome, ${time} keyboard`, 0, 399)
+        await browser.evaluate(`window.__virtualKeyboard(0)`)
+        await browser.click(input)
+      }
 
       // closing the chat gives other fields the usual keyboard back
       await browser.evaluate(`window.__virtualKeyboard(0)`)

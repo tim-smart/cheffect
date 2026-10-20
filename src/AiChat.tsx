@@ -131,12 +131,26 @@ function ModalContent({
   const cramped = viewport.obstructed && viewport.height < 64
   const [maximized, setMaximized] = useState(false)
   // Where Chromium can say where the keyboard is, have it overlay the page
-  // while the chat is open; see `virtualKeyboard`
+  // while the chat is open; see `virtualKeyboard`. On an Android phone,
+  // Chrome only measured a keyboard right when overlay mode was turned on
+  // just before it rose, so it's turned off when the keyboard goes, and the
+  // message field turns it back on when tapped.
   useEffect(() => {
     const keyboard = virtualKeyboard
     if (!open || !keyboard) return
     keyboard.overlaysContent = true
+    let shown = false
+    const onGeometryChange = () => {
+      if (keyboard.boundingRect.height > 0) {
+        shown = true
+      } else if (shown) {
+        shown = false
+        keyboard.overlaysContent = false
+      }
+    }
+    keyboard.addEventListener("geometrychange", onGeometryChange)
     return () => {
+      keyboard.removeEventListener("geometrychange", onGeometryChange)
       keyboard.overlaysContent = false
     }
   }, [open])
@@ -520,6 +534,9 @@ function PromptInput({
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onPointerDown={() => {
+            if (virtualKeyboard) virtualKeyboard.overlaysContent = true
+          }}
           onKeyDown={(e) => {
             if (e.key !== "Enter" || e.shiftKey) return
             e.preventDefault()
