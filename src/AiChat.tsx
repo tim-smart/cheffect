@@ -26,7 +26,7 @@ import {
   isVisualMessage,
   sendAtom,
 } from "./AiChat/AiChatService"
-import { router } from "./Router"
+import { router, scrollRestorationKey } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
 
@@ -40,8 +40,21 @@ export function AiChatModal() {
   // Handle history state when modal opens/closes
   useEffect(() => {
     if (isOpen && !pushedHistoryRef.current) {
-      // Push history state when modal opens
-      history.pushState({ aiChatOpen: true }, "")
+      // Push history state when modal opens. The router sees every
+      // pushState as a navigation and resets the scroll for it, so push
+      // through the router and keep the page where it is. The entry shares
+      // the page's scroll position, so closing the chat doesn't undo any
+      // scrolling done beside the desktop panel.
+      router.navigate({
+        to: ".",
+        search: true,
+        hash: true,
+        state: {
+          aiChatOpen: true,
+          scrollKey: scrollRestorationKey(router.state.location),
+        },
+        resetScroll: false,
+      })
       pushedHistoryRef.current = true
     } else if (!isOpen && pushedHistoryRef.current) {
       // Modal was closed via X button or overlay, clean up history state

@@ -74,12 +74,18 @@ function SystemTheme() {
 function DisableScroll() {
   const aiChatOpen = useAtomValue(aiChatOpenAtom)
   useLayoutEffect(() => {
-    // iOS Safari can still scroll the page when only <body> is locked
+    // iOS Safari can still scroll the page when only <body> is locked. The
+    // desktop panel leaves the page scrollable, so it keeps the initial
+    // `visible`: any other overflow on <html> turns the full-height <body>
+    // into its own scroller, and the page jumps to the top.
     for (const element of [document.documentElement, document.body]) {
       if (aiChatOpen) {
-        element.classList.add("overflow-hidden", "chat-panel:overflow-auto")
+        element.classList.add("overflow-hidden", "chat-panel:overflow-visible")
       } else {
-        element.classList.remove("overflow-hidden", "chat-panel:overflow-auto")
+        element.classList.remove(
+          "overflow-hidden",
+          "chat-panel:overflow-visible",
+        )
       }
     }
   }, [aiChatOpen])
