@@ -309,7 +309,9 @@ function MessagesList({
           >
             <div
               className={cn(
-                `max-w-[90%] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
+                // 60ch of text plus the px-4 padding, but never wider
+                // than 90% of the panel on narrow screens
+                `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
                 message.role === "user"
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted dark:bg-border text-foreground",
