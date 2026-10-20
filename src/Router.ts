@@ -1,12 +1,20 @@
-import { createRouter } from "@tanstack/react-router"
+import { createRouter, type ParsedLocation } from "@tanstack/react-router"
 import { routeTree } from "./routeTree.gen"
 import * as Atom from "effect/reactivity/Atom"
+
+/**
+ * TanStack's default key, unless the entry shares another entry's scroll
+ * position
+ */
+export const scrollRestorationKey = (location: ParsedLocation): string =>
+  location.state.scrollKey || location.state.__TSR_key || location.href
 
 export const router = createRouter({
   routeTree,
   defaultPreload: "render",
   defaultPendingMinMs: 0,
   scrollRestoration: true,
+  getScrollRestorationKey: scrollRestorationKey,
   defaultPendingComponent: () => null,
 })
 
@@ -34,6 +42,12 @@ router.subscribe("onBeforeRouteMount", ({ toLocation }) => {
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router
+  }
+  interface HistoryState {
+    /** The entry pushed for the open AI chat, so back closes it */
+    aiChatOpen?: boolean
+    /** Restore this entry's scroll position from the entry with this key */
+    scrollKey?: string
   }
 }
 

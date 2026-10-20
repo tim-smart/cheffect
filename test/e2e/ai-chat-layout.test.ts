@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
-import { type Browser, hasChromium, withSeededApp } from "./harness"
+import { type Browser, hasChromium, sleep, withSeededApp } from "./harness"
 
 // The AI chat panel's size on phones and desktops.
 //
@@ -294,6 +294,54 @@ test(
         await rectOf(browser, panel),
         initial,
         "restoring doesn't return the chat to its default size",
+      )
+    }),
+)
+
+test(
+  "on a desktop opening the chat keeps the page where it was scrolled",
+  { skip: !hasChromium && "chromium not found", timeout: 180_000 },
+  () =>
+    withSeededApp(async ({ browser, base, recipeId }) => {
+      await browser.setViewport(1280, 600, { mobile: false })
+      await openChatOnSettings(browser, base)
+      await browser.navigate(`${base}/recipes/${recipeId}`)
+      await browser.waitFor(
+        `document.documentElement.scrollHeight > innerHeight + 100`,
+      )
+      const scrolled = await browser.evaluate<number>(
+        `(scrollTo(0, document.documentElement.scrollHeight), Math.round(scrollY))`,
+      )
+      assert.ok(scrolled > 100, `the recipe only scrolled ${scrolled}px`)
+
+      await browser.click(
+        `document.querySelector('[aria-label="Open AI Chat"]')`,
+      )
+      await browser.waitFor(`(${panel}).checkVisibility()`)
+      // let the router settle the chat's history entry
+      await sleep(500)
+      assert.equal(
+        await browser.evaluate(`Math.round(scrollY)`),
+        scrolled,
+        "opening the chat scrolled the page",
+      )
+
+      // the page beside the panel still scrolls
+      assert.equal(
+        await browser.evaluate(`(scrollBy(0, -50), Math.round(scrollY))`),
+        scrolled - 50,
+        "the page can't be scrolled with the chat open",
+      )
+
+      await browser.click(
+        `document.querySelector('button[aria-label="Close chat"]')`,
+      )
+      await browser.waitFor(`!(${panel}).checkVisibility()`)
+      await sleep(500)
+      assert.equal(
+        await browser.evaluate(`Math.round(scrollY)`),
+        scrolled - 50,
+        "closing the chat moved the page",
       )
     }),
 )
