@@ -169,7 +169,7 @@ export const mealPlanWeekStart = new Setting({
   label: "Week Start",
   schema: WeekDays,
   schemaInput: AsSome(
-    Schema.NumberFromString.pipe(Schema.decodeTo(WeekDays)),
+    Schema.FiniteFromString.pipe(Schema.decodeTo(WeekDays)),
     () => 0 as const,
   ),
   cached: true,

@@ -121,7 +121,7 @@ export class Ingredient extends Schema.Class<Ingredient>("Ingredient")(
     name: Schema.String.annotate({
       description: "The name of the ingredient.",
     }),
-    quantity: Schema.NullOr(Schema.Number).annotate({
+    quantity: Schema.NullOr(Schema.Finite).annotate({
       description: "The quantity of the ingredient, if applicable.",
     }),
     unit: Schema.NullOr(Unit).annotate({
@@ -196,7 +196,7 @@ export class ExtractedRecipe extends Schema.Class<ExtractedRecipe>(
       description:
         "The time it takes to cook the recipe in minutes. This is different from prep time.",
     }),
-    servings: Schema.NullOr(Schema.Number).annotate({
+    servings: Schema.NullOr(Schema.Finite).annotate({
       description:
         "The number of persons the recipe serves. If unsure, set to null.",
     }),
@@ -255,8 +255,8 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   prepTime: DurationField,
   ingredients: IngredientsComponent.array,
   ingredientScale: Model.Field({
-    select: Schema.Number,
-    update: Schema.Number,
+    select: Schema.Finite,
+    update: Schema.Finite,
   }),
   steps: Schema.Array(Step),
   rating: Schema.NullOr(Rating),

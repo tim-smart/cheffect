@@ -163,13 +163,13 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@effect/opentelemetry': 4.0.5
-  '@effect/platform-browser': 4.0.5
-  '@effect/platform-bun': 4.0.5
-  '@effect/platform-node': 4.0.5
-  '@effect/platform-node-shared': 4.0.5
-  '@effect/vitest': 4.0.5
-  effect: https://pkg.pr.new/effect@704bdf6
+  '@effect/opentelemetry': https://pkg.pr.new/@effect/opentelemetry@ffc4243
+  '@effect/platform-browser': https://pkg.pr.new/@effect/platform-browser@ffc4243
+  '@effect/platform-bun': https://pkg.pr.new/@effect/platform-bun@ffc4243
+  '@effect/platform-node': https://pkg.pr.new/@effect/platform-node@ffc4243
+  '@effect/platform-node-shared': https://pkg.pr.new/@effect/platform-node-shared@ffc4243
+  '@effect/vitest': https://pkg.pr.new/@effect/vitest@ffc4243
+  effect: https://pkg.pr.new/effect@ffc4243
 
 patchedDependencies:
   mdast-util-gfm-autolink-literal@2.0.1: b6c92ec682456ca4b035718f71ee2b4a77d00da4c08cbc5e235e99eaabd96c45
@@ -182,17 +182,17 @@ importers:
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@effect/ai-openai':
-        specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@704bdf6)
+        specifier: https://pkg.pr.new/@effect/ai-openai@ffc4243
+        version: https://pkg.pr.new/@effect/ai-openai@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)
       '@effect/atom-react':
-        specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@704bdf6)(react@19.3.1)(scheduler@0.28.0)
+        specifier: https://pkg.pr.new/@effect/atom-react@ffc4243
+        version: https://pkg.pr.new/@effect/atom-react@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)(react@19.3.1)(scheduler@0.28.0)
       '@effect/platform-browser':
-        specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@704bdf6)
+        specifier: https://pkg.pr.new/@effect/platform-browser@ffc4243
+        version: https://pkg.pr.new/@effect/platform-browser@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)
       '@hookform/resolvers':
         specifier: ^5.9.1
-        version: 5.9.2(ajv@8.20.0)(effect@https://pkg.pr.new/effect@704bdf6)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)
+        version: 5.9.2(ajv@8.20.0)(effect@https://pkg.pr.new/effect@ffc4243)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.18
         version: 1.2.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -275,8 +275,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       effect:
-        specifier: https://pkg.pr.new/effect@704bdf6
-        version: https://pkg.pr.new/effect@704bdf6
+        specifier: https://pkg.pr.new/effect@ffc4243
+        version: https://pkg.pr.new/effect@ffc4243
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.3.1)
@@ -338,15 +338,15 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
-      '@effect/language-service':
-        specifier: ^0.87.4
-        version: 0.87.5
       '@effect/platform-node':
-        specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@704bdf6)(redis@6.3.0)
+        specifier: https://pkg.pr.new/@effect/platform-node@ffc4243
+        version: https://pkg.pr.new/@effect/platform-node@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)(redis@6.3.0)
       '@effect/sql-sqlite-node':
-        specifier: 4.0.5
-        version: 4.0.5(effect@https://pkg.pr.new/effect@704bdf6)
+        specifier: https://pkg.pr.new/@effect/sql-sqlite-node@ffc4243
+        version: https://pkg.pr.new/@effect/sql-sqlite-node@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)
+      '@effect/tsgo':
+        specifier: 0.54.0
+        version: 0.54.0
       '@tailwindcss/typography':
         specifier: ^0.5.20
         version: 0.5.20(tailwindcss@4.3.3)
@@ -951,50 +951,85 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
 
-  '@effect/ai-openai@4.0.5':
-    resolution: {integrity: sha512-xJGqOXR10BdLIk3X5rPA8/cXbk7hyvygPK2xjplkc1LxI2VT2wspTT7Nt+BlcN9+REzHM10ve0bbNbk5GIJKuw==}
+  '@effect/ai-openai@https://pkg.pr.new/@effect/ai-openai@ffc4243':
+    resolution: {integrity: sha512-7A/Mk9lTdKh3pyQXL4w/P9qVvVaNEudq5C1dSyOQcm7jeVWnw3fAPSDZFF4gXAKsq9E+tqc0yGkwsTGZX9L6fA==, tarball: https://pkg.pr.new/@effect/ai-openai@ffc4243}
     version: 4.0.5
     peerDependencies:
       effect: ^4.0.5
 
-  '@effect/atom-react@4.0.5':
-    resolution: {integrity: sha512-tqTSiy0rWBitej7kPfvTSw29q4ipof52+txDg6bIBJx0ksHVzVXaFTsssDa+AZBeImafK0xmjm9m1XzPfE6k2A==}
+  '@effect/atom-react@https://pkg.pr.new/@effect/atom-react@ffc4243':
+    resolution: {integrity: sha512-WPO1tGr+iL75zPzlAOLBZbQkdo5g510eE/qWeYHHrys36AKKOfYFq6+UyX0cryMP6OlfutNPgo3zuTCiqipiuw==, tarball: https://pkg.pr.new/@effect/atom-react@ffc4243}
     version: 4.0.5
     peerDependencies:
       effect: ^4.0.5
       react: '>=19.0.0 <20.0.0'
       scheduler: '>=0.25.0 <0.29.0'
 
-  '@effect/language-service@0.87.5':
-    resolution: {integrity: sha512-np/zJgk71/PyHxtoqyUKLYcpQhoRBI+L6+1Z0ILk35JSQ/lvXzwlwOwddYZLDkeC4bdF2ukKekqKlla/F88R5w==}
-    hasBin: true
-
-  '@effect/platform-browser@4.0.5':
-    resolution: {integrity: sha512-o3H75xA91nkgIWOcp0XouIxxWxJEOFkTf7gG4qkQtZfy0tq46hJBI0U8jrUqsPruo2vCCNfM0yCoj5AG7F5BMQ==}
+  '@effect/platform-browser@https://pkg.pr.new/@effect/platform-browser@ffc4243':
+    resolution: {integrity: sha512-qMYHJ78HgSOzpjDg1UzWl2Oe269pyoI/rvcDzaL3HJ2S50nWQ6CW8FUSuxQAzI5ygOl2Yt7XzJRJ8LxZk7hMZg==, tarball: https://pkg.pr.new/@effect/platform-browser@ffc4243}
     version: 4.0.5
     peerDependencies:
       effect: ^4.0.5
 
-  '@effect/platform-node-shared@4.0.5':
-    resolution: {integrity: sha512-a8rCdEkfZBGe9C6bsIjxVZuRp73svIyK5IHwHdDAVsvZXjrbkxusfI+rZ8WlX31RP1mKizwI/E72GQTNfdMWHw==}
+  '@effect/platform-node-shared@https://pkg.pr.new/@effect/platform-node-shared@ffc4243':
+    resolution: {integrity: sha512-wCcw3cd3GbkDemcYdkYbprYr2YkGfIXgK01hMRr82ooI0spY/l9Y8jS2Voldq/F4aJusBrUm/FrQTp4wmh3rLQ==, tarball: https://pkg.pr.new/@effect/platform-node-shared@ffc4243}
     version: 4.0.5
     engines: {node: '>=18.0.0'}
     peerDependencies:
       effect: ^4.0.5
 
-  '@effect/platform-node@4.0.5':
-    resolution: {integrity: sha512-v4KD5fWvEUa4QmWFpZFbBsRhmfnTP6ETCME2r9ifyXVDPjhfpxpTZl41prjgQFMqZBHdWWCl7YC5ImbXv5ui5g==}
+  '@effect/platform-node@https://pkg.pr.new/@effect/platform-node@ffc4243':
+    resolution: {integrity: sha512-ziCiSiOmbsO0evKjnIq/7TNO8oNMd7jlvIzajElTomV5NrvY/MyiGy3NCetoo6tjD2PQBIHMZ1UBOWhe19hBoQ==, tarball: https://pkg.pr.new/@effect/platform-node@ffc4243}
     version: 4.0.5
     engines: {node: '>=18.0.0'}
     peerDependencies:
       effect: ^4.0.5
       redis: '>=5.0.0 <7.0.0'
 
-  '@effect/sql-sqlite-node@4.0.5':
-    resolution: {integrity: sha512-SHza5qNwiI4dRtUk45wvUfvZq7vB950DW2wD6npzt2aH/tesFfPlZJSDBIvwhazoK+gvDknBOONfKyFZsIF+tg==}
+  '@effect/sql-sqlite-node@https://pkg.pr.new/@effect/sql-sqlite-node@ffc4243':
+    resolution: {integrity: sha512-bJALlHCpUkVgHyEklHzt8ueAkQmrZIqERpv9nPi47pUeH4Lp8R7mVilqKDg8f/eW5h0MfYwy/Z0hJ3+bzSnZPQ==, tarball: https://pkg.pr.new/@effect/sql-sqlite-node@ffc4243}
     version: 4.0.5
     peerDependencies:
       effect: ^4.0.5
+
+  '@effect/tsgo-darwin-arm64@0.54.0':
+    resolution: {integrity: sha512-JYPGqyA1UOa0GxbVWzEebuW8wSeXTEjkJt6SrZY827TcMam+effcqGrbEOvmTfZEdVzzsdnGNnRvVKmRrlcoQg==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@effect/tsgo-darwin-x64@0.54.0':
+    resolution: {integrity: sha512-fnXXG/IrFuyrJQmW4HDiX+mO8kx+Qgn6bxe41W7bbTIKMf76pQAuF4/btG6WQvftn5qQJSwOPRsPDVnSrVfYFA==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@effect/tsgo-linux-arm64@0.54.0':
+    resolution: {integrity: sha512-MjttNBqw1Sk1u9kBbl2+qUpMp9bVFDbbXUS4e9T3oyHFRnqYOAVIbjSXk1iIdkAr513/swaaNYqAT53RU7SjrQ==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@effect/tsgo-linux-arm@0.54.0':
+    resolution: {integrity: sha512-Ne8FIzKJwVWHSCwsqnzFaOO+9xMG7eJZyKWVTNto0rrHM3UMcLVjr2hd2l4gSvIm+UBKpj+vIOtkhIs6NRB3yQ==}
+    cpu: [arm]
+    os: [linux]
+
+  '@effect/tsgo-linux-x64@0.54.0':
+    resolution: {integrity: sha512-Tu/bVoDP9Lq63IbB8AuD7XmJ0hY5zeKtY9ik2i3e0VGy0XQWlm1yy5sQ0t2EOJ4DT907CXWIgJ0Mxeqff4mwyg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@effect/tsgo-win32-arm64@0.54.0':
+    resolution: {integrity: sha512-B9lKebAH999kTf3ZMU5L+AtTc99Q93ESSFu1HPvO4lGoVxCeso4oiTGmp/KAmnCf8v0mPoI8FaA52z/MoAahdw==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@effect/tsgo-win32-x64@0.54.0':
+    resolution: {integrity: sha512-1xylSboEYx2AnAif65GMovYOUkQPcYfWk3jqFjMDRy5gqfxh5ELKtwzTeMo8kPoyMNYkqiRHTmjXgTRbcFMmzA==}
+    cpu: [x64]
+    os: [win32]
+
+  '@effect/tsgo@0.54.0':
+    resolution: {integrity: sha512-N04IZmYNXD5SQhCGDRp1creYOMzp2q5H79dkU8WPSLjYHOoIcxArq60qk393Hl0hMSijWENDME+q2Bl+bichwg==}
+    hasBin: true
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
@@ -2990,8 +3025,8 @@ packages:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
 
-  effect@https://pkg.pr.new/effect@704bdf6:
-    resolution: {integrity: sha512-gpBycjlzLiVho11wdS9PqZiMpK5BrznaqGHqaExk3PjAs7RpyF99avWKODoIXtW04bhjG43PSRexG7D3VCzsjA==, tarball: https://pkg.pr.new/effect@704bdf6}
+  effect@https://pkg.pr.new/effect@ffc4243:
+    resolution: {integrity: sha512-UsxUbPfDxCwyhSM4PiY6et3FUYxQe+Y0vk8eC16yXS4E5VyPD7qQIkK5oRRq0AcLJW0GCYPlzLHrLHwbeh+xcQ==, tarball: https://pkg.pr.new/effect@ffc4243}
     version: 4.0.5
 
   ejs@3.1.10:
@@ -5329,44 +5364,73 @@ snapshots:
       react: 19.3.1
       tslib: 2.8.1
 
-  '@effect/ai-openai@4.0.5(effect@https://pkg.pr.new/effect@704bdf6)':
+  '@effect/ai-openai@https://pkg.pr.new/@effect/ai-openai@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)':
     dependencies:
-      effect: https://pkg.pr.new/effect@704bdf6
+      effect: https://pkg.pr.new/effect@ffc4243
 
-  '@effect/atom-react@4.0.5(effect@https://pkg.pr.new/effect@704bdf6)(react@19.3.1)(scheduler@0.28.0)':
+  '@effect/atom-react@https://pkg.pr.new/@effect/atom-react@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)(react@19.3.1)(scheduler@0.28.0)':
     dependencies:
-      effect: https://pkg.pr.new/effect@704bdf6
+      effect: https://pkg.pr.new/effect@ffc4243
       react: 19.3.1
       scheduler: 0.28.0
 
-  '@effect/language-service@0.87.5': {}
-
-  '@effect/platform-browser@4.0.5(effect@https://pkg.pr.new/effect@704bdf6)':
+  '@effect/platform-browser@https://pkg.pr.new/@effect/platform-browser@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)':
     dependencies:
-      effect: https://pkg.pr.new/effect@704bdf6
+      effect: https://pkg.pr.new/effect@ffc4243
 
-  '@effect/platform-node-shared@4.0.5(effect@https://pkg.pr.new/effect@704bdf6)':
+  '@effect/platform-node-shared@https://pkg.pr.new/@effect/platform-node-shared@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)':
     dependencies:
       '@types/ws': 8.18.2
-      effect: https://pkg.pr.new/effect@704bdf6
+      effect: https://pkg.pr.new/effect@ffc4243
       ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/platform-node@4.0.5(effect@https://pkg.pr.new/effect@704bdf6)(redis@6.3.0)':
+  '@effect/platform-node@https://pkg.pr.new/@effect/platform-node@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)(redis@6.3.0)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.5(effect@https://pkg.pr.new/effect@704bdf6)
-      effect: https://pkg.pr.new/effect@704bdf6
+      '@effect/platform-node-shared': https://pkg.pr.new/@effect/platform-node-shared@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)
+      effect: https://pkg.pr.new/effect@ffc4243
       redis: 6.3.0
       undici: 8.12.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@effect/sql-sqlite-node@4.0.5(effect@https://pkg.pr.new/effect@704bdf6)':
+  '@effect/sql-sqlite-node@https://pkg.pr.new/@effect/sql-sqlite-node@ffc4243(effect@https://pkg.pr.new/effect@ffc4243)':
     dependencies:
-      effect: https://pkg.pr.new/effect@704bdf6
+      effect: https://pkg.pr.new/effect@ffc4243
+
+  '@effect/tsgo-darwin-arm64@0.54.0':
+    optional: true
+
+  '@effect/tsgo-darwin-x64@0.54.0':
+    optional: true
+
+  '@effect/tsgo-linux-arm64@0.54.0':
+    optional: true
+
+  '@effect/tsgo-linux-arm@0.54.0':
+    optional: true
+
+  '@effect/tsgo-linux-x64@0.54.0':
+    optional: true
+
+  '@effect/tsgo-win32-arm64@0.54.0':
+    optional: true
+
+  '@effect/tsgo-win32-x64@0.54.0':
+    optional: true
+
+  '@effect/tsgo@0.54.0':
+    optionalDependencies:
+      '@effect/tsgo-darwin-arm64': 0.54.0
+      '@effect/tsgo-darwin-x64': 0.54.0
+      '@effect/tsgo-linux-arm': 0.54.0
+      '@effect/tsgo-linux-arm64': 0.54.0
+      '@effect/tsgo-linux-x64': 0.54.0
+      '@effect/tsgo-win32-arm64': 0.54.0
+      '@effect/tsgo-win32-x64': 0.54.0
 
   '@emnapi/runtime@1.11.3':
     dependencies:
@@ -5468,13 +5532,13 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@hookform/resolvers@5.9.2(ajv@8.20.0)(effect@https://pkg.pr.new/effect@704bdf6)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)':
+  '@hookform/resolvers@5.9.2(ajv@8.20.0)(effect@https://pkg.pr.new/effect@ffc4243)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.90.0(@types/react@19.3.0)(react@19.3.1)
     optionalDependencies:
       ajv: 8.20.0
-      effect: https://pkg.pr.new/effect@704bdf6
+      effect: https://pkg.pr.new/effect@ffc4243
       zod: 4.6.7
 
   '@img/colour@1.1.0': {}
@@ -7007,7 +7071,7 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
-  effect@https://pkg.pr.new/effect@704bdf6: {}
+  effect@https://pkg.pr.new/effect@ffc4243: {}
 
   ejs@3.1.10:
     dependencies:

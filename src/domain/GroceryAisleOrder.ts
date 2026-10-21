@@ -4,7 +4,7 @@ import * as Schema from "effect/Schema"
 export const GroceryAisleOrder = Schema.Struct({
   list: Schema.NullOr(Schema.String),
   aisle: Schema.String,
-  sortOrder: Schema.Number,
+  sortOrder: Schema.Finite,
   updatedAt: Schema.DateTimeUtcFromMillis,
 })
 export type GroceryAisleOrder = typeof GroceryAisleOrder.Type

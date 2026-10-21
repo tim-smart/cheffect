@@ -11,13 +11,14 @@
     "start": "node dist-server/main.mjs",
     "preview": "vite preview",
     "test": "node --import tsx --test test/*.test.ts",
-    "test:e2e": "node --import tsx --test --test-concurrency=1 --test-force-exit test/e2e/*.test.ts"
+    "test:e2e": "node --import tsx --test --test-concurrency=1 --test-force-exit test/e2e/*.test.ts",
+    "prepare": "effect-tsgo patch --typescript --no-oxlint"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
-    "@effect/ai-openai": "4.0.5",
-    "@effect/atom-react": "4.0.5",
-    "@effect/platform-browser": "4.0.5",
+    "@effect/ai-openai": "https://pkg.pr.new/@effect/ai-openai@ffc4243",
+    "@effect/atom-react": "https://pkg.pr.new/@effect/atom-react@ffc4243",
+    "@effect/platform-browser": "https://pkg.pr.new/@effect/platform-browser@ffc4243",
     "@hookform/resolvers": "^5.9.1",
     "@radix-ui/react-alert-dialog": "^1.1.18",
     "@radix-ui/react-checkbox": "^1.3.6",
@@ -46,7 +47,7 @@
     "cmdk": "^1.1.1",
     "country-data-list": "^1.6.3",
     "date-fns": "^4.4.0",
-    "effect": "https://pkg.pr.new/effect@704bdf6",
+    "effect": "https://pkg.pr.new/effect@ffc4243",
     "embla-carousel-react": "^8.6.0",
     "fraction.js": "^5.3.4",
     "jstoxml": "^7.1.1",
@@ -69,9 +70,9 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@effect/language-service": "^0.87.4",
-    "@effect/platform-node": "4.0.5",
-    "@effect/sql-sqlite-node": "4.0.5",
+    "@effect/platform-node": "https://pkg.pr.new/@effect/platform-node@ffc4243",
+    "@effect/sql-sqlite-node": "https://pkg.pr.new/@effect/sql-sqlite-node@ffc4243",
+    "@effect/tsgo": "0.54.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-devtools": "^1.167.2",

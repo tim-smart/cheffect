@@ -2,7 +2,7 @@ import { Duration } from "effect"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 
-export const DurationFromMinutes = Schema.Number.pipe(
+export const DurationFromMinutes = Schema.Finite.pipe(
   Schema.decodeTo(
     Schema.Duration,
     SchemaTransformation.transform({

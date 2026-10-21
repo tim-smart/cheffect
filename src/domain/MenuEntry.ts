@@ -37,7 +37,7 @@ export class MenuEntry extends Model.Class<MenuEntry>("MenuEntry")({
     insert: RecipeId,
     jsonCreate: Schema.String,
   }),
-  day: Schema.Number,
+  day: Schema.Finite,
   createdAt: Schema.DateTimeUtcFromMillis.pipe(
     Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),
   ),

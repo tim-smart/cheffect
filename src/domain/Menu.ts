@@ -22,7 +22,7 @@ export class Menu extends Model.Class<Menu>("Menu")({
     json: MenuIdFromString,
   }),
   name: Schema.String,
-  days: Schema.Number,
+  days: Schema.Finite,
   createdAt: Schema.DateTimeUtcFromMillis.pipe(Model.FieldExcept(["update"])),
   updatedAt: Schema.DateTimeUtcFromMillis,
 }) {

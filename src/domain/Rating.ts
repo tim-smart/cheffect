@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema"
 
-export const Rating = Schema.Number.pipe(
+export const Rating = Schema.Finite.pipe(
   Schema.check(
     Schema.isBetween(
       { minimum: 1, maximum: 5 },

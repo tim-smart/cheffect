@@ -24,7 +24,7 @@ export const AiChatTurnEvent = EventRow.make("AiChatTurn", {
   schema: Schema.Struct({
     id: AiChatTurnId,
     prompt: Schema.String,
-    entryTime: Schema.Number,
+    entryTime: Schema.Finite,
   }),
 })
 

@@ -24,7 +24,7 @@ export class MenuDayNote extends Model.Class<MenuDayNote>("MenuDayNote")({
   menuId: Model.Field({
     insert: MenuId,
   }),
-  day: Schema.Number,
+  day: Schema.Finite,
   note: Schema.String,
   createdAt: Schema.DateTimeUtcFromMillis.pipe(
     Model.FieldExcept(["update", "jsonCreate", "jsonUpdate"]),

@@ -1,14 +1,17 @@
 allowBuilds:
   esbuild: true
 
+# Effect snapshots use pkg.pr.new URLs for transitive dependencies.
+blockExoticSubdeps: false
+
 overrides:
-  "@effect/opentelemetry": 4.0.5
-  "@effect/platform-browser": 4.0.5
-  "@effect/platform-bun": 4.0.5
-  "@effect/platform-node": 4.0.5
-  "@effect/platform-node-shared": 4.0.5
-  "@effect/vitest": 4.0.5
-  effect: https://pkg.pr.new/effect@704bdf6
+  "@effect/opentelemetry": https://pkg.pr.new/@effect/opentelemetry@ffc4243
+  "@effect/platform-browser": https://pkg.pr.new/@effect/platform-browser@ffc4243
+  "@effect/platform-bun": https://pkg.pr.new/@effect/platform-bun@ffc4243
+  "@effect/platform-node": https://pkg.pr.new/@effect/platform-node@ffc4243
+  "@effect/platform-node-shared": https://pkg.pr.new/@effect/platform-node-shared@ffc4243
+  "@effect/vitest": https://pkg.pr.new/@effect/vitest@ffc4243
+  effect: https://pkg.pr.new/effect@ffc4243
 
 patchedDependencies:
   mdast-util-gfm-autolink-literal@2.0.1: patches/mdast-util-gfm-autolink-literal@2.0.1.patch

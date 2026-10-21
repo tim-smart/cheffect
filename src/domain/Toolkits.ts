@@ -71,7 +71,7 @@ export class toolkit extends Toolkit.make(
       "Scale the ingredients of an existing recipe by a given factor",
     parameters: Schema.Struct({
       recipeId: Schema.String,
-      scale: Schema.Number.annotate({
+      scale: Schema.Finite.annotate({
         description:
           "The factor by which to scale the recipe (e.g., 2.0 to double, 0.5 to halve).",
       }),
@@ -166,7 +166,7 @@ export class toolkit extends Toolkit.make(
       "Create or update a note for a menu day. Pass an empty note to remove the existing note.",
     parameters: Schema.Struct({
       menuId: Schema.String,
-      day: Schema.Number.annotate({
+      day: Schema.Finite.annotate({
         description: "Menu day number to set the note for.",
       }),
       note: Schema.String.annotate({
@@ -252,7 +252,7 @@ export class toolkit extends Toolkit.make(
         Schema.Struct({
           timerId: Schema.String,
           label: Schema.String,
-          durationMs: Schema.Number,
+          durationMs: Schema.Finite,
         }),
       ),
     ),

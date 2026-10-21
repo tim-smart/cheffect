@@ -150,13 +150,13 @@ export const TextInputOrNull = TextInput.make({
 })
 
 const NumberOrNull = Schema.Union([
-  Schema.Number,
+  Schema.Finite,
   Schema.Literal(""),
   Schema.FiniteFromString,
   Schema.Null,
 ]).pipe(
   Schema.decodeTo(
-    Schema.NullOr(Schema.Number),
+    Schema.NullOr(Schema.Finite),
     SchemaTransformation.transform({
       decode: (value) => (typeof value === "number" ? value : null),
       encode: (value) => value,

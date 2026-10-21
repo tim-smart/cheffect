@@ -34,12 +34,12 @@ const request = <A, E, R>(
     const request = options.ifAvailable ? options : { ...options, signal }
     const granted = locks.request(name, request, (lock) => {
       if (lock === null) {
-        resume(Effect.succeed(Option.none()))
+        resume(Effect.succeedNone)
         return
       }
       return new Promise<void>((release) => {
         resume(
-          Effect.onExit(Effect.map(effect, Option.some), () => {
+          Effect.onExit(Effect.asSome(effect), () => {
             release()
             // The lock is released once the callback's promise settles, and
             // the request promise settles after that. Waiting for it means a
