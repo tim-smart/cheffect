@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
-    "@effect/ai-openai": "https://pkg.pr.new/@effect/ai-openai@ffc4243",
-    "@effect/atom-react": "https://pkg.pr.new/@effect/atom-react@ffc4243",
-    "@effect/platform-browser": "https://pkg.pr.new/@effect/platform-browser@ffc4243",
+    "@effect/ai-openai": "https://pkg.pr.new/@effect/ai-openai@f73059d",
+    "@effect/atom-react": "https://pkg.pr.new/@effect/atom-react@f73059d",
+    "@effect/platform-browser": "https://pkg.pr.new/@effect/platform-browser@f73059d",
     "@hookform/resolvers": "^5.9.1",
     "@radix-ui/react-alert-dialog": "^1.1.18",
     "@radix-ui/react-checkbox": "^1.3.6",
@@ -47,7 +47,7 @@
     "cmdk": "^1.1.1",
     "country-data-list": "^1.6.3",
     "date-fns": "^4.4.0",
-    "effect": "https://pkg.pr.new/effect@ffc4243",
+    "effect": "https://pkg.pr.new/effect@f73059d",
     "embla-carousel-react": "^8.6.0",
     "fraction.js": "^5.3.4",
     "jstoxml": "^7.1.1",
@@ -70,8 +70,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@effect/platform-node": "https://pkg.pr.new/@effect/platform-node@ffc4243",
-    "@effect/sql-sqlite-node": "https://pkg.pr.new/@effect/sql-sqlite-node@ffc4243",
+    "@effect/platform-node": "https://pkg.pr.new/@effect/platform-node@f73059d",
+    "@effect/sql-sqlite-node": "https://pkg.pr.new/@effect/sql-sqlite-node@f73059d",
     "@effect/tsgo": "0.54.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
