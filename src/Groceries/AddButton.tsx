@@ -22,7 +22,7 @@ export function AddToGroceriesButton({
       title="Add to grocery list"
     >
       {groceryAddResult.waiting ? (
-        <Check className="size-3 mt-px" />
+        <Check className="size-3 mt-px motion-safe:animate-tick-pop" />
       ) : (
         <Plus className="size-3 mt-px" />
       )}

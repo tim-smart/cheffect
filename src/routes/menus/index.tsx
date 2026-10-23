@@ -18,7 +18,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { useWrite } from "@/EventLog"
 import { allMenusAtom, menuRecipeCountsAtom } from "@/Menus/atoms"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import {
   MealPlanDatePicker,
   MealPlanDatePickerTarget,
@@ -100,8 +100,14 @@ function MenuList() {
   }
   return (
     <div className="flex flex-col gap-2">
-      {menus.map((menu) => (
-        <MenuCard key={menu.idString} menu={menu} />
+      {menus.map((menu, index) => (
+        <div
+          key={menu.idString}
+          className="motion-safe:animate-rise-in stagger"
+          style={{ "--i": index } as CSSProperties}
+        >
+          <MenuCard menu={menu} />
+        </div>
       ))}
     </div>
   )
@@ -109,7 +115,7 @@ function MenuList() {
 
 function NoResults() {
   return (
-    <div className="text-center py-16">
+    <div className="text-center py-16 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500">
       <ChefHat className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
       <h3 className="text-lg font-medium  mb-2">No menus found</h3>
       <p className="text-muted-foreground mb-6 px-4">

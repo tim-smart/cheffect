@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import clsx from "clsx"
 import { Placeholder } from "@/components/placeholder"
 import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual"
-import type { MouseEvent } from "react"
+import { useEffect, useState, type CSSProperties, type MouseEvent } from "react"
+import { FadeImage } from "@/components/FadeImage"
 
 export function RecipeList({
   recipes,
@@ -43,6 +44,10 @@ export function RecipeList({
         overscan: 10,
       })
 
+  // Rows that mount in the first moments rise in, staggered by their place
+  // on screen; rows scrolled into view later simply appear
+  const entering = useEntering()
+
   if (recipes.length === 0) {
     return <NoResults searchQuery={searchQuery} />
   }
@@ -55,12 +60,11 @@ export function RecipeList({
           position: "relative",
         }}
       >
-        {virtualizer.getVirtualItems().map((virtualRow) => (
+        {virtualizer.getVirtualItems().map((virtualRow, position) => (
           <div
             key={virtualRow.key}
             ref={virtualizer.measureElement}
             data-index={virtualRow.index}
-            className="grid grid-cols-2 gap-x-3 pb-4"
             style={{
               position: "absolute",
               top: 0,
@@ -69,14 +73,24 @@ export function RecipeList({
               transform: `translateY(${virtualRow.start}px)`,
             }}
           >
-            {recipes
-              .slice(
-                virtualRow.index * columns,
-                (virtualRow.index + 1) * columns,
-              )
-              .map((recipe) => (
-                <RecipeTile key={recipe.idString} recipe={recipe} />
-              ))}
+            {/* The entrance animates an inner element: the row's own
+                transform is the virtualizer's */}
+            <div
+              className={clsx(
+                "grid grid-cols-2 gap-x-3 pb-4",
+                entering && "motion-safe:animate-rise-in stagger",
+              )}
+              style={{ "--i": position } as CSSProperties}
+            >
+              {recipes
+                .slice(
+                  virtualRow.index * columns,
+                  (virtualRow.index + 1) * columns,
+                )
+                .map((recipe) => (
+                  <RecipeTile key={recipe.idString} recipe={recipe} />
+                ))}
+            </div>
           </div>
         ))}
       </div>
@@ -121,9 +135,20 @@ export function RecipeList({
   )
 }
 
+// True for the first moments after mount, long enough for a staggered
+// entrance to finish before the class is dropped
+function useEntering() {
+  const [entering, setEntering] = useState(true)
+  useEffect(() => {
+    const timeout = setTimeout(() => setEntering(false), 900)
+    return () => clearTimeout(timeout)
+  }, [])
+  return entering
+}
+
 function NoResults({ searchQuery }: { readonly searchQuery: string }) {
   return (
-    <div className="text-center py-16">
+    <div className="text-center py-16 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500">
       <ChefHat className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
       <h3 className="text-lg font-medium mb-2">No recipes found</h3>
       <p className="text-muted-foreground mb-6 px-4">
@@ -155,10 +180,10 @@ function RecipeTile({ recipe }: { recipe: Recipe }) {
           <ChefHat className="size-10 opacity-30" />
         </div>
         {recipe.imageUrl && (
-          <img
+          <FadeImage
             src={recipe.imageUrl}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] group-active:scale-[0.97]"
+            className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-hover:scale-[1.03] motion-safe:group-active:scale-[0.97]"
             onError={(event) => {
               event.currentTarget.hidden = true
             }}

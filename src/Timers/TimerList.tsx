@@ -72,6 +72,7 @@ export function TimerCircle({
           aria-label={ariaLabel}
           className={cn(
             "relative flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-lg ring-1 ring-border transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-50 motion-safe:duration-300 motion-safe:ease-spring",
             status._tag === "Completed" ? "text-foreground" : "text-primary",
           )}
         >

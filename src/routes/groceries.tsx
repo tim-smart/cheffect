@@ -164,8 +164,14 @@ function GroceryList() {
                     <ChevronDown className="block size-5 text-muted-foreground" />
                   </h1>
                 </ListCombobox>
-                <p className="text-sm text-muted-foreground tabular-nums">
-                  {remaining} of {total} items remaining
+                <p
+                  // Re-keyed so the finished line fades in
+                  key={remaining === 0 && total > 0 ? "done" : "counting"}
+                  className="text-sm text-muted-foreground tabular-nums motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300"
+                >
+                  {remaining === 0 && total > 0
+                    ? "Everything's in the basket"
+                    : `${remaining} of ${total} items remaining`}
                 </p>
               </div>
             </div>
@@ -204,7 +210,7 @@ function GroceryList() {
           <div className="mt-3">
             <div className="w-full bg-muted rounded-full h-1.5">
               <div
-                className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                className="bg-primary h-1.5 rounded-full motion-safe:transition-[width] motion-safe:duration-500 ease-out-quart"
                 style={{
                   width: total > 0 ? `${(completed / total) * 100}%` : "0%",
                 }}
@@ -467,7 +473,7 @@ function GroceryListList({
         <div className="overflow-hidden">
           <div className="space-y-4 max-w-lg mx-auto px-4 py-2">
             {showCompleted && (
-              <p className="pt-2 font-display text-[20px] font-medium tracking-tight text-muted-foreground">
+              <p className="pt-2 font-display text-[20px] font-medium tracking-tight text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
                 In the basket
               </p>
             )}
@@ -485,7 +491,7 @@ function GroceryListList({
 
             {/* Empty State */}
             {total === 0 && (
-              <div className="text-center py-16">
+              <div className="text-center py-16 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500">
                 <ShoppingCart className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">
                   Your grocery list is empty
@@ -599,9 +605,11 @@ const GroceryListItem = memo(function GroceryListItem({
   const [editingItem, setEditingItem] = useState(false)
   return (
     <div
+      // A checked item moves to the basket, so it slides into its new place
       className={cn(
         `flex items-center gap-3 transition-colors ${item.completed ? "" : "active:bg-muted"}`,
         editingItem ? "" : "cursor-default",
+        "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 motion-safe:duration-300",
       )}
     >
       <Checkbox
