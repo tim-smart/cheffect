@@ -153,19 +153,18 @@ function GroceryList() {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background border-b border-border sticky top-0 z-10">
-        <div className="px-4 py-4">
+      <header className="bg-background sticky top-0 z-10">
+        <div className="px-4 pt-3 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <ShoppingCart className="w-6 h-6 text-primary" />
               <div>
                 <ListCombobox>
-                  <h1 className="text-lg font-semibold flex items-center gap-1">
+                  <h1 className="font-display text-[26px] font-medium tracking-tight flex items-center gap-1">
                     {currentList ?? "Grocery list"}
-                    <ChevronDown className="block size-5" />
+                    <ChevronDown className="block size-5 text-muted-foreground" />
                   </h1>
                 </ListCombobox>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground tabular-nums">
                   {remaining} of {total} items remaining
                 </p>
               </div>
@@ -203,9 +202,9 @@ function GroceryList() {
 
           {/* Progress Bar */}
           <div className="mt-3">
-            <div className="w-full bg-border rounded-full h-2">
+            <div className="w-full bg-muted rounded-full h-1.5">
               <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
+                className="bg-primary h-1.5 rounded-full transition-all duration-300"
                 style={{
                   width: total > 0 ? `${(completed / total) * 100}%` : "0%",
                 }}
@@ -326,7 +325,7 @@ function GroceryItemForm({
               >
                 <Button
                   type="submit"
-                  className="flex-1 bg-primary hover:bg-orange-700"
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   {isEditing ? "Save" : "Add Item"}
                 </Button>
@@ -427,10 +426,10 @@ function GroceryListList({
   return (
     <>
       {showForm && (
-        <div className="bg-background border-b border-border">
+        <div className="bg-background">
           <GroceryItemForm
             currentList={currentList}
-            className="max-w-lg mx-auto px-2"
+            className="max-w-lg mx-auto px-4"
             onSubmit={(item) => {
               addGroceryItem(item)
             }}
@@ -466,9 +465,11 @@ function GroceryListList({
         }}
       >
         <div className="overflow-hidden">
-          <div className="space-y-2 max-w-lg mx-auto p-2">
+          <div className="space-y-4 max-w-lg mx-auto px-4 py-2">
             {showCompleted && (
-              <hr className="my-4 border-border border-3 rounded-lg w-2/5 mx-auto" />
+              <p className="pt-2 font-display text-[20px] font-medium tracking-tight text-muted-foreground">
+                In the basket
+              </p>
             )}
             {/* Grocery List by Aisle */}
             {filteredAisles.map(({ name, items }) => (
@@ -546,7 +547,7 @@ function GroceryAisleSection({
     >
       <div
         className={cn(
-          "flex items-center justify-between mb-2 rounded-lg px-2 py-1",
+          "flex items-center justify-between mb-1 rounded-lg py-1",
           isOver && !isDragging && "text-primary",
         )}
       >
@@ -563,11 +564,13 @@ function GroceryAisleSection({
               <GripVertical className="size-5" />
             </div>
           )}
-          <h2 className="font-semibold ">{name}</h2>
+          <h2 className="font-display text-[20px] font-medium tracking-tight">
+            {name}
+          </h2>
         </div>
       </div>
 
-      <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
+      <div className="divide-y divide-border border-y border-border">
         {items.map((item) => (
           <GroceryListItem
             key={item.idString}
@@ -597,14 +600,14 @@ const GroceryListItem = memo(function GroceryListItem({
   return (
     <div
       className={cn(
-        `flex items-center gap-3 pl-3 transition-colors bg-card ${item.completed ? "bg-muted" : "active:bg-muted dark:active:bg-card/50"}`,
+        `flex items-center gap-3 transition-colors ${item.completed ? "" : "active:bg-muted"}`,
         editingItem ? "" : "cursor-default",
       )}
     >
       <Checkbox
         checked={item.completed}
         onCheckedChange={() => toggleItem(item)}
-        className="shrink-0"
+        className="shrink-0 size-[18px] rounded-full"
       />
 
       {editingItem ? (
@@ -626,16 +629,16 @@ const GroceryListItem = memo(function GroceryListItem({
           <div
             className={cn(
               "flex-1 min-w-0 flex flex-col leading-tight py-1 justify-center",
-              item.recipeIds ? "pt-2" : "min-h-13",
-              `${item.completed ? "text-muted-foreground" : ""}`,
+              item.recipeIds ? "pt-2" : "min-h-12",
+              `${item.completed ? "text-muted-foreground line-through decoration-border" : ""}`,
             )}
             onClick={() => toggleItem(item)}
           >
             <div>
               <span>{item.name}</span>
               {item.quantity && (
-                <span className="text-sm text-muted-foreground ml-2">
-                  ({item.quantity})
+                <span className="text-sm text-muted-foreground ml-2 tabular-nums">
+                  {item.quantity}
                 </span>
               )}
             </div>
@@ -652,7 +655,7 @@ const GroceryListItem = memo(function GroceryListItem({
               onClick={() => setEditingItem(true)}
               variant="ghost"
               size="sm"
-              className="p-2! text-muted-foreground hover:text-orange-500 shrink-0 -mr-2"
+              className="p-2! text-muted-foreground/60 hover:text-primary shrink-0 -mr-2"
             >
               <Edit />
             </Button>
@@ -660,7 +663,7 @@ const GroceryListItem = memo(function GroceryListItem({
               onClick={() => removeItem(item)}
               variant="ghost"
               size="sm"
-              className="p-2! text-muted-foreground hover:text-red-500 shrink-0"
+              className="p-2! text-muted-foreground/60 hover:text-destructive shrink-0"
             >
               <X />
             </Button>

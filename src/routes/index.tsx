@@ -25,11 +25,22 @@ export const Route = createFileRoute("/")({
 
 export default function CheffectHome() {
   const recipes = useAtomValue(allRecipesAtom)
+  const searching = useAtomValue(recipeSearchQueryAtom) !== ""
 
   return (
-    <div className="max-w-lg mx-auto p-2 sm:p-4 pb-content!">
+    <div className="max-w-lg mx-auto px-4 pt-3 pb-content!">
+      <div className="flex items-baseline justify-between mb-4">
+        <h2 className="font-display text-[32px] font-medium leading-none tracking-tight">
+          Recipes
+        </h2>
+        {AsyncResult.isSuccess(recipes) && (
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {recipes.value.length} {searching ? "matching" : "saved"}
+          </span>
+        )}
+      </div>
       {/* Search Bar */}
-      <div className="mb-2 sm:mb-4">
+      <div className="mb-5">
         <SearchInput />
       </div>
 
@@ -54,7 +65,7 @@ function SearchInput() {
   return (
     <div className="flex gap-2">
       <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
           type="text"
           placeholder="Search recipes..."
@@ -65,7 +76,7 @@ function SearchInput() {
             const target = e.target as HTMLInputElement
             target.blur()
           }}
-          className={`pl-10 h-11 bg-card! ${searchQuery ? "pr-9" : ""}`}
+          className={`pl-10 h-11 bg-card! rounded-full shadow-none ${searchQuery ? "pr-9" : ""}`}
         />
         {searchQuery && (
           <button
@@ -87,7 +98,11 @@ function SortButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-11 px-3 bg-card">
+        <Button
+          variant="outline"
+          size="sm"
+          className="size-11 rounded-full bg-card shadow-none"
+        >
           <ArrowDownWideNarrow className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>

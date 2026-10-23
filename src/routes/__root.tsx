@@ -27,18 +27,23 @@ export const Route = createRootRoute({
     })
     return (
       <div>
-        <header className="bg-background border-b border-border sticky top-0 z-10">
+        <header className="bg-background sticky top-0 z-10">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <button
-                className="flex items-center gap-3 cursor-pointer"
+                className="flex items-center gap-2 cursor-pointer"
                 type="button"
                 onClick={() => {
                   router.navigate({ to: "/" })
                 }}
               >
-                <ChefHat className="w-7 h-7 text-primary cursor-pointer" />
-                <h1 className="text-xl font-bold leading-none">Cheffect</h1>
+                <ChefHat
+                  className="w-6 h-6 text-primary cursor-pointer"
+                  strokeWidth={1.75}
+                />
+                <h1 className="font-display text-2xl font-semibold leading-none tracking-tight">
+                  Cheffect
+                </h1>
               </button>
               <div className="flex items-center gap-3">
                 <Button
@@ -63,60 +68,62 @@ export const Route = createRootRoute({
         </main>
 
         {/* Bottom Navigation - Mobile First */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-2 nav-pb">
+        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-2 pt-1 nav-pb">
           <div className="flex justify-around">
             <Link
               to="/"
-              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary-muted" }}
+              className="flex flex-col items-center gap-1 py-2 px-4 transition-colors"
+              activeProps={{ className: "text-primary" }}
               inactiveProps={
                 onRecipePage
                   ? {
-                      className: "text-primary bg-primary-muted",
+                      className: "text-primary",
                       "aria-current": "page",
                       "data-status": "active",
                     }
-                  : { className: "text-muted-foreground active:bg-muted" }
+                  : {
+                      className: "text-muted-foreground active:text-foreground",
+                    }
               }
             >
-              <ChefHat className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Recipes</span>
+              <ChefHat className="w-6 h-6" strokeWidth={1.75} />
+              <span className="text-xs font-semibold">Recipes</span>
             </Link>
 
             <Link
               to="/groceries"
-              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary-muted" }}
+              className="flex flex-col items-center gap-1 py-2 px-4 transition-colors"
+              activeProps={{ className: "text-primary" }}
               inactiveProps={{
-                className: "text-muted-foreground active:bg-muted",
+                className: "text-muted-foreground active:text-foreground",
               }}
             >
-              <ShoppingCart className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Grocery</span>
+              <ShoppingCart className="w-6 h-6" strokeWidth={1.75} />
+              <span className="text-xs font-semibold">Grocery</span>
             </Link>
 
             <Link
               to="/plan"
-              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary-muted" }}
+              className="flex flex-col items-center gap-1 py-2 px-4 transition-colors"
+              activeProps={{ className: "text-primary" }}
               inactiveProps={{
-                className: "text-muted-foreground active:bg-muted",
+                className: "text-muted-foreground active:text-foreground",
               }}
             >
-              <Calendar className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Meal Plan</span>
+              <Calendar className="w-6 h-6" strokeWidth={1.75} />
+              <span className="text-xs font-semibold">Meal Plan</span>
             </Link>
 
             <Link
               to="/menus"
-              className="flex flex-col items-center py-2 px-4 rounded-lg transition-colors"
-              activeProps={{ className: "text-primary bg-primary-muted" }}
+              className="flex flex-col items-center gap-1 py-2 px-4 transition-colors"
+              activeProps={{ className: "text-primary" }}
               inactiveProps={{
-                className: "text-muted-foreground active:bg-muted",
+                className: "text-muted-foreground active:text-foreground",
               }}
             >
-              <BookOpen className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">Menus</span>
+              <BookOpen className="w-6 h-6" strokeWidth={1.75} />
+              <span className="text-xs font-semibold">Menus</span>
             </Link>
           </div>
         </nav>

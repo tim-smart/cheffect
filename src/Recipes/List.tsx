@@ -23,6 +23,10 @@ export function RecipeList({
   rounded?: boolean
   getScrollElement?: () => HTMLElement | null
 }) {
+  // The recipes page shows photo tiles two to a row; the pickers keep rows
+  const tiles = onSelect === undefined && getScrollElement === undefined
+  const columns = tiles ? 2 : 1
+  const rowCount = Math.ceil(recipes.length / columns)
   const virtualizer = getScrollElement
     ? useVirtualizer({
         count: recipes.length,
@@ -34,13 +38,49 @@ export function RecipeList({
         initialOffset: useElementScrollRestoration({
           getElement: () => window,
         })?.scrollY,
-        count: recipes.length,
-        estimateSize: () => 81,
+        count: rowCount,
+        estimateSize: () => (tiles ? 216 : 81),
         overscan: 10,
       })
 
   if (recipes.length === 0) {
     return <NoResults searchQuery={searchQuery} />
+  }
+  if (tiles) {
+    return (
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => (
+          <div
+            key={virtualRow.key}
+            ref={virtualizer.measureElement}
+            data-index={virtualRow.index}
+            className="grid grid-cols-2 gap-x-3 pb-4"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${virtualRow.start}px)`,
+            }}
+          >
+            {recipes
+              .slice(
+                virtualRow.index * columns,
+                (virtualRow.index + 1) * columns,
+              )
+              .map((recipe) => (
+                <RecipeTile key={recipe.idString} recipe={recipe} />
+              ))}
+          </div>
+        ))}
+      </div>
+    )
   }
   return (
     <div
@@ -96,6 +136,56 @@ function NoResults({ searchQuery }: { readonly searchQuery: string }) {
   )
 }
 
+function RecipeTile({ recipe }: { recipe: Recipe }) {
+  const meta = [
+    ...Option.match(recipe.totalTime, {
+      onNone: () => [],
+      onSome: (d) => [Duration.format(d)],
+    }),
+    ...(recipe.servings !== null ? [`Serves ${recipe.servingsDisplay}`] : []),
+  ]
+  return (
+    <Link
+      to="/recipes/$id"
+      params={{ id: recipe.idString }}
+      className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+    >
+      <div className="relative h-32 overflow-hidden rounded-xl bg-muted">
+        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+          <ChefHat className="size-10 opacity-30" />
+        </div>
+        {recipe.imageUrl && (
+          <img
+            src={recipe.imageUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] group-active:scale-[0.97]"
+            onError={(event) => {
+              event.currentTarget.hidden = true
+            }}
+          />
+        )}
+      </div>
+      {/* A fixed text block keeps every row 216px, which the virtualizer
+          relies on to restore the scroll position exactly */}
+      <div className="mt-2 h-16">
+        <h3 className="font-display text-[16px] font-medium leading-[22px] line-clamp-2">
+          {recipe.title}
+        </h3>
+        <p className="mt-0.5 flex h-[18px] items-center gap-1 text-[12.5px] leading-[18px] text-muted-foreground tabular-nums">
+          {meta.join(" · ")}
+          {recipe.rating !== null && (
+            <>
+              {meta.length > 0 && " · "}
+              <Star className="size-3 fill-current" />
+              {recipe.rating}
+            </>
+          )}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
 function RecipeCard({
   recipe,
   onSelect,
@@ -120,14 +210,16 @@ function RecipeCard({
       <div className="flex items-center h-20">
         {/* Recipe Image - No whitespace */}
         <div className="relative h-full aspect-square">
-          {recipe.imageUrl ? (
+          <Placeholder />
+          {recipe.imageUrl && (
             <img
               src={recipe.imageUrl}
-              alt={recipe.title}
-              className="object-cover h-full w-full"
+              alt=""
+              className="absolute inset-0 object-cover h-full w-full"
+              onError={(event) => {
+                event.currentTarget.hidden = true
+              }}
             />
-          ) : (
-            <Placeholder />
           )}
         </div>
 

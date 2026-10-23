@@ -112,12 +112,13 @@ export function MealPlanPage() {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background border-b border-border sticky top-0 z-10">
-        <div className="px-4 py-2">
-          <div className="flex items-center justify-between mb-3">
+      <header className="bg-background sticky top-0 z-10">
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
-              <h1 className="text-lg font-bold">Meal Plan</h1>
+              <h1 className="font-display text-[26px] font-medium tracking-tight">
+                Meal Plan
+              </h1>
             </div>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
@@ -216,7 +217,7 @@ export function MealPlanPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-2 py-3" {...handlers}>
+      <main className="max-w-lg mx-auto px-4 py-2" {...handlers}>
         {/* Days open their note on mount, so wait for the first snapshot. */}
         {AsyncResult.isInitial(entries) ||
         AsyncResult.isInitial(dayNotes) ? null : (
@@ -250,7 +251,7 @@ function WeekList({
   const notesByDay = latestNoteByDay(dayNotes)
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+    <div className="divide-y divide-border">
       {weekDays.map((date) => {
         const isTodayDate = isToday(date)
         const dayEntries = entries.filter((entry) =>
@@ -327,22 +328,18 @@ function DayListItem({
   }
 
   return (
-    <div className="bg-card">
+    <div className="py-2.5">
       {/* Day Header with Add Button */}
-      <div
-        className={`w-full p-2 flex items-center justify-between border-b text-card-foreground ${
-          isTodayDate ? "bg-primary-muted" : "bg-muted dark:bg-background"
-        }`}
-      >
+      <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
-          <div>
+          <div className="flex items-baseline gap-2">
             <p
-              className={`font-semibold text-sm ${isTodayDate ? "text-primary" : ""}`}
+              className={`font-display text-[20px] font-medium leading-tight tracking-tight ${isTodayDate ? "text-primary" : ""}`}
             >
               {dayNames[dateParts.weekDay]}
             </p>
             <p
-              className={`text-xs ${isTodayDate ? "text-primary/70" : "text-muted-foreground"}`}
+              className={`text-[13px] ${isTodayDate ? "text-primary" : "text-muted-foreground"}`}
             >
               {DateTime.formatUtc(date, {
                 month: "short",
@@ -383,7 +380,7 @@ function DayListItem({
       </div>
 
       {noteVisible && (
-        <div className="bg-card p-2 pb-0">
+        <div className="pt-2">
           <textarea
             value={noteDraft}
             placeholder="Add a note..."
@@ -397,27 +394,31 @@ function DayListItem({
       {/* Day Content - Always Visible */}
       <div>
         {dayEntries.length > 0 && (
-          <div className="divide-y divide-border">
+          <div className="mt-1.5 space-y-1.5">
             {dayEntries.map(({ id, idString, recipe }) => (
               <Link
                 key={idString}
-                className="flex items-center p-2 gap-3"
+                className="flex items-center gap-3 rounded-xl bg-card p-1.5 pr-1 transition-colors active:bg-muted"
                 to="/recipes/$id"
                 params={{ id: recipe.idString }}
               >
-                <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
-                  {recipe.imageUrl ? (
+                <div className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-muted">
+                  {/* the placeholder sits behind the photo, so it shows when
+                      the photo is missing or fails to load */}
+                  <Placeholder />
+                  {recipe.imageUrl && (
                     <img
                       src={recipe.imageUrl}
-                      alt={recipe.title}
-                      className="w-full h-full object-cover"
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.hidden = true
+                      }}
                     />
-                  ) : (
-                    <Placeholder />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm  line-clamp-1">
+                  <h4 className="font-display text-[16px] font-medium leading-snug line-clamp-1">
                     {recipe.title}
                   </h4>
                   <p className="text-xs text-muted-foreground">
@@ -479,8 +480,8 @@ function DayListItem({
         )}
 
         {dayEntries.length === 0 && (
-          <div className="p-3 text-center">
-            <p className="text-sm text-muted-foreground">No meals planned</p>
+          <div className="pt-0.5">
+            <p className="text-sm text-muted-foreground">Nothing planned</p>
           </div>
         )}
       </div>
