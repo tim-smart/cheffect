@@ -44,6 +44,7 @@ import { Placeholder } from "@/components/placeholder"
 import { useEffect, useState } from "react"
 import { useSwipeable } from "react-swipeable"
 import { quantityFormatter } from "@/lib/quantity"
+import { cn } from "@/lib/utils"
 import {
   MealPlanEntryEvent,
   MealPlanDayNoteEvent,
@@ -91,12 +92,22 @@ export function MealPlanPage() {
     DateTime.isGreaterThanOrEqualTo(today, weekStart) &&
     DateTime.isLessThanOrEqualTo(today, weekEnd)
 
+  // Which way the week list slides in: the direction the weeks moved
+  const [direction, setDirection] = useState<"back" | "forward" | null>(null)
+
   const handlePreviousWeek = () => {
+    setDirection("back")
     setWeekStart(DateTime.subtract(weekStartRaw, { weeks: 1 }))
   }
 
   const handleNextWeek = () => {
+    setDirection("forward")
     setWeekStart(DateTime.add(weekStartRaw, { weeks: 1 }))
+  }
+
+  const handleToday = () => {
+    setDirection(DateTime.isLessThan(today, weekStart) ? "back" : "forward")
+    setWeekStart(DateTime.startOf(today, "week"))
   }
 
   const handleRemoveEntry = (id: MealPlanEntryId) => {
@@ -198,7 +209,7 @@ export function MealPlanPage() {
                   variant="outline"
                   size="xs"
                   className="text-primary border-primary/40 hover:text-primary hover:bg-primary/10"
-                  onClick={() => setWeekStart(DateTime.startOf(today, "week"))}
+                  onClick={handleToday}
                 >
                   Today
                 </Button>
@@ -221,13 +232,23 @@ export function MealPlanPage() {
         {/* Days open their note on mount, so wait for the first snapshot. */}
         {AsyncResult.isInitial(entries) ||
         AsyncResult.isInitial(dayNotes) ? null : (
-          <WeekList
-            today={today}
-            entries={AsyncResult.getOrElse(entries, () => [])}
-            dayNotes={AsyncResult.getOrElse(dayNotes, () => [])}
-            weekDays={weekDays}
-            handleRemoveEntry={handleRemoveEntry}
-          />
+          <div
+            key={weekStart.epochMilliseconds}
+            className={cn(
+              direction !== null &&
+                "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300 motion-safe:ease-out-quart",
+              direction === "forward" && "motion-safe:slide-in-from-right-4",
+              direction === "back" && "motion-safe:slide-in-from-left-4",
+            )}
+          >
+            <WeekList
+              today={today}
+              entries={AsyncResult.getOrElse(entries, () => [])}
+              dayNotes={AsyncResult.getOrElse(dayNotes, () => [])}
+              weekDays={weekDays}
+              handleRemoveEntry={handleRemoveEntry}
+            />
+          </div>
         )}
       </main>
     </div>

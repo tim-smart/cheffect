@@ -16,6 +16,7 @@ import {
   Settings,
   ShoppingCart,
 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export const Route = createRootRoute({
   component: () => {
@@ -25,20 +26,27 @@ export const Route = createRootRoute({
     const onRecipePage = useLocation({
       select: (location) => /^\/(recipes|edit)\//.test(location.pathname),
     })
+    const pathname = useLocation({ select: (location) => location.pathname })
+    // The tab icon hops on navigation, not on the first paint
+    const [initialPath] = useState(pathname)
+    const [navigated, setNavigated] = useState(false)
+    useEffect(() => {
+      if (pathname !== initialPath) setNavigated(true)
+    }, [pathname, initialPath])
     return (
       <div>
         <header className="bg-background sticky top-0 z-10">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
               <button
-                className="flex items-center gap-2 cursor-pointer"
+                className="group flex items-center gap-2 cursor-pointer"
                 type="button"
                 onClick={() => {
                   router.navigate({ to: "/" })
                 }}
               >
                 <ChefHat
-                  className="w-6 h-6 text-primary cursor-pointer"
+                  className="w-6 h-6 text-primary cursor-pointer origin-bottom motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-spring motion-safe:group-hover:-rotate-12 motion-safe:group-active:-rotate-12"
                   strokeWidth={1.75}
                 />
                 <h1 className="font-display text-2xl font-semibold leading-none tracking-tight">
@@ -62,13 +70,22 @@ export const Route = createRootRoute({
         </header>
 
         <main>
-          <Outlet />
+          {/* Each screen fades in; opacity only, so scroll restoration and
+              the sticky headers are untouched */}
+          <div
+            key={pathname}
+            className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+          >
+            <Outlet />
+          </div>
           <AiChatModal />
           <Toaster toastOptions={{ style: { bottom: "4rem" } }} />
         </main>
 
         {/* Bottom Navigation - Mobile First */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-2 pt-1 nav-pb">
+        <nav
+          className={`fixed bottom-0 left-0 right-0 bg-card border-t border-border px-2 pt-1 nav-pb ${navigated ? "nav-animated" : ""}`}
+        >
           <div className="flex justify-around">
             <Link
               to="/"

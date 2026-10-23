@@ -80,7 +80,7 @@ const AddRecipeTrigger = function ({ small, ...rest }: { small: boolean }) {
     return (
       <Button
         size="sm"
-        className="bg-primary hover:bg-primary/90 size-10 rounded-full shadow-none"
+        className="bg-primary hover:bg-primary/90 size-10 rounded-full shadow-none [&_svg]:transition-transform [&_svg]:duration-300 [&_svg]:ease-spring motion-safe:[&[data-state=open]_svg]:rotate-45"
         {...rest}
       >
         <Plus />
@@ -89,7 +89,7 @@ const AddRecipeTrigger = function ({ small, ...rest }: { small: boolean }) {
   }
   return (
     <Button
-      className="bg-primary hover:bg-primary/90 h-12 px-6 rounded-full shadow-none"
+      className="bg-primary hover:bg-primary/90 h-12 px-6 rounded-full shadow-none [&_svg]:transition-transform [&_svg]:duration-300 [&_svg]:ease-spring motion-safe:[&[data-state=open]_svg]:rotate-45"
       {...rest}
     >
       <Plus />

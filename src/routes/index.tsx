@@ -82,7 +82,7 @@ function SearchInput() {
           <button
             type="button"
             onClick={() => setSearchQuery("")}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-50 motion-safe:duration-200"
           >
             <X className="w-4 h-4" />
           </button>

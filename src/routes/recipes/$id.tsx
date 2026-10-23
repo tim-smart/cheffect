@@ -35,6 +35,7 @@ import {
 } from "@/Recipes/atoms"
 import { exportRecipeAsHtml, exportRecipeAsYaml } from "@/Recipes/export"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
+import { FadeImage } from "@/components/FadeImage"
 import { router } from "@/Router"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import {
@@ -230,10 +231,10 @@ export function RecipeDetails({
               <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground">
                 <ChefHat className="size-[18%] md:size-[10%] opacity-30" />
               </div>
-              <img
+              <FadeImage
                 src={recipe.imageUrl}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover duration-700 ease-out-quart motion-safe:transition-[opacity,scale] motion-safe:data-[loaded=false]:scale-[1.04]"
                 onError={(event) => {
                   event.currentTarget.hidden = true
                 }}
@@ -431,7 +432,7 @@ export function RecipeDetails({
                           className="mt-[0.2em] size-[18px] rounded-full"
                         />
                         <div
-                          className={`flex-1 ${isChecked ? "text-muted-foreground" : ""}`}
+                          className={`flex-1 transition-colors duration-300 ${isChecked ? "text-muted-foreground" : ""}`}
                         >
                           <span>
                             {ingredient.quantity !== null && (
@@ -480,9 +481,9 @@ export function RecipeDetails({
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`shrink-0 w-8 font-display text-[28px] leading-[1] font-medium tabular-nums text-center ${
+                    className={`shrink-0 w-8 font-display text-[28px] leading-[1] font-medium tabular-nums text-center transition-[color,scale] duration-300 ease-spring ${
                       currentStep === stepIndex
-                        ? "text-primary"
+                        ? "text-primary motion-safe:scale-110"
                         : "text-muted-foreground/60"
                     }`}
                   >
