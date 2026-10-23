@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { type MouseEvent, useRef, useState } from "react"
 
 /**
  * Whether a day's note is open, for the meal plan and menu days. Opening it
@@ -14,33 +14,36 @@ export const useDayNote = (options: {
 }) => {
   const [open, setOpen] = useState(options.initiallyOpen)
   const [focusOnOpen, setFocusOnOpen] = useState(false)
-  // Pressing the note button blurs the field before the button's click. That
-  // click closes the note itself, so a blur during the press only saves;
-  // closing there too would let the click open it again.
-  const pressingToggle = useRef(false)
+  // Set while the note button closes the note, so a blur as the field goes
+  // away doesn't save it a second time
+  const closing = useRef(false)
 
   const toggleProps = {
-    onPointerDown: () => {
-      pressingToggle.current = true
-    },
-    onPointerCancel: () => {
-      pressingToggle.current = false
+    // Pressing the button would blur the field, and an empty field closes on
+    // blur, so the click would then open it again. Keeping the field focused
+    // through the press leaves opening and closing to the click alone, and a
+    // press that slides off the button changes nothing.
+    onMouseDown: (event: MouseEvent) => {
+      event.preventDefault()
     },
     onClick: () => {
-      pressingToggle.current = false
+      if (open) {
+        closing.current = true
+        options.save()
+      }
       setFocusOnOpen(!open)
       setOpen(!open)
     },
   }
 
   const fieldProps = {
-    // a press that left the button without clicking it is over
     onFocus: () => {
-      pressingToggle.current = false
+      closing.current = false
     },
     onBlur: () => {
+      if (closing.current) return
       options.save()
-      if (options.isEmpty() && !pressingToggle.current) {
+      if (options.isEmpty()) {
         setOpen(false)
       }
     },

@@ -159,16 +159,16 @@ const launchBrowser = async (profile: string) => {
   const navigate = (url: string) =>
     sendOrCrash("Page.navigate", { url }, `navigate(${url})`)
   /**
-   * Clicks the centre of an element with real mouse events. `element` is an
+   * The centre of an element, once it has stopped moving. `element` is an
    * expression that evaluates to the element.
    *
-   * The mouse events go to a fixed point, so the element has to have stopped
+   * Mouse events go to a fixed point, so the element has to have stopped
    * moving first: a dialog slides in for 200 ms, and a point taken mid-slide
    * misses the button by the time the events land. The centre is read once a
    * frame until two frames agree. An element still moving after two seconds
-   * fails the click without sending any mouse events, rather than missing.
+   * fails the action without sending any mouse events, rather than missing.
    */
-  const click = async (element: string) => {
+  const settledCentre = async (element: string, what: string) => {
     const { x, y, settled, elapsed } = await evaluate<{
       x: number
       y: number
@@ -191,16 +191,40 @@ const launchBrowser = async (profile: string) => {
     })`)
     if (!settled) {
       throw new Error(
-        `click(${element.slice(0, 60)}): the element was still moving after ${elapsed} ms`,
+        `${what}(${element.slice(0, 60)}): the element was still moving after ${elapsed} ms`,
       )
     }
-    for (const type of ["mousePressed", "mouseReleased"]) {
-      await sendOrCrash(
-        "Input.dispatchMouseEvent",
-        { type, x, y, button: "left", clickCount: 1 },
-        `click(${element.slice(0, 60)})`,
-      )
-    }
+    return { x, y }
+  }
+  const mouse = (
+    type: string,
+    x: number,
+    y: number,
+    what: string,
+    buttons: number,
+  ) =>
+    sendOrCrash(
+      "Input.dispatchMouseEvent",
+      { type, x, y, button: "left", buttons, clickCount: 1 },
+      what,
+    )
+  /** Clicks the centre of an element with real mouse events. */
+  const click = async (element: string) => {
+    const what = `click(${element.slice(0, 60)})`
+    const { x, y } = await settledCentre(element, "click")
+    await mouse("mousePressed", x, y, what, 1)
+    await mouse("mouseReleased", x, y, what, 0)
+  }
+  /**
+   * Presses the centre of an element, drags `offsetY` pixels off it and
+   * releases there, so the press ends without a click on the element.
+   */
+  const cancelledPress = async (element: string, offsetY: number) => {
+    const what = `cancelledPress(${element.slice(0, 60)})`
+    const { x, y } = await settledCentre(element, "cancelledPress")
+    await mouse("mousePressed", x, y, what, 1)
+    await mouse("mouseMoved", x, y + offsetY, what, 1)
+    await mouse("mouseReleased", x, y + offsetY, what, 0)
   }
   /**
    * Emulates a screen of the given size, in CSS pixels: a phone by default,
@@ -246,6 +270,7 @@ const launchBrowser = async (profile: string) => {
     waitFor,
     navigate,
     click,
+    cancelledPress,
     setViewport,
     addInitScript,
     close,
