@@ -26,7 +26,7 @@ export function FadeImage({
         onLoad?.(event)
       }}
       className={cn(
-        "transition-opacity duration-500 ease-out",
+        "motion-safe:transition-opacity motion-safe:duration-500 ease-out",
         loaded ? "opacity-100" : "opacity-0",
         className,
       )}

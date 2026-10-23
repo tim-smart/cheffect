@@ -210,7 +210,7 @@ function GroceryList() {
           <div className="mt-3">
             <div className="w-full bg-muted rounded-full h-1.5">
               <div
-                className="bg-primary h-1.5 rounded-full transition-[width] duration-500 ease-out-quart"
+                className="bg-primary h-1.5 rounded-full motion-safe:transition-[width] motion-safe:duration-500 ease-out-quart"
                 style={{
                   width: total > 0 ? `${(completed / total) * 100}%` : "0%",
                 }}

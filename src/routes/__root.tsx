@@ -57,6 +57,7 @@ export const Route = createRootRoute({
                 <Button
                   variant="ghost"
                   className="p-2"
+                  aria-label="Settings"
                   onClick={() => {
                     router.navigate({ to: "/settings" })
                   }}

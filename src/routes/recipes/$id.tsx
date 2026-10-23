@@ -234,7 +234,7 @@ export function RecipeDetails({
               <FadeImage
                 src={recipe.imageUrl}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover duration-700 ease-out-quart motion-safe:transition-[opacity,scale] motion-safe:data-[loaded=false]:scale-[1.04]"
+                className="absolute inset-0 h-full w-full object-cover motion-safe:duration-700 ease-out-quart motion-safe:transition-[opacity,scale] motion-safe:data-[loaded=false]:scale-[1.04]"
                 onError={(event) => {
                   event.currentTarget.hidden = true
                 }}

@@ -231,11 +231,33 @@
   }
 }
 
-/* A finished timer stays red without pulsing when motion is reduced */
+/* Reduced motion. A finished timer stays red without pulsing; pop-ups (menus,
+   dialogs, popovers, tooltips, the select) keep their short fade but lose the
+   zoom and slide, opening and closing; the drawer and the page behind it stop
+   sliding and scaling */
 @media (prefers-reduced-motion: reduce) {
   .animate-timer-pulse,
   .nav-animated a[data-status="active"] svg {
     animation: none;
+  }
+
+  [data-state],
+  .animate-in,
+  .animate-out {
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-enter-scale: 1;
+    --tw-enter-rotate: 0;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+    --tw-exit-scale: 1;
+    --tw-exit-rotate: 0;
+  }
+
+  [data-vaul-drawer],
+  [data-vaul-overlay],
+  [data-vaul-drawer-wrapper] {
+    transition-duration: 0s !important;
   }
 }
 

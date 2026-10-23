@@ -101,6 +101,7 @@ function SortButton() {
         <Button
           variant="outline"
           size="sm"
+          aria-label="Sort recipes"
           className="size-11 rounded-full bg-card shadow-none"
         >
           <ArrowDownWideNarrow className="w-4 h-4" />
