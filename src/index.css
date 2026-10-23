@@ -62,6 +62,7 @@
   --animate-tick-pop: tick-pop 260ms var(--ease-spring) both;
   --animate-rise-in: rise-in 360ms var(--ease-out-quart) both;
   --animate-nav-pop: nav-pop 360ms var(--ease-out-quart);
+  --animate-nudge: nudge 320ms var(--ease-out-quart);
 
   @keyframes timer-pulse {
     0%,
@@ -92,6 +93,19 @@
     to {
       opacity: 1;
       transform: none;
+    }
+  }
+
+  @keyframes nudge {
+    0%,
+    100% {
+      transform: none;
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    60% {
+      transform: translateX(3px);
     }
   }
 

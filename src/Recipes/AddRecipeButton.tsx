@@ -126,6 +126,7 @@ const AddRecipeTrigger = function ({
 }
 
 const urlHint = "Enter a web address, like https://example.com/recipe"
+const urlInvalid = "That doesn't look like a web address."
 
 // Accepts an address with or without its scheme; anything that isn't a web
 // page is rejected before it reaches the extractor.
@@ -214,16 +215,16 @@ function AddFromUrlDialog({
               value={value}
               aria-invalid={invalid || undefined}
               aria-describedby={hintId}
+              // The field marks itself with the invalid ring and a nudge, so
+              // the layout never shifts; the words go to screen readers
+              className={invalid ? "motion-safe:animate-nudge" : undefined}
               onChange={(event) => {
                 setValue(event.target.value)
                 setInvalid(false)
               }}
             />
-            <p
-              id={hintId}
-              className={invalid ? "text-sm text-destructive" : "sr-only"}
-            >
-              {urlHint}
+            <p id={hintId} className="sr-only" aria-live="polite">
+              {invalid ? `${urlInvalid} ${urlHint}` : urlHint}
             </p>
           </div>
           <DialogFooter className="gap-2">
