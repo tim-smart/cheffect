@@ -91,18 +91,19 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background border-b border-border sticky top-0 z-10">
-        <div className="pl-2 pr-4 py-4">
-          <div className="flex items-center gap-3">
+      <header className="bg-background sticky top-0 z-10">
+        <div className="pl-2 pr-4 pt-3 pb-3">
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className="p-2"
+              className="size-10 rounded-full"
+              aria-label="Back"
               onClick={() => router.history.back()}
             >
-              <ArrowLeft />
+              <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-semibold  line-clamp-1 flex-1">
+            <h1 className="font-display text-[22px] font-medium leading-tight tracking-tight line-clamp-2 flex-1">
               {menu.name}
             </h1>
             <MealPlanDatePicker
@@ -110,7 +111,11 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
                 id: menu.idString,
               })}
             >
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 rounded-full px-4 shadow-none"
+              >
                 <Calendar />
                 Plan
               </Button>
@@ -144,7 +149,7 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-2 py-3 flex flex-col gap-4">
+      <main className="max-w-lg mx-auto px-4 py-2 flex flex-col gap-4">
         <DndContext
           onDragOver={() => {
             if (!("vibrate" in navigator)) return
@@ -170,11 +175,11 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
         <div className="flex items-center">
           <div className="flex-1" />
           <div className="flex items-center gap-2">
-            <span>Days:</span>
+            <span className="text-sm text-muted-foreground">Days</span>
             <Input
               type="number"
               min={1}
-              className="w-16 bg-background"
+              className="w-16 bg-card"
               defaultValue={menu.days}
               onBlur={(e) => setDays(Number(e.target.value))}
               onKeyDown={(e) => {
@@ -200,7 +205,7 @@ function DayList({
   dayNotes: ReadonlyArray<MenuDayNote>
 }) {
   return (
-    <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
+    <div className="divide-y divide-border">
       {Array.range(1, menu.days).map((day) => {
         const dayEntries = entries.filter((entry) => entry.day === day)
         const dayNote = dayNotes.find((note) => note.day === day)
@@ -277,17 +282,23 @@ function DayListItem({
   }
 
   return (
-    <div ref={setNodeRef} className="bg-card">
-      <div
-        className={cn(
-          `w-full pr-2 pl-3 py-1 flex items-center justify-between border-b`,
-          isOver
-            ? "bg-primary-muted text-primary"
-            : "bg-muted dark:bg-background text-muted-foreground dark:text-muted-foreground",
-        )}
-      >
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "py-2.5",
+        isOver && "bg-primary-muted -mx-2 px-2 rounded-xl border-transparent",
+      )}
+    >
+      <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
-          <p className={`font-semibold`}>Day {day}</p>
+          <p
+            className={cn(
+              "font-display text-[20px] font-medium leading-tight tracking-tight",
+              isOver && "text-primary",
+            )}
+          >
+            Day {day}
+          </p>
         </div>
         <div className="flex items-center">
           <Button
@@ -322,7 +333,7 @@ function DayListItem({
       </div>
 
       {noteVisible && (
-        <div className="bg-card p-2 pb-0">
+        <div className="pt-2">
           <textarea
             value={noteDraft}
             placeholder="Add a note..."
@@ -336,7 +347,7 @@ function DayListItem({
       {/* Day Content - Always Visible */}
       <div>
         {dayEntries.length > 0 && (
-          <div className="divide-y divide-border">
+          <div className="mt-1.5 space-y-1.5">
             {dayEntries.map((entry) => (
               <DayEntryItem
                 key={entry.idString}
@@ -348,10 +359,8 @@ function DayListItem({
         )}
 
         {dayEntries.length === 0 && (
-          <div className="p-3 text-center">
-            <p className="text-sm text-muted-foreground">
-              No recipes added yet
-            </p>
+          <div className="pt-0.5">
+            <p className="text-sm text-muted-foreground">Nothing planned</p>
           </div>
         )}
       </div>
@@ -395,8 +404,8 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
   return (
     <Link
       className={cn(
-        "flex items-center p-2 -mt-2 first:mt-0 gap-3 bg-card relative rounded-lg border border-transparent",
-        isDragging && "border-border",
+        "flex items-center p-1.5 pr-1 gap-3 bg-card relative rounded-xl transition-colors active:bg-muted",
+        isDragging && "shadow-lg",
       )}
       to="/recipes/$id"
       disabled={debouncedIsDragging}
@@ -416,12 +425,15 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
         >
           <GripVertical className="size-5 text-muted-foreground/50" />
         </div>
-        <div className="relative w-12 h-12 -ml-0.5 shrink-0 rounded overflow-hidden">
+        <div className="relative w-12 h-12 -ml-0.5 shrink-0 rounded-lg overflow-hidden bg-muted">
           {recipe.imageUrl ? (
             <img
               src={recipe.imageUrl}
-              alt={recipe.title}
+              alt=""
               className="w-full h-full object-cover"
+              onError={(event) => {
+                event.currentTarget.hidden = true
+              }}
             />
           ) : (
             <Placeholder />
@@ -429,7 +441,9 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm  line-clamp-1">{recipe.title}</h4>
+        <h4 className="font-display text-[16px] font-medium leading-snug line-clamp-1">
+          {recipe.title}
+        </h4>
         <p className="text-xs text-muted-foreground">
           {[
             ...Option.match(recipe.totalTime, {
@@ -452,7 +466,7 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
             e.preventDefault()
             write(MenuEntryEvent.remove({ id, menuId }))
           }}
-          className="h-8 w-8 p-0 text-muted-foreground/70 hover:text-red-600"
+          className="h-8 w-8 p-0 text-muted-foreground/60 hover:text-destructive"
         >
           <X />
         </Button>

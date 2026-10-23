@@ -52,13 +52,12 @@ import * as Option from "effect/Option"
 import {
   ArrowLeft,
   Calendar,
-  Clock,
+  ChefHat,
   Edit,
   MoreVertical,
   SlidersHorizontal,
   Star,
   Trash,
-  Users,
   Link as LinkIcon,
   Save,
   Plus,
@@ -217,123 +216,143 @@ export function RecipeDetails({
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background border-b border-border sticky top-0 z-10">
+      <header className="relative">
         <div
           className={cn(
-            "flex items-center",
-            recipe.imageUrl ? "gap-3 md:gap-4 p-2" : "gap-2 px-2 py-4",
+            "relative",
+            // the photo never takes more than 40% of a short desktop window
+            recipe.imageUrl &&
+              "aspect-[4/3] md:aspect-auto md:h-[min(340px,40vh)] bg-muted",
           )}
         >
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2"
-            onClick={() => router.history.back()}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
           {recipe.imageUrl && (
-            <img
-              src={recipe.imageUrl}
-              alt={recipe.title}
-              className="block size-14 md:size-18 border object-cover rounded-lg -ml-2"
-            />
+            <>
+              <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground">
+                <ChefHat className="size-[18%] md:size-[10%] opacity-30" />
+              </div>
+              <img
+                src={recipe.imageUrl}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.hidden = true
+                }}
+              />
+            </>
           )}
-          <h1
-            className={cn(
-              "text-lg font-semibold  flex-1 leading-tight",
-              recipe.imageUrl ? "line-clamp-2" : "line-clamp-1",
-            )}
-          >
-            {recipe.title}
-          </h1>
-          <div className="flex items-center gap-1">
-            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="p-2">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link to="/edit/$id" params={{ id: recipe.idString }}>
-                    <Edit />
-                    Edit
-                  </Link>
-                </DropdownMenuItem>
-                <MealPlanDatePicker
-                  target={MealPlanDatePickerTarget.New({
-                    recipeId: recipe.id,
-                  })}
-                  onSelect={() => {
-                    setMenuOpen(false)
-                  }}
-                >
-                  <DropdownMenuItem>
-                    <Calendar />
-                    Add to meal plan
+          <div className="relative flex items-center justify-between p-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="size-10 rounded-full bg-card text-foreground hover:bg-card"
+              aria-label="Back"
+              onClick={() => router.history.back()}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex items-center gap-1">
+              <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="size-10 rounded-full bg-card text-foreground hover:bg-card"
+                    aria-label="Recipe options"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/edit/$id" params={{ id: recipe.idString }}>
+                      <Edit />
+                      Edit
+                    </Link>
                   </DropdownMenuItem>
-                </MealPlanDatePicker>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setMenuOpen(false)
-                    exportRecipeAsYaml(recipe)
-                  }}
-                >
-                  <Share />
-                  Export YAML
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    setMenuOpen(false)
-                    exportRecipeAsHtml(recipe)
-                  }}
-                >
-                  <Share />
-                  Export HTML
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={async () => {
-                    if (
-                      !confirm("Are you sure you want to delete this recipe?")
-                    ) {
-                      return
-                    }
-                    await write(recipeDeleted(recipe.id, DateTime.nowUnsafe()))
-                    return router.history.back()
-                  }}
-                >
-                  <Trash />
-                  Remove
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <MealPlanDatePicker
+                    target={MealPlanDatePickerTarget.New({
+                      recipeId: recipe.id,
+                    })}
+                    onSelect={() => {
+                      setMenuOpen(false)
+                    }}
+                  >
+                    <DropdownMenuItem>
+                      <Calendar />
+                      Add to meal plan
+                    </DropdownMenuItem>
+                  </MealPlanDatePicker>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMenuOpen(false)
+                      exportRecipeAsYaml(recipe)
+                    }}
+                  >
+                    <Share />
+                    Export YAML
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMenuOpen(false)
+                      exportRecipeAsHtml(recipe)
+                    }}
+                  >
+                    <Share />
+                    Export HTML
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={async () => {
+                      if (
+                        !confirm("Are you sure you want to delete this recipe?")
+                      ) {
+                        return
+                      }
+                      await write(
+                        recipeDeleted(recipe.id, DateTime.nowUnsafe()),
+                      )
+                      return router.history.back()
+                    }}
+                  >
+                    <Trash />
+                    Remove
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
+        <h1 className="px-4 pt-5 font-display text-[30px] font-medium leading-[1.1] tracking-tight text-balance">
+          {recipe.title}
+        </h1>
       </header>
 
       {!recipe.hasNoDetails && (
-        <div className="bg-background p-4 border-b border-border flex items-center">
-          {/* Recipe Image & Basic Info */}
-          <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-muted-foreground">
+        <div className="px-4 pt-3">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] text-muted-foreground">
             {recipe.prepTime && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>Prep: {Duration.format(recipe.prepTime)}</span>
-              </div>
+              <span>
+                Prep{" "}
+                <span className="font-medium text-foreground tabular-nums">
+                  {Duration.format(recipe.prepTime)}
+                </span>
+              </span>
             )}
             {recipe.cookingTime && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>Cook: {Duration.format(recipe.cookingTime)}</span>
-              </div>
+              <span>
+                Cook{" "}
+                <span className="font-medium text-foreground tabular-nums">
+                  {Duration.format(recipe.cookingTime)}
+                </span>
+              </span>
             )}
             {recipe.servings && (
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                <span>{recipe.servingsDisplay} servings</span>
-              </div>
+              <span>
+                Serves{" "}
+                <span className="font-medium text-foreground tabular-nums">
+                  {recipe.servingsDisplay}
+                </span>
+              </span>
             )}
             {recipe.sourceUrl && (
               <a
@@ -343,7 +362,7 @@ export function RecipeDetails({
                 rel="noopener noreferrer"
               >
                 <LinkIcon className="size-4" />
-                <span className="text-blue-500 border-b border-transparent hover:border-blue-500">
+                <span className="text-primary underline underline-offset-4 decoration-primary/30">
                   {recipe.sourceName ?? "Source"}
                 </span>
               </a>
@@ -360,11 +379,11 @@ export function RecipeDetails({
 
       {modified && <ModifiedBanner recipe={recipe} />}
 
-      <div className="flex flex-col md:items-start gap-2 md:gap-4 mt-2 md:mt-4 md:flex-row max-w-7xl mx-auto">
+      <div className="flex flex-col md:items-start gap-6 md:gap-8 mt-6 md:flex-row max-w-7xl mx-auto">
         {/* Ingredients */}
-        <div className="flex-1 md:rounded-lg p-2 md:p-4">
-          <div className="flex">
-            <h2 className="text-lg font-semibold mb-4">
+        <div className="flex-1 px-4">
+          <div className="flex items-center mb-2">
+            <h2 className="font-display text-[22px] font-medium tracking-tight">
               Ingredients
               {recipe.ingredientScale !== 1 && (
                 <span className="text-sm text-muted-foreground ml-2">
@@ -389,7 +408,7 @@ export function RecipeDetails({
                   <h3 className="font-medium mb-3 text-base">{group.name}</h3>
                 )}
 
-                <div className="rounded-lg overflow-hidden divide-y divide-border border border-border">
+                <div className="divide-y divide-border border-y border-border">
                   {group.ingredients.map((ingredient, ingredientIndex) => {
                     const ingredientId = ingredient.id(
                       groupIndex,
@@ -403,13 +422,13 @@ export function RecipeDetails({
                     return (
                       <div
                         key={ingredientIndex}
-                        className="flex items-start gap-3 p-3 bg-card active:bg-muted dark:active:bg-card/50 transition-colors cursor-default"
+                        className="flex items-start gap-3 py-2.5 active:bg-muted transition-colors cursor-default"
                         onClick={() => toggleIngredient(ingredientId)}
                       >
                         <Checkbox
                           checked={isChecked}
                           onChange={() => toggleIngredient(ingredientId)}
-                          className="mt-[0.25em]"
+                          className="mt-[0.2em] size-[18px] rounded-full"
                         />
                         <div
                           className={`flex-1 ${isChecked ? "text-muted-foreground" : ""}`}
@@ -438,38 +457,40 @@ export function RecipeDetails({
         </div>
 
         {/* Instructions */}
-        <div className="flex-2 p-2 md:p-4">
+        <div className="flex-2 px-2">
           {recipe.steps.length > 0 && (
-            <h2 className="text-lg font-semibold mb-4">Instructions</h2>
+            <h2 className="px-2 mb-2 font-display text-[22px] font-medium tracking-tight">
+              Method
+            </h2>
           )}
 
-          <div className="space-y-2 md:space-y-4">
+          <div className="space-y-0.5">
             {recipe.steps.map((step, stepIndex) => (
               <div
                 key={stepIndex}
                 ref={(el) => {
                   stepElements[stepIndex] = el!
                 }}
-                className={`border-2 rounded-lg p-3 md:p-4 transition-all ${
+                className={`rounded-xl px-2 py-2.5 transition-colors ${
                   currentStep === stepIndex
-                    ? "border-primary bg-primary-muted"
-                    : "border-border bg-card"
+                    ? "bg-primary-muted"
+                    : "active:bg-muted"
                 }`}
                 onClick={() => setCurrentStep(stepIndex)}
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                    className={`shrink-0 w-8 font-display text-[28px] leading-[1] font-medium tabular-nums text-center ${
                       currentStep === stepIndex
-                        ? "bg-primary text-white"
-                        : "bg-muted text-muted-foreground"
+                        ? "text-primary"
+                        : "text-muted-foreground/60"
                     }`}
                   >
                     {stepIndex + 1}
                   </div>
 
                   <div className="flex-1 flex flex-col gap-2">
-                    <p className="leading-relaxed">
+                    <p className="text-[17px] leading-relaxed">
                       {renderStepText(step.text, stepIndex)}
                     </p>
 

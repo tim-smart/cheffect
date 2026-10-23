@@ -80,7 +80,7 @@ const AddRecipeTrigger = function ({ small, ...rest }: { small: boolean }) {
     return (
       <Button
         size="sm"
-        className="bg-primary hover:bg-orange-700 h-9 px-3"
+        className="bg-primary hover:bg-primary/90 size-10 rounded-full shadow-none"
         {...rest}
       >
         <Plus />
@@ -88,7 +88,10 @@ const AddRecipeTrigger = function ({ small, ...rest }: { small: boolean }) {
     )
   }
   return (
-    <Button className="bg-primary hover:bg-orange-700 h-12 px-6" {...rest}>
+    <Button
+      className="bg-primary hover:bg-primary/90 h-12 px-6 rounded-full shadow-none"
+      {...rest}
+    >
       <Plus />
       Add Recipe
     </Button>

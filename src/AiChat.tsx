@@ -98,7 +98,7 @@ export function AiChatModal() {
             ref.current?.classList.remove("hidden")
             inputRef.current?.focus()
           }}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg active:scale-95 transition-transform"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
           aria-label="Open AI Chat"
         >
           <MessageSquare className="h-6 w-6" />

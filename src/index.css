@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/fraunces/opsz.css";
+@import "@fontsource-variable/instrument-sans";
 
 @source "../node_modules/streamdown/dist/*.js";
 
@@ -38,6 +40,8 @@
 }
 
 @theme {
+  --font-sans: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
   --animate-timer-pulse: timer-pulse 2s infinite;
 
   @keyframes timer-pulse {
@@ -90,27 +94,28 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* "Cookbook": paper ground, warm ink, the brand orange as the one accent */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(100% 0 0);
-  --foreground: oklch(14.5% 0 0);
-  --card: oklch(100% 0 0);
-  --card-foreground: oklch(14.5% 0 0);
-  --popover: oklch(100% 0 0);
-  --popover-foreground: oklch(14.5% 0 0);
+  --radius: 0.875rem;
+  --background: oklch(97.3% 0.006 85);
+  --foreground: oklch(22% 0.012 60);
+  --card: oklch(99.6% 0.002 85);
+  --card-foreground: oklch(22% 0.012 60);
+  --popover: oklch(99.6% 0.002 85);
+  --popover-foreground: oklch(22% 0.012 60);
   --primary: oklch(64.6% 0.222 41.116);
-  --primary-foreground: oklch(98.5% 0 0);
-  --primary-muted: oklch(95.4% 0.038 75.164);
-  --secondary: oklch(97% 0 0);
-  --secondary-foreground: oklch(20.5% 0 0);
-  --muted: oklch(97% 0 0);
-  --muted-foreground: oklch(55.6% 0 0);
-  --accent: oklch(97% 0 0);
-  --accent-foreground: oklch(20.5% 0 0);
-  --destructive: oklch(57.7% 0.245 27.325);
-  --border: oklch(92.2% 0 0);
-  --input: oklch(92.2% 0 0);
-  --ring: oklch(70.8% 0 0);
+  --primary-foreground: oklch(98.5% 0.005 60);
+  --primary-muted: oklch(95.6% 0.032 62);
+  --secondary: oklch(94.5% 0.007 85);
+  --secondary-foreground: oklch(25% 0.012 60);
+  --muted: oklch(94.5% 0.007 85);
+  --muted-foreground: oklch(49% 0.014 70);
+  --accent: oklch(94.5% 0.007 85);
+  --accent-foreground: oklch(25% 0.012 60);
+  --destructive: oklch(55% 0.19 28);
+  --border: oklch(90.5% 0.009 85);
+  --input: oklch(88% 0.01 85);
+  --ring: oklch(64.6% 0.222 41.116);
   --chart-1: oklch(64.6% 0.222 41.116);
   --chart-2: oklch(60% 0.118 184.704);
   --chart-3: oklch(39.8% 0.07 227.392);
@@ -127,25 +132,27 @@
 }
 
 .dark {
-  --background: oklch(14.5% 0 0);
-  --foreground: oklch(98.5% 0 0);
-  --primary-muted: oklch(26.6% 0.079 36.259);
-  --card: oklch(23.5% 0 0);
-  --card-foreground: oklch(98.5% 0 0);
-  --popover: oklch(20.5% 0 0);
-  --popover-foreground: oklch(98.5% 0 0);
+  --background: oklch(17.5% 0.006 70);
+  --foreground: oklch(95% 0.006 85);
+  --primary: oklch(71% 0.19 44);
+  --primary-foreground: oklch(17% 0.03 45);
+  --primary-muted: oklch(28% 0.045 45);
+  --card: oklch(21.5% 0.007 70);
+  --card-foreground: oklch(95% 0.006 85);
+  --popover: oklch(23% 0.007 70);
+  --popover-foreground: oklch(95% 0.006 85);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --muted: oklch(26.9% 0 0);
-  --muted-foreground: oklch(70.8% 0 0);
-  --accent: oklch(26.9% 0 0);
-  --accent-foreground: oklch(98.5% 0 0);
+  --muted: oklch(25% 0.007 70);
+  --muted-foreground: oklch(71% 0.012 80);
+  --accent: oklch(25% 0.007 70);
+  --accent-foreground: oklch(95% 0.006 85);
   --destructive: oklch(70.4% 0.191 22.216);
-  --border: oklch(100% 0 0 / 10%);
-  --input: oklch(100% 0 0 / 15%);
-  --ring: oklch(55.6% 0 0);
+  --border: oklch(100% 0 0 / 9%);
+  --input: oklch(100% 0 0 / 14%);
+  --ring: oklch(71% 0.19 44);
   --chart-1: oklch(48.8% 0.243 264.376);
   --chart-2: oklch(69.6% 0.17 162.48);
   --chart-3: oklch(76.9% 0.188 70.08);

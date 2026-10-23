@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import {
-  BookOpen,
   Plus,
   ChefHat,
   Edit,
@@ -40,12 +39,13 @@ export function MenusPage() {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background border-b border-border sticky top-0 z-10">
-        <div className="p-4">
+      <header className="bg-background sticky top-0 z-10">
+        <div className="px-4 pt-3 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              <h1 className="text-lg font-bold ">Menus</h1>
+              <h1 className="font-display text-[26px] font-medium tracking-tight">
+                Menus
+              </h1>
             </div>
             <div className="flex-1" />
             <div>
@@ -56,7 +56,7 @@ export function MenusPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-2 py-3 flex flex-col gap-4">
+      <main className="max-w-lg mx-auto px-4 py-2 flex flex-col gap-4">
         <AddMenuForm />
         <MenuList />
       </main>
@@ -72,7 +72,7 @@ function AddMenuForm() {
 
   return (
     <MenuForm
-      className="max-w-lg mx-auto px-2 sm:px-4"
+      className="max-w-lg mx-auto"
       onSubmit={(menu) => {
         write(MenuEvent.set(menu))
         setShowForm(false)
@@ -99,9 +99,7 @@ function MenuList() {
     return <NoResults />
   }
   return (
-    <div
-      className={`rounded-lg border bg-card overflow-hidden divide-y divide-border border-border`}
-    >
+    <div className="flex flex-col gap-2">
       {menus.map((menu) => (
         <MenuCard key={menu.idString} menu={menu} />
       ))}
@@ -133,17 +131,16 @@ function MenuCard({ menu }: { menu: Menu }) {
     ? (counts.value.get(menu.idString) ?? 0)
     : null
   return (
-    <div className="flex items-center pr-2 active:bg-muted transition-colors">
+    <div className="flex items-center pr-2 rounded-xl bg-card active:bg-muted transition-colors">
       <Link
         to="/menus/$id"
         params={{ id: menu.idString }}
-        className="flex-1 flex flex-col gap-1 h-20 justify-center pl-4"
+        className="flex-1 flex flex-col gap-0.5 min-h-16 justify-center pl-4 py-2.5"
         disabled={editing}
       >
         <div className="flex flex-row items-center gap-2">
-          <BookOpen className="w-5 h-5 text-primary" />
-          <h3 className={cn(editing ? "" : "line-clamp-1", "font-medium")}>
-            {editing ? (
+          {editing ? (
+            <div className="flex-1">
               <MenuForm
                 initialValue={menu}
                 onSubmit={(updated) => {
@@ -153,20 +150,20 @@ function MenuCard({ menu }: { menu: Menu }) {
                 onCancel={() => setEditing(false)}
                 compact
               />
-            ) : (
-              menu.name
-            )}
-          </h3>
+            </div>
+          ) : (
+            <h3 className="font-display text-[20px] font-medium tracking-tight line-clamp-1">
+              {menu.name}
+            </h3>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-0.5">{menu.days} days</div>
+        <div className="flex items-center gap-1 text-[13px] text-muted-foreground tabular-nums">
+          <span>{menu.days} days</span>
           {recipeCount !== null && (
             <>
-              &bull;
-              <div className="flex items-center gap-0.5">
-                {recipeCount} recipes
-              </div>
+              <span>·</span>
+              <span>{recipeCount} recipes</span>
             </>
           )}
         </div>
@@ -227,7 +224,12 @@ function AddMenuButton({ small = false }: { small?: boolean }) {
 
   if (small) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setShowAddMenu(true)}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-10 rounded-full px-4 shadow-none"
+        onClick={() => setShowAddMenu(true)}
+      >
         <Plus />
         New
       </Button>
@@ -235,7 +237,7 @@ function AddMenuButton({ small = false }: { small?: boolean }) {
   }
   return (
     <Button
-      className="bg-primary hover:bg-orange-700 h-12 px-6"
+      className="bg-primary hover:bg-primary/90 h-12 px-6 rounded-full shadow-none"
       onClick={() => setShowAddMenu(true)}
     >
       <Plus />
@@ -293,12 +295,7 @@ function MenuForm({
       {compact ? (
         <Display.name placeholder="Menu name" {...{ autoFocus: true }} />
       ) : (
-        <div
-          className={cn(
-            className,
-            "bg-background rounded-lg border border-border p-3",
-          )}
-        >
+        <div className={cn(className, "bg-card rounded-xl p-3")}>
           {!isEditing && <h3 className="font-medium  mb-2">Add new menu</h3>}
           <div className={"space-y-2"}>
             <div>
@@ -307,7 +304,7 @@ function MenuForm({
             <div className={`flex gap-2`}>
               <Button
                 type="submit"
-                className="flex-1 bg-primary hover:bg-orange-700"
+                className="flex-1 bg-primary hover:bg-primary/90"
               >
                 {isEditing ? "Save" : "Add menu"}
               </Button>
