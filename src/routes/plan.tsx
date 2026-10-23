@@ -40,7 +40,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
-import { Placeholder } from "@/components/placeholder"
+import { RecipeImage } from "@/components/RecipeImage"
 import { useEffect, useState } from "react"
 import { useSwipeable } from "react-swipeable"
 import { quantityFormatter } from "@/lib/quantity"
@@ -330,9 +330,9 @@ function DayListItem({
     <div className="bg-card">
       {/* Day Header with Add Button */}
       <div
-        className={`w-full p-2 flex items-center justify-between border-b text-card-foreground ${
-          isTodayDate ? "bg-primary-muted" : "bg-muted dark:bg-background"
-        }`}
+        className={`w-full p-2 flex items-center justify-between text-card-foreground ${
+          dayEntries.length > 0 || noteVisible ? "border-b" : ""
+        } ${isTodayDate ? "bg-primary-muted" : "bg-muted dark:bg-background"}`}
       >
         <div className="flex items-center gap-3 flex-1">
           <div>
@@ -349,6 +349,7 @@ function DayListItem({
                 day: "numeric",
               })}
               {isTodayDate && " • Today"}
+              {dayEntries.length === 0 && " • Nothing planned"}
             </p>
           </div>
         </div>
@@ -406,15 +407,11 @@ function DayListItem({
                 params={{ id: recipe.idString }}
               >
                 <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden">
-                  {recipe.imageUrl ? (
-                    <img
-                      src={recipe.imageUrl}
-                      alt={recipe.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Placeholder />
-                  )}
+                  <RecipeImage
+                    src={recipe.imageUrl}
+                    alt={recipe.title}
+                    className="w-full h-full"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-sm  line-clamp-1">
@@ -475,12 +472,6 @@ function DayListItem({
                 </div>
               </Link>
             ))}
-          </div>
-        )}
-
-        {dayEntries.length === 0 && (
-          <div className="p-3 text-center">
-            <p className="text-sm text-muted-foreground">No meals planned</p>
           </div>
         )}
       </div>

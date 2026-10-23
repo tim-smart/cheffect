@@ -1,4 +1,5 @@
 import { screenWakeLockAtom } from "@/atoms"
+import { RecipeImage } from "@/components/RecipeImage"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -52,13 +53,11 @@ import * as Option from "effect/Option"
 import {
   ArrowLeft,
   Calendar,
-  Clock,
   Edit,
   MoreVertical,
   SlidersHorizontal,
   Star,
   Trash,
-  Users,
   Link as LinkIcon,
   Save,
   Plus,
@@ -233,10 +232,10 @@ export function RecipeDetails({
             <ArrowLeft className="w-5 h-5" />
           </Button>
           {recipe.imageUrl && (
-            <img
+            <RecipeImage
               src={recipe.imageUrl}
               alt={recipe.title}
-              className="block size-14 md:size-18 border object-cover rounded-lg -ml-2"
+              className="block size-14 md:size-18 border rounded-lg -ml-2 shrink-0 overflow-hidden"
             />
           )}
           <h1
@@ -316,24 +315,24 @@ export function RecipeDetails({
       {!recipe.hasNoDetails && (
         <div className="bg-background p-4 border-b border-border flex items-center">
           {/* Recipe Image & Basic Info */}
-          <div className="grid grid-cols-2 sm:flex sm:gap-10 items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-end gap-x-8 gap-y-3 text-sm text-muted-foreground">
             {recipe.prepTime && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>Prep: {Duration.format(recipe.prepTime)}</span>
-              </div>
+              <RecipeStat
+                label="Prep"
+                value={Duration.format(recipe.prepTime)}
+              />
             )}
             {recipe.cookingTime && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>Cook: {Duration.format(recipe.cookingTime)}</span>
-              </div>
+              <RecipeStat
+                label="Cook"
+                value={Duration.format(recipe.cookingTime)}
+              />
             )}
             {recipe.servings && (
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                <span>{recipe.servingsDisplay} servings</span>
-              </div>
+              <RecipeStat
+                label="Serves"
+                value={String(recipe.servingsDisplay)}
+              />
             )}
             {recipe.sourceUrl && (
               <a
@@ -417,12 +416,14 @@ export function RecipeDetails({
                           <span>
                             {ingredient.quantity !== null && (
                               <>
-                                {quantityFormatter.format(
-                                  ingredient.quantity,
-                                  ingredient.unit,
-                                )}
-                                {ingredient.unit &&
-                                  `${unitNeedsSpace.has(ingredient.unit) ? " " : ""}${ingredient.unit}`}{" "}
+                                <span className="font-semibold tabular-nums">
+                                  {quantityFormatter.format(
+                                    ingredient.quantity,
+                                    ingredient.unit,
+                                  )}
+                                  {ingredient.unit &&
+                                    `${unitNeedsSpace.has(ingredient.unit) ? " " : ""}${ingredient.unit}`}
+                                </span>{" "}
                               </>
                             )}
                             {ingredient.name}
@@ -602,6 +603,17 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </ButtonGroup>
+    </div>
+  )
+}
+
+function RecipeStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-xs">{label}</span>
+      <span className="text-base font-semibold text-foreground tabular-nums">
+        {value}
+      </span>
     </div>
   )
 }

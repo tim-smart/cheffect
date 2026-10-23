@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@fontsource-variable/figtree";
 
 @source "../node_modules/streamdown/dist/*.js";
 
@@ -38,6 +39,7 @@
 }
 
 @theme {
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
   --animate-timer-pulse: timer-pulse 2s infinite;
 
   @keyframes timer-pulse {

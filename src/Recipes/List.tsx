@@ -6,7 +6,7 @@ import { AddRecipeButton } from "@/Recipes/AddRecipeButton"
 import * as Option from "effect/Option"
 import { Button } from "@/components/ui/button"
 import clsx from "clsx"
-import { Placeholder } from "@/components/placeholder"
+import { RecipeImage } from "@/components/RecipeImage"
 import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual"
 import type { MouseEvent } from "react"
 
@@ -120,22 +120,20 @@ function RecipeCard({
       <div className="flex items-center h-20">
         {/* Recipe Image - No whitespace */}
         <div className="relative h-full aspect-square">
-          {recipe.imageUrl ? (
-            <img
-              src={recipe.imageUrl}
-              alt={recipe.title}
-              className="object-cover h-full w-full"
-            />
-          ) : (
-            <Placeholder />
-          )}
+          <RecipeImage
+            src={recipe.imageUrl}
+            alt={recipe.title}
+            className="h-full w-full"
+          />
         </div>
 
         {/* Recipe Info - More condensed */}
         <div className="flex-1 flex-col p-3">
-          <h3 className="mb-1 line-clamp-1 pr-1">{recipe.title}</h3>
+          <h3 className="mb-1 line-clamp-1 pr-1 font-semibold tracking-tight">
+            {recipe.title}
+          </h3>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 text-sm text-muted-foreground tabular-nums">
             {recipe.totalTime.pipe(
               Option.map((d) => (
                 <div className="flex items-center gap-0.5">
