@@ -403,17 +403,18 @@ function DayListItem({
                 params={{ id: recipe.idString }}
               >
                 <div className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-muted">
-                  {recipe.imageUrl ? (
+                  {/* the placeholder sits behind the photo, so it shows when
+                      the photo is missing or fails to load */}
+                  <Placeholder />
+                  {recipe.imageUrl && (
                     <img
                       src={recipe.imageUrl}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover"
                       onError={(event) => {
                         event.currentTarget.hidden = true
                       }}
                     />
-                  ) : (
-                    <Placeholder />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

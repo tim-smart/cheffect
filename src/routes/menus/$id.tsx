@@ -426,17 +426,18 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
           <GripVertical className="size-5 text-muted-foreground/50" />
         </div>
         <div className="relative w-12 h-12 -ml-0.5 shrink-0 rounded-lg overflow-hidden bg-muted">
-          {recipe.imageUrl ? (
+          {/* the placeholder sits behind the photo, so it shows when the
+              photo is missing or fails to load */}
+          <Placeholder />
+          {recipe.imageUrl && (
             <img
               src={recipe.imageUrl}
               alt=""
-              className="w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
               onError={(event) => {
                 event.currentTarget.hidden = true
               }}
             />
-          ) : (
-            <Placeholder />
           )}
         </div>
       </div>
