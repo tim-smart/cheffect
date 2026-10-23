@@ -30,8 +30,10 @@ export default defineConfig({
         short_name: "Cheffect",
         description: "A local-first meal planner app",
         display: "standalone",
-        theme_color: "#ffffff",
-        background_color: "#ffffff",
+        // The light --background token, so the splash screen and status bar
+        // match the app before its script runs
+        theme_color: "#f8f6f2",
+        background_color: "#f8f6f2",
         shortcuts: [
           {
             name: "Grocery list",
