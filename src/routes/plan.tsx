@@ -361,7 +361,7 @@ function DayListItem({
             size="sm"
             className="h-8 w-8 p-0 text-muted-foreground"
             aria-label={note.open ? "Close note" : "Add a note"}
-            onClick={note.toggle}
+            {...note.toggleProps}
           >
             {dayNote?.note ? <MessageSquare /> : <MessageSquarePlus />}
           </Button>
@@ -386,7 +386,7 @@ function DayListItem({
           <DayNoteField
             value={noteDraft}
             onChange={setNoteDraft}
-            onBlur={note.blur}
+            {...note.fieldProps}
             autoFocus={note.focusOnOpen}
           />
         </div>
