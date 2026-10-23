@@ -48,20 +48,36 @@ function isDarkMode() {
   )
 }
 
+// The page's background as sRGB hex, read from the `--background` token so
+// the status bar always matches it. The token is oklch, which not every
+// browser accepts in theme-color, so a canvas converts it.
+function backgroundHex() {
+  const context = document.createElement("canvas").getContext("2d")
+  if (!context) return undefined
+  context.fillStyle = getComputedStyle(document.documentElement)
+    .getPropertyValue("--background")
+    .trim()
+  context.fillRect(0, 0, 1, 1)
+  const [red, green, blue] = context.getImageData(0, 0, 1, 1).data
+  return `#${[red, green, blue].map((n) => n.toString(16).padStart(2, "0")).join("")}`
+}
+
+function setThemeColor(color: string) {
+  let meta = document.querySelector('meta[name="theme-color"]')
+  if (!meta) {
+    meta = document.createElement("meta")
+    meta.setAttribute("name", "theme-color")
+    document.head.appendChild(meta)
+  }
+  meta.setAttribute("content", color)
+}
+
 function SystemTheme() {
   useLayoutEffect(() => {
     const listener = () => {
-      if (isDarkMode()) {
-        document.documentElement.classList.add("dark")
-        document
-          .querySelector('meta[name="theme-color"]')
-          ?.setAttribute("content", "#0a0a0a")
-      } else {
-        document.documentElement.classList.remove("dark")
-        document
-          .querySelector('meta[name="theme-color"]')
-          ?.setAttribute("content", "#ffffff")
-      }
+      document.documentElement.classList.toggle("dark", isDarkMode())
+      const color = backgroundHex()
+      if (color) setThemeColor(color)
     }
     const matcher = window.matchMedia("(prefers-color-scheme: dark)")
     matcher.addEventListener("change", listener)

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { DayNoteField, useDayNote } from "@/components/DayNote"
 import {
   ChevronLeft,
   ChevronRight,
@@ -289,7 +290,6 @@ function DayListItem({
 }) {
   const write = useWrite()
   const dateParts = DateTime.toPartsUtc(date)
-  const [noteVisible, setNoteVisible] = useState(() => dayNote !== undefined)
   const [noteDraft, setNoteDraft] = useState(dayNote?.note ?? "")
 
   useEffect(() => {
@@ -327,6 +327,12 @@ function DayListItem({
     )
   }
 
+  const note = useDayNote({
+    initiallyOpen: dayNote !== undefined,
+    save: saveNote,
+    isEmpty: () => noteDraft.trim().length === 0,
+  })
+
   return (
     <div className="py-2.5">
       {/* Day Header with Add Button */}
@@ -354,12 +360,8 @@ function DayListItem({
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0 text-muted-foreground"
-            onClick={() => {
-              if (noteVisible) {
-                saveNote()
-              }
-              setNoteVisible((visible) => !visible)
-            }}
+            aria-label={note.open ? "Close note" : "Add a note"}
+            onClick={note.toggle}
           >
             {dayNote?.note ? <MessageSquare /> : <MessageSquarePlus />}
           </Button>
@@ -379,14 +381,13 @@ function DayListItem({
         </div>
       </div>
 
-      {noteVisible && (
-        <div className="pt-2">
-          <textarea
+      {note.open && (
+        <div className="mt-1.5">
+          <DayNoteField
             value={noteDraft}
-            placeholder="Add a note..."
-            className="block rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-ring focus:outline-none field-sizing-content resize-none w-full"
-            onChange={(event) => setNoteDraft(event.target.value)}
-            onBlur={saveNote}
+            onChange={setNoteDraft}
+            onBlur={note.blur}
+            autoFocus={note.focusOnOpen}
           />
         </div>
       )}
@@ -479,7 +480,7 @@ function DayListItem({
           </div>
         )}
 
-        {dayEntries.length === 0 && (
+        {dayEntries.length === 0 && !note.open && (
           <div className="pt-0.5">
             <p className="text-sm text-muted-foreground">Nothing planned</p>
           </div>
