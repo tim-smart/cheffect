@@ -66,7 +66,7 @@ export function AddToGroceriesButton({
         </Button>
       </DialogTrigger>
       <DialogContent
-        className="w-[calc(100%-2rem)] max-w-sm max-h-[85dvh] grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl"
+        className="w-[calc(100%-2rem)] max-w-sm max-h-[85dvh] grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl"
         aria-describedby={undefined}
       >
         <AddToGroceriesForm
@@ -102,11 +102,11 @@ function AddToGroceriesForm({
   return (
     <>
       <DialogHeader className="text-left pr-6">
-        <DialogTitle className="font-display text-[22px] font-medium tracking-tight">
-          <span className="sr-only">Add to </span>
+        <DialogTitle className="flex items-center gap-[0.3em] min-w-0 font-display text-[22px] font-medium tracking-tight">
+          <span className="shrink-0">Add to</span>{" "}
           {lists.length > 1 ? (
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 max-w-full rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+              <DropdownMenuTrigger className="flex items-center gap-1 min-w-0 rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
                 <span className="truncate">{listLabel(list)}</span>
                 <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
               </DropdownMenuTrigger>
@@ -126,7 +126,7 @@ function AddToGroceriesForm({
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            listLabel(list)
+            <span className="truncate">{listLabel(list)}</span>
           )}
         </DialogTitle>
       </DialogHeader>
