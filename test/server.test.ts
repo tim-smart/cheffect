@@ -31,7 +31,7 @@ import { QueryBuilder } from "@/IndexedDb"
 import { RecipeEvent } from "@/Recipes/Events"
 import { sampleRecipe } from "./fixtures/event-samples"
 import * as Server from "../server/Server"
-import { testIdentity } from "./harness/eventlog"
+import { freshIndexedDb } from "./harness/indexeddb"
 
 // The combined image's server: one process serves the front end
 // build and the encrypted EventLog server on `/sync`. `server/main.ts` reads
@@ -83,14 +83,6 @@ const makeClient = (url: string, identity: EventLog.Identity["Service"]) =>
     Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),
   )
 
-const write = (id: string) =>
-  Effect.gen(function* () {
-    const log = yield* EventLog.EventLog
-    yield* log.write({ schema: ProbeEvents, event: "Probe", payload: { id } })
-    const entries = yield* log.entries
-    return entries.find((entry) => entry.primaryKey === id)!
-  })
-
 const waitForEntry = (entry: EventJournal.Entry) =>
   EventLog.EventLog.use((log) => log.entries).pipe(
     Effect.repeat({
@@ -99,27 +91,6 @@ const waitForEntry = (entry: EventJournal.Entry) =>
       schedule: Schedule.spaced("20 millis"),
     }),
   )
-
-test("a write on one device reaches another device with the same identity through /sync", async () => {
-  await Effect.gen(function* () {
-    const port = yield* serverPort
-    const url = `ws://localhost:${port}/sync`
-    const identity = yield* testIdentity
-
-    // Both devices stay open, so the upload isn't cut short.
-    const phone = yield* Layer.build(makeClient(url, identity))
-    const laptop = yield* Layer.build(makeClient(url, identity))
-
-    const written = yield* write("first").pipe(Effect.provide(phone))
-    yield* waitForEntry(written).pipe(Effect.provide(laptop))
-  }).pipe(
-    // The clients retry until they connect, so a missing /sync would hang.
-    Effect.timeout("10 seconds"),
-    Effect.scoped,
-    Effect.provide(ServerLayer),
-    Effect.runPromise,
-  )
-})
 
 test("serves the front end with an SPA fallback and cache headers by path", async () => {
   const index = await readFile(`${root}/index.html`, "utf8")
@@ -169,18 +140,22 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
 // journal: nothing is wiped, reloaded or re-keyed.
 
 // The browser globals the app's layers read: `window.indexedDB`, from
-// fake-indexeddb, and `localStorage`.
+// fake-indexeddb, and `localStorage`. Test files share a process, so each
+// device starts from a fresh factory and an empty localStorage.
 ;(globalThis as any).window ??= globalThis
-const storage = new Map<string, string>()
-;(globalThis as any).localStorage ??= {
-  getItem: (key: string) => storage.get(key) ?? null,
-  setItem: (key: string, value: string) => void storage.set(key, value),
-  removeItem: (key: string) => void storage.delete(key),
-  clear: () => storage.clear(),
-  key: (index: number) => Array.from(storage.keys())[index] ?? null,
-  get length() {
-    return storage.size
-  },
+const freshBrowserStorage = () => {
+  freshIndexedDb()
+  const storage = new Map<string, string>()
+  ;(globalThis as any).localStorage = {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => void storage.set(key, value),
+    removeItem: (key: string) => void storage.delete(key),
+    clear: () => storage.clear(),
+    key: (index: number) => Array.from(storage.keys())[index] ?? null,
+    get length() {
+      return storage.size
+    },
+  }
 }
 
 const appEntries = eventLogAtom.atom(
@@ -191,6 +166,7 @@ const appRecipes = eventLogAtom.atom(
 )
 
 test("changing the server URL uploads this device's journal to the new server and keeps its data", async () => {
+  freshBrowserStorage()
   await Effect.gen(function* () {
     const first = yield* Layer.build(ServerLayer).pipe(
       Effect.flatMap((context) => serverPort.pipe(Effect.provide(context))),

@@ -259,10 +259,10 @@ test(
 )
 
 test(
-  "on a desktop the chat leaves the page visible and can be maximized",
+  "on a desktop the chat leaves the page visible and where it was scrolled, and can be maximized",
   { skip: !hasChromium && "chromium not found", timeout: 180_000 },
   () =>
-    withSeededApp(async ({ browser, base }) => {
+    withSeededApp(async ({ browser, base, recipeId }) => {
       await browser.setViewport(1280, 800, { mobile: false })
       await openChatOnSettings(browser, base)
 
@@ -295,16 +295,8 @@ test(
         initial,
         "restoring doesn't return the chat to its default size",
       )
-    }),
-)
 
-test(
-  "on a desktop opening the chat keeps the page where it was scrolled",
-  { skip: !hasChromium && "chromium not found", timeout: 180_000 },
-  () =>
-    withSeededApp(async ({ browser, base, recipeId }) => {
       await browser.setViewport(1280, 600, { mobile: false })
-      await openChatOnSettings(browser, base)
       await browser.navigate(`${base}/recipes/${recipeId}`)
       await browser.waitFor(
         `document.documentElement.scrollHeight > innerHeight + 100`,

@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
-import { hasChromium, sleep, withSeededApp } from "./harness"
+import { hasChromium, journalSettled, withSeededApp } from "./harness"
 
 test(
   "menus and meal plans round scaled servings like ingredient quantities",
@@ -29,7 +29,7 @@ test(
       await browser.waitFor(`(${heading}).textContent.includes("scaled")`)
 
       // Let the scale event persist before a full-page navigation.
-      await sleep(2000)
+      await journalSettled(browser)
 
       await t.test("menu servings", async () => {
         await browser.navigate(`${base}/menus`)

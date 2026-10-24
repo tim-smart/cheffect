@@ -48,7 +48,10 @@ const findMinidumps = (dir: string): Array<string> =>
         .map((file) => path.join(dir, file))
     : []
 
-const launchBrowser = async (profile: string) => {
+// One Chromium per test process. Each test gets its own browser context,
+// with its own storage, so tests don't share data but skip the launch.
+const launchChromium = async () => {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "cheffect-e2e-"))
   // Crashpad ignores --crash-dumps-dir on Linux and writes minidumps to
   // $XDG_CONFIG_HOME/<browser>/Crash Reports, so keep that inside the profile
   const crashDumps = path.join(profile, "config")
@@ -63,13 +66,24 @@ const launchBrowser = async (profile: string) => {
     ],
     {
       env: { ...process.env, XDG_CONFIG_HOME: crashDumps },
-      // own process group, so close() can kill every Chromium process
+      // own process group, so every Chromium process can be killed at exit
       detached: true,
     },
   )
-  const exited = new Promise<void>((resolve) =>
-    proc.on("exit", () => resolve()),
-  )
+  let exited = false
+  proc.on("exit", () => {
+    exited = true
+  })
+  // `--test-force-exit` ends the run without waiting for anything, so the
+  // browser goes with the process
+  process.on("exit", () => {
+    try {
+      process.kill(-proc.pid!, "SIGKILL")
+    } catch {
+      // already gone
+    }
+    fs.rmSync(profile, { recursive: true, force: true })
+  })
   const wsUrl = await new Promise<string>((resolve, reject) => {
     let stderr = ""
     proc.stderr.on("data", (chunk) => {
@@ -82,11 +96,15 @@ const launchBrowser = async (profile: string) => {
   const ws = new WebSocket(wsUrl)
   await new Promise((resolve) => ws.addEventListener("open", resolve))
 
-  let crashed = false
   let id = 0
   const pending = new Map<number, (result: any) => void>()
-  let sessionId: string | undefined
-  const send = (method: string, params: object = {}): Promise<any> =>
+  // events for each attached page, by session
+  const sessions = new Map<string, (msg: any) => void>()
+  const send = (
+    method: string,
+    params: object = {},
+    sessionId?: string,
+  ): Promise<any> =>
     new Promise((resolve) => {
       const msgId = ++id
       pending.set(msgId, resolve)
@@ -97,26 +115,56 @@ const launchBrowser = async (profile: string) => {
     if (msg.id !== undefined) {
       pending.get(msg.id)?.(msg.result ?? msg.error)
       pending.delete(msg.id)
-    } else if (msg.method === "Inspector.targetCrashed") {
+    } else if (msg.sessionId !== undefined) {
+      sessions.get(msg.sessionId)?.(msg)
+    }
+  })
+  return { send, sessions, crashDumps, exited: () => exited }
+}
+
+type Chromium = Awaited<ReturnType<typeof launchChromium>>
+
+let sharedChromium: Promise<Chromium> | undefined
+const getChromium = async () => {
+  // a browser that died takes only the test it died in
+  if (sharedChromium === undefined || (await sharedChromium).exited()) {
+    sharedChromium = launchChromium()
+  }
+  return sharedChromium
+}
+
+// A page in a fresh browser context: empty storage, as a new profile has.
+const openPage = async (chrome: Chromium) => {
+  const { browserContextId } = await chrome.send("Target.createBrowserContext")
+  const { targetId } = await chrome.send("Target.createTarget", {
+    url: "about:blank",
+    browserContextId,
+  })
+  const { sessionId } = await chrome.send("Target.attachToTarget", {
+    targetId,
+    flatten: true,
+  })
+  const send = (method: string, params: object = {}) =>
+    chrome.send(method, params, sessionId)
+  let crashed = false
+  chrome.sessions.set(sessionId, (msg) => {
+    if (msg.method === "Inspector.targetCrashed") {
       crashed = true
     } else if (msg.method === "Page.javascriptDialogOpening") {
       // "leave site?" and confirm() prompts: the user accepts
       void send("Page.handleJavaScriptDialog", { accept: true })
     }
   })
-
-  const { targetId } = await send("Target.createTarget", { url: "about:blank" })
-  sessionId = (await send("Target.attachToTarget", { targetId, flatten: true }))
-    .sessionId
   await send("Page.enable")
   await send("Runtime.enable")
   await send("Inspector.enable")
+  const crashDumps = chrome.crashDumps
 
   // A crashed renderer either dies (Inspector.targetCrashed) or, with some
   // builds, freezes while the crash handler writes a minidump. Both show up
   // as a DevTools call that never returns.
   const crashError = (what: string) => {
-    // the profile is removed after the test, so keep the minidumps
+    // the profile is removed at exit, so keep the minidumps
     fs.mkdirSync(crashesDir, { recursive: true })
     const dumps = findMinidumps(crashDumps).map((dump) => {
       const kept = path.join(crashesDir, path.basename(dump))
@@ -148,7 +196,7 @@ const launchBrowser = async (profile: string) => {
         `evaluate(${expression.slice(0, 60)})`,
       )
     ).result?.value
-  const waitFor = async (expression: string, timeout = 60_000) => {
+  const waitFor = async (expression: string, timeout = 20_000) => {
     const start = Date.now()
     while (Date.now() - start < timeout) {
       if (await evaluate<boolean>(expression)) return
@@ -248,22 +296,12 @@ const launchBrowser = async (profile: string) => {
       "addInitScript",
     )
   const close = async () => {
-    ws.close()
-    const killGroup = (signal: NodeJS.Signals) => {
-      try {
-        process.kill(-proc.pid!, signal)
-      } catch {
-        // already gone
-      }
-    }
-    killGroup("SIGTERM")
-    const timeout = sleep(5000).then(() => "timeout")
-    if ((await Promise.race([exited, timeout])) === "timeout") {
-      killGroup("SIGKILL")
-      await exited
-    }
-    // let the rest of the process group release the profile
-    killGroup("SIGKILL")
+    chrome.sessions.delete(sessionId)
+    // a hung renderer can hold this up; the context goes at exit regardless
+    await Promise.race([
+      chrome.send("Target.disposeBrowserContext", { browserContextId }),
+      sleep(5000),
+    ])
   }
   return {
     evaluate,
@@ -277,11 +315,58 @@ const launchBrowser = async (profile: string) => {
   }
 }
 
-export type Browser = Awaited<ReturnType<typeof launchBrowser>>
+export type Browser = Awaited<ReturnType<typeof openPage>>
+
+// The number of entries in the app's journal, through a separate connection,
+// as the next page load would see them.
+const journalEntries = `new Promise((resolve, reject) => {
+  const open = indexedDB.open("cheffect_journal")
+  open.onerror = () => reject(open.error)
+  open.onsuccess = () => {
+    const db = open.result
+    const request = db.transaction("entries").objectStore("entries").count()
+    request.onsuccess = () => (db.close(), resolve(request.result))
+    request.onerror = () => (db.close(), reject(request.error))
+  }
+})`
 
 /**
- * Starts the dev server and a fresh browser profile, opens the app so the
- * dev seed runs, and passes the id of a seeded recipe to `f`.
+ * Waits for the app's writes to persist: the journal holds entries and has
+ * stopped growing. Writes land within milliseconds of each other, so half a
+ * second without a new entry means they are done.
+ */
+export const journalSettled = async (browser: Browser) => {
+  const deadline = Date.now() + 30_000
+  let entries = 0
+  for (let unchanged = 0; unchanged < 5;) {
+    if (Date.now() > deadline) {
+      throw new Error(`the journal did not settle in 30s (${entries} entries)`)
+    }
+    await sleep(100)
+    const count = await browser.evaluate<number>(journalEntries)
+    unchanged = count > 0 && count === entries ? unchanged + 1 : 0
+    entries = count
+  }
+}
+
+// The dev server `setup.ts` started for the run, or one for this process
+// when a test file is run on its own.
+let sharedServer: Promise<string> | undefined
+const getServer = () =>
+  (sharedServer ??= process.env.CHEFFECT_E2E_BASE
+    ? Promise.resolve(process.env.CHEFFECT_E2E_BASE)
+    : createServer({
+        configFile: path.resolve("vite.config.ts"),
+        server: { host: "127.0.0.1", port: 0 },
+        logLevel: "error",
+      }).then(async (server) => {
+        await server.listen()
+        return server.resolvedUrls!.local[0].replace(/\/$/, "")
+      }))
+
+/**
+ * Opens the app in a fresh browser context so the dev seed runs, and passes
+ * the id of a seeded recipe to `f`.
  */
 export const withSeededApp = async (
   f: (app: {
@@ -290,33 +375,23 @@ export const withSeededApp = async (
     readonly recipeId: string
   }) => Promise<void>,
 ) => {
-  const server = await createServer({
-    configFile: path.resolve("vite.config.ts"),
-    server: { host: "127.0.0.1", port: 0 },
-    logLevel: "error",
-  })
-  await server.listen()
-  const base = server.resolvedUrls!.local[0].replace(/\/$/, "")
-  const profile = fs.mkdtempSync(path.join(os.tmpdir(), "cheffect-e2e-"))
-  const browser = await launchBrowser(profile)
+  const base = await getServer()
+  const browser = await openPage(await getChromium())
   try {
-    // the dev server seeds recipes into an empty store
+    // the dev server seeds recipes into an empty store; the first load
+    // transforms every module
     await browser.navigate(`${base}/`)
-    await browser.waitFor(`!!document.querySelector('a[href^="/recipes/"]')`)
+    await browser.waitFor(
+      `!!document.querySelector('a[href^="/recipes/"]')`,
+      60_000,
+    )
     const href = await browser.evaluate<string>(
       `document.querySelector('a[href^="/recipes/"]').getAttribute("href")`,
     )
     // let the seed events persist before leaving the page
-    await sleep(5000)
+    await journalSettled(browser)
     await f({ browser, base, recipeId: href.split("/recipes/")[1] })
   } finally {
     await browser.close()
-    await server.close()
-    fs.rmSync(profile, {
-      recursive: true,
-      force: true,
-      maxRetries: 5,
-      retryDelay: 200,
-    })
   }
 }

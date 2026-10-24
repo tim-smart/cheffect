@@ -171,14 +171,15 @@ const makeFaults = (failAt: number | undefined) => {
       interleave = { at, effect }
     },
     // Starts the interleaved effect if the join finished before reaching it,
-    // then gives it a moment to finish. Whatever is still waiting by then is
-    // waiting for the reload, and is stopped.
+    // then gives it a moment to finish: an unblocked write lands within a few
+    // milliseconds. Whatever is still waiting by then is waiting for the
+    // reload, and is stopped.
     settle: start.pipe(
       Effect.andThen(
         Effect.suspend(() =>
           fibers.length === 0
             ? Effect.void
-            : Effect.sleep("200 millis").pipe(
+            : Effect.sleep("50 millis").pipe(
                 Effect.andThen(Fiber.interruptAll(fibers)),
               ),
         ),

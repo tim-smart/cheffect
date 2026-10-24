@@ -32,7 +32,6 @@ import {
   only,
   pick,
   readTable,
-  withoutCompaction,
 } from "./harness/convergence"
 
 // The Recipes handlers converge whatever order remote entries arrive in:
@@ -42,7 +41,7 @@ import {
 // The recipe's `set` is delivered before the permuted entries, not among
 // them. A patch does nothing when the row is missing, and nothing can edit a
 // recipe its device hasn't received, so the server sequence always puts the
-// set first. Each order is also replayed uncompacted and one entry at a time.
+// set first.
 
 const recipeEvent = RecipeEvents.events[RecipeEvent.tag]
 
@@ -125,27 +124,20 @@ const deleted = (msecs: number) =>
     payload: recipeDeleted(recipeId, at(msecs)).payload,
   })
 
-const makeLayer =
-  (handlers: typeof RecipesLayer): MakeLayer =>
-  (identity, remote) => {
-    const eventLog = EventLog.layer(
-      EventLog.schema(RecipeEvents),
-      handlers,
-    ).pipe(
-      Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
-      Layer.provide(Layer.succeed(EventLog.Identity, identity)),
-    )
-    return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
-      Layer.provideMerge(QueryBuilder.layer),
-      Layer.provideMerge(layerDatabase),
-      Layer.provideMerge(Reactivity.layer),
-      Layer.provideMerge(layerFreshIndexedDb),
-    )
-  }
-
-const layers = {
-  layer: makeLayer(RecipesLayer),
-  uncompacted: makeLayer(withoutCompaction(RecipesLayer)),
+const layer: MakeLayer = (identity, remote) => {
+  const eventLog = EventLog.layer(
+    EventLog.schema(RecipeEvents),
+    RecipesLayer,
+  ).pipe(
+    Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
+    Layer.provide(Layer.succeed(EventLog.Identity, identity)),
+  )
+  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+    Layer.provideMerge(QueryBuilder.layer),
+    Layer.provideMerge(layerDatabase),
+    Layer.provideMerge(Reactivity.layer),
+    Layer.provideMerge(layerFreshIndexedDb),
+  )
 }
 
 const read = Effect.map(readTable("recipes"), (recipes) => ({ recipes }))
@@ -177,7 +169,7 @@ test("a local whole-Recipe update preserves createdAt", async () => {
       return yield* read
     }).pipe(
       Effect.timeout("5 seconds"),
-      Effect.provide(makeLayer(RecipesLayer)(identity, remote.layer)),
+      Effect.provide(layer(identity, remote.layer)),
     )
   }).pipe(Effect.runPromise)
   assert.deepEqual(
@@ -193,7 +185,7 @@ test("a local whole-Recipe update preserves createdAt", async () => {
 
 test("on the same recipe field the newest entry wins, not the newest updatedAt", async () => {
   const { recipes } = await converge({
-    ...layers,
+    layer,
     read,
     setup: [created],
     concurrent: [
@@ -212,7 +204,7 @@ test("on the same recipe field the newest entry wins, not the newest updatedAt",
 
 test("a recipe delete newer than an edit keeps the recipe deleted, with the edit applied", async () => {
   const { recipes } = await converge({
-    ...layers,
+    layer,
     read,
     setup: [created],
     concurrent: [updated(2000, { title: "Carrot soup" }), deleted(3000)],

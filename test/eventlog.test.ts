@@ -90,11 +90,13 @@ test("two first launches at the same time agree on one identity", async () => {
   assert.equal(a.publicKey, b.publicKey)
 })
 
-test("sync connects only when it is enabled and a server URL is set", () => {
+test("sync connects only when enabled, to the server URL or else the default", () => {
+  const defaultUrl = Option.some("wss://app.example.com/sync")
   const cases = [
     {
       enabled: false,
       url: Option.some("wss://sync.example.com/sync"),
+      defaultUrl,
       expected: Option.none(),
     },
     { enabled: true, url: Option.none(), expected: Option.none() },
@@ -106,35 +108,18 @@ test("sync connects only when it is enabled and a server URL is set", () => {
     {
       enabled: true,
       url: Option.some("http://localhost:8080"),
+      defaultUrl,
       expected: Option.some("ws://localhost:8080"),
     },
-  ]
-  for (const { enabled, url, expected } of cases) {
-    assert.deepEqual(
-      resolveSyncUrl({ enabled, url }),
-      expected,
-      JSON.stringify({ enabled, url }),
-    )
-  }
-})
-
-test("sync falls back to the default URL only when enabled and no URL is set", () => {
-  const defaultUrl = Option.some("wss://app.example.com/sync")
-  const cases = [
-    { enabled: true, url: Option.some("   "), expected: defaultUrl },
     {
       enabled: true,
-      url: Option.some("wss://custom.example.com/custom-sync"),
-      expected: Option.some("wss://custom.example.com/custom-sync"),
+      url: Option.some("   "),
+      defaultUrl,
+      expected: defaultUrl,
     },
-    { enabled: false, url: Option.none(), expected: Option.none() },
   ]
-  for (const { enabled, url, expected } of cases) {
-    assert.deepEqual(
-      resolveSyncUrl({ enabled, url, defaultUrl }),
-      expected,
-      JSON.stringify({ enabled, url }),
-    )
+  for (const { expected, ...options } of cases) {
+    assert.deepEqual(resolveSyncUrl(options), expected, JSON.stringify(options))
   }
 })
 
