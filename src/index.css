@@ -303,8 +303,6 @@
   }
 }
 
->>>
-
 /* Page headers stick under the top bar on desktops, where the top bar stays
    put; on phones they take its place as the page scrolls */
 @utility top-bar-offset {
