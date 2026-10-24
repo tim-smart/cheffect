@@ -11,9 +11,24 @@ export const useDayNote = (options: {
   readonly initiallyOpen: boolean
   readonly save: () => void
   readonly isEmpty: () => boolean
+  /**
+   * Which day this is. When it changes the note starts over, as if the row
+   * had just mounted: the meal plan keeps its rows while the weeks change
+   * under them, and one day's open note mustn't carry onto the next week's.
+   */
+  readonly day?: unknown
 }) => {
-  const [open, setOpen] = useState(options.initiallyOpen)
-  const [focusOnOpen, setFocusOnOpen] = useState(false)
+  // The state is stored with its day. On another day it's stale, and is
+  // replaced before anything below renders (React re-runs this component
+  // straight away, without touching its children)
+  const fresh = {
+    day: options.day,
+    open: options.initiallyOpen,
+    focusOnOpen: false,
+  }
+  const [stored, setState] = useState(fresh)
+  if (stored.day !== options.day) setState(fresh)
+  const { open, focusOnOpen } = stored.day === options.day ? stored : fresh
   // Set while the note button closes the note, so a blur as the field goes
   // away doesn't save it a second time
   const closing = useRef(false)
@@ -31,8 +46,7 @@ export const useDayNote = (options: {
         closing.current = true
         options.save()
       }
-      setFocusOnOpen(!open)
-      setOpen(!open)
+      setState({ day: options.day, open: !open, focusOnOpen: !open })
     },
   }
 
@@ -44,7 +58,7 @@ export const useDayNote = (options: {
       if (closing.current) return
       options.save()
       if (options.isEmpty()) {
-        setOpen(false)
+        setState({ day: options.day, open: false, focusOnOpen: false })
       }
     },
   }

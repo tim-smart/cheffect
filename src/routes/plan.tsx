@@ -42,10 +42,9 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { Placeholder } from "@/components/placeholder"
-import { useEffect, useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { useSwipeable } from "react-swipeable"
 import { quantityFormatter } from "@/lib/quantity"
-import { cn } from "@/lib/utils"
 import {
   MealPlanEntryEvent,
   MealPlanDayNoteEvent,
@@ -95,6 +94,26 @@ export function MealPlanPage() {
 
   // Which way the week list slides in: the direction the weeks moved
   const [direction, setDirection] = useState<"back" | "forward" | null>(null)
+
+  // The days stay mounted from one week to the next (rebuilding seven rows
+  // of buttons, menus and drawers is what made the swipe stutter on phones),
+  // so a CSS entrance would play once and never again. The slide is started
+  // by hand each time the week changes, with the theme's ease-out-quart.
+  const weekRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const element = weekRef.current
+    if (direction === null || element === null) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
+    const from = direction === "forward" ? "1rem" : "-1rem"
+    const animation = element.animate(
+      [
+        { opacity: 0, transform: `translateX(${from})` },
+        { opacity: 1, transform: "none" },
+      ],
+      { duration: 300, easing: "cubic-bezier(0.25, 1, 0.5, 1)" },
+    )
+    return () => animation.cancel()
+  }, [weekStart.epochMilliseconds, direction])
 
   const handlePreviousWeek = () => {
     setDirection("back")
@@ -182,6 +201,7 @@ export function MealPlanPage() {
               size="sm"
               onClick={handlePreviousWeek}
               className="h-8 w-8 p-0"
+              aria-label="Previous week"
             >
               <ChevronLeft />
             </Button>
@@ -221,6 +241,7 @@ export function MealPlanPage() {
               variant="ghost"
               onClick={handleNextWeek}
               className="h-8 w-8 p-0"
+              aria-label="Next week"
             >
               <ChevronRight />
             </Button>
@@ -233,15 +254,7 @@ export function MealPlanPage() {
         {/* Days open their note on mount, so wait for the first snapshot. */}
         {AsyncResult.isInitial(entries) ||
         AsyncResult.isInitial(dayNotes) ? null : (
-          <div
-            key={weekStart.epochMilliseconds}
-            className={cn(
-              direction !== null &&
-                "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300 motion-safe:ease-out-quart",
-              direction === "forward" && "motion-safe:slide-in-from-right-4",
-              direction === "back" && "motion-safe:slide-in-from-left-4",
-            )}
-          >
+          <div ref={weekRef}>
             <WeekList
               today={today}
               entries={AsyncResult.getOrElse(entries, () => [])}
@@ -274,16 +287,18 @@ function WeekList({
 
   return (
     <div className="divide-y divide-border">
-      {weekDays.map((date) => {
+      {weekDays.map((date, weekDay) => {
         const isTodayDate = isToday(date)
         const dayEntries = entries.filter((entry) =>
           DateTime.Equivalence(entry.day, date),
         )
         const dayNote = notesByDay.get(DateTime.formatIsoDate(date))
 
+        // Keyed by position, so a week change updates the seven rows in
+        // place rather than tearing them down and mounting new ones
         return (
           <DayListItem
-            key={date.epochMilliseconds}
+            key={weekDay}
             date={date}
             dayEntries={dayEntries}
             dayNote={dayNote}
@@ -311,11 +326,17 @@ function DayListItem({
 }) {
   const write = useWrite()
   const dateParts = DateTime.toPartsUtc(date)
-  const [noteDraft, setNoteDraft] = useState(dayNote?.note ?? "")
-
-  useEffect(() => {
-    setNoteDraft(dayNote?.note ?? "")
-  }, [dayNote?.note])
+  // The row outlives the day it shows, so the draft is kept with its day and
+  // with the saved note it was typed over. A draft from another day, or over
+  // a note that has since changed (on another device, say), is stale and is
+  // replaced by the saved note before anything renders
+  const day = date.epochMilliseconds
+  const saved = dayNote?.note ?? ""
+  const [draft, setDraft] = useState({ day, saved, note: saved })
+  const stale = draft.day !== day || draft.saved !== saved
+  if (stale) setDraft({ day, saved, note: saved })
+  const noteDraft = stale ? saved : draft.note
+  const setNoteDraft = (note: string) => setDraft({ day, saved, note })
 
   const saveNote = () => {
     const trimmed = noteDraft.trim()
@@ -349,6 +370,7 @@ function DayListItem({
   }
 
   const note = useDayNote({
+    day,
     initiallyOpen: dayNote !== undefined,
     save: saveNote,
     isEmpty: () => noteDraft.trim().length === 0,
@@ -409,7 +431,11 @@ function DayListItem({
       <div className="md:col-start-2 md:row-start-1 md:row-span-2">
         {note.open && (
           <div className="mt-1.5 md:mt-0 md:mb-2 md:max-w-2xl">
+            {/* A new field for a new day: when both weeks have a note on
+                this weekday, the old week's field must not stay focused
+                with the new week's note in it */}
             <DayNoteField
+              key={day}
               value={noteDraft}
               onChange={setNoteDraft}
               {...note.fieldProps}
@@ -435,6 +461,9 @@ function DayListItem({
                     <img
                       src={recipe.imageUrl}
                       alt=""
+                      // decoded off the main thread, so a week's photos
+                      // don't hold up the frames of its slide
+                      decoding="async"
                       className="absolute inset-0 w-full h-full object-cover"
                       onError={(event) => {
                         event.currentTarget.hidden = true
@@ -461,44 +490,11 @@ function DayListItem({
                   </p>
                 </div>
                 <div onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-muted-foreground"
-                        aria-label="Meal options"
-                      >
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      onCloseAutoFocus={(event) => event.preventDefault()}
-                    >
-                      <MealPlanDatePicker
-                        target={MealPlanDatePickerTarget.Existing({
-                          id,
-                          initialValue: date,
-                        })}
-                      >
-                        <DropdownMenuItem>
-                          <Calendar />
-                          Change day
-                        </DropdownMenuItem>
-                      </MealPlanDatePicker>
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onClick={(event) => {
-                          event.preventDefault()
-                          handleRemoveEntry(id)
-                        }}
-                      >
-                        <Trash />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <MealMenu
+                    id={id}
+                    date={date}
+                    handleRemoveEntry={handleRemoveEntry}
+                  />
                 </div>
               </Link>
             ))}
@@ -512,6 +508,105 @@ function DayListItem({
         )}
       </div>
     </div>
+  )
+}
+
+// A meal's menu: change its day or remove it.
+//
+// A week shows a dozen meals or more, and mounting a menu for each was much
+// of what a swipe between weeks cost. Until its button is first pressed a
+// meal has the button alone; the menu mounts on that press, already open.
+function MealMenu({
+  id,
+  date,
+  handleRemoveEntry,
+}: {
+  id: MealPlanEntryId
+  date: DateTime.Utc
+  handleRemoveEntry: (id: MealPlanEntryId) => void
+}) {
+  const [open, setOpen] = useState<boolean | null>(null)
+  // Radix focuses the first item when the menu opens from the keyboard, but
+  // it knows that from key presses it has seen, and the press that mounts
+  // this menu happens before it exists. So that first opening is remembered,
+  // and when the menu takes focus the first item is focused by hand
+  const openedByKeyboard = useRef(false)
+  const buttonProps = {
+    variant: "ghost",
+    size: "sm",
+    className: "h-8 w-8 p-0 text-muted-foreground",
+    "aria-label": "Meal options",
+  } as const
+
+  if (open === null) {
+    return (
+      <Button
+        {...buttonProps}
+        aria-haspopup="menu"
+        aria-expanded={false}
+        onClick={(event) => {
+          // the button sits inside the meal's link
+          event.preventDefault()
+          // a click from Enter or Space has no detail
+          openedByKeyboard.current = event.detail === 0
+          setOpen(true)
+        }}
+        onKeyDown={(event) => {
+          // the arrow opens a menu, as it does once the menu is there
+          if (event.key === "ArrowDown") {
+            event.preventDefault()
+            openedByKeyboard.current = true
+            setOpen(true)
+          }
+        }}
+      >
+        <MoreVertical className="w-4 h-4" />
+      </Button>
+    )
+  }
+
+  return (
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button {...buttonProps}>
+          <MoreVertical className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        onFocus={(event) => {
+          if (!openedByKeyboard.current || event.target !== event.currentTarget)
+            return
+          openedByKeyboard.current = false
+          event.currentTarget
+            .querySelector<HTMLElement>('[role="menuitem"]')
+            ?.focus()
+        }}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
+        <MealPlanDatePicker
+          target={MealPlanDatePickerTarget.Existing({
+            id,
+            initialValue: date,
+          })}
+        >
+          <DropdownMenuItem>
+            <Calendar />
+            Change day
+          </DropdownMenuItem>
+        </MealPlanDatePicker>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={(event) => {
+            event.preventDefault()
+            handleRemoveEntry(id)
+          }}
+        >
+          <Trash />
+          Remove
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
