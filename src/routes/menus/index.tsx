@@ -290,8 +290,14 @@ function DayGrid({
             />
           )
         }
-        // Keyed by recipe, so a day whose first recipe changes starts over
-        return <DayPlate key={`${index}:${recipe.idString}`} recipe={recipe} />
+        // Keyed by recipe and photo, so a day whose first recipe or its photo
+        // changes starts over rather than keeping an earlier load failure
+        return (
+          <DayPlate
+            key={`${index}:${recipe.idString}:${recipe.imageUrl}`}
+            recipe={recipe}
+          />
+        )
       })}
     </div>
   )
