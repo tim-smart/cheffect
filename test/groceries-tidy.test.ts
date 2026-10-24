@@ -113,16 +113,15 @@ test("an item without an aisle takes the one learned for it, then for the part b
   ])
 })
 
-test("the pass before the AI renames by alias, guesses aisles, and merges only lines without a quantity", () => {
-  const salt = item("Salt", { recipeIds: [soup] })
+test("the pass before the AI renames by alias and guesses aisles, and merges nothing", () => {
   const garlic = item("Garlic, minced", { aisle: "Pantry" })
   const { writes, items } = tidyList({
     items: [
-      salt,
+      item("Salt", { recipeIds: [soup] }),
+      // Merging would remove one, and a quantity set on it meanwhile.
       item("salt", { recipeIds: [cake] }),
       garlic,
-      item("Eggs", { quantity: "2" }),
-      item("Eggs", { quantity: "1" }),
+      item("Pepper", { aisle: "Herbs & Spices" }),
     ],
     aisles: new Map(),
     aliases: decodeAliases([
@@ -142,20 +141,18 @@ test("the pass before the AI renames by alias, guesses aisles, and merges only l
         : [write.op, write.item.name, write.item.aisle, write.guessedAisle],
     ),
     [
-      ["remove"],
       ["change", "Salt", "Herbs & Spices", true],
+      ["change", "salt", "Herbs & Spices", true],
       ["change", "Garlic", "Pantry", false],
-      ["change", "Eggs", "Dairy & Eggs", true],
-      ["change", "Eggs", "Dairy & Eggs", true],
     ],
   )
   assert.deepEqual(
-    items.map((item) => [item.name, item.quantity, item.recipeIds]),
+    items.map((item) => [item.name, item.recipeIds]),
     [
-      ["Salt", null, [soup, cake]],
-      ["Garlic", null, null],
-      ["Eggs", "2", null],
-      ["Eggs", "1", null],
+      ["Salt", [soup]],
+      ["salt", [cake]],
+      ["Garlic", null],
+      ["Pepper", null],
     ],
   )
 })

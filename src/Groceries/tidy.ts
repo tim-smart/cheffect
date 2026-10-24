@@ -5,7 +5,6 @@ import { dictionaryAisle } from "@/domain/GroceryAisleDictionary"
 import {
   type GroceryAisle,
   GroceryItem,
-  normalizeIngredientName,
   unionRecipeIds,
 } from "@/domain/GroceryItem"
 import { quantityFormatter } from "@/lib/quantity"
@@ -61,9 +60,9 @@ export const guessAisle = (
 // same ingredient.
 //
 // An item merges into one already on its list under the same name, not
-// checked off, only when neither has a quantity: the merge then changes no
-// quantity, and writes only its recipes, so a check or a quantity set
-// meanwhile on another device stands. Counts are summed only between items
+// checked off, only when neither has a quantity: the merge then leaves the
+// quantity exactly as it was read, and writes only its recipes, so a check or
+// a quantity set meanwhile on another device stands. Counts are summed only between items
 // this batch adds, which nothing else can have written yet. A sum written
 // into an existing item would replace one written concurrently elsewhere, so
 // those stay separate lines. The rest are added, with a guessed aisle when
@@ -101,13 +100,17 @@ export const planGroceryAdds = (options: {
   >()
   // The quantity `item` leaves on `target` if it merges there. An item this
   // batch adds takes any sum, since nothing else has written it yet. An item
-  // already on the list takes only nothing onto nothing: a sum written there
-  // would replace one written meanwhile elsewhere.
+  // already on the list takes only nothing onto nothing, and keeps its own
+  // quantity as read, even a blank one: anything else written there would
+  // replace a quantity set meanwhile elsewhere.
   const mergeInto = (target: GroceryItem, item: GroceryItem) => {
     const quantity = mergeQuantities(target.quantity, item.quantity)
     return writes.get(target.idString)?.op === "add"
       ? quantity
-      : Option.filter(quantity, (sum) => sum === null)
+      : Option.map(
+          Option.filter(quantity, (sum) => sum === null),
+          () => target.quantity,
+        )
   }
   for (const incoming of options.incoming) {
     const name = canonicalName(options.aliases, incoming.name)
@@ -149,60 +152,37 @@ export const planGroceryAdds = (options: {
 }
 
 // The deterministic pass over a list's items before the AI sees them, as the
-// writes that make it. Each item takes its canonical name and, if it has
-// none, a guessed aisle. Items under the same canonical name merge where
-// neither has a quantity: the later goes and the earlier takes its recipes.
-// Every item here is already on the list, so a merge never writes a sum,
-// which could replace a quantity set meanwhile elsewhere. Returns the writes
-// and the items as they'll be after them.
+// writes that make it: each item takes its canonical name and, if it has
+// none, a guessed aisle. Returns the writes and the items as they'll be after
+// them.
+//
+// It merges nothing. Every item here is already on the list, and merging two
+// means removing one, which would lose a quantity another device set on it
+// meanwhile. Duplicates are left to the AI pass until merges are lossless.
 export const tidyList = (options: {
   readonly items: ReadonlyArray<GroceryItem>
   readonly aisles: IngredientAisles
   readonly aliases: IngredientAliases
   readonly now: DateTime.Utc
 }) => {
-  const tidied = new Map<string, GroceryItem>()
-  const removed: Array<GroceryItem> = []
-  const targets = new Map<string, GroceryItem>()
-  for (const item of options.items) {
+  const writes: Array<GroceryItemWrite> = []
+  const items = options.items.map((item) => {
     const name = canonicalName(options.aliases, item.name)
     const aisle = item.aisle ?? guessAisle(options.aisles, name)
-    const key = JSON.stringify([item.list, normalizeIngredientName(name)])
-    const target = targets.get(key)
-    if (
-      target !== undefined &&
-      Option.contains(mergeQuantities(target.quantity, item.quantity), null)
-    ) {
-      removed.push(item)
-      const merged = new GroceryItem({
-        ...target,
-        recipeIds: unionRecipeIds(target.recipeIds, item.recipeIds),
-        updatedAt: options.now,
-      })
-      targets.set(key, merged)
-      tidied.set(merged.idString, merged)
-      continue
-    }
-    const next =
-      name === item.name && aisle === item.aisle
-        ? item
-        : new GroceryItem({ ...item, name, aisle, updatedAt: options.now })
-    if (target === undefined) targets.set(key, next)
-    tidied.set(next.idString, next)
-  }
-  const writes: Array<GroceryItemWrite> = removed.map((item) => ({
-    op: "remove",
-    id: item.id,
-  }))
-  for (const item of options.items) {
-    const next = tidied.get(item.idString)
-    if (next === undefined || next === item) continue
+    if (name === item.name && aisle === item.aisle) return item
+    const next = new GroceryItem({
+      ...item,
+      name,
+      aisle,
+      updatedAt: options.now,
+    })
     writes.push({
       op: "change",
       previous: item,
       item: next,
-      guessedAisle: item.aisle === null && next.aisle !== null,
+      guessedAisle: item.aisle === null && aisle !== null,
     })
-  }
-  return { writes, items: Array.from(tidied.values()) } as const
+    return next
+  })
+  return { writes, items } as const
 }

@@ -14,6 +14,11 @@ import {
 // Every rename and merge is also a lesson for the alias table: the name the
 // item had, and the name it ended up under. A lesson whose names only differ
 // in case or spacing teaches nothing.
+//
+// A merge removes its sources, so a quantity another device set on a source
+// meanwhile is lost: the remove wins over the edit. The target's own write
+// is narrow, but nothing protects a source. Lossless merges, in the quantity
+// stage, have to cover this as well as merges on add.
 export const beautifyChanges = (
   items: Iterable<GroceryItem>,
   changes: typeof GroceryListChanges.Type,

@@ -17,9 +17,14 @@ import {
 } from "@/Groceries/Events"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import type { GroceryAisle } from "@/domain/GroceryItem"
-import { GroceryItem, GroceryItemIdFromString } from "@/domain/GroceryItem"
+import {
+  GroceryItem,
+  GroceryItemId,
+  GroceryItemIdFromString,
+} from "@/domain/GroceryItem"
 import { RecipeId } from "@/domain/Recipe"
 import { generateUuidBytes } from "@/lib/Id"
+import { planGroceryAdds } from "@/Groceries/tidy"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry } from "./harness/eventlog"
 import {
@@ -50,6 +55,9 @@ const carrots = Schema.decodeSync(GroceryItemIdFromString)(
 )
 const milk = Schema.decodeSync(GroceryItemIdFromString)(
   "0193c7a0-1b2c-4def-8123-c0ffee000002",
+)
+const butter = Schema.decodeSync(GroceryItemIdFromString)(
+  "0193c7a0-1b2c-4def-8123-c0ffee000003",
 )
 type ItemId = typeof carrots
 const soup = RecipeId.make(generateUuidBytes())
@@ -222,6 +230,58 @@ test("an update or merge made from a copy taken before a check or a quantity edi
       { name: "Milk", quantity: "2", recipeIds: [soup], completed: true },
     ],
   )
+})
+
+test("an add merged into a line with a blank quantity keeps a quantity set meanwhile", async () => {
+  // The add is planned from a copy where Butter's quantity is blank, so it
+  // keeps it as read and writes only the recipe.
+  const blankButter = new GroceryItem({
+    ...item(butter, "Butter", 1000),
+    quantity: " ",
+  })
+  const [merge] = planGroceryAdds({
+    existing: [blankButter],
+    aisles: new Map(),
+    aliases: new Map(),
+    incoming: [
+      new GroceryItem({
+        ...item(GroceryItemId.make(generateUuidBytes()), "Butter", 3000),
+        recipeIds: [soup],
+      }),
+    ],
+    now: DateTime.makeUnsafe(3000),
+  })
+  assert.ok(merge.op === "change")
+  const { groceryItems } = await converge({
+    layer,
+    read,
+    setup: [
+      makeEntry({
+        msecs: 1000,
+        event: itemEvent,
+        payload: GroceryItemEvent.set(blankButter).payload,
+      }),
+    ],
+    concurrent: [
+      makeEntry({
+        msecs: 2500,
+        event: itemEvent,
+        payload: groceryItemChange(
+          blankButter,
+          new GroceryItem({ ...blankButter, quantity: "2" }),
+        ).payload,
+      }),
+      makeEntry({
+        msecs: 3000,
+        event: itemEvent,
+        payload: groceryItemChange(merge.previous, merge.item).payload,
+      }),
+    ],
+  })
+  assert.deepEqual(pick(only(groceryItems), ["quantity", "recipeIds"]), {
+    quantity: "2",
+    recipeIds: [soup],
+  })
 })
 
 test("a deleted grocery item stays deleted, with writes either side of the delete", async () => {

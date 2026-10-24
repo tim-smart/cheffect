@@ -128,7 +128,8 @@ const beautifyRuntime = Atom.runtime((get) =>
 )
 
 // The deterministic pass runs first and is written straight away, whatever
-// the AI does after, so the model gets a shorter, cleaner list. The AI's
+// the AI does after, so the model gets names already resolved and fewer
+// items without an aisle. The AI's
 // renames and merges then teach the alias table, so the next add of the same
 // name is cleaned up without it.
 export const beautifyGroceriesAtom = beautifyRuntime
