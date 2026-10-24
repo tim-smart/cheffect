@@ -32,14 +32,18 @@ export default function CheffectHome() {
       {/* The title and count share a row with the search on desktops; on
           phones the search drops to its own row */}
       <div className="mb-5 md:mb-8 flex flex-wrap items-center gap-y-4 md:min-h-11">
-        <h2 className="font-display text-[32px] font-medium leading-none tracking-tight">
-          Recipes
-        </h2>
-        {AsyncResult.isSuccess(recipes) && (
-          <span className="ml-auto md:ml-4 text-sm text-muted-foreground tabular-nums">
-            {recipes.value.length} {searching ? "matching" : "saved"}
-          </span>
-        )}
+        {/* The count sits on the heading's baseline rather than centred on
+            its box, which would float it above the serif's x-height */}
+        <div className="flex flex-1 md:flex-none items-baseline">
+          <h2 className="font-display text-[32px] font-medium leading-none tracking-tight">
+            Recipes
+          </h2>
+          {AsyncResult.isSuccess(recipes) && (
+            <span className="ml-auto md:ml-4 text-sm text-muted-foreground tabular-nums">
+              {recipes.value.length} {searching ? "matching" : "saved"}
+            </span>
+          )}
+        </div>
         <div className="basis-full md:basis-auto md:ml-auto md:w-full md:max-w-md">
           <SearchInput />
         </div>
