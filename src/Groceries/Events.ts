@@ -62,13 +62,14 @@ export const groceryItemUpdate = (item: GroceryItem) =>
     },
   )
 
-// What merging another item into this one writes: only what the merge
-// changes.
+// What an add merging into this item writes: only what the merge changes.
+// An add merges into an item on the list only when neither has a quantity,
+// so the merge leaves the quantity alone. Writing the empty quantity back
+// would replace one set meanwhile on another device.
 export const groceryItemMerge = (item: GroceryItem) =>
   GroceryItemEvent.patch(
     { id: item.id },
     {
-      quantity: item.quantity,
       recipeIds: item.recipeIds,
       updatedAt: item.updatedAt,
     },

@@ -58,13 +58,13 @@ const listKey = (item: GroceryItem) =>
 // The writes that add `incoming` given what's on the lists now.
 //
 // An item merges into one already on its list under the same name, not
-// checked off, only when neither has a quantity: the merge then writes the
-// same quantity whatever another device did meanwhile. Counts are summed
-// only between items this batch adds, which nothing else can have written
-// yet. A sum written into an existing item would replace one written
-// concurrently elsewhere, so those stay separate lines. A merge only writes
-// its quantity and recipes, so a check made meanwhile stands. The rest are
-// added, with a guessed aisle when they have none.
+// checked off, only when neither has a quantity: the merge then changes no
+// quantity, and writes only its recipes, so a check or a quantity set
+// meanwhile on another device stands. Counts are summed only between items
+// this batch adds, which nothing else can have written yet. A sum written
+// into an existing item would replace one written concurrently elsewhere, so
+// those stay separate lines. The rest are added, with a guessed aisle when
+// they have none.
 export const planGroceryAdds = (options: {
   readonly existing: ReadonlyArray<GroceryItem>
   readonly aisles: IngredientAisles
