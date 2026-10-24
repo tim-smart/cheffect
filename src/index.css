@@ -255,6 +255,10 @@
     animation: none;
   }
 
+  /* The state variants (data-[state=open]:zoom-in-95 and friends) are more
+     specific than these selectors, but they sit in @layer utilities and
+     this rule is unlayered, so it wins on layer order before specificity
+     is compared. Keep it outside any @layer */
   [data-state],
   .animate-in,
   .animate-out {
