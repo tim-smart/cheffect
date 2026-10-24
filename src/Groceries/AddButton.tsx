@@ -1,9 +1,10 @@
-import { Plus, Check, ChevronDown, ShoppingCart } from "lucide-react"
+import { Plus, Check, ChevronDown, ShoppingCart, X } from "lucide-react"
 import { useContext, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -68,6 +69,7 @@ export function AddToGroceriesButton({
       <DialogContent
         className="w-[calc(100%-2rem)] max-w-sm max-h-[85dvh] grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl"
         aria-describedby={undefined}
+        hideClose
       >
         <AddToGroceriesForm
           recipes={recipes}
@@ -101,8 +103,9 @@ function AddToGroceriesForm({
   const [list, setList] = useState<string | null>(null)
   return (
     <>
-      <DialogHeader className="text-left pr-6">
-        <DialogTitle className="flex items-center gap-[0.3em] min-w-0 font-display text-[22px] font-medium tracking-tight">
+      {/* The close button shares the title's row, so the two line up */}
+      <DialogHeader className="flex-row items-center gap-2 space-y-0 text-left">
+        <DialogTitle className="flex flex-1 items-center gap-[0.3em] min-w-0 font-display text-[22px] font-medium tracking-tight">
           <span className="shrink-0">Add to</span>{" "}
           {lists.length > 1 ? (
             <DropdownMenu>
@@ -129,6 +132,17 @@ function AddToGroceriesForm({
             <span className="truncate">{listLabel(list)}</span>
           )}
         </DialogTitle>
+        <DialogClose asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Close"
+            // The cross itself, not the button around it, sits on the content edge
+            className="-mr-3 shrink-0 text-muted-foreground [&_svg]:size-5"
+          >
+            <X />
+          </Button>
+        </DialogClose>
       </DialogHeader>
       {/* The selection starts from the pantry, so it waits for it */}
       {AsyncResult.isSuccess(pantryNames) ? (
@@ -220,7 +234,8 @@ function CandidateList({
           ))}
         </div>
       </div>
-      <DialogFooter>
+      {/* As much room above the button as below it */}
+      <DialogFooter className="pt-2">
         {/* Starts focused, as the defaults are usually what's wanted */}
         <Button type="submit" disabled={selected.size === 0} autoFocus>
           {selected.size === 1 ? "Add 1 item" : `Add ${selected.size} items`}
