@@ -205,7 +205,9 @@ function RecipeTile({ recipe }: { recipe: Recipe }) {
       params={{ id: recipe.idString }}
       className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
     >
-      <div className="relative h-32 md:h-44 overflow-hidden rounded-xl bg-muted">
+      {/* The frame presses in, not the photo inside it, so no gutter of the
+          placeholder opens around a shrunken, square-cornered photo */}
+      <div className="relative h-32 md:h-44 overflow-hidden rounded-xl bg-muted motion-safe:transition-[scale] motion-safe:duration-150 motion-safe:ease-out motion-safe:group-active:scale-[0.97]">
         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
           <ChefHat className="size-10 opacity-30" />
         </div>
@@ -213,7 +215,7 @@ function RecipeTile({ recipe }: { recipe: Recipe }) {
           <FadeImage
             src={recipe.imageUrl}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-active:scale-[0.97]"
+            className="absolute inset-0 h-full w-full object-cover"
             onError={(event) => {
               event.currentTarget.hidden = true
             }}
