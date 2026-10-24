@@ -284,6 +284,13 @@
   }
 }
 
+/* A dialog hides the page scrollbar, which widens the viewport by its width
+   on desktops with classic scrollbars; the control stays put instead of
+   jumping into the gap and back */
+@utility floating-r {
+  right: calc(var(--removed-body-scroll-bar-size, 0px) + var(--spacing) * 4);
+}
+
 @utility pb-content {
   padding-bottom: calc(env(safe-area-inset-bottom) + var(--spacing) * 40);
   @media (width >= 48rem) {
