@@ -201,6 +201,7 @@ export function MealPlanPage() {
               size="sm"
               onClick={handlePreviousWeek}
               className="h-8 w-8 p-0"
+              aria-label="Previous week"
             >
               <ChevronLeft />
             </Button>
@@ -240,6 +241,7 @@ export function MealPlanPage() {
               variant="ghost"
               onClick={handleNextWeek}
               className="h-8 w-8 p-0"
+              aria-label="Next week"
             >
               <ChevronRight />
             </Button>
@@ -429,7 +431,11 @@ function DayListItem({
       <div className="md:col-start-2 md:row-start-1 md:row-span-2">
         {note.open && (
           <div className="mt-1.5 md:mt-0 md:mb-2 md:max-w-2xl">
+            {/* A new field for a new day: when both weeks have a note on
+                this weekday, the old week's field must not stay focused
+                with the new week's note in it */}
             <DayNoteField
+              key={day}
               value={noteDraft}
               onChange={setNoteDraft}
               {...note.fieldProps}
@@ -520,6 +526,11 @@ function MealMenu({
   handleRemoveEntry: (id: MealPlanEntryId) => void
 }) {
   const [open, setOpen] = useState<boolean | null>(null)
+  // Radix focuses the first item when the menu opens from the keyboard, but
+  // it knows that from key presses it has seen, and the press that mounts
+  // this menu happens before it exists. So that first opening is remembered,
+  // and when the menu takes focus the first item is focused by hand
+  const openedByKeyboard = useRef(false)
   const buttonProps = {
     variant: "ghost",
     size: "sm",
@@ -536,12 +547,15 @@ function MealMenu({
         onClick={(event) => {
           // the button sits inside the meal's link
           event.preventDefault()
+          // a click from Enter or Space has no detail
+          openedByKeyboard.current = event.detail === 0
           setOpen(true)
         }}
         onKeyDown={(event) => {
           // the arrow opens a menu, as it does once the menu is there
           if (event.key === "ArrowDown") {
             event.preventDefault()
+            openedByKeyboard.current = true
             setOpen(true)
           }
         }}
@@ -560,6 +574,14 @@ function MealMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
+        onFocus={(event) => {
+          if (!openedByKeyboard.current || event.target !== event.currentTarget)
+            return
+          openedByKeyboard.current = false
+          event.currentTarget
+            .querySelector<HTMLElement>('[role="menuitem"]')
+            ?.focus()
+        }}
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <MealPlanDatePicker

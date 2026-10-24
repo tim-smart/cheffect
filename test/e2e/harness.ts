@@ -275,6 +275,30 @@ const openPage = async (chrome: Chromium) => {
     await mouse("mouseReleased", x, y + offsetY, what, 0)
   }
   /**
+   * Swipes a finger `dx` pixels across the centre of an element, with touch
+   * events: left for a negative `dx`. A swipe is not a tap, so focus stays
+   * where it was.
+   */
+  const swipe = async (element: string, dx: number) => {
+    const what = `swipe(${element.slice(0, 60)})`
+    const { x, y } = await settledCentre(element, "swipe")
+    await sendOrCrash(
+      "Emulation.setTouchEmulationEnabled",
+      { enabled: true },
+      what,
+    )
+    const touch = (
+      type: string,
+      touchPoints: Array<{ x: number; y: number }>,
+    ) => sendOrCrash("Input.dispatchTouchEvent", { type, touchPoints }, what)
+    await touch("touchStart", [{ x, y }])
+    for (let step = 1; step <= 5; step++) {
+      await sleep(20)
+      await touch("touchMove", [{ x: x + (dx * step) / 5, y }])
+    }
+    await touch("touchEnd", [])
+  }
+  /**
    * Presses and releases a key with real key events, so the browser runs the
    * default action: Space on a focused button clicks it, which a synthetic
    * KeyboardEvent never does. `key` is the KeyboardEvent key (" ", "Enter").
@@ -328,6 +352,7 @@ const openPage = async (chrome: Chromium) => {
     navigate,
     click,
     cancelledPress,
+    swipe,
     press,
     setViewport,
     addInitScript,
