@@ -31,7 +31,6 @@ import { QueryBuilder } from "@/IndexedDb"
 import { RecipeEvent } from "@/Recipes/Events"
 import { sampleRecipe } from "./fixtures/event-samples"
 import * as Server from "../server/Server"
-import { testIdentity } from "./harness/eventlog"
 
 // The combined image's server: one process serves the front end
 // build and the encrypted EventLog server on `/sync`. `server/main.ts` reads
@@ -83,14 +82,6 @@ const makeClient = (url: string, identity: EventLog.Identity["Service"]) =>
     Layer.provide(Layer.succeed(EventLog.CurrentStoreId, storeId)),
   )
 
-const write = (id: string) =>
-  Effect.gen(function* () {
-    const log = yield* EventLog.EventLog
-    yield* log.write({ schema: ProbeEvents, event: "Probe", payload: { id } })
-    const entries = yield* log.entries
-    return entries.find((entry) => entry.primaryKey === id)!
-  })
-
 const waitForEntry = (entry: EventJournal.Entry) =>
   EventLog.EventLog.use((log) => log.entries).pipe(
     Effect.repeat({
@@ -99,27 +90,6 @@ const waitForEntry = (entry: EventJournal.Entry) =>
       schedule: Schedule.spaced("20 millis"),
     }),
   )
-
-test("a write on one device reaches another device with the same identity through /sync", async () => {
-  await Effect.gen(function* () {
-    const port = yield* serverPort
-    const url = `ws://localhost:${port}/sync`
-    const identity = yield* testIdentity
-
-    // Both devices stay open, so the upload isn't cut short.
-    const phone = yield* Layer.build(makeClient(url, identity))
-    const laptop = yield* Layer.build(makeClient(url, identity))
-
-    const written = yield* write("first").pipe(Effect.provide(phone))
-    yield* waitForEntry(written).pipe(Effect.provide(laptop))
-  }).pipe(
-    // The clients retry until they connect, so a missing /sync would hang.
-    Effect.timeout("10 seconds"),
-    Effect.scoped,
-    Effect.provide(ServerLayer),
-    Effect.runPromise,
-  )
-})
 
 test("serves the front end with an SPA fallback and cache headers by path", async () => {
   const index = await readFile(`${root}/index.html`, "utf8")

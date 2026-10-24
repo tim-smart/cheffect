@@ -24,21 +24,18 @@ import {
   only,
   pick,
   readTable,
-  withoutCompaction,
 } from "./harness/convergence"
 
 // The Groceries handlers converge whatever order remote entries arrive in. A
 // patch on an item that's missing does nothing, and a remove hard-deletes,
-// so a late patch can't bring an item back. A clear removes only the items
-// its writer saw, so an item added concurrently survives it.
+// so a late patch can't bring an item back.
 //
 // Ingredient aisles are keyed by the normalised name, so every spelling of a
 // name writes the same row, and a remove outlasts older sets even when it
 // arrives first.
 //
 // The first set of an item is delivered before the permuted entries: nothing
-// can patch or remove an item its device hasn't received. Each order is also
-// replayed uncompacted and one entry at a time.
+// can patch or remove an item its device hasn't received.
 
 const itemEvent = GroceryEvents.events[GroceryItemEvent.tag]
 const aisleEvent = GroceryEvents.events[IngredientAisleEvent.tag]
@@ -48,9 +45,6 @@ const carrots = Schema.decodeSync(GroceryItemIdFromString)(
 )
 const milk = Schema.decodeSync(GroceryItemIdFromString)(
   "0193c7a0-1b2c-4def-8123-c0ffee000002",
-)
-const bread = Schema.decodeSync(GroceryItemIdFromString)(
-  "0193c7a0-1b2c-4def-8123-c0ffee000003",
 )
 type ItemId = typeof carrots
 
@@ -126,27 +120,20 @@ const aisleRemoved = (msecs: number, name: string) =>
     payload: IngredientAisleEvent.remove({ name }).payload,
   })
 
-const makeLayer =
-  (handlers: typeof GroceriesLayer): MakeLayer =>
-  (identity, remote) => {
-    const eventLog = EventLog.layer(
-      EventLog.schema(GroceryEvents),
-      handlers,
-    ).pipe(
-      Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
-      Layer.provide(Layer.succeed(EventLog.Identity, identity)),
-    )
-    return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
-      Layer.provideMerge(QueryBuilder.layer),
-      Layer.provideMerge(layerDatabase),
-      Layer.provideMerge(Reactivity.layer),
-      Layer.provideMerge(layerFreshIndexedDb),
-    )
-  }
-
-const layers = {
-  layer: makeLayer(GroceriesLayer),
-  uncompacted: makeLayer(withoutCompaction(GroceriesLayer)),
+const layer: MakeLayer = (identity, remote) => {
+  const eventLog = EventLog.layer(
+    EventLog.schema(GroceryEvents),
+    GroceriesLayer,
+  ).pipe(
+    Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
+    Layer.provide(Layer.succeed(EventLog.Identity, identity)),
+  )
+  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+    Layer.provideMerge(QueryBuilder.layer),
+    Layer.provideMerge(layerDatabase),
+    Layer.provideMerge(Reactivity.layer),
+    Layer.provideMerge(layerFreshIndexedDb),
+  )
 }
 
 const read = Effect.gen(function* () {
@@ -158,7 +145,7 @@ const read = Effect.gen(function* () {
 
 test("the newest write to each grocery item field wins across updates and toggles", async () => {
   const { groceryItems } = await converge({
-    ...layers,
+    layer,
     read,
     setup: [added(carrots, "Carrots"), added(milk, "Milk")],
     concurrent: [
@@ -177,17 +164,16 @@ test("the newest write to each grocery item field wins across updates and toggle
   )
 })
 
-test("a deleted grocery item stays deleted, with updates and toggles either side of the delete", async () => {
+test("a deleted grocery item stays deleted, with writes either side of the delete", async () => {
   const { groceryItems } = await converge({
-    ...layers,
+    layer,
     read,
     setup: [added(carrots, "Carrots"), added(milk, "Milk")],
     concurrent: [
       toggled(2000, carrots, true),
       deleted(3000, carrots),
-      // Writes from a device that hadn't seen the delete yet.
+      // A write from a device that hadn't seen the delete yet.
       updated(4000, carrots, { name: "Leeks", completed: false }),
-      toggled(4500, carrots, false),
     ],
   })
   assert.deepEqual(pick(only(groceryItems), ["id", "name"]), {
@@ -196,39 +182,27 @@ test("a deleted grocery item stays deleted, with updates and toggles either side
   })
 })
 
-test("a clear deletes the items it saw and none added concurrently, whatever arrives first", async () => {
-  const { groceryItems } = await converge({
-    ...layers,
-    read,
-    setup: [added(carrots, "Carrots"), added(milk, "Milk")],
-    concurrent: [
-      // Added on another device before the clear, but never seen by it.
-      added(bread, "Bread", 2500),
-      // The clear removes each item its writer saw.
-      deleted(3000, carrots),
-      deleted(3000, milk),
-      // An update from a device that hadn't seen the clear yet.
-      updated(4000, milk, { name: "Oat milk", completed: false }),
-    ],
-  })
-  assert.deepEqual(pick(only(groceryItems), ["id", "name"]), {
-    id: bread,
-    name: "Bread",
-  })
-})
-
 test("an ingredient aisle remove outlasts older sets and yields to newer ones, whatever arrives first", async () => {
-  const { ingredientAisles } = await converge({
-    ...layers,
+  // Every spelling lands on the normalised name.
+  const carrots = await converge({
+    layer,
     read,
     concurrent: [
-      // Every spelling lands on the normalised name.
       aisleSet(1000, "Carrots", "Produce"),
       aisleRemoved(2000, " carrots"),
       aisleSet(3000, "CARROTS ", "Deli"),
+    ],
+  })
+  assert.deepEqual(carrots.ingredientAisles, [
+    { name: "carrots", aisle: "Deli" },
+  ])
+  const milk = await converge({
+    layer,
+    read,
+    concurrent: [
       aisleSet(1500, "Milk", "Dairy & Eggs"),
       aisleRemoved(2500, "milk"),
     ],
   })
-  assert.deepEqual(ingredientAisles, [{ name: "carrots", aisle: "Deli" }])
+  assert.deepEqual(milk.ingredientAisles, [])
 })

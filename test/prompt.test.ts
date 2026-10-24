@@ -16,16 +16,7 @@ const assistantTexts = (prompt: Prompt.Prompt) =>
       : [],
   )
 
-test("fromResponseParts keeps text deltas that have not ended", () => {
-  const prompt = Prompt.fromResponseParts([
-    Response.makePart("text-start", { id: "a" }),
-    Response.makePart("text-delta", { id: "a", delta: "Yes " }),
-    Response.makePart("text-delta", { id: "a", delta: "chef" }),
-  ])
-  assert.deepEqual(assistantTexts(prompt), ["Yes chef"])
-})
-
-test("fromResponseParts includes ended text once", () => {
+test("fromResponseParts includes ended text once and text that has not ended", () => {
   const prompt = Prompt.fromResponseParts([
     Response.makePart("text-start", { id: "a" }),
     Response.makePart("text-delta", { id: "a", delta: "First" }),

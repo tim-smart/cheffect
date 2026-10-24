@@ -3,6 +3,7 @@ import * as assert from "node:assert/strict"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
@@ -67,8 +68,8 @@ const submit = <Arg>(
   registry.get(atom)
 }
 
-// The names of the items added to the journal once `atom` has settled, or a
-// second after it unmounts.
+// The names of the items added to the journal once `atom` has settled, or
+// once its batch lands after it unmounts.
 const addedNames = <Arg>(options: {
   // Built up front, as on the groceries page, or still building.
   readonly runtime: "built" | "cold"
@@ -87,24 +88,33 @@ const addedNames = <Arg>(options: {
     const context = yield* Atom.getResult(eventLogAtom)
     if (options.runtime === "built") yield* Atom.getResult(groceriesRuntime)
     options.submit(registry)
-    if (options.unmountAfterSubmit) {
-      // Nothing reads the atom again, so the registry can dispose it. Its
-      // writes take milliseconds; give them a second rather than waiting on
-      // the atom, which would mount it again.
-      unmountAtom()
-      yield* Effect.sleep("1 second")
-    } else {
-      unmounts.push(unmountAtom)
-      yield* Atom.getResult(options.atom, { suspendOnWaiting: true })
-    }
-    const entries = yield* EventLog.EventLog.use((log) => log.entries).pipe(
+    const names = EventLog.EventLog.use((log) => log.entries).pipe(
+      Effect.map((entries) =>
+        entries
+          .filter((entry) => entry.event === GroceryItemEvent.tag)
+          .map((entry) => decodeItem(entry.payload))
+          .flatMap((payload) =>
+            payload._tag === "set" ? [payload.row.name] : [],
+          )
+          .sort(),
+      ),
       Effect.provideContext(context),
     )
-    return entries
-      .filter((entry) => entry.event === GroceryItemEvent.tag)
-      .map((entry) => decodeItem(entry.payload))
-      .flatMap((payload) => (payload._tag === "set" ? [payload.row.name] : []))
-      .sort()
+    if (options.unmountAfterSubmit) {
+      // Nothing reads the atom again, so the registry can dispose it. Its
+      // items are written as one batch; poll the journal for it rather than
+      // waiting on the atom, which would mount it again.
+      unmountAtom()
+      return yield* names.pipe(
+        Effect.repeat({
+          until: (added) => added.length > 0,
+          schedule: Schedule.spaced("10 millis"),
+        }),
+      )
+    }
+    unmounts.push(unmountAtom)
+    yield* Atom.getResult(options.atom, { suspendOnWaiting: true })
+    return yield* names
   }).pipe(
     // A recipe batch stays waiting for 3 seconds after its writes.
     Effect.timeout("10 seconds"),

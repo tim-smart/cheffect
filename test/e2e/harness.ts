@@ -279,6 +279,19 @@ const launchBrowser = async (profile: string) => {
 
 export type Browser = Awaited<ReturnType<typeof launchBrowser>>
 
+// The number of entries in the app's journal, through a separate connection,
+// as the next page load would see them.
+const journalEntries = `new Promise((resolve, reject) => {
+  const open = indexedDB.open("cheffect_journal")
+  open.onerror = () => reject(open.error)
+  open.onsuccess = () => {
+    const db = open.result
+    const request = db.transaction("entries").objectStore("entries").count()
+    request.onsuccess = () => (db.close(), resolve(request.result))
+    request.onerror = () => (db.close(), reject(request.error))
+  }
+})`
+
 /**
  * Starts the dev server and a fresh browser profile, opens the app so the
  * dev seed runs, and passes the id of a seeded recipe to `f`.
@@ -306,8 +319,21 @@ export const withSeededApp = async (
     const href = await browser.evaluate<string>(
       `document.querySelector('a[href^="/recipes/"]').getAttribute("href")`,
     )
-    // let the seed events persist before leaving the page
-    await sleep(5000)
+    // let the seed events persist before leaving the page: the seed writes
+    // in one burst, so wait for the journal to stop growing
+    const deadline = Date.now() + 30_000
+    let entries = 0
+    for (let unchanged = 0; unchanged < 4;) {
+      if (Date.now() > deadline) {
+        throw new Error(
+          `the seed journal did not settle in 30s (${entries} entries)`,
+        )
+      }
+      await sleep(250)
+      const count = await browser.evaluate<number>(journalEntries)
+      unchanged = count > 0 && count === entries ? unchanged + 1 : 0
+      entries = count
+    }
     await f({ browser, base, recipeId: href.split("/recipes/")[1] })
   } finally {
     await browser.close()

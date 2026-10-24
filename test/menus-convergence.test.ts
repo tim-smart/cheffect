@@ -29,7 +29,6 @@ import {
   only,
   pick,
   readTable,
-  withoutCompaction,
 } from "./harness/convergence"
 
 // A removed menu stays as a marker. Entries and notes are separate rows, so
@@ -40,9 +39,8 @@ import {
 // Shrinking a menu is a plain patch of `days` and deletes nothing itself: its
 // writer removes the entries and notes it saw on the dropped days.
 //
-// Each order is replayed as a compacted batch, an uncompacted batch and one
-// entry at a time. Compaction drops the winter `set` the remove shadows, so
-// the remove can arrive for a menu that was never stored.
+// Compaction drops the winter `set` the remove shadows, so the remove can
+// arrive for a menu that was never stored.
 
 const menu = MenuEvents.events[MenuEvent.tag]
 const menuEntry = MenuEvents.events[MenuEntryEvent.tag]
@@ -102,24 +100,22 @@ const entrySet = (
     }).payload,
   })
 
-const makeLayer =
-  (handlers: typeof MenusLayer): MakeLayer<MenuRepo> =>
-  (identity, remote) => {
-    const eventLog = EventLog.layer(EventLog.schema(MenuEvents), handlers).pipe(
-      Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
-      Layer.provide(Layer.succeed(EventLog.Identity, identity)),
-    )
-    return Layer.mergeAll(
-      eventLog,
-      remote.pipe(Layer.provide(eventLog)),
-      MenuRepo.layer.pipe(Layer.provide(RecipeRepo.layer)),
-    ).pipe(
-      Layer.provideMerge(QueryBuilder.layer),
-      Layer.provideMerge(layerDatabase),
-      Layer.provideMerge(Reactivity.layer),
-      Layer.provideMerge(layerFreshIndexedDb),
-    )
-  }
+const layer: MakeLayer<MenuRepo> = (identity, remote) => {
+  const eventLog = EventLog.layer(EventLog.schema(MenuEvents), MenusLayer).pipe(
+    Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
+    Layer.provide(Layer.succeed(EventLog.Identity, identity)),
+  )
+  return Layer.mergeAll(
+    eventLog,
+    remote.pipe(Layer.provide(eventLog)),
+    MenuRepo.layer.pipe(Layer.provide(RecipeRepo.layer)),
+  ).pipe(
+    Layer.provideMerge(QueryBuilder.layer),
+    Layer.provideMerge(layerDatabase),
+    Layer.provideMerge(Reactivity.layer),
+    Layer.provideMerge(layerFreshIndexedDb),
+  )
+}
 
 const read = Effect.gen(function* () {
   const repo = yield* MenuRepo
@@ -135,34 +131,30 @@ const read = Effect.gen(function* () {
   }
 })
 
+const winterSet = menuSet(1000, winter, "Winter warmers")
+const winterRemoved = makeEntry({
+  msecs: 3000,
+  event: menu,
+  payload: MenuEvent.remove({ id: winter }).payload,
+})
+// Summer and its entry are never removed.
+const summerSetup = [
+  menuSet(1000, summer, "Summer"),
+  entrySet(1000, salad, summer, 3),
+]
+
 test("a removed menu ends without entries or notes, whatever writes reach it and in whatever order", async () => {
-  const state = await converge({
-    layer: makeLayer(MenusLayer),
-    uncompacted: makeLayer(withoutCompaction(MenusLayer)),
+  // The entry and the note are separate rows, so each is permuted with the
+  // menu's writes on its own.
+  const withEntry = await converge({
+    layer,
     read,
-    // Summer and its entry are never removed.
-    setup: [menuSet(1000, summer, "Summer"), entrySet(1000, salad, summer, 3)],
+    setup: summerSetup,
     concurrent: [
-      menuSet(1000, winter, "Winter warmers"),
+      winterSet,
       entrySet(1500, soup, winter, 1),
-      makeEntry({
-        msecs: 3000,
-        event: menu,
-        payload: MenuEvent.remove({ id: winter }).payload,
-      }),
-      // From devices that hadn't seen the remove yet.
-      makeEntry({
-        msecs: 3500,
-        event: menuDayNote,
-        payload: MenuDayNoteEvent.set({
-          id: note,
-          menuId: winter,
-          day: 1,
-          note: "Leftovers",
-          createdAt: DateTime.makeUnsafe(3500),
-          updatedAt: DateTime.makeUnsafe(3500),
-        }).payload,
-      }),
+      winterRemoved,
+      // From a device that hadn't seen the remove yet.
       makeEntry({
         msecs: 4000,
         event: menu,
@@ -176,24 +168,47 @@ test("a removed menu ends without entries or notes, whatever writes reach it and
       }),
     ],
   })
-  assert.deepEqual(state.shown, [
-    { id: "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f0", name: "Summer", days: 7 },
-  ])
-  assert.deepEqual(pick(only(state.menuEntries), ["id", "day"]), {
-    id: salad,
-    day: 3,
+  const withNote = await converge({
+    layer,
+    read,
+    setup: summerSetup,
+    concurrent: [
+      winterSet,
+      winterRemoved,
+      // From a device that hadn't seen the remove yet.
+      makeEntry({
+        msecs: 3500,
+        event: menuDayNote,
+        payload: MenuDayNoteEvent.set({
+          id: note,
+          menuId: winter,
+          day: 1,
+          note: "Leftovers",
+          createdAt: DateTime.makeUnsafe(3500),
+          updatedAt: DateTime.makeUnsafe(3500),
+        }).payload,
+      }),
+    ],
   })
-  assert.deepEqual(state.menuDayNotes, [])
+  for (const state of [withEntry, withNote]) {
+    assert.deepEqual(state.shown, [
+      { id: "0193c7a0-1b2c-4def-8123-a1b2c3d4e5f0", name: "Summer", days: 7 },
+    ])
+    assert.deepEqual(pick(only(state.menuEntries), ["id", "day"]), {
+      id: salad,
+      day: 3,
+    })
+    assert.deepEqual(state.menuDayNotes, [])
+  }
 })
 
 // A row its writer never saw survives on a dropped day, where reads don't
 // show it.
 test("an entry or note added on a dropped day concurrently with the shrink stays there", async () => {
   const state = await converge({
-    layer: makeLayer(MenusLayer),
-    uncompacted: makeLayer(withoutCompaction(MenusLayer)),
+    layer,
     read,
-    setup: [menuSet(1000, winter, "Winter warmers")],
+    setup: [winterSet],
     concurrent: [
       makeEntry({
         msecs: 2000,

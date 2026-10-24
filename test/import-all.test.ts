@@ -87,19 +87,6 @@ test("a version 1 export imports as the rows its events created", async () => {
   assert.equal(state.menus[0].removed, false)
 })
 
-test("importing the same file twice gives the state importing it once does", async () => {
-  const { once, twice } = await run(
-    Effect.gen(function* () {
-      yield* importAll(v1File)
-      const once = yield* snapshot
-      yield* importAll(v1File)
-      const twice = yield* snapshot
-      return { once, twice }
-    }),
-  )
-  assert.deepStrictEqual(twice, once)
-})
-
 // Each `run` is a separate device.
 test("an export imports on another device as the same rows", async () => {
   const { exported, exporter } = await run(

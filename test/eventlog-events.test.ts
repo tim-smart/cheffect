@@ -16,32 +16,25 @@ const events = new Map<string, Event.Any>(
   ),
 )
 
-test("every event tag has a wire fixture", () => {
-  const covered = new Set(fixtures.map((fixture) => fixture.tag))
-  const missing = Array.from(events.keys()).filter((tag) => !covered.has(tag))
-  assert.deepEqual(missing, [])
-})
-
-test("every wire fixture names an event in the catalogue", () => {
-  const unknown = fixtures
-    .map((fixture) => fixture.tag)
-    .filter((tag) => !events.has(tag))
-  assert.deepEqual(unknown, [])
-})
-
-for (const [index, fixture] of fixtures.entries()) {
-  test(`${fixture.tag} #${index} decodes and re-encodes to the same bytes`, (t) => {
-    const event = events.get(fixture.tag)
-    if (event === undefined) return t.skip(`unknown event ${fixture.tag}`)
+test("every event has a wire fixture, and each decodes and re-encodes to the same bytes", () => {
+  assert.deepEqual(
+    [...new Set(fixtures.map((fixture) => fixture.tag))].sort(),
+    [...events.keys()].sort(),
+  )
+  for (const [index, fixture] of fixtures.entries()) {
+    const event = events.get(fixture.tag)!
     const bytes = new Uint8Array(Buffer.from(fixture.bytes, "base64"))
     const decoded = Schema.decodeUnknownSync(event.payloadSchemaBinary)(bytes)
+    const what = `${fixture.tag} #${index}`
     assert.deepEqual(
       Buffer.from(Schema.encodeSync(event.payloadSchemaBinary)(decoded)),
       Buffer.from(bytes),
+      what,
     )
     assert.deepEqual(
       Schema.encodeSync(Schema.toCodecJson(event.payload))(decoded),
       fixture.json,
+      what,
     )
-  })
-}
+  }
+})

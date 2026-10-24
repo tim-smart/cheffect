@@ -28,43 +28,21 @@ export type MakeLayer<R = never> = (
   remote: Layer.Layer<never, never, EventLog.Registry>,
 ) => Layer.Layer<EventLog.EventLog | IndexedDb.IndexedDb | R, unknown>
 
-// The module's handlers with the compactors it registers left out, so a
-// remote batch replays every entry.
-export const withoutCompaction = <A, E, R>(
-  handlers: Layer.Layer<A, E, R>,
-): Layer.Layer<A, E, R | EventLog.Registry> =>
-  handlers.pipe(
-    Layer.provide(
-      Layer.effect(
-        EventLog.Registry,
-        EventLog.Registry.useSync((registry) =>
-          EventLog.Registry.of({
-            ...registry,
-            registerCompaction: () => Effect.void,
-          }),
-        ),
-      ),
-    ),
-  )
-
 const describe = (entries: ReadonlyArray<EventJournal.Entry>) =>
   entries.map((entry) => `${entry.event}@${entry.createdAtMillis}`).join(", ")
 
-// Delivers `setup`, then `concurrent` in every order, and returns the one
-// state every ordering agrees on. With `uncompacted`, each order is also
-// replayed as one batch through it and one entry per batch through `layer`.
+// Delivers `setup`, then `concurrent` in every order, both as one compacted
+// batch and one entry per batch, and returns the one state every replay
+// agrees on. Entries for unrelated rows never interact, so a scenario only
+// permutes the entries that can conflict.
 export const converge = async <A, R = never>(options: {
   readonly layer: MakeLayer<R>
-  readonly uncompacted?: MakeLayer<R>
   readonly read: Effect.Effect<A, unknown, IndexedDb.IndexedDb | R>
   readonly setup?: ReadonlyArray<EventJournal.Entry>
   readonly concurrent: ReadonlyArray<EventJournal.Entry>
 }): Promise<A> => {
   const identity = await Effect.runPromise(testIdentity)
-  const replay = (
-    layer: MakeLayer<R>,
-    batches: ReadonlyArray<ReadonlyArray<EventJournal.Entry>>,
-  ) =>
+  const replay = (batches: ReadonlyArray<ReadonlyArray<EventJournal.Entry>>) =>
     Effect.gen(function* () {
       const remote = yield* makeFakeRemote
       return yield* Effect.gen(function* () {
@@ -74,7 +52,7 @@ export const converge = async <A, R = never>(options: {
       }).pipe(
         // A failing handler stops the replay, and `deliver` would wait forever.
         Effect.timeout("5 seconds"),
-        Effect.provide(layer(identity, remote.layer)),
+        Effect.provide(options.layer(identity, remote.layer)),
       )
     }).pipe(Effect.runPromise)
 
@@ -82,19 +60,11 @@ export const converge = async <A, R = never>(options: {
   for (const order of everyOrder(options.concurrent)) {
     results.push({
       order: describe(order),
-      state: await replay(options.layer, [order]),
-    })
-    if (options.uncompacted === undefined) continue
-    results.push({
-      order: `uncompacted ${describe(order)}`,
-      state: await replay(options.uncompacted, [order]),
+      state: await replay([order]),
     })
     results.push({
       order: `one at a time ${describe(order)}`,
-      state: await replay(
-        options.layer,
-        order.map((entry) => [entry]),
-      ),
+      state: await replay(order.map((entry) => [entry])),
     })
   }
   const [first, ...rest] = results

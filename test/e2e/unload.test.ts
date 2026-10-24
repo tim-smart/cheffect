@@ -2,12 +2,12 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import { hasChromium, sleep, withSeededApp } from "./harness"
 
-// Saving a recipe from an edit page that was opened directly (by URL) calls
-// history.back(), which unloads the document straight after the commit. The
-// edit must still be persisted.
+// Saving a recipe from an edit page, or deleting it from a recipe page, that
+// was opened directly (by URL) calls history.back(), which unloads the
+// document straight after the commit. The write must still be persisted.
 
 test(
-  "an edit saved from a directly opened edit page is persisted",
+  "an edit or delete from a directly opened page is persisted",
   { skip: !hasChromium && "chromium not found", timeout: 180_000 },
   () =>
     withSeededApp(async ({ browser, base, recipeId: id }) => {
@@ -39,5 +39,33 @@ test(
         shown.includes("Edited after direct open"),
         `recipe still shows ${JSON.stringify(shown)}`,
       )
+
+      // the recipe page was opened directly too: delete it from the menu
+      // the last h1 is the recipe title, the first is the app header
+      const recipeTitle = `[...document.querySelectorAll("h1")].at(-1)`
+      await browser.click(
+        `${recipeTitle}.closest("header").querySelector('button[aria-haspopup="menu"]')`,
+      )
+      await browser.waitFor(
+        `[...document.querySelectorAll('[role="menuitem"]')].some((item) => item.textContent === "Remove")`,
+      )
+      // confirm() is accepted by the harness
+      await browser.evaluate(
+        `[...document.querySelectorAll('[role="menuitem"]')].find((item) => item.textContent === "Remove").click()`,
+      )
+      await browser.waitFor(
+        `!location.pathname.startsWith("/recipes/")`,
+        15_000,
+      )
+      await sleep(2000)
+
+      // deleted recipes are left out of the recipe list (the recipe page
+      // itself still renders them)
+      await browser.navigate(`${base}/`)
+      await browser.waitFor(`!!document.querySelector('a[href^="/recipes/"]')`)
+      const listed = await browser.evaluate<boolean>(
+        `!!document.querySelector('a[href="/recipes/${id}"]')`,
+      )
+      assert.ok(!listed, "the deleted recipe is still listed")
     }),
 )

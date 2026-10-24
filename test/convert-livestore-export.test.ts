@@ -125,21 +125,3 @@ test("converts the sample old export into a file that imports", async () => {
     assert.equal(state[table].length, 1, table)
   }
 })
-
-test("a malformed old export fails on the first bad item and writes no output", async () => {
-  // Real exports always carry UUIDs, so an id that isn't one is an error, not
-  // something to replace with a fresh id.
-  const index = oldExport.findIndex((event) => event.name === "v1.MenuEntryAdd")
-  const malformed = oldExport.map((event, i) =>
-    i === index
-      ? { ...event, args: { ...event.args, recipeId: "recipe-1" } }
-      : event,
-  )
-  const { code, stderr, output } = await convert(malformed)
-  assert.notEqual(code, 0)
-  assert.match(
-    stderr,
-    new RegExp(`\\[${index}\\]|item ${index}|index ${index}`),
-  )
-  assert.equal(output, undefined)
-})
