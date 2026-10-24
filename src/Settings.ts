@@ -152,7 +152,7 @@ export const openAiModel = new Setting({
   label: "Extraction Model",
   schema: Schema.NonEmptyString,
   schemaInput: OptionFromString,
-  initialValue: "gpt-5.4",
+  initialValue: "gpt-6-luna",
 })
 
 export const aiCountry = new Setting({
