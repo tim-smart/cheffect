@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -221,12 +220,7 @@ function CandidateList({
           ))}
         </div>
       </div>
-      <DialogFooter className="gap-2">
-        <DialogClose asChild>
-          <Button type="button" variant="outline">
-            Cancel
-          </Button>
-        </DialogClose>
+      <DialogFooter>
         {/* Starts focused, as the defaults are usually what's wanted */}
         <Button type="submit" disabled={selected.size === 0} autoFocus>
           {selected.size === 1 ? "Add 1 item" : `Add ${selected.size} items`}

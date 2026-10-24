@@ -11,11 +11,12 @@ import { hasChromium, withSeededApp } from "./harness"
 // commit's effects have run, in the same task, so the browser can't have
 // painted yet: it sees the scroll position of the page's first frame.
 
-// Resolves with the scroll position, and what's under the top bar, once a
-// child of <main> matching `selector` is added.
+// Resolves with the scroll position, and what's under the top bar, once an
+// element matching or holding `selector` is added inside <main>. Each screen
+// sits in its own wrapper, which can mount before the page inside it.
 const onPageCommit = (selector: string) => `new Promise((resolve) => {
   const observer = new MutationObserver((records) => {
-    if (!records.some((r) => [...r.addedNodes].some((n) => n.matches?.("${selector}")))) return
+    if (!records.some((r) => [...r.addedNodes].some((n) => n.matches?.("${selector}") || n.querySelector?.("${selector}")))) return
     observer.disconnect()
     const atTopBar = document.elementFromPoint(innerWidth / 2, 20)
     resolve({
@@ -23,7 +24,7 @@ const onPageCommit = (selector: string) => `new Promise((resolve) => {
       topBar: atTopBar?.closest("main header") ? "recipe header" : atTopBar?.closest("header") ? "app header" : "other",
     })
   })
-  observer.observe(document.querySelector("main"), { childList: true })
+  observer.observe(document.querySelector("main"), { childList: true, subtree: true })
 })`
 
 test(

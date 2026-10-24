@@ -221,9 +221,10 @@ export function RecipeDetails({
         <div
           className={cn(
             "relative",
-            // the photo never takes more than 40% of a short desktop window
+            // the photo never takes more than 40% of a short desktop window,
+            // and is clipped so its fade-in scale can't widen the page
             recipe.imageUrl &&
-              "aspect-[4/3] md:aspect-auto md:h-[min(340px,40vh)] bg-muted",
+              "aspect-[4/3] md:aspect-auto md:h-[min(340px,40vh)] bg-muted overflow-hidden",
           )}
         >
           {recipe.imageUrl && (
