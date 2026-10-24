@@ -9,16 +9,10 @@ import {
   type GroceryItemId,
   normalizeIngredientName,
 } from "@/domain/GroceryItem"
-import {
-  type EventPayload,
-  eventLogAtom,
-  writeEvent,
-  writeEvents,
-} from "@/EventLog"
+import { type EventPayload, eventLogAtom, writeEvents } from "@/EventLog"
 import {
   GroceryItemEvent,
   groceryItemChange,
-  groceryItemUpdate,
   IngredientAisleEvent,
   IngredientAliasEvent,
 } from "./Events"
@@ -75,40 +69,16 @@ const aisleEvent = ({ name, aisle }: AisleLesson): EventPayload =>
     ? IngredientAisleEvent.remove({ name })
     : IngredientAisleEvent.set({ name, aisle })
 
-const learnAisle = Effect.fnUntraced(function* (
-  item: GroceryItem,
-  options: ItemWriteOptions,
-) {
-  if (item.aisle === null) return
-  const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
-  const hasAisle = (name: string) => Option.isSome(learnedAisle(aisles, name))
-  for (const lesson of aisleLessons(item, options, hasAisle)) {
-    yield* writeEvent(aisleEvent(lesson))
-  }
-})
-
-export const addGroceryItem = Effect.fnUntraced(function* (item: GroceryItem) {
-  yield* writeEvent(GroceryItemEvent.set(item))
-  yield* learnAisle(item, {})
-})
-
-export const updateGroceryItem = Effect.fnUntraced(function* (
-  item: GroceryItem,
-  options: ItemWriteOptions = {},
-) {
-  yield* writeEvent(groceryItemUpdate(item))
-  yield* learnAisle(item, options)
-})
-
 // Batches
 //
-// A writer changing many items at once writes the same events as it would one
-// item at a time, in the same order, with one `writeEvents`. The aisles are
-// read once, so the batch keeps track of the names its own aisle events set
-// or removed.
+// Every item write is a batch, with one `writeEvents`, so a writer changing
+// many items writes them, and what they teach, together. The aisles are read
+// once, so the batch keeps track of the names its own aisle events set or
+// removed.
 
 // A change writes only the fields that differ from `previous`, the item as
 // the writer read it, so it leaves what another device changed meanwhile.
+// A user's own change always teaches the item's aisle.
 export type GroceryItemWrite =
   | {
       readonly op: "add"
@@ -120,6 +90,7 @@ export type GroceryItemWrite =
       readonly previous: GroceryItem
       readonly item: GroceryItem
       readonly guessedAisle?: boolean | undefined
+      readonly userInitiated?: boolean | undefined
     }
   | { readonly op: "remove"; readonly id: GroceryItemId }
 
@@ -145,17 +116,23 @@ export const writeGroceryItems = Effect.fnUntraced(function* (
         : groceryItemChange(write.previous, write.item),
     )
     // A guessed aisle teaches nothing, and nor does a change that leaves the
-    // name and aisle alone.
+    // name and aisle alone, unless it's the user's.
     if (
       write.guessedAisle ||
       (write.op === "change" &&
+        !write.userInitiated &&
         write.item.name === write.previous.name &&
         write.item.aisle === write.previous.aisle)
     ) {
       continue
     }
-    const options =
-      write.op === "change" ? { previousName: write.previous.name } : {}
+    const options: ItemWriteOptions =
+      write.op === "change"
+        ? {
+            previousName: write.previous.name,
+            userInitiated: write.userInitiated,
+          }
+        : {}
     for (const lesson of aisleLessons(write.item, options, hasAisle)) {
       taught.set(lesson.name, lesson.aisle !== null)
       events.push(aisleEvent(lesson))
@@ -244,24 +221,25 @@ export const groceryItemAddAtom = groceriesMutation(
 // rename sticks. It teaches no alias from the old name, since a user's rename
 // is as often a substitution ("milk" to "oat milk") as a correction.
 export const groceryItemEditAtom = groceriesMutation(
-  Effect.fnUntraced(function* ({
+  ({
+    previous,
     item,
-    previousName,
   }: {
+    readonly previous: GroceryItem
     readonly item: GroceryItem
-    readonly previousName: string
-  }) {
-    yield* updateGroceryItem(item, { previousName, userInitiated: true })
-    if (normalizeIngredientName(previousName) !== item.nameNormalized) {
-      yield* writeEvent(
-        IngredientAliasEvent.set({
-          name: item.name,
-          source: "user",
-          canonical: null,
-        }),
-      )
-    }
-  }),
+  }) =>
+    writeGroceryItems(
+      [{ op: "change", previous, item, userInitiated: true }],
+      previous.nameNormalized === item.nameNormalized
+        ? []
+        : [
+            IngredientAliasEvent.set({
+              name: item.name,
+              source: "user",
+              canonical: null,
+            }),
+          ],
+    ),
 )
 
 // Adds the items picked from recipes to their list, merged into what's

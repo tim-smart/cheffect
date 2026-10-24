@@ -162,7 +162,6 @@ export const tidyList = (options: {
   readonly now: DateTime.Utc
 }) => {
   const tidied = new Map<string, GroceryItem>()
-  const guessed = new Set<string>()
   const removed: Array<GroceryItem> = []
   const targets = new Map<string, GroceryItem>()
   for (const item of options.items) {
@@ -188,7 +187,6 @@ export const tidyList = (options: {
       name === item.name && aisle === item.aisle
         ? item
         : new GroceryItem({ ...item, name, aisle, updatedAt: options.now })
-    if (item.aisle === null && aisle !== null) guessed.add(item.idString)
     if (target === undefined) targets.set(key, next)
     tidied.set(next.idString, next)
   }
@@ -203,7 +201,7 @@ export const tidyList = (options: {
       op: "change",
       previous: item,
       item: next,
-      guessedAisle: guessed.has(item.idString),
+      guessedAisle: item.aisle === null && next.aisle !== null,
     })
   }
   return { writes, items: Array.from(tidied.values()) } as const

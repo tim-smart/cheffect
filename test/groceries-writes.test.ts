@@ -231,14 +231,12 @@ test("a user's rename pins the new name, and teaches no alias from the old one",
     runtime: "built",
     atom: groceryItemEditAtom,
     submit: (registry) => {
-      submit(registry, groceryItemEditAtom, {
-        item: new GroceryItem({ ...milk, name: "Oat milk" }),
-        previousName: milk.name,
-      })
+      const oatMilk = new GroceryItem({ ...milk, name: "Oat milk" })
+      submit(registry, groceryItemEditAtom, { previous: milk, item: oatMilk })
       // A change of case alone pins nothing.
       submit(registry, groceryItemEditAtom, {
-        item: new GroceryItem({ ...milk, name: "oat milk" }),
-        previousName: "Oat milk",
+        previous: oatMilk,
+        item: new GroceryItem({ ...oatMilk, name: "oat milk" }),
       })
     },
   })

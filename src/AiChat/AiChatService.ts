@@ -20,7 +20,6 @@ import {
   type GroceryItemWrite,
   writeGroceryItems,
   groceriesRuntime,
-  updateGroceryItem,
 } from "@/Groceries/runtime"
 import { mealPlanEntriesAtom } from "@/MealPlan/atoms"
 import { latestNoteByDay, MealPlanRepo } from "@/MealPlan/Repo"
@@ -112,8 +111,6 @@ const ToolkitLayer = toolkit.toLayer(
       )
     const addItems = (items: ReadonlyArray<GroceryItem>) =>
       addGroceryItems(items).pipe(Effect.provideContext(context), Effect.orDie)
-    const updateItem = (item: GroceryItem) =>
-      updateGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
         const found = yield* recipes
@@ -206,8 +203,10 @@ const ToolkitLayer = toolkit.toLayer(
           ...groceryItem,
           updatedAt: DateTime.nowUnsafe(),
         })
-        yield* updateItem(updated)
-        // An update leaves the check alone, so a changed one is its own write.
+        yield* writeItems([
+          { op: "change", previous: existing.value, item: updated },
+        ])
+        // A change leaves the check alone, so a changed one is its own write.
         if (updated.completed !== existing.value.completed) {
           yield* write(groceryItemCompleted(updated, updated.completed))
         }

@@ -63,26 +63,11 @@ export const GroceryEvents = EventGroup.empty
   .add(GroceryAisleOrderEvent)
   .add(IngredientAliasEvent)
 
-// What an item update writes, from the whole item. The list and creation
-// time stay as they were, and so does whether it's checked off: only a toggle
-// writes that, so an update made from an older copy can't undo a check made
-// meanwhile on another device.
-export const groceryItemUpdate = (item: GroceryItem) =>
-  GroceryItemEvent.patch(
-    { id: item.id },
-    {
-      name: item.name,
-      quantity: item.quantity,
-      aisle: item.aisle,
-      recipeIds: item.recipeIds,
-      updatedAt: item.updatedAt,
-    },
-  )
-
 // What changing an item from `previous` writes: only the fields that differ,
 // and the update time. A field the writer didn't change keeps whatever
 // another device wrote to it meanwhile, so a merge that adds only recipes
-// can't undo a quantity set elsewhere.
+// can't undo a quantity set elsewhere. Whether it's checked off is never
+// written here: only a toggle writes that.
 export const groceryItemChange = (previous: GroceryItem, item: GroceryItem) =>
   GroceryItemEvent.patch(
     { id: item.id },

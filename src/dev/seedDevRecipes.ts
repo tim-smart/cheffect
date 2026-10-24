@@ -20,7 +20,7 @@ import { mealPlanRuntime } from "@/MealPlan/runtime"
 import { MenuRepo } from "@/Menus/Repo"
 import { menusRuntime } from "@/Menus/runtime"
 import { GroceryRepo } from "@/Groceries/Repo"
-import { addGroceryItem, groceriesRuntime } from "@/Groceries/runtime"
+import { addGroceryItems, groceriesRuntime } from "@/Groceries/runtime"
 import { MealPlanEntryEvent } from "@/MealPlan/Events"
 import { MenuEvent, MenuEntryEvent } from "@/Menus/Events"
 
@@ -110,9 +110,9 @@ const seededGroceriesAtom = groceriesRuntime.atom(
     yield* get.result(seededRecipesAtom)
     const repo = yield* GroceryRepo
     if ((yield* repo.items).length > 0) return
-    for (const item of seedGroceryItems) {
-      yield* addGroceryItem(GroceryItem.fromForm(item, null))
-    }
+    yield* addGroceryItems(
+      seedGroceryItems.map((item) => GroceryItem.fromForm(item, null)),
+    )
   }),
 )
 

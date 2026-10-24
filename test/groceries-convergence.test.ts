@@ -12,7 +12,6 @@ import {
   GroceryEvents,
   GroceryItemEvent,
   groceryItemChange,
-  groceryItemUpdate,
   IngredientAisleEvent,
   IngredientAliasEvent,
 } from "@/Groceries/Events"
@@ -186,14 +185,18 @@ test("an update or merge made from a copy taken before a check or a quantity edi
       makeEntry({
         msecs: 2500,
         event: itemEvent,
-        payload: groceryItemUpdate(
+        payload: groceryItemChange(
+          item(milk, "Milk", 1000),
           new GroceryItem({ ...item(milk, "Milk", 2500), quantity: "2" }),
         ).payload,
       }),
       makeEntry({
         msecs: 3000,
         event: itemEvent,
-        payload: groceryItemUpdate(item(carrots, "Baby carrots", 3000)).payload,
+        payload: groceryItemChange(
+          item(carrots, "Carrots", 1000),
+          item(carrots, "Baby carrots", 3000),
+        ).payload,
       }),
       makeEntry({
         msecs: 3000,

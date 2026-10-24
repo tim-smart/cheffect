@@ -642,7 +642,7 @@ const GroceryListItem = memo(function GroceryListItem({
             initialValue={item}
             currentList={item.list}
             onSubmit={(updated) => {
-              editItem({ item: updated, previousName: item.name })
+              editItem({ previous: item, item: updated })
               setEditingItem(false)
             }}
             onCancel={() => setEditingItem(false)}
