@@ -33,22 +33,31 @@ const item = (
     ...fields,
   })
 
-test("an added item merges into the same name on its list when the counts add up, and is added otherwise", () => {
-  const eggs = item("Eggs", { quantity: "2", recipeIds: [soup] })
+test("an added item merges into its name's line only where no concurrent write could lose a quantity", () => {
+  const salt = item("Salt", { recipeIds: [soup] })
+  const butter = item("Butter")
   const writes = planGroceryAdds({
     existing: [
-      eggs,
-      item("Milk", { quantity: "1 cup" }),
+      salt,
+      // A sum written into an existing line could replace one written
+      // meanwhile on another device.
+      item("Eggs", { quantity: "2" }),
       item("Onion", { completed: true }),
-      item("Carrots", { list: "Weekend" }),
+      // A line the incoming item can't merge into doesn't hide one it can.
+      item("Butter", { quantity: "1 cup" }),
+      butter,
     ],
     aisles: new Map(),
     incoming: [
-      item("eggs ", { quantity: "1 1/2", recipeIds: [cake] }),
-      item("Milk", { quantity: "250ml" }),
+      item("salt ", { recipeIds: [cake] }),
+      item("Eggs", { quantity: "1" }),
       item("Onion"),
-      item("Carrots"),
-      item("carrots"),
+      item("Butter"),
+      // Lines this batch adds are its own, so their counts add up.
+      item("Flour", { list: "Weekend", quantity: "1 cup" }),
+      item("Flour", { list: "Weekend", quantity: "2" }),
+      item("flour", { list: "Weekend", quantity: "1 1/2" }),
+      item("Flour"),
     ],
     now: DateTime.makeUnsafe(2000),
   })
@@ -59,16 +68,20 @@ test("an added item merges into the same name on its list when the counts add up
         : [write.op, write.item.name, write.item.quantity, write.item.list],
     ),
     [
-      ["merge", "Eggs", "3 1/2", null],
-      ["add", "Milk", "250ml", null],
+      ["merge", "Salt", null, null],
+      ["add", "Eggs", "1", null],
       ["add", "Onion", null, null],
-      ["add", "Carrots", null, null],
+      ["merge", "Butter", null, null],
+      ["add", "Flour", "1 cup", "Weekend"],
+      ["add", "Flour", "3 1/2", "Weekend"],
+      ["add", "Flour", null, null],
     ],
   )
-  const merged = writes[0]
-  assert.ok(merged.op === "merge")
-  assert.equal(merged.item.idString, eggs.idString)
-  assert.deepEqual(merged.item.recipeIds, [soup, cake])
+  const [mergedSalt, , , mergedButter] = writes
+  assert.ok(mergedSalt.op === "merge" && mergedButter.op === "merge")
+  assert.equal(mergedSalt.item.idString, salt.idString)
+  assert.deepEqual(mergedSalt.item.recipeIds, [soup, cake])
+  assert.equal(mergedButter.item.idString, butter.idString)
 })
 
 test("an item without an aisle takes the one learned for it, then for the part before a comma, then the dictionary's", () => {

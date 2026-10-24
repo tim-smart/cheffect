@@ -12,8 +12,10 @@ import { type IngredientAisles, learnedAisle } from "./Repo"
 import type { GroceryItemWrite } from "./runtime"
 
 // The cleanup every add gets, without AI: an item that's already on its list
-// takes the new quantity instead of a second line, and an item without an
-// aisle gets a likely one.
+// merges into it instead of making a second line where that's safe, and an
+// item without an aisle gets a likely one.
+
+const isEmpty = (quantity: string | null) => !quantity?.trim()
 
 // A whole number, decimal, fraction or mixed number, as the quantity
 // formatter writes a count without a unit.
@@ -55,42 +57,59 @@ export const guessAisle = (
 const listKey = (item: GroceryItem) =>
   JSON.stringify([item.list, item.nameNormalized])
 
-// The writes that add `incoming` given what's on the lists now. An item
-// whose name is already on its list, not checked off, with a quantity that
-// adds up, is merged into it; so is one repeated within `incoming`. A merge
-// into an item already on the list only writes its quantity and recipes, so
-// a check made meanwhile on another device stands. The rest are added, with
-// a guessed aisle when they have none.
+// The writes that add `incoming` given what's on the lists now.
+//
+// An item merges into one already on its list under the same name, not
+// checked off, only when neither has a quantity: the merge then writes the
+// same quantity whatever another device did meanwhile. Counts are summed
+// only between items this batch adds, which nothing else can have written
+// yet. A sum written into an existing item would replace one written
+// concurrently elsewhere, so those stay separate lines. A merge only writes
+// its quantity and recipes, so a check made meanwhile stands. The rest are
+// added, with a guessed aisle when they have none.
 export const planGroceryAdds = (options: {
   readonly existing: ReadonlyArray<GroceryItem>
   readonly aisles: IngredientAisles
   readonly incoming: ReadonlyArray<GroceryItem>
   readonly now: DateTime.Utc
 }): Array<GroceryItemWrite> => {
-  // The item each name on each list merges into: what's there now, then the
-  // first item this batch adds under the name.
-  const targets = new Map<string, GroceryItem>()
-  for (const item of options.existing) {
+  // The items each name on each list can merge into: what's there now, then
+  // what this batch adds under the name.
+  const targets = new Map<string, Array<GroceryItem>>()
+  const targetsOf = (item: GroceryItem) => {
     const key = listKey(item)
-    if (!item.completed && !targets.has(key)) targets.set(key, item)
+    let list = targets.get(key)
+    if (list === undefined) {
+      list = []
+      targets.set(key, list)
+    }
+    return list
+  }
+  for (const item of options.existing) {
+    if (!item.completed) targetsOf(item).push(item)
   }
   // By the item written, in the order first written. A later merge into the
   // same item replaces its write.
   const writes = new Map<string, GroceryItemWrite>()
-  for (const item of options.incoming) {
-    const key = listKey(item)
-    const target = targets.get(key)
-    const quantity = target
+  const mergeInto = (target: GroceryItem, item: GroceryItem) =>
+    writes.get(target.idString)?.op === "add" ||
+    (isEmpty(target.quantity) && isEmpty(item.quantity))
       ? mergeQuantities(target.quantity, item.quantity)
       : Option.none()
-    if (target !== undefined && Option.isSome(quantity)) {
+  for (const item of options.incoming) {
+    const candidates = targetsOf(item)
+    const index = candidates.findIndex((target) =>
+      Option.isSome(mergeInto(target, item)),
+    )
+    if (index !== -1) {
+      const target = candidates[index]
       const merged = new GroceryItem({
         ...target,
-        quantity: quantity.value,
+        quantity: Option.getOrNull(mergeInto(target, item)),
         recipeIds: unionRecipeIds(target.recipeIds, item.recipeIds),
         updatedAt: options.now,
       })
-      targets.set(key, merged)
+      candidates[index] = merged
       const write = writes.get(merged.idString)
       writes.set(
         merged.idString,
@@ -108,7 +127,7 @@ export const planGroceryAdds = (options: {
       item: added,
       guessedAisle: item.aisle === null && aisle !== null,
     })
-    if (target === undefined) targets.set(key, added)
+    candidates.push(added)
   }
   return Array.from(writes.values())
 }
