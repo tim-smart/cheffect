@@ -6,18 +6,16 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { CorsProxy } from "./CorsProxy"
+import { beautifyChanges } from "@/Groceries/beautify"
 import {
   encodeGroceryItemListXml,
   GroceryItem,
   GroceryItemList,
 } from "@/domain/GroceryItem"
-import type { RecipeId } from "@/domain/Recipe"
-import { uuidString } from "@/lib/Id"
 import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { openAiApiKey, openAiModel } from "@/Settings"
-import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as HttpClient from "effect/http/HttpClient"
 import * as Schedule from "effect/Schedule"
@@ -185,43 +183,11 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
           schema: GroceryItemList,
         })
 
-        const merges = new Map<string, string>()
-        const updated: Array<GroceryItem> = []
-        for (const item of response.value.items) {
-          const itemId = uuidString(item.id)
-          const prev = leftoverItems.get(itemId)
-          if (!prev) continue
-          // By id string, so the same recipe from two items counts once.
-          const recipeIds = new Map<string, RecipeId>(
-            prev.recipeIds?.map((id) => [uuidString(id), id]),
-          )
-          leftoverItems.delete(itemId)
-          for (const mergedId of item.mergedIds) {
-            const mergedItem = leftoverItems.get(mergedId.toLowerCase())
-            if (mergedItem) {
-              merges.set(mergedId, itemId)
-            }
-            if (!mergedItem || !mergedItem.recipeIds) continue
-            mergedItem.recipeIds.forEach((id) =>
-              recipeIds.set(uuidString(id), id),
-            )
-          }
-          const recipeIdsArray = Array.fromIterable(recipeIds.values())
-          updated.push(
-            new GroceryItem({
-              ...prev,
-              ...item,
-              recipeIds: Array.isArrayNonEmpty(recipeIdsArray)
-                ? recipeIdsArray
-                : null,
-              updatedAt: DateTime.nowUnsafe(),
-            }),
-          )
-        }
-
-        const removed = Array.fromIterable(leftoverItems.values())
-
-        return { updated, removed, merges } as const
+        return beautifyChanges(
+          leftoverItems.values(),
+          response.value,
+          yield* DateTime.now,
+        )
       },
     )
 

@@ -50,7 +50,11 @@ import {
   groceryNameAtom,
   groceryNameAutoCompleteAtom,
 } from "@/Groceries/atoms"
-import { groceryItemAddAtom, groceryItemEditAtom } from "@/Groceries/runtime"
+import {
+  groceryItemAddAtom,
+  groceryItemEditAtom,
+  groceryMergedItemAtom,
+} from "@/Groceries/runtime"
 import { Skeleton } from "@/components/ui/skeleton"
 import { groceryCurrentListAtom } from "@/Groceries/currentList"
 import { recipeTitleAtom } from "@/Recipes/atoms"
@@ -611,11 +615,16 @@ const GroceryListItem = memo(function GroceryListItem({
 }) {
   const editItem = useAtomSet(groceryItemEditAtom)
   const [editingItem, setEditingItem] = useState(false)
+  const merged = useMergeHighlight(item)
   return (
     <div
-      // A checked item moves to the basket, so it slides into its new place
+      // A checked item moves to the basket, so it slides into its new place.
+      // A typed-in item merged into this one lights it up for a moment, past
+      // the row's edges like the aisle drop highlight.
       className={cn(
-        `flex items-center gap-3 transition-colors ${item.completed ? "" : "active:bg-muted"}`,
+        `relative isolate flex items-center gap-3 transition-colors ${item.completed ? "" : "active:bg-muted"}`,
+        "before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg before:transition-colors before:duration-700",
+        merged && "before:bg-primary-muted",
         editingItem ? "" : "cursor-default",
         "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-2 motion-safe:duration-300",
       )}
@@ -689,6 +698,20 @@ const GroceryListItem = memo(function GroceryListItem({
     </div>
   )
 })
+
+// Whether a typed-in item was just merged into this one.
+function useMergeHighlight(item: GroceryItem) {
+  const merged = useAtomValue(groceryMergedItemAtom)
+  const key = merged?.id === item.idString ? merged.key : null
+  const [highlighted, setHighlighted] = useState<number | null>(null)
+  useEffect(() => {
+    if (key === null) return
+    setHighlighted(key)
+    const timeout = setTimeout(() => setHighlighted(null), 1200)
+    return () => clearTimeout(timeout)
+  }, [key])
+  return highlighted !== null
+}
 
 function GroceryListSkeleton() {
   return (

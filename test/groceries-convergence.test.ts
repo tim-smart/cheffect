@@ -11,6 +11,8 @@ import { GroceriesLayer } from "@/Groceries"
 import {
   GroceryEvents,
   GroceryItemEvent,
+  groceryItemMerge,
+  groceryItemUpdate,
   IngredientAisleEvent,
 } from "@/Groceries/Events"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
@@ -48,23 +50,24 @@ const milk = Schema.decodeSync(GroceryItemIdFromString)(
 )
 type ItemId = typeof carrots
 
+const item = (id: ItemId, name: string, msecs: number) =>
+  GroceryItem.make({
+    id,
+    list: "Weekend",
+    name,
+    quantity: null,
+    aisle: null,
+    recipeIds: null,
+    completed: false,
+    createdAt: DateTime.makeUnsafe(1000),
+    updatedAt: DateTime.makeUnsafe(msecs),
+  })
+
 const added = (id: ItemId, name: string, msecs = 1000) =>
   makeEntry({
     msecs,
     event: itemEvent,
-    payload: GroceryItemEvent.set(
-      GroceryItem.make({
-        id,
-        list: "Weekend",
-        name,
-        quantity: null,
-        aisle: null,
-        recipeIds: null,
-        completed: false,
-        createdAt: DateTime.makeUnsafe(msecs),
-        updatedAt: DateTime.makeUnsafe(msecs),
-      }),
-    ).payload,
+    payload: GroceryItemEvent.set(item(id, name, msecs)).payload,
   })
 
 const updated = (
@@ -160,6 +163,38 @@ test("the newest write to each grocery item field wins across updates and toggle
     [
       { name: "Baby leeks", completed: true, list: "Weekend" },
       { name: "Milk", completed: false, list: "Weekend" },
+    ],
+  )
+})
+
+test("an update or merge made from a copy taken before a check leaves the check", async () => {
+  // Both copies are still unchecked, as the device writing them last saw.
+  const { groceryItems } = await converge({
+    layer,
+    read,
+    setup: [added(carrots, "Carrots"), added(milk, "Milk")],
+    concurrent: [
+      toggled(2000, carrots, true),
+      toggled(2000, milk, true),
+      makeEntry({
+        msecs: 3000,
+        event: itemEvent,
+        payload: groceryItemUpdate(item(carrots, "Baby carrots", 3000)).payload,
+      }),
+      makeEntry({
+        msecs: 3000,
+        event: itemEvent,
+        payload: groceryItemMerge(
+          new GroceryItem({ ...item(milk, "Milk", 3000), quantity: "2" }),
+        ).payload,
+      }),
+    ],
+  })
+  assert.deepEqual(
+    groceryItems.map((row) => pick(row, ["name", "quantity", "completed"])),
+    [
+      { name: "Baby carrots", quantity: null, completed: true },
+      { name: "Milk", quantity: "2", completed: true },
     ],
   )
 })

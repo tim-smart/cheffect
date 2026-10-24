@@ -1,3 +1,4 @@
+import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
@@ -16,10 +17,12 @@ import {
 } from "@/EventLog"
 import {
   GroceryItemEvent,
+  groceryItemMerge,
   groceryItemUpdate,
   IngredientAisleEvent,
 } from "./Events"
 import { GroceryRepo, learnedAisle } from "./Repo"
+import { planGroceryAdds } from "./tidy"
 
 // The repo shares the EventLog runtime's query builder and Reactivity, so
 // handler writes reload its snapshots.
@@ -33,7 +36,8 @@ export const groceriesRuntime = Atom.runtime((get) =>
 // writer teaches it. An item with an aisle sets that aisle for its name when
 // the name has none yet, or always on a user's own edit. A rename with an
 // aisle also removes the previous name's aisle. These are separate events,
-// which is fine for a learned hint.
+// which is fine for a learned hint. An aisle that was only guessed teaches
+// nothing, and neither does a merge, which leaves the aisle alone.
 
 interface ItemWriteOptions {
   readonly previousName?: string | undefined
@@ -104,7 +108,12 @@ export const updateGroceryItem = Effect.fnUntraced(function* (
 // or removed.
 
 export type GroceryItemWrite =
-  | { readonly op: "add"; readonly item: GroceryItem }
+  | {
+      readonly op: "add"
+      readonly item: GroceryItem
+      readonly guessedAisle?: boolean | undefined
+    }
+  | { readonly op: "merge"; readonly item: GroceryItem }
   | {
       readonly op: "update"
       readonly item: GroceryItem
@@ -126,11 +135,16 @@ export const writeGroceryItems = Effect.fnUntraced(function* (
       events.push(GroceryItemEvent.remove({ id: write.id }))
       continue
     }
+    if (write.op === "merge") {
+      events.push(groceryItemMerge(write.item))
+      continue
+    }
     events.push(
       write.op === "add"
         ? GroceryItemEvent.set(write.item)
         : groceryItemUpdate(write.item),
     )
+    if (write.op === "add" && write.guessedAisle) continue
     const options =
       write.op === "update" ? { previousName: write.previousName } : {}
     for (const lesson of aisleLessons(write.item, options, hasAisle)) {
@@ -141,8 +155,22 @@ export const writeGroceryItems = Effect.fnUntraced(function* (
   yield* writeEvents(events)
 })
 
-export const addGroceryItems = (items: ReadonlyArray<GroceryItem>) =>
-  writeGroceryItems(items.map((item) => ({ op: "add", item }) as const))
+// Adds the items, merging each into the item already on its list under the
+// same name where the quantities add up, and guessing the aisle of the rest.
+// Returns the writes.
+export const addGroceryItems = Effect.fnUntraced(function* (
+  items: ReadonlyArray<GroceryItem>,
+) {
+  const repo = yield* GroceryRepo
+  const writes = planGroceryAdds({
+    existing: yield* repo.items,
+    aisles: yield* repo.aisles,
+    incoming: items,
+    now: yield* DateTime.now,
+  })
+  yield* writeGroceryItems(writes)
+  return writes
+})
 
 export const updateGroceryItems = (
   writes: ReadonlyArray<{
@@ -174,29 +202,43 @@ type GroceriesServices =
     : never
 
 const groceriesMutation = <Arg, E>(
-  f: (arg: Arg) => Effect.Effect<void, E, GroceriesServices>,
+  f: (
+    arg: Arg,
+    get: Atom.FnContext,
+  ) => Effect.Effect<void, E, GroceriesServices>,
 ) =>
   Atom.fn<Arg>()(
-    (arg) =>
+    (arg, get) =>
       Atom.getResult(groceriesRuntime).pipe(
         Effect.flatMap((context) =>
-          f(arg).pipe(Effect.provideContext(context)),
+          f(arg, get).pipe(Effect.provideContext(context)),
         ),
       ),
     { concurrent: true },
   ).pipe(Atom.keepAlive)
 
-// An item added without an aisle takes the one learned for its name.
+// The item the last typed-in add merged into, so its row can show where the
+// add went. `key` tells two merges into the same item apart.
+export const groceryMergedItemAtom = Atom.make<{
+  readonly id: string
+  readonly key: number
+} | null>(null)
+
+let mergeKey = 0
+
+// A typed-in item. Merged into the item already on its list under the same
+// name when the quantities add up, otherwise added with a guessed aisle when
+// it has none.
 export const groceryItemAddAtom = groceriesMutation(
-  Effect.fnUntraced(function* (item: GroceryItem) {
-    if (item.aisle === null) {
-      const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
-      const aisle = learnedAisle(aisles, item.name)
-      if (Option.isSome(aisle)) {
-        item = new GroceryItem({ ...item, aisle: aisle.value })
-      }
+  Effect.fnUntraced(function* (item: GroceryItem, get: Atom.FnContext) {
+    const writes = yield* addGroceryItems([item])
+    const merged = writes.find((write) => write.op === "merge")
+    if (merged !== undefined) {
+      get.set(groceryMergedItemAtom, {
+        id: merged.item.idString,
+        key: ++mergeKey,
+      })
     }
-    yield* addGroceryItem(item)
   }),
 )
 
@@ -211,22 +253,12 @@ export const groceryItemEditAtom = groceriesMutation(
   }) => updateGroceryItem(item, { previousName, userInitiated: true }),
 )
 
-// Adds the items picked from recipes to their list, with the aisle
-// learned for each name. The aisles are read once up front, and the items are
-// written as one batch. Stays waiting for a few seconds after, so the button
-// shows a check.
+// Adds the items picked from recipes to their list, merged into what's
+// already there and with a guessed aisle, as one batch. Stays waiting for a
+// few seconds after, so the button shows a check.
 export const addToGroceriesAtom = groceriesMutation(
   Effect.fnUntraced(function* (items: ReadonlyArray<GroceryItem>) {
-    const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
-    yield* addGroceryItems(
-      items.map(
-        (item) =>
-          new GroceryItem({
-            ...item,
-            aisle: Option.getOrNull(learnedAisle(aisles, item.name)),
-          }),
-      ),
-    )
+    yield* addGroceryItems(items)
     yield* Effect.sleep("3 seconds")
   }),
 )

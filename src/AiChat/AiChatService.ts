@@ -16,7 +16,7 @@ import { router } from "@/Router"
 import { groceryItemsAtom } from "@/Groceries/atoms"
 import { GroceryRepo } from "@/Groceries/Repo"
 import {
-  addGroceryItem,
+  addGroceryItems,
   groceriesRuntime,
   updateGroceryItem,
 } from "@/Groceries/runtime"
@@ -75,7 +75,7 @@ import {
   MealPlanDayNoteEvent,
   mealPlanDayNoteUpdate,
 } from "@/MealPlan/Events"
-import { GroceryItemEvent } from "@/Groceries/Events"
+import { GroceryItemEvent, groceryItemCompleted } from "@/Groceries/Events"
 import {
   MenuEvent,
   MenuEntryEvent,
@@ -100,8 +100,8 @@ const ToolkitLayer = toolkit.toLayer(
     >()
     const write = (payload: EventPayload) =>
       writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
-    const addItem = (item: GroceryItem) =>
-      addGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
+    const addItems = (items: ReadonlyArray<GroceryItem>) =>
+      addGroceryItems(items).pipe(Effect.provideContext(context), Effect.orDie)
     const updateItem = (item: GroceryItem) =>
       updateGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
     return toolkit.of({
@@ -166,17 +166,18 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       AddGroceryItems: Effect.fnUntraced(function* ({ groceryItems }) {
-        for (const groceryItem of groceryItems) {
-          yield* addItem(
-            new GroceryItem({
-              ...groceryItem,
-              id: GroceryItemId.make(generateUuidBytes()),
-              createdAt: DateTime.nowUnsafe(),
-              updatedAt: DateTime.nowUnsafe(),
-              completed: false,
-            }),
-          )
-        }
+        yield* addItems(
+          groceryItems.map(
+            (groceryItem) =>
+              new GroceryItem({
+                ...groceryItem,
+                id: GroceryItemId.make(generateUuidBytes()),
+                createdAt: DateTime.nowUnsafe(),
+                updatedAt: DateTime.nowUnsafe(),
+                completed: false,
+              }),
+          ),
+        )
         return {
           _tag: "Transient",
           value: null,
@@ -190,13 +191,16 @@ const ToolkitLayer = toolkit.toLayer(
         if (Option.isNone(existing)) {
           return { _tag: "Transient", value: null }
         }
-        yield* updateItem(
-          new GroceryItem({
-            ...existing.value,
-            ...groceryItem,
-            updatedAt: DateTime.nowUnsafe(),
-          }),
-        )
+        const updated = new GroceryItem({
+          ...existing.value,
+          ...groceryItem,
+          updatedAt: DateTime.nowUnsafe(),
+        })
+        yield* updateItem(updated)
+        // An update leaves the check alone, so a changed one is its own write.
+        if (updated.completed !== existing.value.completed) {
+          yield* write(groceryItemCompleted(updated, updated.completed))
+        }
         return { _tag: "Transient", value: null }
       }),
       MergeGroceryItems: Effect.fnUntraced(function* ({
