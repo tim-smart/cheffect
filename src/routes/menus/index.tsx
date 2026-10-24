@@ -272,7 +272,7 @@ function DayGrid({
   const count = Math.min(gridDays, Math.max(1, Math.floor(days)))
   return (
     <div
-      className="grid grid-cols-7 gap-0.5 overflow-hidden rounded-xl"
+      className="grid grid-cols-7 gap-0.5 overflow-hidden rounded-xl motion-safe:transition-[scale] motion-safe:duration-150 motion-safe:ease-out motion-safe:group-active:scale-[0.97]"
       aria-hidden
     >
       {Array.from({ length: count }, (_, index) => {
@@ -321,7 +321,7 @@ function DayPlate({ recipe }: { recipe: Recipe }) {
         <FadeImage
           src={photo}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-active:scale-[0.97]"
+          className="absolute inset-0 h-full w-full object-cover"
           onError={() => setFailed(true)}
         />
       ) : initial ? (
