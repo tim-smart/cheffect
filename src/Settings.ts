@@ -149,7 +149,7 @@ export const aiChatModel = new Setting({
 
 export const openAiModel = new Setting({
   name: "openAiModel",
-  label: "OpenAI Model",
+  label: "Extraction Model",
   schema: Schema.NonEmptyString,
   schemaInput: OptionFromString,
   initialValue: "gpt-5.4",
