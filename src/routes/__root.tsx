@@ -9,6 +9,7 @@ import {
   Link,
   Outlet,
   useLocation,
+  useRouterState,
 } from "@tanstack/react-router"
 import {
   BookOpen,
@@ -35,6 +36,16 @@ export const Route = createRootRoute({
       select: (location) => /^\/(recipes|edit)\//.test(location.pathname),
     })
     const pathname = useLocation({ select: (location) => location.pathname })
+    // The page shown is the last committed match. The location moves on as a
+    // navigation starts, a commit before the matches follow it, so keying
+    // the screen by location rebuilt the page being left and then replaced
+    // it: the fade began on the old page, and leaving a long recipe list
+    // cost as much as arriving. Keyed by the match, the screen changes once
+    const page = useRouterState({
+      select: (state) =>
+        state.matches[state.matches.length - 1]?.pathname ??
+        state.location.pathname,
+    })
     // The tab icon hops on navigation, not on the first paint
     const [initialPath] = useState(pathname)
     const [navigated, setNavigated] = useState(false)
@@ -113,7 +124,7 @@ export const Route = createRootRoute({
           {/* Each screen fades in; opacity only, so scroll restoration and
               the sticky headers are untouched */}
           <div
-            key={pathname}
+            key={page}
             className="motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
           >
             <Outlet />
