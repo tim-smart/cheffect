@@ -475,7 +475,8 @@ function GroceryListList({
           lastOverId.current = null
         }}
       >
-        <div className="overflow-hidden">
+        {/* The gutter leaves room for rows sliding in from the left */}
+        <div className="-mx-2 px-2 overflow-hidden">
           <div className="space-y-4 py-2">
             {showCompleted && (
               <p className="pt-2 font-display text-[20px] font-medium tracking-tight text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
