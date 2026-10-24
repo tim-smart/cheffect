@@ -42,6 +42,20 @@ export interface MenuDetail {
 
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
+// The order of the entries on one day: by recipe title through the shared
+// collator, so "soup" ties with "Soup", then newest first, then by id.
+// `menuDetail` sorts a day's entries by it and `dayPreviews` picks the first,
+// so a menu's tile shows the recipe its detail lists first.
+interface OnDay {
+  readonly title: string
+  readonly createdAt: { readonly epochMilliseconds: number }
+  readonly id: string
+}
+const compareOnDay = (a: OnDay, b: OnDay) =>
+  compareText(a.title, b.title) ||
+  b.createdAt.epochMilliseconds - a.createdAt.epochMilliseconds ||
+  compareIds(a.id, b.id)
+
 const decodeMenus = (rows: ReadonlyArray<MenuRow>): Menus => {
   const all = rows
     .filter((row) => !row.removed)
@@ -125,9 +139,10 @@ export const menuDetail = (
       entries: entries.sort(
         (a, b) =>
           a.day - b.day ||
-          compareText(a.recipe.title, b.recipe.title) ||
-          b.createdAt.epochMilliseconds - a.createdAt.epochMilliseconds ||
-          compareIds(a.idString, b.idString),
+          compareOnDay(
+            { title: a.recipe.title, createdAt: a.createdAt, id: a.idString },
+            { title: b.recipe.title, createdAt: b.createdAt, id: b.idString },
+          ),
       ),
       notes: notes.sort(
         (a, b) =>
@@ -167,9 +182,7 @@ export const dayPreviews = (state: {
 }): ReadonlyMap<string, ReadonlyArray<Recipe | undefined>> => {
   const firsts = new Map<
     string,
-    Array<
-      { readonly recipe: Recipe; readonly entry: StoredMenuEntry } | undefined
-    >
+    Array<(OnDay & { readonly recipe: Recipe }) | undefined>
   >()
   for (const menu of state.menus.all) {
     firsts.set(
@@ -183,19 +196,15 @@ export const dayPreviews = (state: {
     const recipe = state.recipes.byId.get(uuidString(entry.recipeId))
     if (recipe === undefined) continue
     const slots = firsts.get(menu.value.idString)!
+    const candidate = {
+      recipe,
+      title: recipe.title,
+      createdAt: entry.createdAt,
+      id: uuidString(entry.id),
+    }
     const current = slots[entry.day - 1]
-    if (
-      current === undefined ||
-      compareText(recipe.title, current.recipe.title) < 0 ||
-      (recipe.title === current.recipe.title &&
-        (entry.createdAt.epochMilliseconds >
-          current.entry.createdAt.epochMilliseconds ||
-          (entry.createdAt.epochMilliseconds ===
-            current.entry.createdAt.epochMilliseconds &&
-            compareIds(uuidString(entry.id), uuidString(current.entry.id)) <
-              0)))
-    ) {
-      slots[entry.day - 1] = { recipe, entry }
+    if (current === undefined || compareOnDay(candidate, current) < 0) {
+      slots[entry.day - 1] = candidate
     }
   }
   return new Map(
@@ -230,6 +239,7 @@ export class MenuRepo extends Context.Service<MenuRepo>()(
         byId: (id: string) =>
           current.pipe(Effect.map((state) => menuDetail(state, id))),
         recipeCounts: current.pipe(Effect.map(recipeCounts)),
+        dayPreviews: current.pipe(Effect.map(dayPreviews)),
         // Every stored entry and note, unjoined and unfiltered: for export,
         // import and the shrink writer.
         entries: currentEntries,
