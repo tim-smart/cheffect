@@ -217,14 +217,16 @@ export function RecipeDetails({
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="relative">
+      {/* The photo bleeds to the edges on phones; on desktops it sits inside
+          the page width with the title and columns lined up under it */}
+      <header className="relative md:page-wide md:pt-4">
         <div
           className={cn(
-            "relative",
-            // the photo never takes more than 40% of a short desktop window,
+            "relative md:rounded-2xl",
+            // the photo never takes more than 45% of a short desktop window,
             // and is clipped so its fade-in scale can't widen the page
             recipe.imageUrl &&
-              "aspect-[4/3] md:aspect-auto md:h-[min(340px,40vh)] bg-muted overflow-hidden",
+              "aspect-[4/3] md:aspect-auto md:h-[min(420px,45vh)] bg-muted overflow-hidden",
           )}
         >
           {recipe.imageUrl && (
@@ -324,14 +326,14 @@ export function RecipeDetails({
             </div>
           </div>
         </div>
-        <h1 className="px-4 pt-5 font-display text-[30px] font-medium leading-[1.1] tracking-tight text-balance">
+        <h1 className="px-4 pt-5 md:px-0 md:pt-8 font-display text-[30px] md:text-[42px] font-medium leading-[1.1] tracking-tight text-balance md:max-w-[24ch]">
           {recipe.title}
         </h1>
       </header>
 
       {!recipe.hasNoDetails && (
-        <div className="px-4 pt-3">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] text-muted-foreground">
+        <div className="px-4 pt-3 md:page-wide md:pt-4">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] md:text-[16px] text-muted-foreground">
             {recipe.prepTime && (
               <span>
                 Prep{" "}
@@ -381,9 +383,9 @@ export function RecipeDetails({
 
       {modified && <ModifiedBanner recipe={recipe} />}
 
-      <div className="flex flex-col md:items-start gap-6 md:gap-8 mt-6 md:flex-row max-w-7xl mx-auto">
-        {/* Ingredients */}
-        <div className="flex-1 px-4">
+      <div className="flex flex-col md:items-start gap-6 md:gap-12 lg:gap-16 mt-6 md:mt-10 md:flex-row md:page-wide">
+        {/* Ingredients: a fixed-width column beside the method on desktops */}
+        <div className="flex-1 px-4 md:px-0 md:flex-none md:w-[20rem] lg:w-[24rem]">
           <div className="flex items-center mb-2">
             <h2 className="font-display text-[22px] font-medium tracking-tight">
               Ingredients
@@ -456,7 +458,7 @@ export function RecipeDetails({
         </div>
 
         {/* Instructions */}
-        <div className="flex-2 px-2">
+        <div className="flex-2 px-2 md:px-0 md:-ml-2 md:flex-1 md:min-w-0 md:max-w-[64ch]">
           {recipe.steps.length > 0 && (
             <h2 className="px-2 mb-2 font-display text-[22px] font-medium tracking-tight">
               Method

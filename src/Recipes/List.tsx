@@ -24,9 +24,11 @@ export function RecipeList({
   rounded?: boolean
   getScrollElement?: () => HTMLElement | null
 }) {
-  // The recipes page shows photo tiles two to a row; the pickers keep rows
+  // The recipes page shows photo tiles, two to a row on phones and more as
+  // the window widens; the pickers keep rows
   const tiles = onSelect === undefined && getScrollElement === undefined
-  const columns = tiles ? 2 : 1
+  const tileColumns = useTileColumns()
+  const columns = tiles ? tileColumns : 1
   const rowCount = Math.ceil(recipes.length / columns)
   const virtualizer = getScrollElement
     ? useVirtualizer({
@@ -40,7 +42,7 @@ export function RecipeList({
           getElement: () => window,
         })?.scrollY,
         count: rowCount,
-        estimateSize: () => (tiles ? 216 : 81),
+        estimateSize: () => (tiles ? (tileColumns > 2 ? 272 : 216) : 81),
         overscan: 10,
       })
 
@@ -77,7 +79,7 @@ export function RecipeList({
                 transform is the virtualizer's */}
             <div
               className={clsx(
-                "grid grid-cols-2 gap-x-3 pb-4",
+                "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 md:gap-x-5 pb-4 md:pb-6",
                 entering && "motion-safe:animate-rise-in stagger",
               )}
               style={{ "--i": position } as CSSProperties}
@@ -135,6 +137,34 @@ export function RecipeList({
   )
 }
 
+// How many tiles fit a row: the same breakpoints as the grid's classes, so
+// the virtualizer slices rows the way the grid lays them out
+const tileQueries = [
+  { query: "(min-width: 64rem)", columns: 4 },
+  { query: "(min-width: 48rem)", columns: 3 },
+] as const
+
+function matchTileColumns() {
+  if (typeof window === "undefined") return 2
+  for (const { query, columns } of tileQueries) {
+    if (window.matchMedia(query).matches) return columns
+  }
+  return 2
+}
+
+function useTileColumns() {
+  const [columns, setColumns] = useState(matchTileColumns)
+  useEffect(() => {
+    const lists = tileQueries.map(({ query }) => window.matchMedia(query))
+    const update = () => setColumns(matchTileColumns())
+    for (const list of lists) list.addEventListener("change", update)
+    return () => {
+      for (const list of lists) list.removeEventListener("change", update)
+    }
+  }, [])
+  return columns
+}
+
 // True for the first moments after mount, long enough for a staggered
 // entrance to finish before the class is dropped
 function useEntering() {
@@ -175,7 +205,7 @@ function RecipeTile({ recipe }: { recipe: Recipe }) {
       params={{ id: recipe.idString }}
       className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
     >
-      <div className="relative h-32 overflow-hidden rounded-xl bg-muted">
+      <div className="relative h-32 md:h-44 overflow-hidden rounded-xl bg-muted">
         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
           <ChefHat className="size-10 opacity-30" />
         </div>
@@ -192,8 +222,8 @@ function RecipeTile({ recipe }: { recipe: Recipe }) {
       </div>
       {/* A fixed text block keeps every row 216px, which the virtualizer
           relies on to restore the scroll position exactly */}
-      <div className="mt-2 h-16">
-        <h3 className="font-display text-[16px] font-medium leading-[22px] line-clamp-2">
+      <div className="mt-2 h-16 md:mt-3">
+        <h3 className="font-display text-[16px] md:text-[17px] font-medium leading-[22px] line-clamp-2">
           {recipe.title}
         </h3>
         <p className="mt-0.5 flex h-[18px] items-center gap-1 text-[12.5px] leading-[18px] text-muted-foreground tabular-nums">

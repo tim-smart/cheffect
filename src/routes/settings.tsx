@@ -88,11 +88,11 @@ function SettingsPage() {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background sticky top-0 z-10">
-        <div className="px-4 pt-3 pb-3">
+      <header className="bg-background sticky top-bar-offset z-10">
+        <div className="page-plan pt-3 pb-3 md:pt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-[26px] font-medium tracking-tight">
+              <h1 className="font-display text-[26px] md:text-[32px] font-medium tracking-tight">
                 Settings
               </h1>
             </div>
@@ -174,7 +174,7 @@ function SettingsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-4 py-2 flex flex-col gap-6">
+      <main className="page-plan py-2 flex flex-col gap-6 md:gap-10 md:py-4">
         <SettingSection title="AI Settings">
           <SettingControl
             setting={openAiApiKey}
@@ -263,11 +263,12 @@ function SettingSection({
   children: React.ReactNode
 }) {
   return (
-    <div>
-      <h2 className="font-display text-[22px] font-medium tracking-tight mb-2">
+    // On desktops the section's name sits in a column beside its controls
+    <div className="md:grid md:grid-cols-[12rem_minmax(0,1fr)] md:gap-x-8">
+      <h2 className="font-display text-[22px] font-medium tracking-tight mb-2 md:mb-0 md:pt-4">
         {title}
       </h2>
-      <div className="rounded-xl bg-card overflow-hidden p-4 flex flex-col gap-4">
+      <div className="rounded-xl bg-card overflow-hidden p-4 md:p-6 flex flex-col gap-4">
         {children}
       </div>
     </div>

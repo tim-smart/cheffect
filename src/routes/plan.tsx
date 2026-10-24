@@ -124,11 +124,11 @@ export function MealPlanPage() {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background sticky top-0 z-10">
-        <div className="px-4 pt-3 pb-2">
+      <header className="bg-background sticky top-bar-offset z-10">
+        <div className="page-plan pt-3 pb-2 md:pt-6">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-[26px] font-medium tracking-tight">
+              <h1 className="font-display text-[26px] md:text-[32px] font-medium tracking-tight">
                 Meal Plan
               </h1>
             </div>
@@ -229,7 +229,7 @@ export function MealPlanPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-4 py-2" {...handlers}>
+      <main className="page-plan py-2" {...handlers}>
         {/* Days open their note on mount, so wait for the first snapshot. */}
         {AsyncResult.isInitial(entries) ||
         AsyncResult.isInitial(dayNotes) ? null : (
@@ -355,18 +355,20 @@ function DayListItem({
   })
 
   return (
-    <div className="py-2.5">
+    // On desktops each day is a row of the week's agenda: the day in a column
+    // on the left, its meals and note beside it
+    <div className="py-2.5 md:py-4 md:grid md:grid-cols-[10rem_minmax(0,1fr)_auto] md:items-start md:gap-x-6">
       {/* Day Header with Add Button */}
-      <div className="w-full flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="flex items-baseline gap-2">
+      <div className="w-full flex items-center justify-between md:contents">
+        <div className="flex items-center gap-3 flex-1 md:order-1">
+          <div className="flex items-baseline gap-2 md:flex-col md:items-start md:gap-0.5">
             <p
-              className={`font-display text-[20px] font-medium leading-tight tracking-tight ${isTodayDate ? "text-primary" : ""}`}
+              className={`font-display text-[20px] md:text-[22px] font-medium leading-tight tracking-tight ${isTodayDate ? "text-primary" : ""}`}
             >
               {dayNames[dateParts.weekDay]}
             </p>
             <p
-              className={`text-[13px] ${isTodayDate ? "text-primary" : "text-muted-foreground"}`}
+              className={`text-[13px] md:text-sm ${isTodayDate ? "text-primary" : "text-muted-foreground"}`}
             >
               {DateTime.formatUtc(date, {
                 month: "short",
@@ -376,7 +378,7 @@ function DayListItem({
             </p>
           </div>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center md:order-3 md:col-start-3 md:row-start-1 md:h-15">
           <Button
             variant="ghost"
             size="sm"
@@ -402,25 +404,25 @@ function DayListItem({
         </div>
       </div>
 
-      {note.open && (
-        <div className="mt-1.5">
-          <DayNoteField
-            value={noteDraft}
-            onChange={setNoteDraft}
-            {...note.fieldProps}
-            autoFocus={note.focusOnOpen}
-          />
-        </div>
-      )}
-
       {/* Day Content - Always Visible */}
-      <div>
+      <div className="md:order-2 md:col-start-2 md:row-start-1">
+        {note.open && (
+          <div className="mt-1.5 md:mt-0 md:mb-2 md:max-w-2xl">
+            <DayNoteField
+              value={noteDraft}
+              onChange={setNoteDraft}
+              {...note.fieldProps}
+              autoFocus={note.focusOnOpen}
+            />
+          </div>
+        )}
+
         {dayEntries.length > 0 && (
-          <div className="mt-1.5 space-y-1.5">
+          <div className="mt-1.5 space-y-1.5 md:mt-0 md:space-y-0 md:flex md:flex-wrap md:gap-2">
             {dayEntries.map(({ id, idString, recipe }) => (
               <Link
                 key={idString}
-                className="flex items-center gap-3 rounded-xl bg-card p-1.5 pr-1 transition-colors active:bg-muted"
+                className="flex items-center gap-3 rounded-xl bg-card p-1.5 pr-1 transition-colors active:bg-muted md:w-80 md:hover:bg-muted"
                 to="/recipes/$id"
                 params={{ id: recipe.idString }}
               >
@@ -502,7 +504,7 @@ function DayListItem({
         )}
 
         {dayEntries.length === 0 && !note.open && (
-          <div className="pt-0.5">
+          <div className="pt-0.5 md:pt-0 md:flex md:h-15 md:items-center">
             <p className="text-sm text-muted-foreground">Nothing planned</p>
           </div>
         )}

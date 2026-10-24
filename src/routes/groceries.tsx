@@ -153,13 +153,13 @@ function GroceryList() {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background sticky top-0 z-10">
-        <div className="px-4 pt-3 pb-3">
+      <header className="bg-background sticky top-bar-offset z-10">
+        <div className="page-narrow pt-3 pb-3 md:pt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div>
                 <ListCombobox>
-                  <h1 className="font-display text-[26px] font-medium tracking-tight flex items-center gap-1">
+                  <h1 className="font-display text-[26px] md:text-[32px] font-medium tracking-tight flex items-center gap-1">
                     {currentList ?? "Grocery list"}
                     <ChevronDown className="block size-5 text-muted-foreground" />
                   </h1>
@@ -232,7 +232,7 @@ function GroceryList() {
           </>
         ))
         .orElse(() => (
-          <div className="max-w-lg mx-auto">
+          <div className="page-narrow">
             <GroceryListSkeleton />
           </div>
         ))}
@@ -302,7 +302,7 @@ function GroceryItemForm({
       }}
     >
       <NameAutoCompleteSync />
-      <div className={cn(className, compact ? "p-2" : "p-3")}>
+      <div className={cn(className, compact ? "py-2" : "p-3")}>
         {!compact && !isEditing && (
           <h3 className="font-medium mb-2">Add New Item</h3>
         )}
@@ -435,7 +435,7 @@ function GroceryListList({
         <div className="bg-background">
           <GroceryItemForm
             currentList={currentList}
-            className="max-w-lg mx-auto px-4"
+            className="page-narrow"
             onSubmit={(item) => {
               addGroceryItem(item)
             }}
@@ -471,7 +471,7 @@ function GroceryListList({
         }}
       >
         <div className="overflow-hidden">
-          <div className="space-y-4 max-w-lg mx-auto px-4 py-2">
+          <div className="space-y-4 page-narrow py-2">
             {showCompleted && (
               <p className="pt-2 font-display text-[20px] font-medium tracking-tight text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
                 In the basket
