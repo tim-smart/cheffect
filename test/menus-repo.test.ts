@@ -196,3 +196,68 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
     yield* checkVisible(7, rows)
   }).pipe(Effect.timeout("5 seconds"), Effect.provide(layer), Effect.runPromise)
 })
+
+// A day's preview on the menu list is the recipe the detail lists first on
+// that day. Titles compare through the shared collator in both reads, so
+// "soup" ties with "Soup" and the newer entry comes first in each.
+const soupAgain = recipeId("0193c7a0-1b2c-4def-8123-456789abcde3")
+
+test("a day's preview is the recipe the detail lists first, titles compared without case", async () => {
+  await Effect.gen(function* () {
+    const log = yield* EventLog.EventLog
+    const repo = yield* MenuRepo
+    const createdAt = DateTime.makeUnsafe(1000)
+    yield* log.write({ schema, ...RecipeEvent.set(recipe(soup, "Soup")) })
+    yield* log.write({ schema, ...RecipeEvent.set(recipe(soupAgain, "soup")) })
+    yield* log.write({
+      schema,
+      ...MenuEvent.set({
+        id: menuId,
+        name: "Week",
+        days: 7,
+        createdAt,
+        updatedAt: createdAt,
+      }),
+    })
+    const entries = [
+      {
+        id: "0193c7a0-1b2c-4def-8123-0123456789c1",
+        recipeId: soup,
+        createdAt: DateTime.makeUnsafe(1000),
+      },
+      {
+        id: "0193c7a0-1b2c-4def-8123-0123456789c2",
+        recipeId: soupAgain,
+        createdAt: DateTime.makeUnsafe(2000),
+      },
+    ] as const
+    for (const entry of entries) {
+      yield* log.write({
+        schema,
+        ...MenuEntryEvent.set({
+          id: entryId(entry.id),
+          menuId,
+          recipeId: entry.recipeId,
+          day: 1,
+          createdAt: entry.createdAt,
+          updatedAt: entry.createdAt,
+        }),
+      })
+    }
+    yield* repo.menusStream.pipe(
+      Stream.filter((menus) => menus.byId.has(menuIdString)),
+      Stream.runHead,
+    )
+
+    const detail = Option.getOrThrow(yield* repo.byId(menuIdString))
+    assert.deepEqual(
+      detail.entries.map((entry) => entry.recipe.title),
+      ["soup", "Soup"],
+    )
+    const previews = (yield* repo.dayPreviews).get(menuIdString)
+    assert.deepEqual(
+      previews?.map((recipe) => recipe?.title),
+      ["soup", ...Array.from({ length: 6 })],
+    )
+  }).pipe(Effect.timeout("5 seconds"), Effect.provide(layer), Effect.runPromise)
+})
