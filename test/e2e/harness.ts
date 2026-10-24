@@ -211,7 +211,7 @@ const openPage = async (chrome: Chromium) => {
    * expression that evaluates to the element.
    *
    * Mouse events go to a fixed point, so the element has to have stopped
-   * moving first: a dialog slides in for 200 ms, and a point taken mid-slide
+   * moving first: a dialog scales in for 200 ms, and a point taken mid-animation
    * misses the button by the time the events land. The centre is read once a
    * frame until two frames agree. An element still moving after two seconds
    * fails the action without sending any mouse events, rather than missing.
