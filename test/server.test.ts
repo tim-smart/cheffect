@@ -31,6 +31,7 @@ import { QueryBuilder } from "@/IndexedDb"
 import { RecipeEvent } from "@/Recipes/Events"
 import { sampleRecipe } from "./fixtures/event-samples"
 import * as Server from "../server/Server"
+import { freshIndexedDb } from "./harness/indexeddb"
 
 // The combined image's server: one process serves the front end
 // build and the encrypted EventLog server on `/sync`. `server/main.ts` reads
@@ -139,18 +140,22 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
 // journal: nothing is wiped, reloaded or re-keyed.
 
 // The browser globals the app's layers read: `window.indexedDB`, from
-// fake-indexeddb, and `localStorage`.
+// fake-indexeddb, and `localStorage`. Test files share a process, so each
+// device starts from a fresh factory and an empty localStorage.
 ;(globalThis as any).window ??= globalThis
-const storage = new Map<string, string>()
-;(globalThis as any).localStorage ??= {
-  getItem: (key: string) => storage.get(key) ?? null,
-  setItem: (key: string, value: string) => void storage.set(key, value),
-  removeItem: (key: string) => void storage.delete(key),
-  clear: () => storage.clear(),
-  key: (index: number) => Array.from(storage.keys())[index] ?? null,
-  get length() {
-    return storage.size
-  },
+const freshBrowserStorage = () => {
+  freshIndexedDb()
+  const storage = new Map<string, string>()
+  ;(globalThis as any).localStorage = {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => void storage.set(key, value),
+    removeItem: (key: string) => void storage.delete(key),
+    clear: () => storage.clear(),
+    key: (index: number) => Array.from(storage.keys())[index] ?? null,
+    get length() {
+      return storage.size
+    },
+  }
 }
 
 const appEntries = eventLogAtom.atom(
@@ -161,6 +166,7 @@ const appRecipes = eventLogAtom.atom(
 )
 
 test("changing the server URL uploads this device's journal to the new server and keeps its data", async () => {
+  freshBrowserStorage()
   await Effect.gen(function* () {
     const first = yield* Layer.build(ServerLayer).pipe(
       Effect.flatMap((context) => serverPort.pipe(Effect.provide(context))),
