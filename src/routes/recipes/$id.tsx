@@ -121,6 +121,10 @@ export function RecipeDetails({
   )
 
   useEffect(() => {
+    setCurrentStep(0)
+  }, [recipe.idString, setCurrentStep])
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
         return
