@@ -119,13 +119,18 @@ export function RecipeDetails({
     recipeSelectedStep(recipe.idString),
   )
 
+  // Arrows and Space move between steps while reading. They stay out of the
+  // way of anything that handles keys itself: a focused button (Space clicks
+  // it), a field, a link, or an open menu or dialog
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
         return
       } else if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof Element &&
+        e.target.closest(
+          "input, textarea, select, button, a[href], [contenteditable], [role=menu], [role=dialog]",
+        ) !== null
       ) {
         return
       }
