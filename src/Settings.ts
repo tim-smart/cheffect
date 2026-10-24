@@ -132,7 +132,7 @@ const AsSome = <S extends Schema.Codec<any, any>>(
 
 export const openAiApiKey = new Setting({
   name: "openAiApiKey",
-  label: "OpenAI API Key",
+  label: "OpenAI API key",
   schema: Schema.RedactedFromValue(Schema.String),
   schemaInput: OptionFromString.pipe(
     Schema.decodeTo(Schema.Option(Schema.RedactedFromValue(Schema.String))),
@@ -149,7 +149,7 @@ export const aiChatModel = new Setting({
 
 export const openAiModel = new Setting({
   name: "openAiModel",
-  label: "Extraction Model",
+  label: "Extraction model",
   schema: Schema.NonEmptyString,
   schemaInput: OptionFromString,
   initialValue: "gpt-6-luna",
@@ -166,7 +166,7 @@ const WeekDays = Schema.Literals([0, 1, 2, 3, 4, 5, 6])
 
 export const mealPlanWeekStart = new Setting({
   name: "mealPlanWeekStart",
-  label: "Week Start",
+  label: "Week start",
   schema: WeekDays,
   schemaInput: AsSome(
     Schema.FiniteFromString.pipe(Schema.decodeTo(WeekDays)),
