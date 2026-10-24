@@ -151,6 +151,19 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
 export const normalizeIngredientName = (name: string): string =>
   name.trim().toLowerCase()
 
+// The recipes of merged items as one list, in order of first appearance. By
+// id string, so the same recipe from two items counts once.
+export const unionRecipeIds = (
+  ...lists: ReadonlyArray<GroceryItem["recipeIds"]>
+): GroceryItem["recipeIds"] => {
+  const ids = new Map<string, RecipeId>()
+  for (const list of lists) {
+    for (const id of list ?? []) ids.set(uuidString(id), id)
+  }
+  const union = Array.from(ids.values())
+  return union.length > 0 ? [union[0], ...union.slice(1)] : null
+}
+
 export const GroceryItemAi = Schema.Struct(
   Struct.pick(GroceryItem.json.fields, ["id", "name", "quantity", "aisle"]),
 ).annotate({

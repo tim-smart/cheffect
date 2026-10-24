@@ -28,8 +28,11 @@ import { MenuRepo } from "@/Menus/Repo"
 import { menusRuntime } from "@/Menus/runtime"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
-import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
-import type { RecipeId } from "@/domain/Recipe"
+import {
+  GroceryItem,
+  GroceryItemId,
+  unionRecipeIds,
+} from "@/domain/GroceryItem"
 import {
   MealPlanEntry,
   MealPlanEntryId,
@@ -214,31 +217,24 @@ const ToolkitLayer = toolkit.toLayer(
           return { _tag: "Transient", value: null }
         }
 
-        // Collect all recipeIds from merged items, by id string
-        const allRecipeIds = new Map<string, RecipeId>()
-        const collectRecipeIds = (item: GroceryItem) =>
-          item.recipeIds?.forEach((id) => allRecipeIds.set(uuidString(id), id))
-        collectRecipeIds(target.value)
-
-        // Delete source items and collect their recipeIds
+        // The sources go, and the target takes their recipes.
+        const sources: Array<GroceryItem> = []
         for (const sourceId of sourceIds) {
           const source = yield* groceries.byId(sourceId).pipe(Effect.orDie)
           if (Option.isSome(source)) {
-            collectRecipeIds(source.value)
+            sources.push(source.value)
             yield* write(GroceryItemEvent.remove({ id: source.value.id }))
           }
         }
-
-        // Update target with merged info
-        const recipeIdsArray = globalThis.Array.from(allRecipeIds.values())
         yield* updateItem(
           new GroceryItem({
             ...target.value,
             name: mergedName ?? target.value.name,
             quantity: mergedQuantity ?? target.value.quantity,
-            recipeIds: Array.isArrayNonEmpty(recipeIdsArray)
-              ? recipeIdsArray
-              : null,
+            recipeIds: unionRecipeIds(
+              target.value.recipeIds,
+              ...sources.map((source) => source.recipeIds),
+            ),
             updatedAt: DateTime.nowUnsafe(),
           }),
         )

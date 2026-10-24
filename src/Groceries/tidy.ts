@@ -2,9 +2,11 @@ import * as DateTime from "effect/DateTime"
 import * as Option from "effect/Option"
 import Fraction from "fraction.js"
 import { dictionaryAisle } from "@/domain/GroceryAisleDictionary"
-import { type GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
-import type { RecipeId } from "@/domain/Recipe"
-import { uuidString } from "@/lib/Id"
+import {
+  type GroceryAisle,
+  GroceryItem,
+  unionRecipeIds,
+} from "@/domain/GroceryItem"
 import { quantityFormatter } from "@/lib/quantity"
 import { type IngredientAisles, learnedAisle } from "./Repo"
 import type { GroceryItemWrite } from "./runtime"
@@ -50,19 +52,6 @@ export const guessAisle = (
   return dictionaryAisle(name)
 }
 
-const mergeRecipeIds = (
-  a: GroceryItem["recipeIds"],
-  b: GroceryItem["recipeIds"],
-): GroceryItem["recipeIds"] => {
-  if (a === null) return b
-  if (b === null) return a
-  // By id string, so the same recipe from two items counts once.
-  const ids = new Map<string, RecipeId>()
-  for (const id of [...a, ...b]) ids.set(uuidString(id), id)
-  const [first, ...rest] = ids.values()
-  return [first, ...rest]
-}
-
 const listKey = (item: GroceryItem) =>
   JSON.stringify([item.list, item.nameNormalized])
 
@@ -78,54 +67,48 @@ export const planGroceryAdds = (options: {
   readonly incoming: ReadonlyArray<GroceryItem>
   readonly now: DateTime.Utc
 }): Array<GroceryItemWrite> => {
-  // Each name's item on its list, with its write once it has one.
-  interface Target {
-    item: GroceryItem
-    write?: Planned
-  }
-  interface Planned {
-    readonly op: "add" | "merge"
-    readonly target: Target
-    readonly guessedAisle: boolean
-  }
-  const planned: Array<Planned> = []
-  const targets = new Map<string, Target>()
+  // The item each name on each list merges into: what's there now, then the
+  // first item this batch adds under the name.
+  const targets = new Map<string, GroceryItem>()
   for (const item of options.existing) {
     const key = listKey(item)
-    if (item.completed || targets.has(key)) continue
-    targets.set(key, { item })
+    if (!item.completed && !targets.has(key)) targets.set(key, item)
   }
+  // By the item written, in the order first written. A later merge into the
+  // same item replaces its write.
+  const writes = new Map<string, GroceryItemWrite>()
   for (const item of options.incoming) {
     const key = listKey(item)
     const target = targets.get(key)
     const quantity = target
-      ? mergeQuantities(target.item.quantity, item.quantity)
+      ? mergeQuantities(target.quantity, item.quantity)
       : Option.none()
-    if (target && Option.isSome(quantity)) {
-      target.item = new GroceryItem({
-        ...target.item,
+    if (target !== undefined && Option.isSome(quantity)) {
+      const merged = new GroceryItem({
+        ...target,
         quantity: quantity.value,
-        recipeIds: mergeRecipeIds(target.item.recipeIds, item.recipeIds),
+        recipeIds: unionRecipeIds(target.recipeIds, item.recipeIds),
         updatedAt: options.now,
       })
-      if (target.write === undefined) {
-        target.write = { op: "merge", target, guessedAisle: false }
-        planned.push(target.write)
-      }
+      targets.set(key, merged)
+      const write = writes.get(merged.idString)
+      writes.set(
+        merged.idString,
+        write?.op === "add"
+          ? { ...write, item: merged }
+          : { op: "merge", item: merged },
+      )
       continue
     }
-    const aisle =
-      item.aisle === null ? guessAisle(options.aisles, item.name) : null
-    const added: Target = {
-      item: aisle === null ? item : new GroceryItem({ ...item, aisle }),
-    }
-    added.write = { op: "add", target: added, guessedAisle: aisle !== null }
-    planned.push(added.write)
-    if (!target) targets.set(key, added)
+    const aisle = item.aisle ?? guessAisle(options.aisles, item.name)
+    const added =
+      aisle === item.aisle ? item : new GroceryItem({ ...item, aisle })
+    writes.set(added.idString, {
+      op: "add",
+      item: added,
+      guessedAisle: item.aisle === null && aisle !== null,
+    })
+    if (target === undefined) targets.set(key, added)
   }
-  return planned.map(({ op, target, guessedAisle }) =>
-    op === "add"
-      ? { op, item: target.item, guessedAisle }
-      : { op, item: target.item },
-  )
+  return Array.from(writes.values())
 }

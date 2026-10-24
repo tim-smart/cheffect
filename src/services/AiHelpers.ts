@@ -139,12 +139,7 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
 
     const beautifyGroceries = Effect.fn("AiHelpers.beautifyGroceries")(
       function* (groceries: ReadonlyArray<GroceryItem>) {
-        const leftoverItems = new Map<string, GroceryItem>()
-
-        for (const item of groceries) {
-          if (item.completed) continue
-          leftoverItems.set(item.idString, item)
-        }
+        const items = groceries.filter((item) => !item.completed)
 
         const response = yield* llm.generateObject({
           prompt: [
@@ -175,7 +170,7 @@ You will receive a list of ingredients from a recipe in XML format. Your task is
 Here is the list of items as XML:
 
 \`\`\`xml
-${encodeGroceryItemListXml(leftoverItems.values())}
+${encodeGroceryItemListXml(items)}
 \`\`\`
 `,
             },
@@ -183,11 +178,7 @@ ${encodeGroceryItemListXml(leftoverItems.values())}
           schema: GroceryItemList,
         })
 
-        return beautifyChanges(
-          leftoverItems.values(),
-          response.value,
-          yield* DateTime.now,
-        )
+        return beautifyChanges(items, response.value, yield* DateTime.now)
       },
     )
 
