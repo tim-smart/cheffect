@@ -92,9 +92,9 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background sticky top-0 z-10">
-        <div className="pl-2 pr-4 pt-3 pb-3">
-          <div className="flex items-center gap-2">
+      <header className="bg-background sticky top-bar-offset z-10">
+        <div className="page-wide pt-3 pb-3 md:pt-6">
+          <div className="flex items-center gap-2 -ml-2 md:-ml-3 md:min-h-11">
             <Button
               variant="ghost"
               size="sm"
@@ -104,7 +104,7 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="font-display text-[22px] font-medium leading-tight tracking-tight line-clamp-2 flex-1">
+            <h1 className="font-display text-[22px] md:text-[32px] font-medium leading-tight md:leading-none tracking-tight line-clamp-2 flex-1">
               {menu.name}
             </h1>
             <MealPlanDatePicker
@@ -150,7 +150,7 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-4 py-2 flex flex-col gap-4">
+      <main className="page-wide py-2 flex flex-col gap-4">
         <DndContext
           onDragOver={() => {
             if (!("vibrate" in navigator)) return
@@ -288,25 +288,28 @@ function DayListItem({
   })
 
   return (
+    // On desktops each day is a row of the menu's agenda: the day and its
+    // buttons in a column on the left, its meals and note beside them. The
+    // grid places things; the DOM keeps the order the keyboard follows
     <div
       ref={setNodeRef}
       className={cn(
-        "py-2.5",
+        "py-2.5 md:py-4 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-x-6",
         isOver && "bg-primary-muted -mx-2 px-2 rounded-xl border-transparent",
       )}
     >
-      <div className="w-full flex items-center justify-between">
-        <div className="flex items-center gap-3 flex-1">
+      <div className="w-full flex items-center justify-between md:contents">
+        <div className="flex items-center gap-3 flex-1 md:col-start-1 md:row-start-1">
           <p
             className={cn(
-              "font-display text-[20px] font-medium leading-tight tracking-tight",
+              "font-display text-[20px] md:text-[22px] font-medium leading-tight tracking-tight",
               isOver && "text-primary",
             )}
           >
             Day {day}
           </p>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center md:col-start-1 md:row-start-2 md:mt-1.5 md:-ml-2">
           <Button
             variant="ghost"
             size="sm"
@@ -334,21 +337,21 @@ function DayListItem({
         </div>
       </div>
 
-      {note.open && (
-        <div className="mt-1.5">
-          <DayNoteField
-            value={noteDraft}
-            onChange={setNoteDraft}
-            {...note.fieldProps}
-            autoFocus={note.focusOnOpen}
-          />
-        </div>
-      )}
-
       {/* Day Content - Always Visible */}
-      <div>
+      <div className="md:col-start-2 md:row-start-1 md:row-span-2">
+        {note.open && (
+          <div className="mt-1.5 md:mt-0 md:mb-2 md:max-w-2xl">
+            <DayNoteField
+              value={noteDraft}
+              onChange={setNoteDraft}
+              {...note.fieldProps}
+              autoFocus={note.focusOnOpen}
+            />
+          </div>
+        )}
+
         {dayEntries.length > 0 && (
-          <div className="mt-1.5 space-y-1.5">
+          <div className="mt-1.5 space-y-1.5 md:mt-0 md:space-y-0 md:flex md:flex-wrap md:gap-2">
             {dayEntries.map((entry) => (
               <DayEntryItem
                 key={entry.idString}
@@ -360,7 +363,7 @@ function DayListItem({
         )}
 
         {dayEntries.length === 0 && !note.open && (
-          <div className="pt-0.5">
+          <div className="pt-0.5 md:pt-0 md:flex md:h-15 md:items-center">
             <p className="text-sm text-muted-foreground">Nothing planned</p>
           </div>
         )}
@@ -405,7 +408,7 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
   return (
     <Link
       className={cn(
-        "flex items-center p-1.5 pr-1 gap-3 bg-card relative rounded-xl transition-colors active:bg-muted",
+        "flex items-center p-1.5 pr-1 gap-3 bg-card relative rounded-xl transition-colors active:bg-muted md:w-80 md:hover:bg-muted",
         isDragging && "shadow-lg",
       )}
       to="/recipes/$id"
@@ -469,6 +472,7 @@ function DayEntryItem({ menuId, entry }: { menuId: MenuId; entry: MenuEntry }) {
             write(MenuEntryEvent.remove({ id, menuId }))
           }}
           className="h-8 w-8 p-0 text-muted-foreground/60 hover:text-destructive"
+          aria-label="Remove meal"
         >
           <X />
         </Button>
@@ -483,6 +487,7 @@ function SelectRecipeButton(props: {}) {
       variant="ghost"
       size="sm"
       className="h-8 w-8 p-0 text-primary hover:bg-primary hover:text-primary-foreground"
+      aria-label="Add a meal"
       {...props}
     >
       <Plus />

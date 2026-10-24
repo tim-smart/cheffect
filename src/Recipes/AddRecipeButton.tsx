@@ -102,14 +102,17 @@ const AddRecipeTrigger = function ({
 }) {
   if (small) {
     return (
+      // A round button on phones and tablets; on desktops there's room for
+      // its name
       <Button
         size="sm"
         ref={ref}
         aria-label="Add recipe"
-        className="bg-primary hover:bg-primary/90 size-10 rounded-full shadow-none [&_svg]:transition-transform [&_svg]:duration-300 [&_svg]:ease-spring motion-safe:[&[data-state=open]_svg]:rotate-45"
+        className="bg-primary hover:bg-primary/90 size-10 rounded-full shadow-none lg:w-auto lg:px-4 lg:text-sm [&_svg]:transition-transform [&_svg]:duration-300 [&_svg]:ease-spring motion-safe:[&[data-state=open]_svg]:rotate-45"
         {...rest}
       >
         <Plus />
+        <span className="hidden lg:inline">Add recipe</span>
       </Button>
     )
   }

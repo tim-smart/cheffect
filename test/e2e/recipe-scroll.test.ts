@@ -55,7 +55,7 @@ test(
 
       // back to the list, where it was
       await browser.evaluate(
-        `window.__back = ${onPageCommit(".max-w-lg")}; history.back()`,
+        `window.__back = ${onPageCommit(".page-wide")}; history.back()`,
       )
       const back = await browser.evaluate(`window.__back`)
       assert.deepEqual(back, { scrollY: listScrollY, topBar: "app header" })

@@ -28,20 +28,21 @@ export default function CheffectHome() {
   const searching = useAtomValue(recipeSearchQueryAtom) !== ""
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-3 pb-content!">
-      <div className="flex items-baseline justify-between mb-4">
+    <div className="page-wide pt-3 md:pt-6 pb-content!">
+      {/* The title and count share a row with the search on desktops; on
+          phones the search drops to its own row */}
+      <div className="mb-5 md:mb-8 flex flex-wrap items-center gap-y-4 md:min-h-11">
         <h2 className="font-display text-[32px] font-medium leading-none tracking-tight">
           Recipes
         </h2>
         {AsyncResult.isSuccess(recipes) && (
-          <span className="text-sm text-muted-foreground tabular-nums">
+          <span className="ml-auto md:ml-4 text-sm text-muted-foreground tabular-nums">
             {recipes.value.length} {searching ? "matching" : "saved"}
           </span>
         )}
-      </div>
-      {/* Search Bar */}
-      <div className="mb-5">
-        <SearchInput />
+        <div className="basis-full md:basis-auto md:ml-auto md:w-full md:max-w-md">
+          <SearchInput />
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -124,10 +125,11 @@ function SortButton() {
 
 function RecipeListSkeleton() {
   return (
-    <div className="flex flex-col gap-2">
-      <Skeleton className="h-20" />
-      <Skeleton className="h-20" />
-      <Skeleton className="h-20" />
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 md:gap-x-5 gap-y-4">
+      <Skeleton className="h-32 md:h-44 rounded-xl" />
+      <Skeleton className="h-32 md:h-44 rounded-xl" />
+      <Skeleton className="h-32 md:h-44 rounded-xl" />
+      <Skeleton className="h-32 md:h-44 rounded-xl hidden md:block" />
     </div>
   )
 }

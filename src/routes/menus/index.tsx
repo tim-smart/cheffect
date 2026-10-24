@@ -39,11 +39,11 @@ export function MenusPage() {
   return (
     <div className="pb-content">
       {/* Header */}
-      <header className="bg-background sticky top-0 z-10">
-        <div className="px-4 pt-3 pb-3">
-          <div className="flex items-center justify-between">
+      <header className="bg-background sticky top-bar-offset z-10">
+        <div className="page-wide pt-3 pb-3 md:pt-6">
+          <div className="flex items-center justify-between md:min-h-11">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-[26px] font-medium tracking-tight">
+              <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight">
                 Menus
               </h1>
             </div>
@@ -56,7 +56,7 @@ export function MenusPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-lg mx-auto px-4 py-2 flex flex-col gap-4">
+      <main className="page-wide py-2 flex flex-col gap-4">
         <AddMenuForm />
         <MenuList />
       </main>
@@ -72,7 +72,7 @@ function AddMenuForm() {
 
   return (
     <MenuForm
-      className="max-w-lg mx-auto"
+      className="md:max-w-md"
       onSubmit={(menu) => {
         write(MenuEvent.set(menu))
         setShowForm(false)
@@ -99,7 +99,7 @@ function MenuList() {
     return <NoResults />
   }
   return (
-    <div className="flex flex-col gap-2">
+    <div className="grid gap-2 md:grid-cols-2 md:gap-3 lg:grid-cols-3">
       {menus.map((menu, index) => (
         <div
           key={menu.idString}

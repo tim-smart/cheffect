@@ -27,57 +27,61 @@ export function RecipeForm({
       }}
       onSubmit={({ decoded }) => onSubmit(decoded)}
     >
-      <div className="flex flex-col gap-4 p-2 pt-8 max-w-lg mx-auto">
-        <FormCard>
-          <div className="flex flex-col gap-2">
-            <Display.title label="Recipe name" />
-            <Display.imageUrl label="Image" />
-            <div className="flex gap-2">
-              <Display.prepTime label="Prep time (min)" />
-              <Display.cookingTime label="Cooking time (min)" />
+      {/* On desktops the form keeps to a reading width at the page's left
+          edge, under the page title */}
+      <div className="md:page-wide">
+        <div className="flex flex-col gap-4 p-2 pt-8 max-w-lg mx-auto md:mx-0 md:max-w-2xl md:px-0 md:pt-6">
+          <FormCard>
+            <div className="flex flex-col gap-2">
+              <Display.title label="Recipe name" />
+              <Display.imageUrl label="Image" />
+              <div className="flex gap-2">
+                <Display.prepTime label="Prep time (min)" />
+                <Display.cookingTime label="Cooking time (min)" />
+              </div>
+              <div className="flex gap-2">
+                <Display.servings label="Servings" />
+                <Display.rating label="Rating" />
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Display.servings label="Servings" />
-              <Display.rating label="Rating" />
+          </FormCard>
+          <FormCard>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Display.sourceName label="Source" />
+                <Display.sourceUrl label="Source URL" />
+              </div>
             </div>
-          </div>
-        </FormCard>
-        <FormCard>
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              <Display.sourceName label="Source" />
-              <Display.sourceUrl label="Source URL" />
+          </FormCard>
+          <Display.ingredients>
+            <div className="flex flex-col gap-2">
+              <Display.ingredients.Fields>
+                <Display.ingredients.Element.ingredients>
+                  <ComponentCard />
+                </Display.ingredients.Element.ingredients>
+              </Display.ingredients.Fields>
+              <div className="flex">
+                <div className="flex-1" />
+                <AddComponent />
+              </div>
             </div>
-          </div>
-        </FormCard>
-        <Display.ingredients>
-          <div className="flex flex-col gap-2">
-            <Display.ingredients.Fields>
-              <Display.ingredients.Element.ingredients>
-                <ComponentCard />
-              </Display.ingredients.Element.ingredients>
-            </Display.ingredients.Fields>
-            <div className="flex">
-              <div className="flex-1" />
-              <AddComponent />
+          </Display.ingredients>
+          <Display.steps>
+            <div className="flex flex-col gap-2">
+              <Display.steps.Fields>
+                <StepCard />
+              </Display.steps.Fields>
+              <div className="flex">
+                <div className="flex-1" />
+                <AddStep />
+              </div>
             </div>
-          </div>
-        </Display.ingredients>
-        <Display.steps>
-          <div className="flex flex-col gap-2">
-            <Display.steps.Fields>
-              <StepCard />
-            </Display.steps.Fields>
-            <div className="flex">
-              <div className="flex-1" />
-              <AddStep />
-            </div>
-          </div>
-        </Display.steps>
+          </Display.steps>
 
-        <Display.Submit>
-          {variant === "add" ? "Add" : "Save"} Recipe
-        </Display.Submit>
+          <Display.Submit>
+            {variant === "add" ? "Add" : "Save"} Recipe
+          </Display.Submit>
+        </div>
       </div>
     </Display.Form>
   )
@@ -292,10 +296,12 @@ function TipFields() {
 
 export function RecipeFormSkeleton() {
   return (
-    <div className="flex flex-col p-4 mb-8 max-w-lg mx-auto gap-4 pt-22">
-      <Skeleton className="h-72 mb-4 w-full" />
-      <Skeleton className="h-48 mb-4 w-full" />
-      <Skeleton className="h-48 mb-4 w-full" />
+    <div className="md:page-wide">
+      <div className="flex flex-col p-4 mb-8 max-w-lg mx-auto gap-4 pt-22 md:mx-0 md:max-w-2xl md:px-0">
+        <Skeleton className="h-72 mb-4 w-full" />
+        <Skeleton className="h-48 mb-4 w-full" />
+        <Skeleton className="h-48 mb-4 w-full" />
+      </div>
     </div>
   )
 }
