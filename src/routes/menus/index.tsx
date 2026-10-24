@@ -259,9 +259,9 @@ const gridDays = 35
 
 // A menu's days as plates on a grid, a week to a row, so a week and a
 // fortnight look like what they are. Each day shows the photo of its first
-// recipe, a day whose recipe has no photo shows the chef's hat, and an
-// unplanned day stays bare. The menu's days are known before its entries
-// load, so the grid keeps its shape while the photos arrive.
+// recipe, a day whose recipe has no photo shows the recipe's initial, and an
+// unplanned day is hatched. The menu's days are known before its entries
+// load, so the grid keeps its shape, every day plain, while they arrive.
 function DayGrid({
   days,
   recipes,
@@ -276,36 +276,57 @@ function DayGrid({
       aria-hidden
     >
       {Array.from({ length: count }, (_, index) => {
-        const recipe = recipes?.[index]
-        return (
-          <div
-            key={index}
-            className={cn(
-              "relative aspect-square overflow-hidden rounded-[5px]",
-              recipe ? "bg-muted" : "bg-card",
-            )}
-          >
-            {recipe && (
-              <>
-                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                  <ChefHat className="size-[42%] opacity-30" />
-                </div>
-                {recipe.imageUrl && (
-                  <FadeImage
-                    key={recipe.idString}
-                    src={recipe.imageUrl}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-hover:scale-[1.04] motion-safe:group-active:scale-[0.97]"
-                    onError={(event) => {
-                      event.currentTarget.hidden = true
-                    }}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        )
+        if (recipes === undefined) {
+          return (
+            <div key={index} className="aspect-square rounded-[5px] bg-muted" />
+          )
+        }
+        const recipe = recipes[index]
+        if (recipe === undefined) {
+          return (
+            <div
+              key={index}
+              className="aspect-square rounded-[5px] bg-muted/50 bg-[repeating-linear-gradient(135deg,var(--border)_0_1px,transparent_1px_6px)]"
+            />
+          )
+        }
+        // Keyed by recipe, so a day whose first recipe changes starts over
+        return <DayPlate key={`${index}:${recipe.idString}`} recipe={recipe} />
       })}
+    </div>
+  )
+}
+
+// A day with a recipe: its photo, or its initial on the brand tint when it
+// has no photo or the photo fails to load
+function DayPlate({ recipe }: { recipe: Recipe }) {
+  const [failed, setFailed] = useState(false)
+  const photo = failed ? null : recipe.imageUrl
+  const initial = Array.from(recipe.title.trim())[0]?.toLocaleUpperCase()
+  return (
+    <div
+      title={recipe.title}
+      className={cn(
+        "@container relative aspect-square overflow-hidden rounded-[5px]",
+        photo ? "bg-muted" : "bg-primary-muted text-primary",
+      )}
+    >
+      {photo ? (
+        <FadeImage
+          src={photo}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-hover:scale-[1.04] motion-safe:group-active:scale-[0.97]"
+          onError={() => setFailed(true)}
+        />
+      ) : initial ? (
+        <span className="absolute inset-0 flex items-center justify-center font-display text-[48cqw] font-medium leading-none tracking-tight select-none">
+          {initial}
+        </span>
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <ChefHat className="size-[42%] opacity-60" />
+        </div>
+      )}
     </div>
   )
 }
