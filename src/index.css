@@ -291,8 +291,8 @@
   }
 }
 
-/* The page width on desktops: the top bar, the recipe grid and the recipe
-   page share it, so their left edges line up */
+/* The page width on desktops. The top bar and every page share it, so page
+   titles sit in the same place from one page to the next */
 @utility page-wide {
   margin-inline: auto;
   width: 100%;
@@ -303,27 +303,7 @@
   }
 }
 
-/* Reading-width pages: lists, forms and settings */
-@utility page-narrow {
-  margin-inline: auto;
-  width: 100%;
-  max-width: var(--container-2xl);
-  padding-inline: calc(var(--spacing) * 4);
-  @media (width >= 48rem) {
-    padding-inline: calc(var(--spacing) * 6);
-  }
-}
-
-/* Planning pages: a day column with its meals beside it */
-@utility page-plan {
-  margin-inline: auto;
-  width: 100%;
-  max-width: var(--container-4xl);
-  padding-inline: calc(var(--spacing) * 4);
-  @media (width >= 48rem) {
-    padding-inline: calc(var(--spacing) * 6);
-  }
-}
+>>>
 
 /* Page headers stick under the top bar on desktops, where the top bar stays
    put; on phones they take its place as the page scrolls */

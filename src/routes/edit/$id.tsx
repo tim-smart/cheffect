@@ -81,8 +81,8 @@ function Header({
 }) {
   return (
     <header className="bg-background border-b border-border sticky top-bar-offset z-10 md:border-b-0">
-      <div className="page-narrow py-4 md:pt-6 md:pb-2">
-        <div className="flex items-center gap-3 -ml-2">
+      <div className="page-wide py-4 md:pt-6 md:pb-2">
+        <div className="flex items-center gap-3 -ml-2 md:min-h-11">
           <Button
             variant="ghost"
             size="sm"
@@ -91,7 +91,7 @@ function Header({
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-semibold line-clamp-1 flex-1 md:font-display md:text-[28px] md:font-medium md:tracking-tight">
+          <h1 className="text-lg font-semibold line-clamp-1 flex-1 md:font-display md:text-[32px] md:leading-none md:font-medium md:tracking-tight">
             {recipe.title}
           </h1>
           <Button

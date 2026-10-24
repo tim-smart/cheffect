@@ -31,8 +31,8 @@ export default function CheffectHome() {
     <div className="page-wide pt-3 md:pt-6 pb-content!">
       {/* The title and count share a row with the search on desktops; on
           phones the search drops to its own row */}
-      <div className="mb-5 md:mb-8 flex flex-wrap items-center gap-y-4">
-        <h2 className="font-display text-[32px] md:text-[36px] font-medium leading-none tracking-tight">
+      <div className="mb-5 md:mb-8 flex flex-wrap items-center gap-y-4 md:min-h-11">
+        <h2 className="font-display text-[32px] font-medium leading-none tracking-tight">
           Recipes
         </h2>
         {AsyncResult.isSuccess(recipes) && (

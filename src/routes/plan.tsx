@@ -125,10 +125,10 @@ export function MealPlanPage() {
     <div className="pb-content">
       {/* Header */}
       <header className="bg-background sticky top-bar-offset z-10">
-        <div className="page-plan pt-3 pb-2 md:pt-6">
-          <div className="flex items-center justify-between mb-2">
+        <div className="page-wide pt-3 pb-2 md:pt-6">
+          <div className="flex items-center justify-between mb-2 md:min-h-11">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-[26px] md:text-[32px] font-medium tracking-tight">
+              <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight">
                 Meal Plan
               </h1>
             </div>
@@ -176,7 +176,7 @@ export function MealPlanPage() {
           </div>
 
           {/* Week Navigation */}
-          <div className="max-w-lg mx-auto flex items-center justify-between">
+          <div className="max-w-lg mx-auto md:mx-0 flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
@@ -229,7 +229,7 @@ export function MealPlanPage() {
       </header>
 
       {/* Main Content */}
-      <main className="page-plan py-2" {...handlers}>
+      <main className="page-wide py-2" {...handlers}>
         {/* Days open their note on mount, so wait for the first snapshot. */}
         {AsyncResult.isInitial(entries) ||
         AsyncResult.isInitial(dayNotes) ? null : (
@@ -355,12 +355,13 @@ function DayListItem({
   })
 
   return (
-    // On desktops each day is a row of the week's agenda: the day in a column
-    // on the left, its meals and note beside it
-    <div className="py-2.5 md:py-4 md:grid md:grid-cols-[10rem_minmax(0,1fr)_auto] md:items-start md:gap-x-6">
+    // On desktops each day is a row of the week's agenda: the day and its
+    // buttons in a column on the left, its meals and note beside them. The
+    // grid places things; the DOM keeps the order the keyboard follows
+    <div className="py-2.5 md:py-4 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-x-6">
       {/* Day Header with Add Button */}
       <div className="w-full flex items-center justify-between md:contents">
-        <div className="flex items-center gap-3 flex-1 md:order-1">
+        <div className="flex items-center gap-3 flex-1 md:col-start-1 md:row-start-1">
           <div className="flex items-baseline gap-2 md:flex-col md:items-start md:gap-0.5">
             <p
               className={`font-display text-[20px] md:text-[22px] font-medium leading-tight tracking-tight ${isTodayDate ? "text-primary" : ""}`}
@@ -378,7 +379,7 @@ function DayListItem({
             </p>
           </div>
         </div>
-        <div className="flex items-center md:order-3 md:col-start-3 md:row-start-1 md:h-15">
+        <div className="flex items-center md:col-start-1 md:row-start-2 md:mt-1.5 md:-ml-2">
           <Button
             variant="ghost"
             size="sm"
@@ -405,7 +406,7 @@ function DayListItem({
       </div>
 
       {/* Day Content - Always Visible */}
-      <div className="md:order-2 md:col-start-2 md:row-start-1">
+      <div className="md:col-start-2 md:row-start-1 md:row-span-2">
         {note.open && (
           <div className="mt-1.5 md:mt-0 md:mb-2 md:max-w-2xl">
             <DayNoteField
@@ -466,6 +467,7 @@ function DayListItem({
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-muted-foreground"
+                        aria-label="Meal options"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </Button>
@@ -519,6 +521,7 @@ function SelectRecipeButton(props: {}) {
       variant="ghost"
       size="sm"
       className="h-8 w-8 p-0 text-primary hover:bg-primary hover:text-primary-foreground"
+      aria-label="Add a meal"
       {...props}
     >
       <Plus className="w-4 h-4" />

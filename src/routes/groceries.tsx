@@ -154,12 +154,13 @@ function GroceryList() {
     <div className="pb-content">
       {/* Header */}
       <header className="bg-background sticky top-bar-offset z-10">
-        <div className="page-narrow pt-3 pb-3 md:pt-6">
-          <div className="flex items-center justify-between">
+        <div className="page-wide pt-3 pb-3 md:pt-6">
+          <div className="flex items-center justify-between md:min-h-11">
             <div className="flex items-center gap-3">
-              <div>
+              {/* On desktops the count sits beside the name, as on Recipes */}
+              <div className="md:flex md:items-baseline md:gap-4">
                 <ListCombobox>
-                  <h1 className="font-display text-[26px] md:text-[32px] font-medium tracking-tight flex items-center gap-1">
+                  <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight flex items-center gap-1">
                     {currentList ?? "Grocery list"}
                     <ChevronDown className="block size-5 text-muted-foreground" />
                   </h1>
@@ -206,8 +207,8 @@ function GroceryList() {
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mt-3">
+          {/* Progress Bar: as wide as the list column beside the basket */}
+          <div className="mt-3 lg:max-w-[calc(50%-1.5rem)]">
             <div className="w-full bg-muted rounded-full h-1.5">
               <div
                 className="bg-primary h-1.5 rounded-full motion-safe:transition-[width] motion-safe:duration-500 ease-out-quart"
@@ -222,17 +223,22 @@ function GroceryList() {
 
       {AsyncResult.builder(result)
         .onSuccess((state) => (
-          <>
-            <GroceryListList {...state} currentList={currentList} showForm />
-            <GroceryListList
-              {...state}
-              currentList={currentList}
-              showCompleted
-            />
-          </>
+          // On wide screens the basket sits in a column beside the list
+          <div className="page-wide lg:grid lg:grid-cols-2 lg:gap-x-12 lg:items-start">
+            <div>
+              <GroceryListList {...state} currentList={currentList} showForm />
+            </div>
+            <div>
+              <GroceryListList
+                {...state}
+                currentList={currentList}
+                showCompleted
+              />
+            </div>
+          </div>
         ))
         .orElse(() => (
-          <div className="page-narrow">
+          <div className="page-wide">
             <GroceryListSkeleton />
           </div>
         ))}
@@ -435,7 +441,6 @@ function GroceryListList({
         <div className="bg-background">
           <GroceryItemForm
             currentList={currentList}
-            className="page-narrow"
             onSubmit={(item) => {
               addGroceryItem(item)
             }}
@@ -471,7 +476,7 @@ function GroceryListList({
         }}
       >
         <div className="overflow-hidden">
-          <div className="space-y-4 page-narrow py-2">
+          <div className="space-y-4 py-2">
             {showCompleted && (
               <p className="pt-2 font-display text-[20px] font-medium tracking-tight text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
                 In the basket

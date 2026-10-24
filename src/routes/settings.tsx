@@ -89,10 +89,10 @@ function SettingsPage() {
     <div className="pb-content">
       {/* Header */}
       <header className="bg-background sticky top-bar-offset z-10">
-        <div className="page-plan pt-3 pb-3 md:pt-6">
-          <div className="flex items-center justify-between">
+        <div className="page-wide pt-3 pb-3 md:pt-6">
+          <div className="flex items-center justify-between md:min-h-11">
             <div className="flex items-center gap-2">
-              <h1 className="font-display text-[26px] md:text-[32px] font-medium tracking-tight">
+              <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight">
                 Settings
               </h1>
             </div>
@@ -174,7 +174,7 @@ function SettingsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="page-plan py-2 flex flex-col gap-6 md:gap-10 md:py-4">
+      <main className="page-wide py-2 flex flex-col gap-6 md:gap-10 md:py-4">
         <SettingSection title="AI Settings">
           <SettingControl
             setting={openAiApiKey}
@@ -268,7 +268,7 @@ function SettingSection({
       <h2 className="font-display text-[22px] font-medium tracking-tight mb-2 md:mb-0 md:pt-4">
         {title}
       </h2>
-      <div className="rounded-xl bg-card overflow-hidden p-4 md:p-6 flex flex-col gap-4">
+      <div className="rounded-xl bg-card overflow-hidden p-4 md:p-6 md:max-w-2xl flex flex-col gap-4">
         {children}
       </div>
     </div>
