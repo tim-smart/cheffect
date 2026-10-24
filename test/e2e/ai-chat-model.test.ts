@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
-import { hasChromium, sleep, withSeededApp } from "./harness"
+import { hasChromium, journalSettled, withSeededApp } from "./harness"
 
 test(
   "AI chat model is separate, persists, and controls chat requests",
@@ -43,7 +43,7 @@ test(
       }
       await setInput(chatInput, "chat-model-for-test")
       await setInput(`document.querySelector("#openAiApiKey")`, "test-api-key")
-      await sleep(2000)
+      await journalSettled(browser)
       await browser.navigate(`${base}/settings`)
       await browser.waitFor(`!!document.querySelector("#openAiModel")`)
       assert.equal(
@@ -98,7 +98,7 @@ test(
         `document.querySelector(".lucide-x").closest("button")`,
       )
       await setInput(chatInput, "second-chat-model")
-      await sleep(2000)
+      await journalSettled(browser)
       assert.equal(
         await browser.evaluate(`(${chatInput}).value`),
         "second-chat-model",

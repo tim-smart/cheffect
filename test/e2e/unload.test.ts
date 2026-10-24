@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
-import { hasChromium, sleep, withSeededApp } from "./harness"
+import { hasChromium, journalSettled, withSeededApp } from "./harness"
 
 // Saving a recipe from an edit page, or deleting it from a recipe page, that
 // was opened directly (by URL) calls history.back(), which unloads the
@@ -25,7 +25,7 @@ test(
         document.querySelector('form button[type="submit"]').click()
       })()`)
       await browser.waitFor(`!location.pathname.startsWith("/edit/")`, 15_000)
-      await sleep(2000)
+      await journalSettled(browser)
 
       await browser.navigate(`${base}/recipes/${id}`)
       const titles = JSON.stringify([original, "Edited after direct open"])
@@ -57,7 +57,7 @@ test(
         `!location.pathname.startsWith("/recipes/")`,
         15_000,
       )
-      await sleep(2000)
+      await journalSettled(browser)
 
       // deleted recipes are left out of the recipe list (the recipe page
       // itself still renders them)

@@ -18,7 +18,7 @@ import * as Server from "../../server/Server"
 import { RecipeEditEvent, RecipeEvent, RecipeEvents } from "@/Recipes/Events"
 import { sampleRecipe } from "../fixtures/event-samples"
 import { testIdentity } from "../harness/eventlog"
-import { hasChromium, sleep, withSeededApp } from "./harness"
+import { hasChromium, journalSettled, withSeededApp } from "./harness"
 
 // Opening a share link: the app strips the fragment and
 // shows the join dialog; accepting wipes the seeded data, stores the identity
@@ -144,7 +144,7 @@ test(
             `!!document.querySelector('a[href="${sharedLink}"]')`,
             30_000,
           )
-          await sleep(3000)
+          await journalSettled(browser)
           assert.deepEqual(await browser.evaluate(recipeLinks), [sharedLink])
         }),
       )

@@ -11,7 +11,7 @@
     "start": "node dist-server/main.mjs",
     "preview": "vite preview",
     "test": "node --import tsx --test --test-isolation=none test/*.test.ts",
-    "test:e2e": "node --import tsx --test --test-concurrency=1 --test-force-exit test/e2e/*.test.ts",
+    "test:e2e": "node --import tsx --test --test-global-setup=test/e2e/setup.ts --test-concurrency=3 --test-force-exit test/e2e/*.test.ts",
     "prepare": "effect-tsgo patch --typescript --no-oxlint"
   },
   "dependencies": {
