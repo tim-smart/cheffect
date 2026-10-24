@@ -1,5 +1,6 @@
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
+import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
@@ -21,11 +22,13 @@ import {
   inPantry,
   listNames,
 } from "./Repo"
+import { IngredientAliasEvent } from "./Events"
 import {
   type GroceryItemWrite,
   groceriesRuntime,
   writeGroceryItems,
 } from "./runtime"
+import { tidyList } from "./tidy"
 
 // Reads
 
@@ -124,52 +127,63 @@ const beautifyRuntime = Atom.runtime((get) =>
   ),
 )
 
+// The deterministic pass runs first and is written straight away, whatever
+// the AI does after, so the model gets a shorter, cleaner list. The AI's
+// renames and merges then teach the alias table, so the next add of the same
+// name is cleaned up without it.
 export const beautifyGroceriesAtom = beautifyRuntime
   .fn<void>()(
     Effect.fnUntraced(function* (_, get) {
       const repo = yield* GroceryRepo
-      const currentItems = yield* repo.list(get(groceryCurrentListAtom))
+      const listItems = yield* repo.list(get(groceryCurrentListAtom))
+      const currentItems = listItems.filter((item) => !item.completed)
       yield* Effect.log("Beautifying groceries...", currentItems)
       if (currentItems.length === 0) return
-      const previousItems = new Map(
-        currentItems.map((item) => [item.idString, item]),
-      )
-      const isInPantry = yield* repo.inPantry
       const aisles = yield* repo.aisles
+      const tidied = tidyList({
+        items: currentItems,
+        aisles,
+        aliases: yield* repo.aliases,
+        now: yield* DateTime.now,
+      })
+      yield* writeGroceryItems(tidied.writes)
+      const isInPantry = yield* repo.inPantry
       const ai = yield* AiHelpers
-      const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
+      const { removed, updated, lessons } = yield* ai.beautifyGroceries(
+        tidied.items,
+      )
       // Every change is collected first and written as one batch, so a long
       // list is one write rather than a few per item.
       const writes: Array<GroceryItemWrite> = removed.map((item) => ({
         op: "remove",
         id: item.id,
       }))
-      for (const item of updated) {
-        const prev = previousItems.get(item.idString)
-        const renamed = prev !== undefined && item.name !== prev.name
+      for (const { previous, item } of updated) {
+        const renamed = item.name !== previous.name
         // A renamed item that turns out to be in the pantry goes.
         if (
           renamed &&
-          prev.list !== PANTRY_GROCERY_LIST_NAME &&
+          previous.list !== PANTRY_GROCERY_LIST_NAME &&
           isInPantry(item.name)
         ) {
           writes.push({ op: "remove", id: item.id })
           continue
         }
-        let nextItem = item
-        if (renamed) {
-          const aisle = learnedAisle(aisles, item.name)
-          if (Option.isSome(aisle)) {
-            nextItem = new GroceryItem({ ...item, aisle: aisle.value })
-          }
-        }
+        const aisle = renamed ? learnedAisle(aisles, item.name) : Option.none()
         writes.push({
-          op: "update",
-          item: nextItem,
-          previousName: prev?.name,
+          op: "change",
+          previous,
+          item: Option.isSome(aisle)
+            ? new GroceryItem({ ...item, aisle: aisle.value })
+            : item,
         })
       }
-      yield* writeGroceryItems(writes)
+      yield* writeGroceryItems(
+        writes,
+        lessons.map(({ name, canonical }) =>
+          IngredientAliasEvent.set({ name, source: "ai", canonical }),
+        ),
+      )
     }),
   )
   .pipe(Atom.keepAlive)

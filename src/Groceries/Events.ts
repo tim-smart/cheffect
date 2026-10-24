@@ -5,7 +5,11 @@ import {
   GroceryAisleOrder,
   groceryAisleOrderKey,
 } from "@/domain/GroceryAisleOrder"
-import { GroceryItem, normalizeIngredientName } from "@/domain/GroceryItem"
+import {
+  GroceryItem,
+  normalizeIngredientName,
+  sameRecipeIds,
+} from "@/domain/GroceryItem"
 import { IngredientAisle } from "@/domain/IngredientAisle"
 import { IngredientAlias, ingredientAliasKey } from "@/domain/IngredientAlias"
 import { uuidKey } from "@/lib/Id"
@@ -75,15 +79,20 @@ export const groceryItemUpdate = (item: GroceryItem) =>
     },
   )
 
-// What an add merging into this item writes: only what the merge changes.
-// An add merges into an item on the list only when neither has a quantity,
-// so the merge leaves the quantity alone. Writing the empty quantity back
-// would replace one set meanwhile on another device.
-export const groceryItemMerge = (item: GroceryItem) =>
+// What changing an item from `previous` writes: only the fields that differ,
+// and the update time. A field the writer didn't change keeps whatever
+// another device wrote to it meanwhile, so a merge that adds only recipes
+// can't undo a quantity set elsewhere.
+export const groceryItemChange = (previous: GroceryItem, item: GroceryItem) =>
   GroceryItemEvent.patch(
     { id: item.id },
     {
-      recipeIds: item.recipeIds,
+      ...(item.name !== previous.name && { name: item.name }),
+      ...(item.quantity !== previous.quantity && { quantity: item.quantity }),
+      ...(item.aisle !== previous.aisle && { aisle: item.aisle }),
+      ...(!sameRecipeIds(item.recipeIds, previous.recipeIds) && {
+        recipeIds: item.recipeIds,
+      }),
       updatedAt: item.updatedAt,
     },
   )

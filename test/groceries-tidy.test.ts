@@ -2,12 +2,14 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import * as DateTime from "effect/DateTime"
 import { beautifyChanges } from "@/Groceries/beautify"
-import { guessAisle, planGroceryAdds } from "@/Groceries/tidy"
+import { decodeAliases } from "@/Groceries/aliases"
+import { guessAisle, planGroceryAdds, tidyList } from "@/Groceries/tidy"
 import {
   type GroceryAisle,
   GroceryItem,
   GroceryItemId,
 } from "@/domain/GroceryItem"
+import { ingredientAliasKey } from "@/domain/IngredientAlias"
 import { RecipeId } from "@/domain/Recipe"
 import { generateUuidBytes } from "@/lib/Id"
 
@@ -69,17 +71,17 @@ test("an added item merges into its name's line only where no concurrent write c
         : [write.op, write.item.name, write.item.quantity, write.item.list],
     ),
     [
-      ["merge", "Salt", null, null],
+      ["change", "Salt", null, null],
       ["add", "Eggs", "1", null],
       ["add", "Onion", null, null],
-      ["merge", "Butter", null, null],
+      ["change", "Butter", null, null],
       ["add", "Flour", "1 cup", "Weekend"],
       ["add", "Flour", "3 1/2", "Weekend"],
       ["add", "Flour", null, null],
     ],
   )
   const [mergedSalt, , , mergedButter] = writes
-  assert.ok(mergedSalt.op === "merge" && mergedButter.op === "merge")
+  assert.ok(mergedSalt.op === "change" && mergedButter.op === "change")
   assert.equal(mergedSalt.item.idString, salt.idString)
   assert.deepEqual(mergedSalt.item.recipeIds, [soup, cake])
   assert.equal(mergedButter.item.idString, butter.idString)
@@ -111,31 +113,113 @@ test("an item without an aisle takes the one learned for it, then for the part b
   ])
 })
 
-test("an item the beautify response leaves out stays on the list, and only merged items are removed", () => {
+test("the pass before the AI renames by alias, guesses aisles, and merges only lines without a quantity", () => {
+  const salt = item("Salt", { recipeIds: [soup] })
+  const garlic = item("Garlic, minced", { aisle: "Pantry" })
+  const { writes, items } = tidyList({
+    items: [
+      salt,
+      item("salt", { recipeIds: [cake] }),
+      garlic,
+      item("Eggs", { quantity: "2" }),
+      item("Eggs", { quantity: "1" }),
+    ],
+    aisles: new Map(),
+    aliases: decodeAliases([
+      {
+        id: ingredientAliasKey("ai", "garlic, minced"),
+        name: "garlic, minced",
+        source: "ai",
+        canonical: "Garlic",
+      },
+    ]),
+    now: DateTime.makeUnsafe(2000),
+  })
+  assert.deepEqual(
+    writes.map((write) =>
+      write.op === "remove"
+        ? ["remove"]
+        : [write.op, write.item.name, write.item.aisle, write.guessedAisle],
+    ),
+    [
+      ["remove"],
+      ["change", "Salt", "Herbs & Spices", true],
+      ["change", "Garlic", "Pantry", false],
+      ["change", "Eggs", "Dairy & Eggs", true],
+      ["change", "Eggs", "Dairy & Eggs", true],
+    ],
+  )
+  assert.deepEqual(
+    items.map((item) => [item.name, item.quantity, item.recipeIds]),
+    [
+      ["Salt", null, [soup, cake]],
+      ["Garlic", null, null],
+      ["Eggs", "2", null],
+      ["Eggs", "1", null],
+    ],
+  )
+})
+
+test("the AI's changes touch only the items they name, and its renames and merges are what it teaches", () => {
   const garlic = item("Garlic, minced", { quantity: "2" })
-  const garlicCloves = item("garlic cloves", { quantity: "1" })
-  const salt = item("Salt")
-  const { updated, removed } = beautifyChanges(
-    [garlic, garlicCloves, salt],
+  const cloves = item("garlic cloves", { quantity: "1" })
+  const crushed = item("Crushed garlic", { quantity: "1" })
+  const parsley = item("Chopped parsley")
+  const eggs = item("eggs")
+  const salt = item("Salt", { aisle: "Pantry" })
+  const { updated, removed, lessons } = beautifyChanges(
+    [garlic, cloves, crushed, parsley, eggs, salt],
     {
-      items: [
+      merges: [
         {
-          id: garlic.id,
-          name: "Garlic",
-          quantity: "3",
-          aisle: "Produce",
-          mergedIds: [garlicCloves.idString.toUpperCase()],
+          targetId: cloves.idString.toUpperCase(),
+          sourceIds: [crushed.idString],
+          name: "Garlic cloves",
+          quantity: "2",
         },
+        // A later merge can take an earlier target.
+        {
+          targetId: garlic.idString,
+          sourceIds: [cloves.idString],
+          name: "Garlic",
+          quantity: "4",
+        },
+      ],
+      updates: [
+        { id: parsley.idString, name: "Parsley", quantity: null },
+        { id: eggs.idString, name: "Eggs", quantity: null },
+        // Already merged away: dropped.
+        { id: crushed.idString, name: "Garlic", quantity: "1" },
+      ],
+      aisles: [
+        { id: parsley.idString, aisle: "Produce" },
+        // Already has one.
+        { id: salt.idString, aisle: "Herbs & Spices" },
       ],
     },
     DateTime.makeUnsafe(2000),
   )
   assert.deepEqual(
-    updated.map((item) => [item.idString, item.name, item.quantity]),
-    [[garlic.idString, "Garlic", "3"]],
+    updated.map(({ previous, item }) => [
+      previous.name,
+      item.name,
+      item.quantity,
+      item.aisle,
+    ]),
+    [
+      ["Garlic, minced", "Garlic", "4", null],
+      ["Chopped parsley", "Parsley", null, "Produce"],
+      ["eggs", "Eggs", null, null],
+    ],
   )
   assert.deepEqual(
-    removed.map((item) => item.idString),
-    [garlicCloves.idString],
+    removed.map((item) => item.name),
+    ["Crushed garlic", "garlic cloves"],
   )
+  assert.deepEqual(lessons, [
+    { name: "Garlic, minced", canonical: "Garlic" },
+    { name: "Chopped parsley", canonical: "Parsley" },
+    { name: "Crushed garlic", canonical: "Garlic" },
+    { name: "garlic cloves", canonical: "Garlic" },
+  ])
 })

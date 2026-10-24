@@ -131,7 +131,7 @@ test("adds, the pantry and autocomplete read names through their aliases", () =>
     ),
     [
       ["add", false, "Garlic"],
-      ["merge", true, "Fresh parsley"],
+      ["change", true, "Fresh parsley"],
     ],
   )
 

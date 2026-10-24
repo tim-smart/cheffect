@@ -11,7 +11,7 @@ import { GroceriesLayer } from "@/Groceries"
 import {
   GroceryEvents,
   GroceryItemEvent,
-  groceryItemMerge,
+  groceryItemChange,
   groceryItemUpdate,
   IngredientAisleEvent,
   IngredientAliasEvent,
@@ -198,7 +198,8 @@ test("an update or merge made from a copy taken before a check or a quantity edi
       makeEntry({
         msecs: 3000,
         event: itemEvent,
-        payload: groceryItemMerge(
+        payload: groceryItemChange(
+          item(milk, "Milk", 1000),
           new GroceryItem({ ...item(milk, "Milk", 3000), recipeIds: [soup] }),
         ).payload,
       }),

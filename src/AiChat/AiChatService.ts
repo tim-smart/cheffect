@@ -17,6 +17,8 @@ import { groceryItemsAtom } from "@/Groceries/atoms"
 import { GroceryRepo } from "@/Groceries/Repo"
 import {
   addGroceryItems,
+  type GroceryItemWrite,
+  writeGroceryItems,
   groceriesRuntime,
   updateGroceryItem,
 } from "@/Groceries/runtime"
@@ -103,6 +105,11 @@ const ToolkitLayer = toolkit.toLayer(
     >()
     const write = (payload: EventPayload) =>
       writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
+    const writeItems = (writes: ReadonlyArray<GroceryItemWrite>) =>
+      writeGroceryItems(writes).pipe(
+        Effect.provideContext(context),
+        Effect.orDie,
+      )
     const addItems = (items: ReadonlyArray<GroceryItem>) =>
       addGroceryItems(items).pipe(Effect.provideContext(context), Effect.orDie)
     const updateItem = (item: GroceryItem) =>
@@ -217,27 +224,32 @@ const ToolkitLayer = toolkit.toLayer(
           return { _tag: "Transient", value: null }
         }
 
-        // The sources go, and the target takes their recipes.
+        // The sources go, and the target takes their recipes, as one batch.
+        // The target writes only what the merge changes.
         const sources: Array<GroceryItem> = []
         for (const sourceId of sourceIds) {
           const source = yield* groceries.byId(sourceId).pipe(Effect.orDie)
-          if (Option.isSome(source)) {
-            sources.push(source.value)
-            yield* write(GroceryItemEvent.remove({ id: source.value.id }))
-          }
+          if (Option.isSome(source)) sources.push(source.value)
         }
-        yield* updateItem(
-          new GroceryItem({
-            ...target.value,
-            name: mergedName ?? target.value.name,
-            quantity: mergedQuantity ?? target.value.quantity,
-            recipeIds: unionRecipeIds(
-              target.value.recipeIds,
-              ...sources.map((source) => source.recipeIds),
-            ),
-            updatedAt: DateTime.nowUnsafe(),
-          }),
-        )
+        yield* writeItems([
+          ...sources.map(
+            (source) => ({ op: "remove", id: source.id }) as const,
+          ),
+          {
+            op: "change",
+            previous: target.value,
+            item: new GroceryItem({
+              ...target.value,
+              name: mergedName ?? target.value.name,
+              quantity: mergedQuantity ?? target.value.quantity,
+              recipeIds: unionRecipeIds(
+                target.value.recipeIds,
+                ...sources.map((source) => source.recipeIds),
+              ),
+              updatedAt: DateTime.nowUnsafe(),
+            }),
+          },
+        ])
         return { _tag: "Transient", value: null }
       }),
       DeleteGroceryItem: Effect.fnUntraced(function* ({ id }) {

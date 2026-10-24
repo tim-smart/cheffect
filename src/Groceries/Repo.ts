@@ -8,8 +8,9 @@ import {
   GroceryItem,
   normalizeIngredientName,
   PANTRY_GROCERY_LIST_NAME,
+  sameRecipeIds,
 } from "@/domain/GroceryItem"
-import { idEquals, uuidString } from "@/lib/Id"
+import { uuidString } from "@/lib/Id"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText, includesFolded } from "@/lib/text"
 import { canonicalKey, decodeAliases, type IngredientAliases } from "./aliases"
@@ -28,14 +29,6 @@ import type {
 export type IngredientAisles = ReadonlyMap<string, GroceryAisle>
 
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
-
-const sameRecipeIds = (
-  a: GroceryItemRow["recipeIds"],
-  b: GroceryItemRow["recipeIds"],
-) =>
-  a === null || b === null
-    ? a === b
-    : a.length === b.length && a.every((id, i) => idEquals(id, b[i]))
 
 // Whether two rows for the same item hold the same values.
 const sameRow = (a: GroceryItemRow, b: GroceryItemRow) =>
