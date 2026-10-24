@@ -86,7 +86,7 @@ export function AiChatModal() {
 
   return (
     <>
-      <div className="fixed right-4 floating-b z-50 flex items-center gap-2">
+      <div className="fixed floating-r floating-b z-50 flex items-center gap-2">
         <TimerList />
         {/* Floating Action Button */}
         <button
