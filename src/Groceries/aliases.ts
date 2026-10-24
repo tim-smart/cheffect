@@ -2,8 +2,7 @@ import { normalizeIngredientName } from "@/domain/GroceryItem"
 import type { IngredientAliasRow } from "./Table"
 
 // Reads of the ingredient aliases, as pure functions over the table rows.
-// Nothing writes aliases yet; every client reads them a release before any
-// client writes them.
+// Every client read them a release before any client wrote them.
 
 // Where each normalised name points: a user's row over the AI's for the same
 // name. `null` is a user's pin, which nothing redirects.

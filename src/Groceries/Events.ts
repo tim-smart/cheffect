@@ -37,8 +37,8 @@ export const IngredientAisleEvent = EventRow.make("IngredientAisle", {
 })
 
 // Keyed by the source and the normalised name, so a user's alias and the
-// AI's for the same name are separate rows. Nothing writes these yet: every
-// client reads them a release before any client writes them.
+// AI's for the same name are separate rows. Every client read them a release
+// before any client wrote them.
 export const IngredientAliasEvent = EventRow.make("IngredientAlias", {
   key: {
     fields: ["source", "name"],
