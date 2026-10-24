@@ -121,7 +121,7 @@ function EnableSyncField() {
   const hasServer = Option.isSome(useAtomValue(serverUrlAtom))
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="syncEnabled">Enable Sync</Label>
+      <Label htmlFor="syncEnabled">Enable sync</Label>
       <Switch
         id="syncEnabled"
         checked={enabled && hasServer}
