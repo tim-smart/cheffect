@@ -77,6 +77,7 @@ test("a name resolves through its aliases, a user's over the AI's, to the same a
       "Cilantro",
       "Spring onion",
       "step 5",
+      "step 2",
       "step 0",
       "Milk",
     ],
@@ -89,7 +90,8 @@ test("a name resolves through its aliases, a user's over the AI's, to the same a
     "Coriander",
     "Spring onion",
     "step 10",
-    // Past the hop budget the name stays as it is.
+    // Eight hops is the budget; past it the name stays as it is.
+    "step 10",
     "step 0",
     "Milk",
   ])

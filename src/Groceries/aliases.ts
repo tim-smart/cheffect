@@ -37,9 +37,10 @@ export const canonicalName = (
 ): string => {
   const names = [name]
   const keys = [normalizeIngredientName(name)]
-  for (let hop = 0; hop < maxHops; hop++) {
+  for (;;) {
     const next = aliases.get(keys[keys.length - 1])
     if (next === undefined || next === null) return names[names.length - 1]
+    if (keys.length > maxHops) return name
     const key = normalizeIngredientName(next)
     const seen = keys.indexOf(key)
     if (seen !== -1) {
@@ -52,7 +53,6 @@ export const canonicalName = (
     names.push(next)
     keys.push(key)
   }
-  return name
 }
 
 // The normalised canonical name, for matching names against each other.
