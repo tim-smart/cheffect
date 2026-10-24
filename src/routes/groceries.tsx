@@ -475,7 +475,8 @@ function GroceryListList({
           lastOverId.current = null
         }}
       >
-        <div className="overflow-hidden">
+        {/* Room at the sides for the drop highlight, which reaches past the aisle */}
+        <div className="-mx-3 overflow-hidden px-3">
           <div className="space-y-4 py-2">
             {showCompleted && (
               <p className="pt-2 font-display text-[20px] font-medium tracking-tight text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:duration-300">
@@ -549,10 +550,12 @@ function GroceryAisleSection({
     <div
       ref={setNodeRef}
       style={style}
+      // The highlight reaches past the aisle, so it pads the content without
+      // moving it and takes in the last item's bottom border
       className={cn(
-        "relative rounded-lg transition-colors",
-        isOver && !isDragging && "bg-primary-muted",
-        isDragging && "bg-muted",
+        "relative isolate before:absolute before:-inset-x-3 before:-inset-y-2 before:-z-10 before:rounded-xl before:transition-colors",
+        isOver && !isDragging && "before:bg-primary-muted",
+        isDragging && "before:bg-muted",
       )}
       {...attributes}
     >
