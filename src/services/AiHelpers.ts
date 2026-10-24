@@ -6,18 +6,16 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { CorsProxy } from "./CorsProxy"
+import { beautifyChanges } from "@/Groceries/beautify"
 import {
   encodeGroceryItemListXml,
   GroceryItem,
-  GroceryItemList,
+  GroceryListChanges,
 } from "@/domain/GroceryItem"
-import type { RecipeId } from "@/domain/Recipe"
-import { uuidString } from "@/lib/Id"
 import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { openAiApiKey, openAiModel } from "@/Settings"
-import * as Array from "effect/Array"
 import * as Option from "effect/Option"
 import * as HttpClient from "effect/http/HttpClient"
 import * as Schedule from "effect/Schedule"
@@ -141,87 +139,46 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
 
     const beautifyGroceries = Effect.fn("AiHelpers.beautifyGroceries")(
       function* (groceries: ReadonlyArray<GroceryItem>) {
-        const leftoverItems = new Map<string, GroceryItem>()
-
-        for (const item of groceries) {
-          if (item.completed) continue
-          leftoverItems.set(item.idString, item)
-        }
+        const items = groceries.filter((item) => !item.completed)
 
         const response = yield* llm.generateObject({
           prompt: [
             {
               role: "system",
-              content: `You are an AI assistant that converts a list of ingredients into a clean grocery list.
+              content: `You are an AI assistant that tidies a grocery list.
 
-You will receive a list of ingredients from a recipe in XML format. Your task is to clean up the item names, merge similar items, and categorize them into aisles.
+You will receive the items on a grocery list in XML format. Clean up the item names, merge items that are the same thing, and put items without an aisle into one. Return only what changes: an item you don't mention stays exactly as it is, so never repeat an item that doesn't change.
 
-- only keep the item name, remove any adjectives and cooking instructions
-  - "1 cup chopped fresh parsley" becomes "1 cup parsley"
-  - "2 large eggs, beaten" becomes "2 eggs"
-- merging similar items, simlifying names and merging quantities:
-  - "tomato sauce" and "tomato sauce, organic" becomes "tomato sauce"
-  - "2 eggs" and "1 egg" becomes one item "3 eggs"
-  - "1 cup milk" and "250ml milk" becomes one item "1.25 cups milk"
-  - "2 crushed garlic cloves" and "1 garlic clove, minced" becomes one item "3 garlic cloves"
-  - "1 plump garlic cloves" becomes one item "1 garlic clove"
-- avoid removing useful information from names, such as "low-fat", "gluten-free", "large", "ripe", etc.
-  - "superfood pick n mix" stays as "superfood pick n mix"
-- you **MUST NOT** miss any item quantities when merging
-- only include item quantities in the dedicated quantity field, not in the name
-- keep "optional" items, but add "(optional)" to the item name
-- you *MUST* categorize items into aisles
-- if an item already has an aisle assigned, keep it and do not change it
-- if multiple items are merged, only use the id of the first item
+- updates: an item whose name or quantity changes
+  - only keep the item name, remove any adjectives and cooking instructions
+    - "chopped fresh parsley" becomes "parsley"
+    - "large eggs, beaten" becomes "eggs"
+    - "plump garlic cloves" becomes "garlic clove"
+  - keep useful information in names, such as "low-fat", "gluten-free", "large", "ripe", etc.
+    - "superfood pick n mix" stays as "superfood pick n mix"
+  - quantities go only in the quantity field, never in the name
+  - keep "optional" items, but add "(optional)" to the item name
+- merges: items that are the same thing, merged into one
+  - the target keeps its id and takes the merged name and the combined quantity; the sources are removed
+  - "tomato sauce" and "tomato sauce, organic" become "tomato sauce"
+  - "2 eggs" and "1 egg" become "3 eggs"
+  - "1 cup milk" and "250ml milk" become "1.25 cups milk"
+  - "2 crushed garlic cloves" and "1 garlic clove, minced" become "3 garlic cloves"
+  - you **MUST NOT** lose any quantity when merging
+- aisles: an aisle for each item that has none; never change an aisle an item already has
 
 Here is the list of items as XML:
 
 \`\`\`xml
-${encodeGroceryItemListXml(leftoverItems.values())}
+${encodeGroceryItemListXml(items)}
 \`\`\`
 `,
             },
           ],
-          schema: GroceryItemList,
+          schema: GroceryListChanges,
         })
 
-        const merges = new Map<string, string>()
-        const updated: Array<GroceryItem> = []
-        for (const item of response.value.items) {
-          const itemId = uuidString(item.id)
-          const prev = leftoverItems.get(itemId)
-          if (!prev) continue
-          // By id string, so the same recipe from two items counts once.
-          const recipeIds = new Map<string, RecipeId>(
-            prev.recipeIds?.map((id) => [uuidString(id), id]),
-          )
-          leftoverItems.delete(itemId)
-          for (const mergedId of item.mergedIds) {
-            const mergedItem = leftoverItems.get(mergedId.toLowerCase())
-            if (mergedItem) {
-              merges.set(mergedId, itemId)
-            }
-            if (!mergedItem || !mergedItem.recipeIds) continue
-            mergedItem.recipeIds.forEach((id) =>
-              recipeIds.set(uuidString(id), id),
-            )
-          }
-          const recipeIdsArray = Array.fromIterable(recipeIds.values())
-          updated.push(
-            new GroceryItem({
-              ...prev,
-              ...item,
-              recipeIds: Array.isArrayNonEmpty(recipeIdsArray)
-                ? recipeIdsArray
-                : null,
-              updatedAt: DateTime.nowUnsafe(),
-            }),
-          )
-        }
-
-        const removed = Array.fromIterable(leftoverItems.values())
-
-        return { updated, removed, merges } as const
+        return beautifyChanges(items, response.value, yield* DateTime.now)
       },
     )
 

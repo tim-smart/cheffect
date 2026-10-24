@@ -5,8 +5,13 @@ import {
   GroceryAisleOrder,
   groceryAisleOrderKey,
 } from "@/domain/GroceryAisleOrder"
-import { GroceryItem, normalizeIngredientName } from "@/domain/GroceryItem"
+import {
+  GroceryItem,
+  normalizeIngredientName,
+  sameRecipeIds,
+} from "@/domain/GroceryItem"
 import { IngredientAisle } from "@/domain/IngredientAisle"
+import { IngredientAlias, ingredientAliasKey } from "@/domain/IngredientAlias"
 import { uuidKey } from "@/lib/Id"
 
 // Tags are permanent wire names. Every stored entry is decoded again with the
@@ -31,6 +36,17 @@ export const IngredientAisleEvent = EventRow.make("IngredientAisle", {
   schema: IngredientAisle,
 })
 
+// Keyed by the source and the normalised name, so a user's alias and the
+// AI's for the same name are separate rows. Every client read them a release
+// before any client wrote them.
+export const IngredientAliasEvent = EventRow.make("IngredientAlias", {
+  key: {
+    fields: ["source", "name"],
+    derive: ({ source, name }) => ingredientAliasKey(source, name),
+  },
+  schema: IngredientAlias,
+})
+
 // Keyed by the `[list, aisle]` pair, so two devices reordering the same aisle
 // on the same list write the same row.
 export const GroceryAisleOrderEvent = EventRow.make("GroceryAisleOrder", {
@@ -45,18 +61,23 @@ export const GroceryEvents = EventGroup.empty
   .add(GroceryItemEvent)
   .add(IngredientAisleEvent)
   .add(GroceryAisleOrderEvent)
+  .add(IngredientAliasEvent)
 
-// What an item update writes, from the whole item. The list and creation
-// time stay as they were.
-export const groceryItemUpdate = (item: GroceryItem) =>
+// What changing an item from `previous` writes: only the fields that differ,
+// and the update time. A field the writer didn't change keeps whatever
+// another device wrote to it meanwhile, so a merge that adds only recipes
+// can't undo a quantity set elsewhere. Whether it's checked off is never
+// written here: only a toggle writes that.
+export const groceryItemChange = (previous: GroceryItem, item: GroceryItem) =>
   GroceryItemEvent.patch(
     { id: item.id },
     {
-      name: item.name,
-      quantity: item.quantity,
-      aisle: item.aisle,
-      recipeIds: item.recipeIds,
-      completed: item.completed,
+      ...(item.name !== previous.name && { name: item.name }),
+      ...(item.quantity !== previous.quantity && { quantity: item.quantity }),
+      ...(item.aisle !== previous.aisle && { aisle: item.aisle }),
+      ...(!sameRecipeIds(item.recipeIds, previous.recipeIds) && {
+        recipeIds: item.recipeIds,
+      }),
       updatedAt: item.updatedAt,
     },
   )

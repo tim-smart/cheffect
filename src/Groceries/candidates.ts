@@ -1,5 +1,5 @@
 import * as HashSet from "effect/HashSet"
-import { GroceryItem, normalizeIngredientName } from "@/domain/GroceryItem"
+import { GroceryItem } from "@/domain/GroceryItem"
 import type { Ingredient, Recipe } from "@/domain/Recipe"
 
 // What adding recipes to the grocery list would add, before the user picks.
@@ -25,8 +25,8 @@ export interface GroceryCandidateGroup {
 export const groceryCandidates = (
   recipes: Iterable<Recipe>,
   options: {
-    // The normalised names of what's in the pantry.
-    readonly pantryNames: ReadonlySet<string>
+    // Whether a name is in the pantry.
+    readonly inPantry: (name: string) => boolean
     // The ids of the ingredients ticked off on a recipe.
     readonly ticked: (recipe: Recipe) => HashSet.HashSet<string>
   },
@@ -45,7 +45,7 @@ export const groceryCandidates = (
           ingredient,
           reason: HashSet.has(ticked, id)
             ? "ticked"
-            : options.pantryNames.has(normalizeIngredientName(ingredient.name))
+            : options.inPantry(ingredient.name)
               ? "pantry"
               : null,
         })

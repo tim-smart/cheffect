@@ -2,6 +2,7 @@ import * as Model from "effect/schema/Model"
 import * as Schema from "effect/Schema"
 import {
   generateUuidBytes,
+  idEquals,
   UuidBytes,
   UuidFromString,
   uuidString,
@@ -151,21 +152,66 @@ export class GroceryItem extends Model.Class<GroceryItem>("GroceryItem")({
 export const normalizeIngredientName = (name: string): string =>
   name.trim().toLowerCase()
 
+// Whether two recipe lists hold the same recipes in the same order.
+export const sameRecipeIds = (
+  a: GroceryItem["recipeIds"],
+  b: GroceryItem["recipeIds"],
+) =>
+  a === null || b === null
+    ? a === b
+    : a.length === b.length && a.every((id, i) => idEquals(id, b[i]))
+
+// The recipes of merged items as one list, in order of first appearance. By
+// id string, so the same recipe from two items counts once.
+export const unionRecipeIds = (
+  ...lists: ReadonlyArray<GroceryItem["recipeIds"]>
+): GroceryItem["recipeIds"] => {
+  const ids = new Map<string, RecipeId>()
+  for (const list of lists) {
+    for (const id of list ?? []) ids.set(uuidString(id), id)
+  }
+  const union = Array.from(ids.values())
+  return union.length > 0 ? [union[0], ...union.slice(1)] : null
+}
+
 export const GroceryItemAi = Schema.Struct(
   Struct.pick(GroceryItem.json.fields, ["id", "name", "quantity", "aisle"]),
 ).annotate({
   description: "An item to be added to the grocery list",
 })
 
-export const GroceryItemList = Schema.Struct({
-  items: Schema.Array(
+// What the AI beautify pass changes on a list. Items it doesn't mention stay
+// as they are.
+export const GroceryListChanges = Schema.Struct({
+  updates: Schema.Array(
     Schema.Struct({
-      ...GroceryItemAi.fields,
-      mergedIds: Schema.Array(Schema.String).annotate({
-        description: "IDs of items that were merged into this one",
+      id: Schema.String,
+      name: Schema.String,
+      quantity: Schema.NullOr(Schema.String),
+    }).annotate({
+      description: "An item whose name or quantity changes",
+    }),
+  ),
+  merges: Schema.Array(
+    Schema.Struct({
+      targetId: Schema.String,
+      sourceIds: Schema.Array(Schema.String).annotate({
+        description: "IDs of the items merged into the target and removed",
+      }),
+      name: Schema.String,
+      quantity: Schema.NullOr(Schema.String).annotate({
+        description: "The combined quantity of the target and the sources",
       }),
     }).annotate({
-      description: "An item to be added to the grocery list",
+      description: "Items merged into one, the target",
+    }),
+  ),
+  aisles: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      aisle: GroceryAisle,
+    }).annotate({
+      description: "An aisle for an item that has none",
     }),
   ),
 })

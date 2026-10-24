@@ -8,10 +8,12 @@ import {
   GroceryItem,
   normalizeIngredientName,
   PANTRY_GROCERY_LIST_NAME,
+  sameRecipeIds,
 } from "@/domain/GroceryItem"
-import { idEquals, uuidString } from "@/lib/Id"
+import { uuidString } from "@/lib/Id"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText, includesFolded } from "@/lib/text"
+import { canonicalKey, decodeAliases, type IngredientAliases } from "./aliases"
 import type {
   GroceryAisleOrderRow,
   GroceryItemRow,
@@ -27,14 +29,6 @@ import type {
 export type IngredientAisles = ReadonlyMap<string, GroceryAisle>
 
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
-
-const sameRecipeIds = (
-  a: GroceryItemRow["recipeIds"],
-  b: GroceryItemRow["recipeIds"],
-) =>
-  a === null || b === null
-    ? a === b
-    : a.length === b.length && a.every((id, i) => idEquals(id, b[i]))
 
 // Whether two rows for the same item hold the same values.
 const sameRow = (a: GroceryItemRow, b: GroceryItemRow) =>
@@ -102,17 +96,21 @@ export const listNames = (
   return [null, ...Array.from(names).sort(compareText)]
 }
 
-// The normalised names of what's in the pantry and not checked off.
-export const pantryNames = (
+// Whether a name is in the pantry and not checked off, matched by canonical
+// name on both sides.
+export const inPantry = (
   items: ReadonlyArray<GroceryItem>,
-): ReadonlySet<string> =>
-  new Set(
+  aliases: IngredientAliases,
+): ((name: string) => boolean) => {
+  const names = new Set(
     items
       .filter(
         (item) => item.list === PANTRY_GROCERY_LIST_NAME && !item.completed,
       )
-      .map((item) => item.nameNormalized),
+      .map((item) => canonicalKey(aliases, item.name)),
   )
+  return (name) => names.has(canonicalKey(aliases, name))
+}
 
 // A list's stored aisle order, by aisle.
 export const aisleOrder = (
@@ -132,9 +130,11 @@ export const learnedAisle = (
   Option.fromUndefinedOr(aisles.get(normalizeIngredientName(name)))
 
 // Ingredient names containing the query, the first 10 in key order (which is
-// alphabetical). Shorter queries match nothing.
+// alphabetical). Shorter queries match nothing, and a name with an alias is
+// left out for its canonical name.
 export const autocomplete = (
   aisles: IngredientAisles,
+  aliases: IngredientAliases,
   query: string,
 ): ReadonlyArray<string> => {
   const trimmed = query.trim()
@@ -142,6 +142,7 @@ export const autocomplete = (
   const out: Array<string> = []
   for (const name of aisles.keys()) {
     if (!includesFolded(name, trimmed)) continue
+    if (canonicalKey(aliases, name) !== name) continue
     out.push(name)
     if (out.length === 10) break
   }
@@ -155,21 +156,24 @@ export class GroceryRepo extends Context.Service<GroceryRepo>()(
       const items = yield* makeSnapshot("groceryItems")
       const aisles = yield* makeSnapshot("ingredientAisles")
       const aisleOrders = yield* makeSnapshot("groceryAisleOrders")
+      const aliases = yield* makeSnapshot("ingredientAliases")
 
       const decodeItems = makeItemDecoder()
       const currentItems = items.current.pipe(Effect.map(decodeItems))
       const currentAisles = aisles.current.pipe(Effect.map(decodeAisles))
+      const currentAliases = aliases.current.pipe(Effect.map(decodeAliases))
 
       return {
         itemsStream: items.stream.pipe(Stream.map(decodeItems)),
         aislesStream: aisles.stream.pipe(Stream.map(decodeAisles)),
         aisleOrdersStream: aisleOrders.stream,
+        aliasesStream: aliases.stream.pipe(Stream.map(decodeAliases)),
         // Every item on every list: for export, import and the dev seed.
         items: currentItems,
         list: (list: string | null) =>
           currentItems.pipe(Effect.map((items) => listItems(items, list))),
         listNames: currentItems.pipe(Effect.map(listNames)),
-        pantryNames: currentItems.pipe(Effect.map(pantryNames)),
+        inPantry: Effect.zipWith(currentItems, currentAliases, inPantry),
         byId: (id: string) =>
           currentItems.pipe(
             Effect.map((items) =>
@@ -179,6 +183,7 @@ export class GroceryRepo extends Context.Service<GroceryRepo>()(
             ),
           ),
         aisles: currentAisles,
+        aliases: currentAliases,
       } as const
     }),
   },

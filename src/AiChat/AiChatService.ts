@@ -16,9 +16,10 @@ import { router } from "@/Router"
 import { groceryItemsAtom } from "@/Groceries/atoms"
 import { GroceryRepo } from "@/Groceries/Repo"
 import {
-  addGroceryItem,
+  addGroceryItems,
+  type GroceryItemWrite,
+  writeGroceryItems,
   groceriesRuntime,
-  updateGroceryItem,
 } from "@/Groceries/runtime"
 import { mealPlanEntriesAtom } from "@/MealPlan/atoms"
 import { latestNoteByDay, MealPlanRepo } from "@/MealPlan/Repo"
@@ -28,8 +29,11 @@ import { MenuRepo } from "@/Menus/Repo"
 import { menusRuntime } from "@/Menus/runtime"
 import { MenuEntry } from "@/domain/MenuEntry"
 import { MenuDayNote } from "@/domain/MenuDayNote"
-import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
-import type { RecipeId } from "@/domain/Recipe"
+import {
+  GroceryItem,
+  GroceryItemId,
+  unionRecipeIds,
+} from "@/domain/GroceryItem"
 import {
   MealPlanEntry,
   MealPlanEntryId,
@@ -75,7 +79,7 @@ import {
   MealPlanDayNoteEvent,
   mealPlanDayNoteUpdate,
 } from "@/MealPlan/Events"
-import { GroceryItemEvent } from "@/Groceries/Events"
+import { GroceryItemEvent, groceryItemCompleted } from "@/Groceries/Events"
 import {
   MenuEvent,
   MenuEntryEvent,
@@ -100,10 +104,13 @@ const ToolkitLayer = toolkit.toLayer(
     >()
     const write = (payload: EventPayload) =>
       writeEvent(payload).pipe(Effect.provideContext(context), Effect.orDie)
-    const addItem = (item: GroceryItem) =>
-      addGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
-    const updateItem = (item: GroceryItem) =>
-      updateGroceryItem(item).pipe(Effect.provideContext(context), Effect.orDie)
+    const writeItems = (writes: ReadonlyArray<GroceryItemWrite>) =>
+      writeGroceryItems(writes).pipe(
+        Effect.provideContext(context),
+        Effect.orDie,
+      )
+    const addItems = (items: ReadonlyArray<GroceryItem>) =>
+      addGroceryItems(items).pipe(Effect.provideContext(context), Effect.orDie)
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
         const found = yield* recipes
@@ -166,17 +173,18 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       AddGroceryItems: Effect.fnUntraced(function* ({ groceryItems }) {
-        for (const groceryItem of groceryItems) {
-          yield* addItem(
-            new GroceryItem({
-              ...groceryItem,
-              id: GroceryItemId.make(generateUuidBytes()),
-              createdAt: DateTime.nowUnsafe(),
-              updatedAt: DateTime.nowUnsafe(),
-              completed: false,
-            }),
-          )
-        }
+        yield* addItems(
+          groceryItems.map(
+            (groceryItem) =>
+              new GroceryItem({
+                ...groceryItem,
+                id: GroceryItemId.make(generateUuidBytes()),
+                createdAt: DateTime.nowUnsafe(),
+                updatedAt: DateTime.nowUnsafe(),
+                completed: false,
+              }),
+          ),
+        )
         return {
           _tag: "Transient",
           value: null,
@@ -190,13 +198,18 @@ const ToolkitLayer = toolkit.toLayer(
         if (Option.isNone(existing)) {
           return { _tag: "Transient", value: null }
         }
-        yield* updateItem(
-          new GroceryItem({
-            ...existing.value,
-            ...groceryItem,
-            updatedAt: DateTime.nowUnsafe(),
-          }),
-        )
+        const updated = new GroceryItem({
+          ...existing.value,
+          ...groceryItem,
+          updatedAt: DateTime.nowUnsafe(),
+        })
+        yield* writeItems([
+          { op: "change", previous: existing.value, item: updated },
+        ])
+        // A change leaves the check alone, so a changed one is its own write.
+        if (updated.completed !== existing.value.completed) {
+          yield* write(groceryItemCompleted(updated, updated.completed))
+        }
         return { _tag: "Transient", value: null }
       }),
       MergeGroceryItems: Effect.fnUntraced(function* ({
@@ -210,34 +223,32 @@ const ToolkitLayer = toolkit.toLayer(
           return { _tag: "Transient", value: null }
         }
 
-        // Collect all recipeIds from merged items, by id string
-        const allRecipeIds = new Map<string, RecipeId>()
-        const collectRecipeIds = (item: GroceryItem) =>
-          item.recipeIds?.forEach((id) => allRecipeIds.set(uuidString(id), id))
-        collectRecipeIds(target.value)
-
-        // Delete source items and collect their recipeIds
+        // The sources go, and the target takes their recipes, as one batch.
+        // The target writes only what the merge changes.
+        const sources: Array<GroceryItem> = []
         for (const sourceId of sourceIds) {
           const source = yield* groceries.byId(sourceId).pipe(Effect.orDie)
-          if (Option.isSome(source)) {
-            collectRecipeIds(source.value)
-            yield* write(GroceryItemEvent.remove({ id: source.value.id }))
-          }
+          if (Option.isSome(source)) sources.push(source.value)
         }
-
-        // Update target with merged info
-        const recipeIdsArray = globalThis.Array.from(allRecipeIds.values())
-        yield* updateItem(
-          new GroceryItem({
-            ...target.value,
-            name: mergedName ?? target.value.name,
-            quantity: mergedQuantity ?? target.value.quantity,
-            recipeIds: Array.isArrayNonEmpty(recipeIdsArray)
-              ? recipeIdsArray
-              : null,
-            updatedAt: DateTime.nowUnsafe(),
-          }),
-        )
+        yield* writeItems([
+          ...sources.map(
+            (source) => ({ op: "remove", id: source.id }) as const,
+          ),
+          {
+            op: "change",
+            previous: target.value,
+            item: new GroceryItem({
+              ...target.value,
+              name: mergedName ?? target.value.name,
+              quantity: mergedQuantity ?? target.value.quantity,
+              recipeIds: unionRecipeIds(
+                target.value.recipeIds,
+                ...sources.map((source) => source.recipeIds),
+              ),
+              updatedAt: DateTime.nowUnsafe(),
+            }),
+          },
+        ])
         return { _tag: "Transient", value: null }
       }),
       DeleteGroceryItem: Effect.fnUntraced(function* ({ id }) {

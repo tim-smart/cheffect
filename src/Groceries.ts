@@ -7,12 +7,14 @@ import {
   GroceryEvents,
   GroceryItemEvent,
   IngredientAisleEvent,
+  IngredientAliasEvent,
 } from "./Groceries/Events"
 import { QueryBuilder } from "./IndexedDb"
+import { normalizeIngredientName } from "./domain/GroceryItem"
 import { tableRowHandler } from "./lib/rowHandler"
 
-// Aisles and aisle orders are stored under their primary keys: the
-// normalised name, and the `[list, aisle]` key.
+// Aisles, aisle orders and aliases are stored under their primary keys: the
+// normalised name, the `[list, aisle]` key, and the `[source, name]` key.
 
 const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
   Effect.gen(function* () {
@@ -35,6 +37,17 @@ const GroceryHandlers = EventLog.group(GroceryEvents, (handlers) =>
         }),
       )
       .handle(
+        IngredientAliasEvent.tag,
+        tableRowHandler(db, "ingredientAliases", IngredientAliasEvent, {
+          tableKey: IngredientAliasEvent.keyOf,
+          toRecord: (alias) => ({
+            id: IngredientAliasEvent.keyOf(alias),
+            ...alias,
+            name: normalizeIngredientName(alias.name),
+          }),
+        }),
+      )
+      .handle(
         GroceryAisleOrderEvent.tag,
         tableRowHandler(db, "groceryAisleOrders", GroceryAisleOrderEvent, {
           tableKey: GroceryAisleOrderEvent.keyOf,
@@ -51,6 +64,7 @@ const GroceryReactivity = EventLog.groupReactivity(GroceryEvents, {
   [GroceryItemEvent.tag]: ["groceryItems"],
   [IngredientAisleEvent.tag]: ["ingredientAisles"],
   [GroceryAisleOrderEvent.tag]: ["groceryAisleOrders"],
+  [IngredientAliasEvent.tag]: ["ingredientAliases"],
 })
 
 export const GroceriesLayer = Layer.mergeAll(
@@ -59,4 +73,5 @@ export const GroceriesLayer = Layer.mergeAll(
   EventRow.compaction(GroceryEvents, GroceryItemEvent),
   EventRow.compaction(GroceryEvents, IngredientAisleEvent),
   EventRow.compaction(GroceryEvents, GroceryAisleOrderEvent),
+  EventRow.compaction(GroceryEvents, IngredientAliasEvent),
 )

@@ -35,7 +35,7 @@ test("pantry items and ingredients ticked off on their recipe start unselected, 
   const soup = recipe("Carrot soup", ["Carrots", "Onion", "Salt"])
   const salad = recipe("Salad", ["Lettuce", "Onion", "Salt"])
   const groups = groceryCandidates([soup, salad], {
-    pantryNames: new Set(["salt"]),
+    inPantry: (name) => name === "Salt",
     // Onion is ticked off on the soup only.
     ticked: (r) => (r === soup ? HashSet.make("0-1") : HashSet.empty()),
   })

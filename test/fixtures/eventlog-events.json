@@ -540,5 +540,38 @@
     "tag": "AiChatTurn",
     "json": { "_tag": "remove", "key": { "id": "AZPHoBssTe+BI6IAAAAACg==" } },
     "bytes": "IiAK6Jpi9OCGuYU0FoCujc4bEAGTx6AbLE3vgSOiAAAAAAo="
+  },
+  {
+    "tag": "IngredientAlias",
+    "json": {
+      "_tag": "set",
+      "row": { "name": "garlic, minced", "source": "ai", "canonical": "Garlic" }
+    },
+    "bytes": "NSAKkybBldjXw4MiKcCd5fMNAmFpqMjM+TYHBUdhcmxpY7Det85GDmdhcmxpYywgbWluY2Vk"
+  },
+  {
+    "tag": "IngredientAlias",
+    "json": {
+      "_tag": "set",
+      "row": { "name": "garlic", "source": "user", "canonical": null }
+    },
+    "bytes": "KSAKkybBldjXw4MiHcCd5fMNBHVzZXKoyMz5NgECsN63zkYGZ2FybGlj"
+  },
+  {
+    "tag": "IngredientAlias",
+    "json": {
+      "_tag": "patch",
+      "key": { "name": "garlic, minced", "source": "ai" },
+      "fields": { "canonical": "Garlic cloves" }
+    },
+    "bytes": "QiAKxzdfLeDXjJADFKjIzPk2DgVHYXJsaWMgY2xvdmVz4Ia5hTQcwJ3l8w0CYWmw3rfORg5nYXJsaWMsIG1pbmNlZA=="
+  },
+  {
+    "tag": "IngredientAlias",
+    "json": {
+      "_tag": "remove",
+      "key": { "name": "garlic, minced", "source": "ai" }
+    },
+    "bytes": "KCAK6Jpi9OCGuYU0HMCd5fMNAmFpsN63zkYOZ2FybGljLCBtaW5jZWQ="
   }
 ]

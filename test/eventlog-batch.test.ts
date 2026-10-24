@@ -19,7 +19,7 @@ import { GroceriesLayer } from "@/Groceries"
 import {
   GroceryEvents,
   GroceryItemEvent,
-  groceryItemUpdate,
+  groceryItemChange,
   IngredientAisleEvent,
 } from "@/Groceries/Events"
 import { QueryBuilder, databaseName, layerDatabase } from "@/IndexedDb"
@@ -95,7 +95,7 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
   const batch: Array<EventPayload> = [
     GroceryItemEvent.set(milk),
     GroceryItemEvent.set(eggs),
-    groceryItemUpdate(new GroceryItem({ ...milk, name: "Oat milk" })),
+    groceryItemChange(milk, new GroceryItem({ ...milk, name: "Oat milk" })),
     GroceryItemEvent.remove({ id: eggs.id }),
     IngredientAisleEvent.set({
       name: "oat milk",

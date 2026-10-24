@@ -14,11 +14,16 @@ import * as Reactivity from "effect/reactivity/Reactivity"
 import { EventLogClient, eventLogAtom, journalDatabaseName } from "@/EventLog"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { GroceriesLayer } from "@/Groceries"
-import { GroceryEvents, GroceryItemEvent } from "@/Groceries/Events"
+import {
+  GroceryEvents,
+  GroceryItemEvent,
+  IngredientAliasEvent,
+} from "@/Groceries/Events"
 import {
   addToGroceriesAtom,
   groceriesRuntime,
   groceryItemAddAtom,
+  groceryItemEditAtom,
 } from "@/Groceries/runtime"
 import {
   defaultGrocerySelection,
@@ -74,9 +79,9 @@ const submit = <Arg>(
   registry.get(atom)
 }
 
-// The names of the items added to the journal once `atom` has settled, or
-// once its batch lands after it unmounts.
-const addedNames = <Arg>(options: {
+// The journal once `atom` has settled, or once its batch lands after it
+// unmounts.
+const settledJournal = <Arg>(options: {
   // Built up front, as on the groceries page, or still building.
   readonly runtime: "built" | "cold"
   readonly atom: Mutation<Arg>
@@ -94,16 +99,7 @@ const addedNames = <Arg>(options: {
     const context = yield* Atom.getResult(eventLogAtom)
     if (options.runtime === "built") yield* Atom.getResult(groceriesRuntime)
     options.submit(registry)
-    const names = EventLog.EventLog.use((log) => log.entries).pipe(
-      Effect.map((entries) =>
-        entries
-          .filter((entry) => entry.event === GroceryItemEvent.tag)
-          .map((entry) => decodeItem(entry.payload))
-          .flatMap((payload) =>
-            payload._tag === "set" ? [payload.row.name] : [],
-          )
-          .sort(),
-      ),
+    const entries = EventLog.EventLog.use((log) => log.entries).pipe(
       Effect.provideContext(context),
     )
     if (options.unmountAfterSubmit) {
@@ -111,16 +107,17 @@ const addedNames = <Arg>(options: {
       // items are written as one batch; poll the journal for it rather than
       // waiting on the atom, which would mount it again.
       unmountAtom()
-      return yield* names.pipe(
+      return yield* entries.pipe(
         Effect.repeat({
-          until: (added) => added.length > 0,
+          until: (journal) =>
+            journal.some((entry) => entry.event === GroceryItemEvent.tag),
           schedule: Schedule.spaced("10 millis"),
         }),
       )
     }
     unmounts.push(unmountAtom)
     yield* Atom.getResult(options.atom, { suspendOnWaiting: true })
-    return yield* names
+    return yield* entries
   }).pipe(
     // A recipe batch stays waiting for 3 seconds after its writes.
     Effect.timeout("10 seconds"),
@@ -134,6 +131,16 @@ const addedNames = <Arg>(options: {
     Effect.runPromise,
   )
 }
+
+// The names of the items added to the journal.
+const addedNames = <Arg>(options: Parameters<typeof settledJournal<Arg>>[0]) =>
+  settledJournal(options).then((entries) =>
+    entries
+      .filter((entry) => entry.event === GroceryItemEvent.tag)
+      .map((entry) => decodeItem(entry.payload))
+      .flatMap((payload) => (payload._tag === "set" ? [payload.row.name] : []))
+      .sort(),
+  )
 
 const item = (name: string) =>
   new GroceryItem({
@@ -195,7 +202,7 @@ test("grocery items added while the runtime is still building are all kept", asy
 
 test("the ingredients picked from a recipe keep being added after its button unmounts", async () => {
   const groups = groceryCandidates([soup], {
-    pantryNames: new Set(["stock"]),
+    inPantry: (name) => name === "Stock",
     ticked: () => HashSet.empty(),
   })
   const picked = selectedGroceryItems(
@@ -212,4 +219,36 @@ test("the ingredients picked from a recipe keep being added after its button unm
     unmountAfterSubmit: true,
   })
   assert.deepEqual(added, ["Carrots", "Onion"])
+})
+
+const decodeAlias = Schema.decodeUnknownSync(
+  GroceryEvents.events[IngredientAliasEvent.tag].payloadSchemaBinary,
+) as (bytes: unknown) => typeof IngredientAliasEvent.payload.Type
+
+test("a user's rename pins the new name, and teaches no alias from the old one", async () => {
+  const milk = item("Milk")
+  const entries = await settledJournal({
+    runtime: "built",
+    atom: groceryItemEditAtom,
+    submit: (registry) => {
+      const oatMilk = new GroceryItem({ ...milk, name: "Oat milk" })
+      submit(registry, groceryItemEditAtom, { previous: milk, item: oatMilk })
+      // A change of case alone pins nothing.
+      submit(registry, groceryItemEditAtom, {
+        previous: oatMilk,
+        item: new GroceryItem({ ...oatMilk, name: "oat milk" }),
+      })
+    },
+  })
+  assert.deepEqual(
+    entries
+      .filter((entry) => entry.event === IngredientAliasEvent.tag)
+      .map((entry) => decodeAlias(entry.payload)),
+    [
+      {
+        _tag: "set",
+        row: { name: "Oat milk", source: "user", canonical: null },
+      },
+    ],
+  )
 })
