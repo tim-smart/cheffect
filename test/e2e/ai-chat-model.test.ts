@@ -24,7 +24,7 @@ test(
         }
       })()`)
       assert.equal(settings.chat, "gpt-6.1-sol", "new chat model default")
-      assert.equal(settings.existing, "gpt-5.4", "existing model is unchanged")
+      assert.equal(settings.existing, "gpt-6-luna", "existing model default")
       assert.ok(
         settings.chatAboveExisting,
         "chat model appears above existing model",
@@ -52,7 +52,7 @@ test(
       )
       assert.equal(
         await browser.evaluate(`document.querySelector("#openAiModel").value`),
-        "gpt-5.4",
+        "gpt-6-luna",
       )
 
       // Observe the public HTTP boundary without contacting OpenAI.
