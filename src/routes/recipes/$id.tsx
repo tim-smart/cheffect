@@ -394,10 +394,7 @@ export function RecipeDetails({
             </h2>
             <div className="flex-1" />
             <div>
-              <AddToGroceriesButton
-                recipes={[recipe]}
-                excludeIngredients={checkedIngredients}
-              />
+              <AddToGroceriesButton recipes={[recipe]} />
               <IngredientDropdown recipe={recipe} />
             </div>
           </div>

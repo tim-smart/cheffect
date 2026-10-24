@@ -19,6 +19,7 @@ import {
   learnedAisle,
   listItems,
   listNames,
+  pantryNames,
 } from "./Repo"
 import {
   type GroceryItemWrite,
@@ -48,6 +49,10 @@ export const groceryItemsAtom = Atom.make((get) => {
 
 export const groceryListNamesAtom = Atom.make((get) =>
   AsyncResult.map(get(itemsAtom), listNames),
+)
+
+export const groceryPantryNamesAtom = Atom.make((get) =>
+  AsyncResult.map(get(itemsAtom), pantryNames),
 )
 
 const fallbackAisleOrder = [...GroceryAisle.literals, "Other"]

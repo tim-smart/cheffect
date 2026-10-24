@@ -1,5 +1,4 @@
 import * as Effect from "effect/Effect"
-import * as HashSet from "effect/HashSet"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Atom from "effect/reactivity/Atom"
@@ -9,7 +8,6 @@ import {
   type GroceryItemId,
   normalizeIngredientName,
 } from "@/domain/GroceryItem"
-import type { Recipe } from "@/domain/Recipe"
 import {
   type EventPayload,
   eventLogAtom,
@@ -213,43 +211,22 @@ export const groceryItemEditAtom = groceriesMutation(
   }) => updateGroceryItem(item, { previousName, userInitiated: true }),
 )
 
-// Adds the recipes' ingredients to the default list, skipping excluded ones
-// and anything in the pantry, with the aisle learned for each name. The pantry
-// and aisles are read once up front, and the items are written as one batch.
-// Stays waiting for a few seconds after, so the button shows a check.
+// Adds the items picked from recipes to the default list, with the aisle
+// learned for each name. The aisles are read once up front, and the items are
+// written as one batch. Stays waiting for a few seconds after, so the button
+// shows a check.
 export const addToGroceriesAtom = groceriesMutation(
-  Effect.fnUntraced(function* ({
-    recipes,
-    excludeIngredients,
-  }: {
-    readonly recipes: Iterable<Recipe>
-    readonly excludeIngredients?: HashSet.HashSet<string> | undefined
-  }) {
-    const repo = yield* GroceryRepo
-    const pantryItemNames = yield* repo.pantryNames
-    const aisles = yield* repo.aisles
-    const items: Array<GroceryItem> = []
-    for (const recipe of recipes) {
-      for (const [gi, group] of recipe.ingredientsDisplay.entries()) {
-        for (const [ii, ingredient] of group.ingredients.entries()) {
-          if (
-            excludeIngredients &&
-            HashSet.has(excludeIngredients, ingredient.id(gi, ii))
-          ) {
-            continue
-          }
-          const item = GroceryItem.fromIngredient(null, ingredient, recipe)
-          if (pantryItemNames.has(item.nameNormalized)) continue
-          items.push(
-            new GroceryItem({
-              ...item,
-              aisle: Option.getOrNull(learnedAisle(aisles, item.name)),
-            }),
-          )
-        }
-      }
-    }
-    yield* addGroceryItems(items)
+  Effect.fnUntraced(function* (items: ReadonlyArray<GroceryItem>) {
+    const aisles = yield* GroceryRepo.use((repo) => repo.aisles)
+    yield* addGroceryItems(
+      items.map(
+        (item) =>
+          new GroceryItem({
+            ...item,
+            aisle: Option.getOrNull(learnedAisle(aisles, item.name)),
+          }),
+      ),
+    )
     yield* Effect.sleep("3 seconds")
   }),
 )
