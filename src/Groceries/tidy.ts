@@ -15,8 +15,6 @@ import type { GroceryItemWrite } from "./runtime"
 // merges into it instead of making a second line where that's safe, and an
 // item without an aisle gets a likely one.
 
-const isEmpty = (quantity: string | null) => !quantity?.trim()
-
 // A whole number, decimal, fraction or mixed number, as the quantity
 // formatter writes a count without a unit.
 const count = /^(?:\d+(?:\.\d+)?|\d+\/\d+|\d+ \d+\/\d+)$/
@@ -91,11 +89,16 @@ export const planGroceryAdds = (options: {
   // By the item written, in the order first written. A later merge into the
   // same item replaces its write.
   const writes = new Map<string, GroceryItemWrite>()
-  const mergeInto = (target: GroceryItem, item: GroceryItem) =>
-    writes.get(target.idString)?.op === "add" ||
-    (isEmpty(target.quantity) && isEmpty(item.quantity))
-      ? mergeQuantities(target.quantity, item.quantity)
-      : Option.none()
+  // The quantity `item` leaves on `target` if it merges there. An item this
+  // batch adds takes any sum, since nothing else has written it yet. An item
+  // already on the list takes only nothing onto nothing: a sum written there
+  // would replace one written meanwhile elsewhere.
+  const mergeInto = (target: GroceryItem, item: GroceryItem) => {
+    const quantity = mergeQuantities(target.quantity, item.quantity)
+    return writes.get(target.idString)?.op === "add"
+      ? quantity
+      : Option.filter(quantity, (sum) => sum === null)
+  }
   for (const item of options.incoming) {
     const candidates = targetsOf(item)
     const index = candidates.findIndex((target) =>
