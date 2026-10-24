@@ -15,6 +15,7 @@ import {
   GroceryAisleOrdersTable,
   GroceryItemsTable,
   IngredientAislesTable,
+  IngredientAliasesTable,
 } from "./Groceries/Table"
 import { MealPlanDayNotesTable, MealPlanTable } from "./MealPlan/Table"
 import { MenuDayNotesTable, MenuEntriesTable, MenusTable } from "./Menus/Table"
@@ -26,7 +27,7 @@ import { TimersTable } from "./Timers/Table"
 export const databaseName = "cheffect"
 
 // All module tables and indexes share one database and schema version.
-const tables = [
+const v1Tables = [
   RecipeExtractJobsTable,
   RecipesTable,
   RecipeEditsTable,
@@ -44,14 +45,20 @@ const tables = [
   AiChatTurnsTable,
 ] as const
 
-export class V1 extends IndexedDbVersion.make(...tables) {}
+export class V1 extends IndexedDbVersion.make(...v1Tables) {}
 
 // Version 2 is rows as `EventRow` writes them. The rows before carry
 // last-writer-wins stamps and tombstones and belong to a store that no longer
 // syncs, so the upgrade clears every synced table; importing an export from
 // the old build brings the data back. Extract jobs are this device's own and
 // stay. The upgrade also makes tabs still on the old build reload.
-export class V2 extends IndexedDbVersion.make(...tables) {}
+export class V2 extends IndexedDbVersion.make(...v1Tables) {}
+
+// Version 3 adds the ingredient aliases.
+export class V3 extends IndexedDbVersion.make(
+  ...v1Tables,
+  IngredientAliasesTable,
+) {}
 
 const syncedTables = [
   "recipes",
@@ -91,23 +98,30 @@ export class Database extends IndexedDbDatabase.make(
     yield* api.createObjectStore("aiMemoryEntries")
     yield* api.createObjectStore("aiChatTurns")
   }),
-).add(
-  V2,
-  Effect.fn(function* (_, api) {
-    for (const table of syncedTables) yield* api.from(table).clear
-  }),
-) {}
+)
+  .add(
+    V2,
+    Effect.fn(function* (_, api) {
+      for (const table of syncedTables) yield* api.from(table).clear
+    }),
+  )
+  .add(
+    V3,
+    Effect.fn(function* (_, api) {
+      yield* api.createObjectStore("ingredientAliases")
+    }),
+  ) {}
 
 export type TableName = IndexedDbTable.TableName<
-  IndexedDbVersion.Tables<typeof V2>
+  IndexedDbVersion.Tables<typeof V3>
 >
 export type RowOf<Name extends TableName> = IndexedDbVersion.SchemaWithName<
-  typeof V2,
+  typeof V3,
   Name
 >["Type"]
 
 export const tableNames: ReadonlyArray<TableName> = Array.from(
-  V2.tables.keys(),
+  V3.tables.keys(),
 ) as Array<TableName>
 
 // The database without any browser wiring, for tests and tools.

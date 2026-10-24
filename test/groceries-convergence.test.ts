@@ -14,6 +14,7 @@ import {
   groceryItemMerge,
   groceryItemUpdate,
   IngredientAisleEvent,
+  IngredientAliasEvent,
 } from "@/Groceries/Events"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import type { GroceryAisle } from "@/domain/GroceryItem"
@@ -43,6 +44,7 @@ import {
 
 const itemEvent = GroceryEvents.events[GroceryItemEvent.tag]
 const aisleEvent = GroceryEvents.events[IngredientAisleEvent.tag]
+const aliasEvent = GroceryEvents.events[IngredientAliasEvent.tag]
 
 const carrots = Schema.decodeSync(GroceryItemIdFromString)(
   "0193c7a0-1b2c-4def-8123-c0ffee000001",
@@ -146,6 +148,7 @@ const read = Effect.gen(function* () {
   return {
     groceryItems: yield* readTable("groceryItems"),
     ingredientAisles: yield* readTable("ingredientAisles"),
+    ingredientAliases: yield* readTable("ingredientAliases"),
   }
 })
 
@@ -258,4 +261,34 @@ test("an ingredient aisle remove outlasts older sets and yields to newer ones, w
     ],
   })
   assert.deepEqual(milk.ingredientAisles, [])
+})
+
+test("a user's alias and the AI's for the same name are separate rows, so a later AI write never replaces the user's", async () => {
+  const set = (
+    msecs: number,
+    name: string,
+    source: "user" | "ai",
+    canonical: string | null,
+  ) =>
+    makeEntry({
+      msecs,
+      event: aliasEvent,
+      payload: IngredientAliasEvent.set({ name, source, canonical }).payload,
+    })
+  const { ingredientAliases } = await converge({
+    layer,
+    read,
+    concurrent: [
+      set(1000, "Garlic, minced", "user", null),
+      set(2000, "garlic, minced ", "ai", "Garlic"),
+      set(3000, "GARLIC, MINCED", "ai", "Garlic clove"),
+    ],
+  })
+  assert.deepEqual(
+    ingredientAliases.map((row) => pick(row, ["name", "source", "canonical"])),
+    [
+      { name: "garlic, minced", source: "ai", canonical: "Garlic clove" },
+      { name: "garlic, minced", source: "user", canonical: null },
+    ],
+  )
 })

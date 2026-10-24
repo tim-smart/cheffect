@@ -195,7 +195,7 @@ test("grocery items added while the runtime is still building are all kept", asy
 
 test("the ingredients picked from a recipe keep being added after its button unmounts", async () => {
   const groups = groceryCandidates([soup], {
-    pantryNames: new Set(["stock"]),
+    inPantry: (name) => name === "Stock",
     ticked: () => HashSet.empty(),
   })
   const picked = selectedGroceryItems(

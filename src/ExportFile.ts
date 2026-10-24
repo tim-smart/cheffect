@@ -28,6 +28,7 @@ import {
   GroceryAisleOrderEvent,
   GroceryItemEvent,
   IngredientAisleEvent,
+  IngredientAliasEvent,
 } from "./Groceries/Events"
 import { QueryBuilder } from "./IndexedDb"
 import { MealPlanDayNoteEvent, MealPlanEntryEvent } from "./MealPlan/Events"
@@ -177,6 +178,7 @@ export const ExportRow = Schema.Union([
   ),
   exportRow(IngredientAisleEvent.tag, IngredientAisleEvent.schema),
   exportRow(GroceryAisleOrderEvent.tag, GroceryAisleOrderEvent.schema),
+  exportRow(IngredientAliasEvent.tag, IngredientAliasEvent.schema),
   exportRow(
     MealPlanEntryEvent.tag,
     MealPlanEntryEvent.schema.mapFields((fields) => ({
@@ -324,6 +326,11 @@ export const exportAll: Effect.Effect<
     .select()) {
     add(GroceryAisleOrderEvent.tag, row)
   }
+  for (const { id: _, ...row } of yield* db
+    .from("ingredientAliases")
+    .select()) {
+    add(IngredientAliasEvent.tag, row)
+  }
   for (const row of yield* db.from("mealPlan").select()) {
     add(MealPlanEntryEvent.tag, row)
   }
@@ -362,7 +369,7 @@ export const exportAll: Effect.Effect<
 // - A row with a random id that this device has already seen (it has an
 //   entry for it in the journal) is skipped. This keeps edits made since,
 //   and keeps removed rows removed.
-// - Rows with natural keys (drafts, aisles, aisle orders, settings) are
+// - Rows with natural keys (drafts, aisles, aisle orders, aliases, settings) are
 //   always written, so they overwrite what is here as the newest entries.
 //
 // A crash part way leaves a partial import, fixed by importing again.
@@ -371,6 +378,7 @@ const naturalKeyTags: ReadonlySet<ExportRow["tag"]> = new Set([
   RecipeEditEvent.tag,
   IngredientAisleEvent.tag,
   GroceryAisleOrderEvent.tag,
+  IngredientAliasEvent.tag,
   SettingEvent.tag,
 ])
 

@@ -48,6 +48,7 @@ test("an added item merges into its name's line only where no concurrent write c
       butter,
     ],
     aisles: new Map(),
+    aliases: new Map(),
     incoming: [
       item("salt ", { recipeIds: [cake] }),
       item("Eggs", { quantity: "1" }),

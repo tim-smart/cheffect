@@ -165,6 +165,7 @@ export const addGroceryItems = Effect.fnUntraced(function* (
   const writes = planGroceryAdds({
     existing: yield* repo.items,
     aisles: yield* repo.aisles,
+    aliases: yield* repo.aliases,
     incoming: items,
     now: yield* DateTime.now,
   })

@@ -2,6 +2,7 @@ import * as Schema from "effect/Schema"
 import * as IndexedDbTable from "@effect/platform-browser/IndexedDbTable"
 import { GroceryAisleOrder } from "@/domain/GroceryAisleOrder"
 import { IngredientAisle } from "@/domain/IngredientAisle"
+import { IngredientAlias } from "@/domain/IngredientAlias"
 import { GroceryItemEvent } from "./Events"
 
 // Rows are stored as their events write them, under the row's key.
@@ -34,5 +35,18 @@ export type GroceryAisleOrderRow = typeof GroceryAisleOrderRow.Type
 export class GroceryAisleOrdersTable extends IndexedDbTable.make({
   name: "groceryAisleOrders",
   schema: GroceryAisleOrderRow,
+  keyPath: "id",
+}) {}
+
+// Keyed by `ingredientAliasKey(source, name)`, with `name` normalised.
+export const IngredientAliasRow = Schema.Struct({
+  id: Schema.String,
+  ...IngredientAlias.fields,
+})
+export type IngredientAliasRow = typeof IngredientAliasRow.Type
+
+export class IngredientAliasesTable extends IndexedDbTable.make({
+  name: "ingredientAliases",
+  schema: IngredientAliasRow,
   keyPath: "id",
 }) {}

@@ -7,6 +7,7 @@ import {
 } from "@/domain/GroceryAisleOrder"
 import { GroceryItem, normalizeIngredientName } from "@/domain/GroceryItem"
 import { IngredientAisle } from "@/domain/IngredientAisle"
+import { IngredientAlias, ingredientAliasKey } from "@/domain/IngredientAlias"
 import { uuidKey } from "@/lib/Id"
 
 // Tags are permanent wire names. Every stored entry is decoded again with the
@@ -31,6 +32,17 @@ export const IngredientAisleEvent = EventRow.make("IngredientAisle", {
   schema: IngredientAisle,
 })
 
+// Keyed by the source and the normalised name, so a user's alias and the
+// AI's for the same name are separate rows. Nothing writes these yet: every
+// client reads them a release before any client writes them.
+export const IngredientAliasEvent = EventRow.make("IngredientAlias", {
+  key: {
+    fields: ["source", "name"],
+    derive: ({ source, name }) => ingredientAliasKey(source, name),
+  },
+  schema: IngredientAlias,
+})
+
 // Keyed by the `[list, aisle]` pair, so two devices reordering the same aisle
 // on the same list write the same row.
 export const GroceryAisleOrderEvent = EventRow.make("GroceryAisleOrder", {
@@ -45,6 +57,7 @@ export const GroceryEvents = EventGroup.empty
   .add(GroceryItemEvent)
   .add(IngredientAisleEvent)
   .add(GroceryAisleOrderEvent)
+  .add(IngredientAliasEvent)
 
 // What an item update writes, from the whole item. The list and creation
 // time stay as they were, and so does whether it's checked off: only a toggle

@@ -18,8 +18,8 @@ import {
   GroceryRepo,
   learnedAisle,
   listItems,
+  inPantry,
   listNames,
-  pantryNames,
 } from "./Repo"
 import {
   type GroceryItemWrite,
@@ -37,6 +37,10 @@ const aislesAtom = groceriesRuntime
   .atom(GroceryRepo.useSync((_) => _.aislesStream).pipe(Stream.unwrap))
   .pipe(Atom.keepAlive)
 
+const aliasesAtom = groceriesRuntime
+  .atom(GroceryRepo.useSync((_) => _.aliasesStream).pipe(Stream.unwrap))
+  .pipe(Atom.keepAlive)
+
 const aisleOrdersAtom = groceriesRuntime
   .atom(GroceryRepo.useSync((_) => _.aisleOrdersStream).pipe(Stream.unwrap))
   .pipe(Atom.keepAlive)
@@ -51,8 +55,11 @@ export const groceryListNamesAtom = Atom.make((get) =>
   AsyncResult.map(get(itemsAtom), listNames),
 )
 
-export const groceryPantryNamesAtom = Atom.make((get) =>
-  AsyncResult.map(get(itemsAtom), pantryNames),
+export const groceryInPantryAtom = Atom.make((get) =>
+  AsyncResult.map(
+    AsyncResult.all([get(itemsAtom), get(aliasesAtom)]),
+    ([items, aliases]) => inPantry(items, aliases),
+  ),
 )
 
 const fallbackAisleOrder = [...GroceryAisle.literals, "Other"]
@@ -101,8 +108,10 @@ export const groceryNameAtom = Atom.make("")
 
 export const groceryNameAutoCompleteAtom = Atom.make((get) => {
   const query = get(groceryNameAtom)
-  return get(aislesAtom).pipe(
-    AsyncResult.map((aisles) => autocomplete(aisles, query)),
+  return AsyncResult.all([get(aislesAtom), get(aliasesAtom)]).pipe(
+    AsyncResult.map(([aisles, aliases]) =>
+      autocomplete(aisles, aliases, query),
+    ),
     AsyncResult.getOrElse((): ReadonlyArray<string> => []),
   )
 })
@@ -125,7 +134,7 @@ export const beautifyGroceriesAtom = beautifyRuntime
       const previousItems = new Map(
         currentItems.map((item) => [item.idString, item]),
       )
-      const pantryItemNames = yield* repo.pantryNames
+      const isInPantry = yield* repo.inPantry
       const aisles = yield* repo.aisles
       const ai = yield* AiHelpers
       const { removed, updated } = yield* ai.beautifyGroceries(currentItems)
@@ -142,7 +151,7 @@ export const beautifyGroceriesAtom = beautifyRuntime
         if (
           renamed &&
           prev.list !== PANTRY_GROCERY_LIST_NAME &&
-          pantryItemNames.has(item.nameNormalized)
+          isInPantry(item.name)
         ) {
           writes.push({ op: "remove", id: item.id })
           continue

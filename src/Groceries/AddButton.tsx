@@ -26,7 +26,7 @@ import { PANTRY_GROCERY_LIST_NAME } from "@/domain/GroceryItem"
 import { Recipe } from "@/domain/Recipe"
 import { checkedIngredientsAtom } from "@/Recipes/atoms"
 import { cn } from "@/lib/utils"
-import { groceryListNamesAtom, groceryPantryNamesAtom } from "./atoms"
+import { groceryListNamesAtom, groceryInPantryAtom } from "./atoms"
 import {
   type GroceryCandidate,
   type GroceryCandidateGroup,
@@ -92,7 +92,7 @@ function AddToGroceriesForm({
   recipes: Iterable<Recipe>
   onSubmit: (items: ReturnType<typeof selectedGroceryItems>) => void
 }) {
-  const pantryNames = useAtomValue(groceryPantryNamesAtom)
+  const inPantry = useAtomValue(groceryInPantryAtom)
   // Recipe ingredients are for buying, so the pantry isn't offered
   const lists = useAtomValue(groceryListNamesAtom).pipe(
     AsyncResult.map((names) =>
@@ -145,10 +145,10 @@ function AddToGroceriesForm({
         </DialogClose>
       </DialogHeader>
       {/* The selection starts from the pantry, so it waits for it */}
-      {AsyncResult.isSuccess(pantryNames) ? (
+      {AsyncResult.isSuccess(inPantry) ? (
         <CandidateList
           recipes={recipes}
-          pantryNames={pantryNames.value}
+          inPantry={inPantry.value}
           list={list}
           onSubmit={onSubmit}
         />
@@ -159,12 +159,12 @@ function AddToGroceriesForm({
 
 function CandidateList({
   recipes,
-  pantryNames,
+  inPantry,
   list,
   onSubmit,
 }: {
   recipes: Iterable<Recipe>
-  pantryNames: ReadonlySet<string>
+  inPantry: (name: string) => boolean
   list: string | null
   onSubmit: (items: ReturnType<typeof selectedGroceryItems>) => void
 }) {
@@ -173,7 +173,7 @@ function CandidateList({
   // user picks
   const [groups] = useState(() =>
     groceryCandidates(recipes, {
-      pantryNames,
+      inPantry,
       ticked: (recipe) => registry.get(checkedIngredientsAtom(recipe.idString)),
     }),
   )

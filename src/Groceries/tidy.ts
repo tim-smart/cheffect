@@ -8,6 +8,7 @@ import {
   unionRecipeIds,
 } from "@/domain/GroceryItem"
 import { quantityFormatter } from "@/lib/quantity"
+import { canonicalKey, canonicalName, type IngredientAliases } from "./aliases"
 import { type IngredientAisles, learnedAisle } from "./Repo"
 import type { GroceryItemWrite } from "./runtime"
 
@@ -52,10 +53,11 @@ export const guessAisle = (
   return dictionaryAisle(name)
 }
 
-const listKey = (item: GroceryItem) =>
-  JSON.stringify([item.list, item.nameNormalized])
-
 // The writes that add `incoming` given what's on the lists now.
+//
+// An incoming item takes its canonical name, and names match by canonical
+// name, so an item already on a list under an alias still counts as the
+// same ingredient.
 //
 // An item merges into one already on its list under the same name, not
 // checked off, only when neither has a quantity: the merge then changes no
@@ -68,6 +70,7 @@ const listKey = (item: GroceryItem) =>
 export const planGroceryAdds = (options: {
   readonly existing: ReadonlyArray<GroceryItem>
   readonly aisles: IngredientAisles
+  readonly aliases: IngredientAliases
   readonly incoming: ReadonlyArray<GroceryItem>
   readonly now: DateTime.Utc
 }): Array<GroceryItemWrite> => {
@@ -75,7 +78,10 @@ export const planGroceryAdds = (options: {
   // what this batch adds under the name.
   const targets = new Map<string, Array<GroceryItem>>()
   const targetsOf = (item: GroceryItem) => {
-    const key = listKey(item)
+    const key = JSON.stringify([
+      item.list,
+      canonicalKey(options.aliases, item.name),
+    ])
     let list = targets.get(key)
     if (list === undefined) {
       list = []
@@ -99,7 +105,10 @@ export const planGroceryAdds = (options: {
       ? quantity
       : Option.filter(quantity, (sum) => sum === null)
   }
-  for (const item of options.incoming) {
+  for (const incoming of options.incoming) {
+    const name = canonicalName(options.aliases, incoming.name)
+    const item =
+      name === incoming.name ? incoming : new GroceryItem({ ...incoming, name })
     const candidates = targetsOf(item)
     const index = candidates.findIndex((target) =>
       Option.isSome(mergeInto(target, item)),

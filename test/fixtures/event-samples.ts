@@ -9,6 +9,7 @@ import {
   GroceryAisleOrderEvent,
   GroceryItemEvent,
   IngredientAisleEvent,
+  IngredientAliasEvent,
 } from "@/Groceries/Events"
 import { MealPlanDayNoteEvent, MealPlanEntryEvent } from "@/MealPlan/Events"
 import { MenuDayNoteEvent, MenuEntryEvent, MenuEvent } from "@/Menus/Events"
@@ -341,6 +342,17 @@ export const eventSamples: ReadonlyArray<EventPayload> = [
     list: "Weekend",
     aisle: "Produce",
   }),
+  IngredientAliasEvent.set({
+    name: "garlic, minced",
+    source: "ai",
+    canonical: "Garlic",
+  }),
+  IngredientAliasEvent.set({ name: "garlic", source: "user", canonical: null }),
+  IngredientAliasEvent.patch(
+    { name: "garlic, minced", source: "ai" },
+    { canonical: "Garlic cloves" },
+  ),
+  IngredientAliasEvent.remove({ name: "garlic, minced", source: "ai" }),
   AiMemoryEntryEvent.set(
     AiMemoryEntry.insert.make({
       id: aiMemoryEntryId,
