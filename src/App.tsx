@@ -8,12 +8,18 @@ import { timerNotificationsAtom } from "./Timers/TimerNotifications"
 import { seedDevRecipesAtom } from "@/dev/seedDevRecipes"
 import { DatabaseBlockedScreen } from "@/components/DatabaseBlocked"
 import { remoteAtom } from "@/EventLog"
+import { mealPlanDayNotesAtom, mealPlanEntriesAtom } from "@/MealPlan/atoms"
 import { JoinLinkPrompt } from "@/Sync/JoinLinkPrompt"
 
 export default function App() {
   useAtomMount(installPromptAtom)
   useAtomMount(timerNotificationsAtom)
   useAtomMount(remoteAtom)
+  // The meal plan's week waits for its entries and notes, and reading them
+  // for the first time takes a moment, so the first visit would show the
+  // page's header and then its days. Read while the app starts instead
+  useAtomMount(mealPlanEntriesAtom)
+  useAtomMount(mealPlanDayNotesAtom)
 
   useRegisterSW({
     immediate: true,

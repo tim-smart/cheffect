@@ -9,6 +9,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
+import { Slot } from "@radix-ui/react-slot"
 import { Recipe } from "@/domain/Recipe"
 import * as Array from "effect/Array"
 import * as Effect from "effect/Effect"
@@ -39,11 +40,27 @@ export function SelectRecipeDrawer({
   children: React.ReactNode
   onSelect: (recipe: Recipe) => void
 }) {
-  const [open, setOpen] = useState(false)
+  // Mounting a drawer is real work (it measures the page for its snap
+  // points), and a week of days wants seven of them. Until the trigger is
+  // first pressed there is only the trigger; the drawer mounts on that
+  // press, already open, and stays mounted from then on
+  const [open, setOpen] = useState<boolean | null>(null)
   const firstMatch = useAtomSet(firstMatchAtom, { mode: "promise" })
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(
     null,
   )
+
+  if (open === null) {
+    return (
+      <Slot
+        aria-haspopup="dialog"
+        aria-expanded={false}
+        onClick={() => setOpen(true)}
+      >
+        {children}
+      </Slot>
+    )
+  }
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
