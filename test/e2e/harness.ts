@@ -275,6 +275,25 @@ const openPage = async (chrome: Chromium) => {
     await mouse("mouseReleased", x, y + offsetY, what, 0)
   }
   /**
+   * Presses and releases a key with real key events, so the browser runs the
+   * default action: Space on a focused button clicks it, which a synthetic
+   * KeyboardEvent never does. `key` is the KeyboardEvent key (" ", "Enter").
+   */
+  const press = async (key: string, code: string, keyCode: number) => {
+    const what = `press(${key})`
+    const base = { key, code, windowsVirtualKeyCode: keyCode }
+    await sendOrCrash(
+      "Input.dispatchKeyEvent",
+      { type: "keyDown", text: key.length === 1 ? key : undefined, ...base },
+      what,
+    )
+    await sendOrCrash(
+      "Input.dispatchKeyEvent",
+      { type: "keyUp", ...base },
+      what,
+    )
+  }
+  /**
    * Emulates a screen of the given size, in CSS pixels: a phone by default,
    * or a desktop window with `{ mobile: false }`.
    */
@@ -309,6 +328,7 @@ const openPage = async (chrome: Chromium) => {
     navigate,
     click,
     cancelledPress,
+    press,
     setViewport,
     addInitScript,
     close,

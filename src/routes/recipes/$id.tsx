@@ -1,6 +1,5 @@
 import { screenWakeLockAtom } from "@/atoms"
 import { Button } from "@/components/ui/button"
-import { ButtonGroup } from "@/components/ui/button-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -60,7 +59,7 @@ import {
   Star,
   Trash,
   Link as LinkIcon,
-  Save,
+  PencilLine,
   Plus,
   ArrowLeftRight,
   MoreHorizontal,
@@ -120,13 +119,18 @@ export function RecipeDetails({
     recipeSelectedStep(recipe.idString),
   )
 
+  // Arrows and Space move between steps while reading. They stay out of the
+  // way of anything that handles keys itself: a focused button (Space clicks
+  // it), a field, a link, or an open menu or dialog
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
         return
       } else if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof Element &&
+        e.target.closest(
+          "input, textarea, select, button, a[href], [contenteditable], [role=menu], [role=dialog]",
+        ) !== null
       ) {
         return
       }
@@ -584,6 +588,10 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
   )
 }
 
+// The assistant's edit to a recipe, kept beside it until it is saved or
+// discarded. It sits in the page column under the recipe facts, on the same
+// warm tint as the current step, so it reads as part of the recipe rather
+// than a system bar across the window
 function ModifiedBanner({ recipe }: { recipe: Recipe }) {
   const [originals, setOriginals] = useAtom(showOriginalRecipeAtom)
   const showOriginal = HashSet.has(originals, recipe.idString)
@@ -591,39 +599,62 @@ function ModifiedBanner({ recipe }: { recipe: Recipe }) {
   const save = useAtomSet(saveModifiedRecipeAtom)
   const create = useAtomSet(newModifiedRecipeAtom)
   return (
-    <div className="bg-yellow-50 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-50 px-2 py-2 text-sm border-b border-yellow-200 dark:border-yellow-700 flex items-center gap-2">
-      <div>You are viewing a modified version of this recipe.</div>
-      <div className="flex-1" />
-      <ButtonGroup>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setOriginals(toggleHashSet(recipe.idString))}
-        >
-          {showOriginal ? "Show modified" : "Show original"}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => discard(recipe.idString)}>
-              <Trash />
-              Discard
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => save(recipe.idString)}>
-              <Save />
-              Save
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => create(recipe.idString)}>
-              <Plus />
-              Create new
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </ButtonGroup>
+    <div className="px-4 pt-4 md:page-wide md:pt-5">
+      <div
+        role="status"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border border-primary/15 bg-primary-muted py-2 pl-3.5 pr-2 motion-safe:animate-rise-in"
+      >
+        <PencilLine className="size-4 shrink-0 text-primary" aria-hidden />
+        <p className="flex-1 min-w-[14ch] text-[15px] leading-snug">
+          <span className="font-medium">
+            {showOriginal
+              ? "Showing the original recipe"
+              : "Showing the assistant's edits"}
+          </span>
+          <span className="block text-muted-foreground md:inline">
+            <span aria-hidden className="hidden md:inline md:mx-1.5">
+              ·
+            </span>
+            {showOriginal ? "Edits not saved yet" : "Not saved yet"}
+          </span>
+        </p>
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:bg-primary/10 active:bg-primary/10"
+            aria-pressed={showOriginal}
+            onClick={() => setOriginals(toggleHashSet(recipe.idString))}
+          >
+            {showOriginal ? "Show edits" : "Show original"}
+          </Button>
+          <Button size="sm" onClick={() => save(recipe.idString)}>
+            Save
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-2 hover:bg-primary/10 active:bg-primary/10"
+                aria-label="More actions"
+              >
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => create(recipe.idString)}>
+                <Plus />
+                Save as new recipe
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => discard(recipe.idString)}>
+                <Trash />
+                Discard edits
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
     </div>
   )
 }
