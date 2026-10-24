@@ -104,7 +104,7 @@ function MenuDetails({ detail }: { detail: MenuDetail }) {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="font-display text-[22px] md:text-[32px] font-medium leading-tight md:leading-none tracking-tight line-clamp-2 flex-1">
+            <h1 className="font-display text-[22px] md:text-[32px] font-medium leading-tight tracking-tight line-clamp-2 flex-1">
               {menu.name}
             </h1>
             <MealPlanDatePicker

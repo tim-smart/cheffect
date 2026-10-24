@@ -91,7 +91,7 @@ function Header({
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-semibold line-clamp-1 flex-1 md:font-display md:text-[32px] md:leading-none md:font-medium md:tracking-tight">
+          <h1 className="text-lg font-semibold line-clamp-1 flex-1 md:font-display md:text-[32px] md:leading-tight md:font-medium md:tracking-tight">
             {recipe.title}
           </h1>
           <Button
