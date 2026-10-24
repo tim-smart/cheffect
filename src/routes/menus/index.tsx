@@ -321,7 +321,7 @@ function DayPlate({ recipe }: { recipe: Recipe }) {
         <FadeImage
           src={photo}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-hover:scale-[1.04] motion-safe:group-active:scale-[0.97]"
+          className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-active:scale-[0.97]"
           onError={() => setFailed(true)}
         />
       ) : initial ? (
