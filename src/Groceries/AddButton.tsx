@@ -1,4 +1,4 @@
-import { Plus, Check, ShoppingCart } from "lucide-react"
+import { Plus, Check, ChevronDown, ShoppingCart } from "lucide-react"
 import { useContext, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -6,19 +6,27 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { RegistryContext, useAtom, useAtomValue } from "@effect/atom-react"
+import * as Iterable from "effect/Iterable"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import type { AtomRegistry } from "effect/reactivity/AtomRegistry"
+import { PANTRY_GROCERY_LIST_NAME } from "@/domain/GroceryItem"
 import { Recipe } from "@/domain/Recipe"
 import { checkedIngredientsAtom } from "@/Recipes/atoms"
 import { cn } from "@/lib/utils"
-import { groceryPantryNamesAtom } from "./atoms"
+import { groceryListNamesAtom, groceryPantryNamesAtom } from "./atoms"
 import {
   type GroceryCandidate,
   type GroceryCandidateGroup,
@@ -28,7 +36,7 @@ import {
 } from "./candidates"
 import { addToGroceriesAtom } from "./runtime"
 
-// Opens a dialog to pick which of the recipes' ingredients go on the grocery
+// Opens a dialog to pick which of the recipes' ingredients go on a grocery
 // list. Pantry items and ingredients ticked off on a recipe start unselected.
 export function AddToGroceriesButton({
   recipes,
@@ -37,6 +45,9 @@ export function AddToGroceriesButton({
 }) {
   const [groceryAddResult, addToGroceries] = useAtom(addToGroceriesAtom)
   const [open, setOpen] = useState(false)
+  const hasIngredients = Iterable.some(recipes, (recipe) =>
+    recipe.ingredients.some((group) => group.ingredients.length > 0),
+  )
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -45,6 +56,7 @@ export function AddToGroceriesButton({
           size="sm"
           className="gap-0 px-2!"
           title="Add to grocery list"
+          disabled={!hasIngredients}
         >
           {groceryAddResult.waiting ? (
             <Check className="size-3 mt-px motion-safe:animate-tick-pop" />
@@ -54,7 +66,10 @@ export function AddToGroceriesButton({
           <ShoppingCart />
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[calc(100%-2rem)] max-w-sm max-h-[85dvh] grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl">
+      <DialogContent
+        className="w-[calc(100%-2rem)] max-w-sm max-h-[85dvh] grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl"
+        aria-describedby={undefined}
+      >
         <AddToGroceriesForm
           recipes={recipes}
           onSubmit={(items) => {
@@ -67,6 +82,8 @@ export function AddToGroceriesButton({
   )
 }
 
+const listLabel = (list: string | null) => list ?? "Grocery list"
+
 function AddToGroceriesForm({
   recipes,
   onSubmit,
@@ -75,21 +92,51 @@ function AddToGroceriesForm({
   onSubmit: (items: ReturnType<typeof selectedGroceryItems>) => void
 }) {
   const pantryNames = useAtomValue(groceryPantryNamesAtom)
+  // Recipe ingredients are for buying, so the pantry isn't offered
+  const lists = useAtomValue(groceryListNamesAtom).pipe(
+    AsyncResult.map((names) =>
+      names.filter((name) => name !== PANTRY_GROCERY_LIST_NAME),
+    ),
+    AsyncResult.getOrElse((): ReadonlyArray<string | null> => [null]),
+  )
+  const [list, setList] = useState<string | null>(null)
   return (
     <>
-      <DialogHeader className="text-left">
+      <DialogHeader className="text-left pr-6">
         <DialogTitle className="font-display text-[22px] font-medium tracking-tight">
-          Add to groceries
+          <span className="sr-only">Add to </span>
+          {lists.length > 1 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-1 max-w-full rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+                <span className="truncate">{listLabel(list)}</span>
+                <ChevronDown className="size-5 shrink-0 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuRadioGroup
+                  value={list ?? ""}
+                  onValueChange={(value) =>
+                    setList(value === "" ? null : value)
+                  }
+                >
+                  {lists.map((name) => (
+                    <DropdownMenuRadioItem key={name ?? ""} value={name ?? ""}>
+                      {listLabel(name)}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            listLabel(list)
+          )}
         </DialogTitle>
-        <DialogDescription>
-          Pantry items and ingredients you've ticked off start unselected.
-        </DialogDescription>
       </DialogHeader>
       {/* The selection starts from the pantry, so it waits for it */}
       {AsyncResult.isSuccess(pantryNames) ? (
         <CandidateList
           recipes={recipes}
           pantryNames={pantryNames.value}
+          list={list}
           onSubmit={onSubmit}
         />
       ) : null}
@@ -100,10 +147,12 @@ function AddToGroceriesForm({
 function CandidateList({
   recipes,
   pantryNames,
+  list,
   onSubmit,
 }: {
   recipes: Iterable<Recipe>
   pantryNames: ReadonlySet<string>
+  list: string | null
   onSubmit: (items: ReturnType<typeof selectedGroceryItems>) => void
 }) {
   const registry = useContext<AtomRegistry>(RegistryContext)
@@ -132,59 +181,54 @@ function CandidateList({
       className="contents"
       onSubmit={(event) => {
         event.preventDefault()
-        onSubmit(selectedGroceryItems(groups, selected))
+        onSubmit(selectedGroceryItems(groups, selected, list))
       }}
     >
-      {total === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          There are no ingredients to add.
-        </p>
-      ) : (
-        <div className="flex flex-col min-h-0 -mx-6">
-          <div className="flex items-center justify-between px-6 pb-2">
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {selected.size} of {total} selected
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="-mr-3"
-              onClick={() =>
-                setSelected(
-                  allSelected
-                    ? new Set()
-                    : new Set(
-                        groups.flatMap((group) =>
-                          group.candidates.map((candidate) => candidate.key),
-                        ),
+      <div className="flex flex-col min-h-0 -mx-6">
+        <div className="flex items-center justify-between px-6 pb-2">
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {selected.size} of {total} selected
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="-mr-3"
+            onClick={() =>
+              setSelected(
+                allSelected
+                  ? new Set()
+                  : new Set(
+                      groups.flatMap((group) =>
+                        group.candidates.map((candidate) => candidate.key),
                       ),
-                )
-              }
-            >
-              {allSelected ? "Deselect all" : "Select all"}
-            </Button>
-          </div>
-          <div className="overflow-y-auto overscroll-contain border-y border-border px-6">
-            {groups.map((group) => (
-              <CandidateGroup
-                key={group.key}
-                group={group}
-                showTitle={groups.length > 1}
-                selected={selected}
-                onToggle={toggle}
-              />
-            ))}
-          </div>
+                    ),
+              )
+            }
+          >
+            {allSelected ? "Deselect all" : "Select all"}
+          </Button>
         </div>
-      )}
+        <div className="overflow-y-auto overscroll-contain border-y border-border px-6">
+          {groups.map((group) => (
+            <CandidateGroup
+              key={group.key}
+              group={group}
+              showTitle={groups.length > 1}
+              selected={selected}
+              onToggle={toggle}
+            />
+          ))}
+        </div>
+      </div>
       <DialogFooter className="gap-2">
         <DialogClose asChild>
           <Button type="button" variant="outline">
             Cancel
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={selected.size === 0}>
+        {/* Starts focused, as the defaults are usually what's wanted */}
+        <Button type="submit" disabled={selected.size === 0} autoFocus>
           {selected.size === 1 ? "Add 1 item" : `Add ${selected.size} items`}
         </Button>
       </DialogFooter>
@@ -204,9 +248,12 @@ function CandidateGroup({
   onToggle: (key: string) => void
 }) {
   return (
-    <section className="py-2">
+    <section className={showTitle ? "pb-2" : "py-2"}>
       {showTitle && (
-        <h3 className="font-medium text-sm pt-1 pb-1">{group.recipe.title}</h3>
+        // Stays at the top of the list while its rows scroll under it
+        <h3 className="sticky top-0 z-10 bg-background font-medium text-sm pt-3 pb-2 border-b border-border">
+          {group.recipe.title}
+        </h3>
       )}
       <div className="divide-y divide-border">
         {group.candidates.map((candidate) => (
@@ -245,18 +292,15 @@ function CandidateRow({
         onCheckedChange={onToggle}
         className="mt-[0.2em] size-[18px] rounded-full"
       />
+      {/* Quantity first, as on the recipe page */}
       <span
         className={cn(
           "flex-1 min-w-0 transition-colors duration-300",
           !checked && "text-muted-foreground",
         )}
       >
+        {quantity && `${quantity} `}
         {ingredient.name}
-        {quantity && (
-          <span className="text-sm text-muted-foreground ml-2 tabular-nums">
-            {quantity}
-          </span>
-        )}
       </span>
       {reason && (
         <span className="text-xs text-muted-foreground mt-[0.35em] shrink-0">

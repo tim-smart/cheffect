@@ -211,7 +211,7 @@ export const groceryItemEditAtom = groceriesMutation(
   }) => updateGroceryItem(item, { previousName, userInitiated: true }),
 )
 
-// Adds the items picked from recipes to the default list, with the aisle
+// Adds the items picked from recipes to their list, with the aisle
 // learned for each name. The aisles are read once up front, and the items are
 // written as one batch. Stays waiting for a few seconds after, so the button
 // shows a check.

@@ -188,7 +188,11 @@ test("the ingredients picked from a recipe keep being added after its button unm
     pantryNames: new Set(["stock"]),
     ticked: () => HashSet.empty(),
   })
-  const picked = selectedGroceryItems(groups, defaultGrocerySelection(groups))
+  const picked = selectedGroceryItems(
+    groups,
+    defaultGrocerySelection(groups),
+    null,
+  )
   const added = await addedNames({
     runtime: "built",
     atom: addToGroceriesAtom,

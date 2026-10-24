@@ -71,17 +71,18 @@ export const defaultGrocerySelection = (
     ),
   )
 
-// The grocery items for the selected candidates, in recipe order.
+// The grocery items for the selected candidates on `list`, in recipe order.
 export const selectedGroceryItems = (
   groups: ReadonlyArray<GroceryCandidateGroup>,
   selected: ReadonlySet<string>,
+  list: string | null,
 ): Array<GroceryItem> =>
   groups.flatMap((group) =>
     group.candidates
       .filter((candidate) => selected.has(candidate.key))
       .map((candidate) =>
         GroceryItem.fromIngredient(
-          null,
+          list,
           candidate.ingredient,
           candidate.recipe,
         ),
