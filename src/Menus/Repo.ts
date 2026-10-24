@@ -6,6 +6,7 @@ import * as Stream from "effect/Stream"
 import { Menu } from "@/domain/Menu"
 import { MenuDayNote } from "@/domain/MenuDayNote"
 import { MenuEntry } from "@/domain/MenuEntry"
+import type { Recipe } from "@/domain/Recipe"
 import { uuidString } from "@/lib/Id"
 import { makeSnapshot } from "@/lib/Snapshot"
 import { compareText } from "@/lib/text"
@@ -153,6 +154,53 @@ export const recipeCounts = (state: {
     counts.set(key, (counts.get(key) ?? 0) + 1)
   }
   return counts
+}
+
+// The recipe each day of each menu shows first, keyed by the menu's id
+// string: one slot per day, from day 1, `undefined` where nothing is planned.
+// A day's first recipe is the one `menuDetail` lists first on it, and the
+// entries it counts are the ones `recipeCounts` counts.
+export const dayPreviews = (state: {
+  readonly menus: Menus
+  readonly entries: ReadonlyArray<StoredMenuEntry>
+  readonly recipes: Recipes
+}): ReadonlyMap<string, ReadonlyArray<Recipe | undefined>> => {
+  const firsts = new Map<
+    string,
+    Array<
+      { readonly recipe: Recipe; readonly entry: StoredMenuEntry } | undefined
+    >
+  >()
+  for (const menu of state.menus.all) {
+    firsts.set(
+      menu.idString,
+      Array.from({ length: Math.max(0, Math.floor(menu.days)) }),
+    )
+  }
+  for (const entry of state.entries) {
+    const menu = shownOn(state.menus, entry)
+    if (Option.isNone(menu) || !Number.isInteger(entry.day)) continue
+    const recipe = state.recipes.byId.get(uuidString(entry.recipeId))
+    if (recipe === undefined) continue
+    const slots = firsts.get(menu.value.idString)!
+    const current = slots[entry.day - 1]
+    if (
+      current === undefined ||
+      compareText(recipe.title, current.recipe.title) < 0 ||
+      (recipe.title === current.recipe.title &&
+        (entry.createdAt.epochMilliseconds >
+          current.entry.createdAt.epochMilliseconds ||
+          (entry.createdAt.epochMilliseconds ===
+            current.entry.createdAt.epochMilliseconds &&
+            compareIds(uuidString(entry.id), uuidString(current.entry.id)) <
+              0)))
+    ) {
+      slots[entry.day - 1] = { recipe, entry }
+    }
+  }
+  return new Map(
+    [...firsts].map(([id, slots]) => [id, slots.map((slot) => slot?.recipe)]),
+  )
 }
 
 export class MenuRepo extends Context.Service<MenuRepo>()(

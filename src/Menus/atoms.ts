@@ -7,7 +7,7 @@ import type { Menu } from "@/domain/Menu"
 import { writeEvent } from "@/EventLog"
 import { idEquals } from "@/lib/Id"
 import { RecipeRepo } from "@/Recipes/Repo"
-import { menuDetail, MenuRepo, recipeCounts } from "./Repo"
+import { dayPreviews, menuDetail, MenuRepo, recipeCounts } from "./Repo"
 import { menusRuntime } from "./runtime"
 import { MenuEntryEvent, MenuDayNoteEvent, menuUpdate } from "@/Menus/Events"
 
@@ -53,6 +53,16 @@ export const menuRecipeCountsAtom = Atom.make((get) =>
     entries: get(entriesAtom),
     recipes: get(recipesAtom),
   }).pipe(AsyncResult.map(recipeCounts)),
+)
+
+// The recipe each day of each menu shows first, keyed by the menu's id
+// string, for the menu list's day grids.
+export const menuDayPreviewsAtom = Atom.make((get) =>
+  AsyncResult.all({
+    menus: get(menusAtom),
+    entries: get(entriesAtom),
+    recipes: get(recipesAtom),
+  }).pipe(AsyncResult.map(dayPreviews)),
 )
 
 // Writes

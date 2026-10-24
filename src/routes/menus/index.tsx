@@ -11,13 +11,18 @@ import { Button } from "@/components/ui/button"
 import { FormBody, FormDisplay } from "@/lib/Form"
 import { TextInput } from "@/lib/InatoForm"
 import { Menu } from "@/domain/Menu"
+import type { Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
 import { cn } from "@/lib/utils"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { useWrite } from "@/EventLog"
-import { allMenusAtom, menuRecipeCountsAtom } from "@/Menus/atoms"
+import {
+  allMenusAtom,
+  menuDayPreviewsAtom,
+  menuRecipeCountsAtom,
+} from "@/Menus/atoms"
 import { useState, type CSSProperties } from "react"
 import {
   MealPlanDatePicker,
@@ -30,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MenuEvent, menuUpdate } from "@/Menus/Events"
+import { FadeImage } from "@/components/FadeImage"
 
 export const Route = createFileRoute("/menus/")({
   component: MenusPage,
@@ -42,10 +48,13 @@ export function MenusPage() {
       <header className="bg-background sticky top-bar-offset z-10">
         <div className="page-wide pt-3 pb-3 md:pt-6">
           <div className="flex items-center justify-between md:min-h-11">
-            <div className="flex items-center gap-2">
+            {/* The count sits on the heading's baseline, as it does on the
+                recipes page */}
+            <div className="flex items-baseline">
               <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight">
                 Menus
               </h1>
+              <MenuCount />
             </div>
             <div className="flex-1" />
             <div>
@@ -61,6 +70,16 @@ export function MenusPage() {
         <MenuList />
       </main>
     </div>
+  )
+}
+
+function MenuCount() {
+  const result = useAtomValue(allMenusAtom)
+  if (!AsyncResult.isSuccess(result)) return null
+  return (
+    <span className="ml-4 text-sm text-muted-foreground tabular-nums">
+      {result.value.length} saved
+    </span>
   )
 }
 
@@ -98,8 +117,9 @@ function MenuList() {
   if (menus.length === 0) {
     return <NoResults />
   }
+  // Tiles start at the top of their row: a fortnight is taller than a week
   return (
-    <div className="grid gap-2 md:grid-cols-2 md:gap-3 lg:grid-cols-3">
+    <div className="grid items-start gap-x-3 gap-y-5 md:grid-cols-2 md:gap-x-5 md:gap-y-6 lg:grid-cols-3">
       {menus.map((menu, index) => (
         <div
           key={menu.idString}
@@ -117,67 +137,78 @@ function NoResults() {
   return (
     <div className="text-center py-16 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500">
       <ChefHat className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
-      <h3 className="text-lg font-medium  mb-2">No menus found</h3>
-      <p className="text-muted-foreground mb-6 px-4">
-        Start by adding your first menu
+      <h3 className="text-lg font-medium  mb-2">No menus yet</h3>
+      <p className="text-muted-foreground mb-6 px-4 max-w-sm mx-auto text-balance">
+        Plan a week or a fortnight of recipes once, then add it to the meal plan
+        whenever you like.
       </p>
       <AddMenuButton />
     </div>
   )
 }
 
+// A menu is a tile like a recipe's: its days as a grid of plates, then its
+// name and size, with the actions on the name's line.
 function MenuCard({ menu }: { menu: Menu }) {
   const write = useWrite()
   const [menuOpen, setMenuOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  // The counts also need the menu entries, so they can load after the menus.
-  // Until then there's no count rather than "0 recipes".
+  // The counts and previews also need the menu entries, so they can load
+  // after the menus. Until then there's no count rather than "0 recipes",
+  // and the day grid keeps its shape with every day bare.
   const counts = useAtomValue(menuRecipeCountsAtom)
   const recipeCount = AsyncResult.isSuccess(counts)
     ? (counts.value.get(menu.idString) ?? 0)
     : null
+  const previews = useAtomValue(menuDayPreviewsAtom)
+  const days = AsyncResult.isSuccess(previews)
+    ? previews.value.get(menu.idString)
+    : undefined
   return (
-    <div className="flex items-center pr-2 rounded-xl bg-card active:bg-muted transition-colors">
+    <div className="group relative">
       <Link
         to="/menus/$id"
         params={{ id: menu.idString }}
-        className="flex-1 flex flex-col gap-0.5 min-h-16 justify-center pl-4 py-2.5"
+        className="block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
         disabled={editing}
       >
-        <div className="flex flex-row items-center gap-2">
+        <DayGrid days={menu.days} recipes={days} />
+        <div className="mt-2 md:mt-3 pr-10">
           {editing ? (
-            <div className="flex-1">
-              <MenuForm
-                initialValue={menu}
-                onSubmit={(updated) => {
-                  write(menuUpdate(updated))
-                  setEditing(false)
-                }}
-                onCancel={() => setEditing(false)}
-                compact
-              />
-            </div>
+            <MenuForm
+              initialValue={menu}
+              onSubmit={(updated) => {
+                write(menuUpdate(updated))
+                setEditing(false)
+              }}
+              onCancel={() => setEditing(false)}
+              compact
+            />
           ) : (
-            <h3 className="font-display text-[20px] font-medium tracking-tight line-clamp-1">
+            <h3 className="font-display text-[18px] md:text-[20px] font-medium leading-6 tracking-tight line-clamp-1">
               {menu.name}
             </h3>
           )}
-        </div>
-
-        <div className="flex items-center gap-1 text-[13px] text-muted-foreground tabular-nums">
-          <span>{menu.days} days</span>
-          {recipeCount !== null && (
-            <>
-              <span>·</span>
-              <span>{recipeCount} recipes</span>
-            </>
-          )}
+          <p className="mt-0.5 flex h-[18px] items-center gap-1 text-[13px] leading-[18px] text-muted-foreground tabular-nums">
+            <span>{menu.days} days</span>
+            {recipeCount !== null && (
+              <>
+                <span>·</span>
+                <span>{recipeCount} recipes</span>
+              </>
+            )}
+          </p>
         </div>
       </Link>
 
       <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute -right-1.5 bottom-0.5 size-9 rounded-full p-0 text-muted-foreground hover:text-foreground"
+            aria-label={`Actions for ${menu.name}`}
+          >
             <MoreVertical className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -219,6 +250,62 @@ function MenuCard({ menu }: { menu: Menu }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </div>
+  )
+}
+
+// The most days a tile draws; the day count beside the name stays exact
+const gridDays = 35
+
+// A menu's days as plates on a grid, a week to a row, so a week and a
+// fortnight look like what they are. Each day shows the photo of its first
+// recipe, a day whose recipe has no photo shows the chef's hat, and an
+// unplanned day stays bare. The menu's days are known before its entries
+// load, so the grid keeps its shape while the photos arrive.
+function DayGrid({
+  days,
+  recipes,
+}: {
+  days: number
+  recipes: ReadonlyArray<Recipe | undefined> | undefined
+}) {
+  const count = Math.min(gridDays, Math.max(1, Math.floor(days)))
+  return (
+    <div
+      className="grid grid-cols-7 gap-0.5 overflow-hidden rounded-xl"
+      aria-hidden
+    >
+      {Array.from({ length: count }, (_, index) => {
+        const recipe = recipes?.[index]
+        return (
+          <div
+            key={index}
+            className={cn(
+              "relative aspect-square overflow-hidden rounded-[5px]",
+              recipe ? "bg-muted" : "bg-card",
+            )}
+          >
+            {recipe && (
+              <>
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                  <ChefHat className="size-[42%] opacity-30" />
+                </div>
+                {recipe.imageUrl && (
+                  <FadeImage
+                    key={recipe.idString}
+                    src={recipe.imageUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover motion-safe:transition-[opacity,scale] motion-safe:duration-300 motion-safe:group-hover:scale-[1.04] motion-safe:group-active:scale-[0.97]"
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

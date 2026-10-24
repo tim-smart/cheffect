@@ -78,27 +78,39 @@ const seededMealPlanAtom = mealPlanRuntime.atom(
   }),
 )
 
-// A menu read through the repo and written through the EventLog: five of the
-// seeded recipes over its first five days.
+// Menus read through the repo and written through the EventLog: a week with
+// five of the seeded recipes over its first five days, and a fortnight with
+// twenty, some days holding two and the weekends free.
 const seededMenusAtom = menusRuntime.atom(
   Effect.fnUntraced(function* (get) {
     const recipes = yield* get.result(seededRecipesAtom)
     const repo = yield* MenuRepo
     if (recipes.length === 0 || (yield* repo.all).length > 0) return
-    const menu = Menu.fromForm({ name: "Weeknight Rotation" })
-    yield* writeEvent(MenuEvent.set(menu))
-    const menuDays = [1, 2, 3, 4, 5]
-    for (const [index, day] of menuDays.entries()) {
-      const recipe = recipes[index % recipes.length]
-      yield* writeEvent(
-        MenuEntryEvent.set(
-          MenuEntry.fromForm({
-            menuId: menu.id,
-            recipeId: recipe.id,
-            day,
-          }),
-        ),
-      )
+    const menus = [
+      { name: "Weeknight Rotation", days: 7, entryDays: [1, 2, 3, 4, 5] },
+      {
+        name: "Fortnightly plan",
+        days: 14,
+        entryDays: [
+          1, 1, 2, 2, 3, 4, 4, 5, 6, 6, 8, 8, 9, 9, 10, 11, 12, 12, 13, 13,
+        ],
+      },
+    ]
+    for (const { name, days, entryDays } of menus) {
+      const menu = new Menu({ ...Menu.fromForm({ name }), days })
+      yield* writeEvent(MenuEvent.set(menu))
+      for (const [index, day] of entryDays.entries()) {
+        const recipe = recipes[index % recipes.length]
+        yield* writeEvent(
+          MenuEntryEvent.set(
+            MenuEntry.fromForm({
+              menuId: menu.id,
+              recipeId: recipe.id,
+              day,
+            }),
+          ),
+        )
+      }
     }
   }),
 )
