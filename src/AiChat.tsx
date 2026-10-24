@@ -5,16 +5,19 @@ import {
   ChevronDown,
   Eraser,
   FileText,
+  Globe,
   Maximize2,
   MessageSquare,
   Minimize2,
   Paperclip,
   Send,
   Square,
+  Wrench,
   X,
 } from "lucide-react"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
+import type * as Prompt from "effect/ai/Prompt"
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { Streamdown } from "streamdown"
 import { useStickToBottom } from "use-stick-to-bottom"
@@ -301,53 +304,108 @@ function MessagesList({
   }
   return (
     <div ref={ref} className="space-y-3 py-4">
-      {messages.filter(isVisualMessage).map((message, i) =>
-        message.role === "tool" ? (
-          <div
-            key={i}
-            className="flex flex-col justify-start text-muted-foreground text-sm"
-          >
-            {message.content.map((part) =>
-              part.type === "tool-result" ? (
-                <span key={part.id} className="block">
-                  Tool call "{part.name}"
-                </span>
-              ) : null,
+      {messages.filter(isVisualMessage).map((message, i) => {
+        // Provider-executed tools (web search) put their results in the
+        // assistant message itself, alongside any text
+        const toolResults = message.content.filter(
+          (part) => part.type === "tool-result",
+        )
+        const textParts = message.content.filter((part) => part.type === "text")
+        return (
+          <div key={i} className="flex flex-col gap-3">
+            {toolResults.length > 0 && (
+              <div className="flex flex-col gap-1 text-muted-foreground text-sm">
+                {toolResults.map((part) => (
+                  <ToolResultLine key={part.id} part={part} />
+                ))}
+              </div>
+            )}
+            {textParts.length > 0 && (
+              <div
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={cn(
+                    // 60ch of text plus the px-4 padding, but never wider
+                    // than 90% of the panel on narrow screens
+                    `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted dark:bg-border text-foreground",
+                  )}
+                >
+                  {textParts.map((part, idx) => (
+                    <Streamdown
+                      key={idx}
+                      animated
+                      isAnimating={isLoading && message.role === "assistant"}
+                      linkSafety={{ enabled: false }}
+                    >
+                      {part.text}
+                    </Streamdown>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-        ) : (
-          <div
-            key={i}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={cn(
-                // 60ch of text plus the px-4 padding, but never wider
-                // than 90% of the panel on narrow screens
-                `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
-                message.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted dark:bg-border text-foreground",
-              )}
-            >
-              {message.content
-                .filter((_) => _.type === "text")
-                .map((part, idx) => (
-                  <Streamdown
-                    key={idx}
-                    animated
-                    isAnimating={isLoading && message.role === "assistant"}
-                    linkSafety={{ enabled: false }}
-                  >
-                    {part.type === "text" ? part.text : ""}
-                  </Streamdown>
-                ))}
-            </div>
-          </div>
-        ),
-      )}
+        )
+      })}
     </div>
   )
+}
+
+function ToolResultLine({ part }: { readonly part: Prompt.ToolResultPart }) {
+  const isWebSearch = part.name === "OpenAiWebSearch"
+  const Icon = isWebSearch ? Globe : Wrench
+  return (
+    <span className="flex items-start gap-1.5 min-w-0">
+      <Icon className="size-3.5 shrink-0 mt-[0.2em]" aria-hidden />
+      <span className="min-w-0 break-words">
+        {isWebSearch
+          ? webSearchLabel(part.result, part.isFailure)
+          : `Tool call "${part.name}"`}
+      </span>
+    </span>
+  )
+}
+
+const webSearchLabel = (result: unknown, isFailure: boolean): string => {
+  if (isFailure) return "Web search failed"
+  const action =
+    typeof result === "object" && result !== null && "action" in result
+      ? (result.action as {
+          readonly type?: string
+          readonly query?: string
+          readonly queries?: ReadonlyArray<string>
+          readonly url?: string | null
+          readonly pattern?: string
+        })
+      : undefined
+  switch (action?.type) {
+    case "open_page": {
+      const host = hostname(action.url)
+      return host ? `Opened ${host}` : "Opened a web page"
+    }
+    case "find_in_page": {
+      const host = hostname(action.url) ?? "a web page"
+      return action.pattern
+        ? `Searched ${host} for “${action.pattern}”`
+        : `Searched ${host}`
+    }
+    default: {
+      const query = action?.query ?? action?.queries?.[0]
+      return query ? `Searched the web for “${query}”` : "Searched the web"
+    }
+  }
+}
+
+const hostname = (url: string | null | undefined): string | undefined => {
+  if (!url) return undefined
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return undefined
+  }
 }
 
 const tips = [
