@@ -2,6 +2,7 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import * as DateTime from "effect/DateTime"
 import * as Effect from "effect/Effect"
+import * as HashSet from "effect/HashSet"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import * as EventJournal from "effect/eventlog/EventJournal"
@@ -18,6 +19,11 @@ import {
   groceriesRuntime,
   groceryItemAddAtom,
 } from "@/Groceries/runtime"
+import {
+  defaultGrocerySelection,
+  groceryCandidates,
+  selectedGroceryItems,
+} from "@/Groceries/candidates"
 import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
 import {
   ExtractedRecipe,
@@ -177,14 +183,23 @@ test("grocery items added while the runtime is still building are all kept", asy
   assert.deepEqual(added, ["Carrots", "Milk"])
 })
 
-test("a recipe keeps being added after its button unmounts", async () => {
+test("the ingredients picked from a recipe keep being added after its button unmounts", async () => {
+  const groups = groceryCandidates([soup], {
+    pantryNames: new Set(["stock"]),
+    ticked: () => HashSet.empty(),
+  })
+  const picked = selectedGroceryItems(
+    groups,
+    defaultGrocerySelection(groups),
+    null,
+  )
   const added = await addedNames({
     runtime: "built",
     atom: addToGroceriesAtom,
     submit: (registry) => {
-      submit(registry, addToGroceriesAtom, { recipes: [soup] })
+      submit(registry, addToGroceriesAtom, picked)
     },
     unmountAfterSubmit: true,
   })
-  assert.deepEqual(added, ["Carrots", "Onion", "Stock"])
+  assert.deepEqual(added, ["Carrots", "Onion"])
 })
