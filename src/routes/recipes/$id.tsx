@@ -116,13 +116,23 @@ export function RecipeDetails({
     checkedIngredientsAtom(recipe.idString),
   )
   const stepElements: Array<HTMLDivElement> = []
-  const [currentStep, setCurrentStep] = useAtom(
+  const [selectedStep, setCurrentStep] = useAtom(
     recipeSelectedStep(recipe.idString),
   )
+  const currentStep =
+    selectedStep >= 0 && selectedStep < recipe.steps.length ? selectedStep : 0
+
+  // A remembered step may no longer exist after the recipe is edited or synced.
+  useEffect(() => {
+    if (selectedStep !== currentStep) setCurrentStep(currentStep)
+  }, [selectedStep, currentStep, setCurrentStep])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")) {
+      if (
+        recipe.steps.length === 0 ||
+        !(e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ")
+      ) {
         return
       } else if (
         e.target instanceof HTMLInputElement ||
