@@ -3,19 +3,14 @@ import * as assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as FetchHttpClient from "effect/http/FetchHttpClient"
-import * as Option from "effect/Option"
-import * as Redacted from "effect/Redacted"
-import { type FetchEndpoint, PageFetcher } from "@/services/PageFetcher"
+import { PageFetcher } from "@/services/PageFetcher"
 
-// A recipe page is fetched directly first, once, and through the configured
-// endpoint when that fails. Only the endpoint is retried.
+// A recipe page is fetched directly first, once, and through the build's
+// fetch endpoint when that fails. Only the endpoint is retried.
 
 const page = "https://www.example.com/recipes/stew?ref=a&b=1"
 
-const run = (
-  endpoint: Option.Option<FetchEndpoint>,
-  respond: (url: string) => Response,
-) => {
+const run = (endpoint: string, respond: (url: string) => Response) => {
   const requests: Array<{ url: string; headers: Record<string, string> }> = []
   const fetch = async (input: Request | URL | string, init?: RequestInit) => {
     const url = input instanceof Request ? input.url : input.toString()
@@ -25,7 +20,7 @@ const run = (
     })
     return respond(url)
   }
-  return PageFetcher.make(Effect.succeed(endpoint)).pipe(
+  return PageFetcher.make(endpoint).pipe(
     Effect.flatMap((fetcher) => fetcher.html(page)),
     Effect.provide(FetchHttpClient.layer),
     Effect.provideService(
@@ -38,20 +33,14 @@ const run = (
   )
 }
 
-test("a blocked direct fetch falls through to the endpoint, which is retried", async () => {
+test("a failed direct fetch is not retried; the endpoint is", async () => {
   let endpointCalls = 0
-  const { exit, requests } = await run(
-    Option.some({
-      template: "https://r.jina.ai/{url}",
-      apiKey: Option.some(Redacted.make("secret")),
-    }),
-    (url) => {
-      if (url === page) throw new TypeError("Failed to fetch")
-      return ++endpointCalls === 1
-        ? new Response("", { status: 503 })
-        : new Response("<html>stew</html>")
-    },
-  )
+  const { exit, requests } = await run("https://r.jina.ai/{url}", (url) => {
+    if (url === page) return new Response("", { status: 503 })
+    return ++endpointCalls === 1
+      ? new Response("", { status: 503 })
+      : new Response("<html>stew</html>")
+  })
 
   assert.deepEqual(exit, Exit.succeed("<html>stew</html>"))
   const endpointUrl = `https://r.jina.ai/${encodeURIComponent(page)}`
@@ -60,17 +49,4 @@ test("a blocked direct fetch falls through to the endpoint, which is retried", a
     [page, endpointUrl, endpointUrl],
   )
   assert.equal(requests[1].headers["x-return-format"], "html")
-  assert.equal(requests[1].headers["authorization"], "Bearer secret")
-})
-
-test("with no endpoint, a failed direct fetch fails without retrying", async () => {
-  const { exit, requests } = await run(
-    Option.none(),
-    () => new Response("", { status: 503 }),
-  )
-  assert.ok(Exit.isFailure(exit))
-  assert.deepEqual(
-    requests.map((r) => r.url),
-    [page],
-  )
 })

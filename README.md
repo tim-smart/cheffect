@@ -79,21 +79,17 @@ has no default sync server; users enter one in Settings.
 To import a recipe from a URL, the app needs the page's HTML. It asks the site
 directly first. That works for sites that allow cross-origin requests, and the
 request comes from your own browser. Most recipe sites don't allow it, so the
-app then tries the **Recipe import fetch URL** from Settings. That's an address
-with `{url}` where the recipe's URL goes, for example:
+app falls back to a fetch service picked for the build. There's nothing to set
+up:
 
-- `https://cheffect.example.com/fetch?url={url}`, the `/fetch` route of a
-  self-hosted Docker image
-- `https://r.jina.ai/{url}`, [Jina Reader](https://jina.ai/reader/). It works
-  without a key at 20 requests a minute. Put a key in **Recipe import fetch
-  API key** for more. The key is sent as a bearer token, never in the URL.
+- The Docker image uses its own server's `/fetch` route.
+- Deployments on Vercel use `api/fetch.ts`, served by the same deployment.
+- Any other build, `pnpm dev` included, uses
+  [Jina Reader](https://jina.ai/reader/) without a key, which allows 20
+  requests a minute.
 
-The service you set receives the URL of every recipe you import. It doesn't
-receive the page's contents or your OpenAI key. The Docker image defaults to
-its own `/fetch`, Vercel deployments default to `/api/fetch`, and a build can
-set its own default with `VITE_IMPORT_FETCH_URL`. Clearing the setting returns
-to that default. Builds with no default only import from sites that allow
-direct requests.
+The fetch service receives the URL of each recipe imported this way, but not
+your OpenAI key. With Jina, that's a third party.
 
 Some sites block every server, so they fail however they are fetched. Allrecipes
 and Serious Eats are two known examples.
@@ -106,35 +102,6 @@ loopback and link-local addresses are refused, every redirect is checked again,
 and fetches stop after 15 seconds or 2 MB. There is no authentication, so if it
 faces the internet anyone can use it to fetch pages. Put it behind your own
 reverse proxy or authentication if that matters to you.
-
-If you host the static build somewhere else, a Cloudflare Worker can do the
-same job:
-
-```js
-export default {
-  async fetch(request) {
-    const url = new URL(request.url).searchParams.get("url")
-    if (!url || !/^https?:\/\//.test(url)) {
-      return new Response("The url parameter is required", { status: 400 })
-    }
-    const page = await fetch(url, {
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-      },
-    })
-    return new Response(page.ok ? page.body : null, {
-      status: page.status,
-      headers: {
-        "content-type": "text/html; charset=utf-8",
-        "access-control-allow-origin": "*",
-      },
-    })
-  },
-}
-```
-
-Then set the fetch URL to `https://<your-worker>.workers.dev/?url={url}`.
 
 ## Tests
 
