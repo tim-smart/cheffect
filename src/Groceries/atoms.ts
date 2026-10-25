@@ -5,11 +5,7 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
 import * as Stream from "effect/Stream"
-import {
-  GroceryAisle,
-  GroceryItem,
-  PANTRY_GROCERY_LIST_NAME,
-} from "@/domain/GroceryItem"
+import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { compareText } from "@/lib/text"
 import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
 import { groceryCurrentListAtom } from "./currentList"
@@ -148,7 +144,6 @@ export const beautifyGroceriesAtom = beautifyRuntime
         now: yield* DateTime.now,
       })
       yield* writeGroceryItems(tidied.writes)
-      const isInPantry = yield* repo.inPantry
       const ai = yield* AiHelpers
       const { removed, updated, lessons } = yield* ai.beautifyGroceries(
         tidied.items,
@@ -161,15 +156,6 @@ export const beautifyGroceriesAtom = beautifyRuntime
       }))
       for (const { previous, item } of updated) {
         const renamed = item.name !== previous.name
-        // A renamed item that turns out to be in the pantry goes.
-        if (
-          renamed &&
-          previous.list !== PANTRY_GROCERY_LIST_NAME &&
-          isInPantry(item.name)
-        ) {
-          writes.push({ op: "remove", id: item.id })
-          continue
-        }
         const aisle = renamed ? learnedAisle(aisles, item.name) : Option.none()
         writes.push({
           op: "change",
