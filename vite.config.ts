@@ -64,6 +64,7 @@ export default defineConfig({
           },
         ],
         launch_handler: {
+          // `src/routes/import.tsx` routes shares into the open window
           client_mode: "focus-existing",
         },
         scope: "/",
