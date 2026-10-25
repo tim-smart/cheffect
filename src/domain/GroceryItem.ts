@@ -36,7 +36,7 @@ export const GroceryAisle = Schema.Literals([
 export type GroceryAisle = typeof GroceryAisle.Type
 
 // The list that holds what's already in the pantry. Ingredients named on it
-// (and not checked off) are skipped when adding a recipe to the groceries.
+// (and not checked off) start unselected in the recipe's add-to-groceries dialog.
 export const PANTRY_GROCERY_LIST_NAME = "Pantry" as const
 
 export const GroceryItemId = UuidBytes("GroceryItemId")
