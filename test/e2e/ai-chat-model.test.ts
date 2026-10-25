@@ -95,7 +95,7 @@ test(
         `document.querySelector('textarea[placeholder="Type your message..."]').closest("form").querySelector('button[type="submit"]').disabled`,
       )
       await browser.click(
-        `document.querySelector(".lucide-x").closest("button")`,
+        `document.querySelector('button[aria-label="Minimize chat"]')`,
       )
       await setInput(chatInput, "second-chat-model")
       await journalSettled(browser)
