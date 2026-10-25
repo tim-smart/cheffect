@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && pnpm build:server",
-    "build:server": "esbuild server/main.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist-server/main.mjs --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "build:server": "esbuild server/main.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist-server/main.mjs --banner:js=\"import { createRequire as createNodeRequire } from 'node:module'; const require = createNodeRequire(import.meta.url);\"",
     "start": "node dist-server/main.mjs",
     "preview": "vite preview",
     "test": "node --import tsx --test --test-isolation=none test/*.test.ts",
