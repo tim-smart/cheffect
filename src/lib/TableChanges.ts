@@ -20,7 +20,10 @@ import type { TableName } from "@/IndexedDb"
 // only the records it reports, and a remote batch that carries the other
 // tab's entry as a duplicate runs no handler for it. IndexedDB orders the
 // re-read after the writing transaction whichever connection it is on, so it
-// doesn't matter whether the message or the duplicate arrives first.
+// doesn't matter whether the message or the duplicate arrives first. Where
+// there is no `BroadcastChannel`, another tab's writes would go unseen, so
+// snapshots reload the whole table as before. Tabs on a build that doesn't
+// broadcast never write beside this one: see `V4` in `IndexedDb.ts`.
 //
 // A subscriber gets every key reported for its table since it last took
 // them. Only snapshots of tables that `tableRowHandler` alone writes
@@ -36,6 +39,9 @@ const channelName = "cheffect/TableChanges"
 export class TableChanges extends Context.Service<
   TableChanges,
   {
+    // Whether keys reach the other tabs. Without it no snapshot may reload
+    // incrementally.
+    readonly broadcasts: boolean
     readonly changed: (
       table: TableName,
       key: IDBValidKey,
@@ -73,6 +79,7 @@ export class TableChanges extends Context.Service<
       }
 
       return TableChanges.of({
+        broadcasts: channel !== undefined,
         changed: (table, key) =>
           Effect.sync(() => {
             push(table, key)

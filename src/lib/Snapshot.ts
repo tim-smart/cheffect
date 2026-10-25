@@ -16,7 +16,8 @@ import { TableChanges } from "./TableChanges"
 // An `incremental` snapshot reloads only the records `TableChanges` reports,
 // and keeps every other row object as it was, so what a repo derives from a
 // row can be cached on it. Only a table that `tableRowHandler` alone writes
-// may be incremental. It still reads the whole table when no keys were
+// may be incremental, and only where keys reach the other tabs
+// (`TableChanges.broadcasts`). It still reads the whole table when no keys were
 // reported (a bare invalidation), after a failed reload, and when more than
 // a quarter of the table changed.
 
@@ -38,9 +39,11 @@ export const makeSnapshot = Effect.fnUntraced(function* <
   const db = yield* QueryBuilder
   const reactivity = yield* Reactivity.Reactivity
   const scope = yield* Effect.scope
-  const takeChanges = options?.incremental
-    ? yield* TableChanges.use((changes) => changes.subscribe(table))
-    : undefined
+  const changes = yield* TableChanges
+  const takeChanges =
+    options?.incremental && changes.broadcasts
+      ? yield* changes.subscribe(table)
+      : undefined
 
   type State = Exit.Exit<
     ReadonlyArray<Row>,

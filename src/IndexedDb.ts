@@ -61,6 +61,15 @@ export class V3 extends IndexedDbVersion.make(
   IngredientAliasesTable,
 ) {}
 
+// Version 4 changes no table. Recipe snapshots reload only the records that
+// tabs report through `TableChanges`, so a build that doesn't report must not
+// write beside one that does; the upgrade makes tabs still on such a build
+// close and reload. A change to what writers report needs a version too.
+export class V4 extends IndexedDbVersion.make(
+  ...v1Tables,
+  IngredientAliasesTable,
+) {}
+
 const syncedTables = [
   "recipes",
   "recipeEdits",
@@ -111,18 +120,19 @@ export class Database extends IndexedDbDatabase.make(
     Effect.fn(function* (_, api) {
       yield* api.createObjectStore("ingredientAliases")
     }),
-  ) {}
+  )
+  .add(V4, () => Effect.void) {}
 
 export type TableName = IndexedDbTable.TableName<
-  IndexedDbVersion.Tables<typeof V3>
+  IndexedDbVersion.Tables<typeof V4>
 >
 export type RowOf<Name extends TableName> = IndexedDbVersion.SchemaWithName<
-  typeof V3,
+  typeof V4,
   Name
 >["Type"]
 
 export const tableNames: ReadonlyArray<TableName> = Array.from(
-  V3.tables.keys(),
+  V4.tables.keys(),
 ) as Array<TableName>
 
 // The database without any browser wiring, for tests and tools.

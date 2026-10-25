@@ -13,7 +13,7 @@ import {
   writeEvent,
   writeEvents,
 } from "@/EventLog"
-import { QueryBuilder, layerDatabase } from "@/IndexedDb"
+import { QueryBuilder, databaseName, layerDatabase } from "@/IndexedDb"
 import { RecipesLayer } from "@/Recipes"
 import {
   RecipeEditEvent,
@@ -264,4 +264,70 @@ test("a remote batch with a duplicate entry still shows the duplicate's write", 
   }).pipe(Effect.runPromise)
 
   assert.deepEqual(result.snapshot, result.table)
+})
+
+// Where there is no BroadcastChannel nothing tells this tab what another tab
+// wrote, so the snapshot must not reload only the keys it reports itself.
+test("without a BroadcastChannel, this tab's next write shows another tab's write", async () => {
+  const [mine, theirs] = library
+  const shared = Layer.succeed(IndexedDb.IndexedDb, freshIndexedDb())
+  const channel = globalThis.BroadcastChannel
+  ;(globalThis as any).BroadcastChannel = undefined
+  try {
+    const result = await Effect.gen(function* () {
+      const remote = yield* makeFakeRemote
+      const otherRemote = yield* makeFakeRemote
+      return yield* Effect.gen(function* () {
+        yield* writeEvents(library.map((r) => RecipeEvent.set(r)))
+        yield* settled((all) => all.length === library.length)
+        yield* writeEvent(
+          recipeIngredientScale(theirs.id, 5, DateTime.nowUnsafe()),
+        ).pipe(
+          Effect.provide(
+            Layer.fresh(device(otherRemote, RecipesLayer, shared)),
+          ),
+        )
+        yield* writeEvent(
+          recipeIngredientScale(mine.id, 3, DateTime.nowUnsafe()),
+        )
+        const scale = (all: ReadonlyArray<Recipe>, target: Recipe) =>
+          all.find((r) => r.idString === target.idString)?.ingredientScale
+        return yield* settled((all) => scale(all, mine) === 3).pipe(
+          Effect.map((after) => ({
+            ...after,
+            theirs: scale(after.all, theirs),
+          })),
+        )
+      }).pipe(Effect.provide(device(remote, RecipesLayer, shared)))
+    }).pipe(Effect.runPromise)
+
+    assert.equal(result.theirs, 5)
+    assert.deepEqual(result.snapshot, result.table)
+  } finally {
+    globalThis.BroadcastChannel = channel
+  }
+})
+
+// Builds before `TableChanges` open version 3 and report no keys. Opening the
+// database must make such a tab close its connection, as it does on any
+// version change, rather than keep writing beside this one.
+test("opening the database makes a tab on the version before close", async () => {
+  const idb = freshIndexedDb()
+  const previous = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = idb.indexedDB.open(databaseName, 3)
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+  let versionChanged = false
+  previous.onversionchange = () => {
+    versionChanged = true
+    previous.close()
+  }
+  await Layer.build(layerDatabase).pipe(
+    Effect.scoped,
+    Effect.provide(Layer.succeed(IndexedDb.IndexedDb, idb)),
+    Effect.timeout("5 seconds"),
+    Effect.runPromise,
+  )
+  assert.equal(versionChanged, true)
 })
