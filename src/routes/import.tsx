@@ -5,8 +5,7 @@ import * as Atom from "effect/reactivity/Atom"
 import { useAtomSet } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import * as Effect from "effect/Effect"
-import * as Option from "effect/Option"
-import * as Schema from "effect/Schema"
+import { sharedUrl } from "@/lib/shareTarget"
 import { useEffect, useRef } from "react"
 
 export const Route = createFileRoute("/import")({
@@ -28,15 +27,22 @@ const createAndRedirect = Atom.fn<string>()(
   }),
 )
 
-const sharedUrl = (params: URLSearchParams): string | undefined => {
-  // Android apps often put the URL after a title or message in `text`.
-  for (const key of ["url", "text", "title"]) {
-    const match = params.get(key)?.match(/https?:\/\/[^\s<>"']+/i)?.[0]
-    if (match === undefined) continue
-    const url = Schema.decodeOption(Schema.URLFromString)(match)
-    if (Option.isSome(url)) return url.value.href
+// Launches only focus an open window (`launch_handler` is `focus-existing`),
+// so opening the app keeps the page the user is on. A share made while the
+// app is open still has to reach this route. The launch that opened this
+// document is routed by the browser already.
+const openedWith = window.location.href
+let opening = true
+window.launchQueue?.setConsumer(({ targetURL }) => {
+  const initial = opening && targetURL === openedWith
+  opening = false
+  if (targetURL === undefined || initial) return
+  const url = new URL(targetURL)
+  if (url.origin !== window.location.origin || url.pathname !== "/import") {
+    return
   }
-}
+  router.navigate({ href: url.pathname + url.search })
+})
 
 function RouteComponent() {
   const shared = useRef(false)

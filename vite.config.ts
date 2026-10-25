@@ -64,8 +64,8 @@ export default defineConfig({
           },
         ],
         launch_handler: {
-          // Route incoming share URLs even when the app is already open.
-          client_mode: "navigate-existing",
+          // `src/routes/import.tsx` routes shares into the open window
+          client_mode: "focus-existing",
         },
         scope: "/",
         share_target: {
