@@ -190,7 +190,7 @@ test(
       // closing the chat gives other fields the usual keyboard back
       await browser.evaluate(`window.__virtualKeyboard(0)`)
       await browser.click(
-        `document.querySelector('button[aria-label="Close chat"]')`,
+        `document.querySelector('button[aria-label="Minimize chat"]')`,
       )
       assert.equal(
         await browser.evaluate(`navigator.virtualKeyboard.overlaysContent`),
@@ -326,7 +326,7 @@ test(
       )
 
       await browser.click(
-        `document.querySelector('button[aria-label="Close chat"]')`,
+        `document.querySelector('button[aria-label="Minimize chat"]')`,
       )
       await browser.waitFor(`!(${panel}).checkVisibility()`)
       await sleep(500)
