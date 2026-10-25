@@ -102,3 +102,20 @@ export class Timer extends Model.Class<Timer>("Timer")({
     })
   }
 }
+
+// How long until the soonest running timer finishes, if any is still running.
+export const untilNextExpiry = (
+  timers: Iterable<Timer>,
+  now: DateTime.Utc,
+): Duration.Duration | undefined => {
+  let next: Duration.Duration | undefined
+  for (const timer of timers) {
+    if (timer.pausedRemaining !== null) continue
+    const remaining = timer.remainingAt(now)
+    if (Duration.isZero(remaining)) continue
+    if (next === undefined || Duration.isLessThan(remaining, next)) {
+      next = remaining
+    }
+  }
+  return next
+}

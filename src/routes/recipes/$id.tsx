@@ -15,6 +15,7 @@ import { cn, quantityFormatter } from "@/lib/utils"
 import { useWrite } from "@/EventLog"
 import { Timer, TimerId } from "@/domain/Timer"
 import { TimerEvent } from "@/Timers/Events"
+import { requestNotificationPermission } from "@/Timers/SystemNotifications"
 import { recipeDeleted, recipeIngredientScale } from "@/Recipes/Events"
 import { generateUuidBytes } from "@/lib/Id"
 import {
@@ -158,6 +159,7 @@ export function RecipeDetails({
   const [menuOpen, setMenuOpen] = useState(false)
 
   const handleStartTimer = (durationMs: number, label: string) => {
+    requestNotificationPermission()
     const now = DateTime.nowUnsafe()
     const duration = Duration.millis(durationMs)
     write(

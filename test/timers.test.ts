@@ -11,7 +11,7 @@ import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { TimersLayer } from "@/Timers"
 import { TimerEvent, TimerEvents, timerRunningState } from "@/Timers/Events"
-import { Timer, TimerIdFromString } from "@/domain/Timer"
+import { Timer, TimerIdFromString, untilNextExpiry } from "@/domain/Timer"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry, makeFakeRemote, testIdentity } from "./harness/eventlog"
 import { only, pick, readTable } from "./harness/convergence"
@@ -87,4 +87,29 @@ test("a local whole-Timer update pauses the timer and preserves createdAt", asyn
     createdAt: 1000,
     pausedRemaining: 240_000,
   })
+})
+
+// A hidden page wakes once, when the soonest running timer finishes.
+
+test("the next wake-up is the soonest running timer, ignoring paused and finished ones", () => {
+  const make = (expiresAt: number, pausedRemaining: Duration.Duration | null) =>
+    new Timer({
+      ...timer,
+      expiresAt: DateTime.makeUnsafe(expiresAt),
+      pausedRemaining,
+      createdAt: DateTime.makeUnsafe(1000),
+      updatedAt: DateTime.makeUnsafe(1000),
+    })
+  const now = DateTime.makeUnsafe(100_000)
+  const finished = make(90_000, null)
+  const paused = make(500_000, Duration.seconds(5))
+
+  assert.equal(untilNextExpiry([finished, paused], now), undefined)
+  assert.deepEqual(
+    untilNextExpiry(
+      [finished, paused, make(400_000, null), make(160_000, null)],
+      now,
+    ),
+    Duration.minutes(1),
+  )
 })

@@ -6,21 +6,16 @@ import * as Layer from "effect/Layer"
 import * as Ref from "effect/Ref"
 import * as Stream from "effect/Stream"
 import { toast } from "sonner"
-import { dismissTimerAtom, timerUiStateAtom } from "./atoms"
+import * as DateTime from "effect/DateTime"
+import * as Duration from "effect/Duration"
+import { activeTimersAtom, dismissTimerAtom, timerUiStateAtom } from "./atoms"
 import * as FiberHandle from "effect/FiberHandle"
-import type { Timer, TimerId } from "@/domain/Timer"
-
-declare global {
-  interface NotificationOptions {
-    showTrigger?: NotificationTrigger
-  }
-
-  interface NotificationTrigger {}
-
-  class TimestampTrigger implements NotificationTrigger {
-    constructor(timestamp: number)
-  }
-}
+import { nowAtom } from "@/atoms"
+import { untilNextExpiry, type Timer, type TimerId } from "@/domain/Timer"
+import {
+  closeTimerNotification,
+  showTimerNotification,
+} from "./SystemNotifications"
 
 export const TimerNotifications = Layer.effectDiscard(
   Effect.gen(function* () {
@@ -77,6 +72,36 @@ export const TimerNotifications = Layer.effectDiscard(
       FiberHandle.run(vibrateHandle, { onlyIfMissing: true }),
     )
 
+    // A hidden page throttles the 250ms tick, in Chrome to once a minute after
+    // five minutes, so a timer could finish a minute late. A timeout set from
+    // the visibility event isn't throttled as hard, and wakes the tick when
+    // the next running timer finishes.
+    yield* Effect.acquireRelease(
+      Effect.sync(() => {
+        if (typeof document === "undefined") return
+        let handle: ReturnType<typeof setTimeout> | undefined
+        const wakeAtNextExpiry = () => {
+          clearTimeout(handle)
+          handle = undefined
+          if (document.visibilityState === "visible") return
+          const timers = registry.get(activeTimersAtom)
+          if (!AsyncResult.isSuccess(timers)) return
+          const delay = untilNextExpiry(timers.value, DateTime.nowUnsafe())
+          if (delay === undefined) return
+          handle = setTimeout(() => {
+            registry.refresh(nowAtom)
+            wakeAtNextExpiry()
+          }, Duration.toMillis(delay))
+        }
+        document.addEventListener("visibilitychange", wakeAtNextExpiry)
+        return () => {
+          clearTimeout(handle)
+          document.removeEventListener("visibilitychange", wakeAtNextExpiry)
+        }
+      }),
+      (cleanup) => Effect.sync(() => cleanup?.()),
+    )
+
     // Only a successful read says which timers exist. A failed one keeps the
     // last state, so it can't silence a ringing timer.
     yield* AtomRegistry.toStream(registry, timerUiStateAtom).pipe(
@@ -102,6 +127,7 @@ export const TimerNotifications = Layer.effectDiscard(
           for (const timer of nextNotified.values()) {
             if (activeIds.has(timer.idString)) continue
             nextNotified.delete(timer.idString)
+            yield* closeTimerNotification(timer)
           }
 
           for (const timerState of timerStates) {
@@ -110,10 +136,13 @@ export const TimerNotifications = Layer.effectDiscard(
               if (!nextNotified.has(timer.idString)) {
                 nextNotified.set(timer.idString, timer)
                 yield* notify(timer.id, timer.label)
+                yield* showTimerNotification(timer)
               }
               continue
             }
-            nextNotified.delete(timer.idString)
+            if (nextNotified.delete(timer.idString)) {
+              yield* closeTimerNotification(timer)
+            }
           }
 
           yield* Ref.set(notifiedRef, nextNotified)

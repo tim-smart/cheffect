@@ -49,6 +49,18 @@ self.addEventListener("activate", (event) => {
 // to allow work offline
 registerRoute(new NavigationRoute(createHandlerBoundToURL("index.html")))
 
+// A finished timer's notification brings the app back to the front
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) =>
+        clients[0] ? clients[0].focus() : self.clients.openWindow("/"),
+      ),
+  )
+})
+
 self.addEventListener("message", (event) => {
   if (!event.data) return
   switch (event.data.type) {
