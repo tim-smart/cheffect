@@ -23,6 +23,7 @@ import { RecipeExtractJobsTable } from "./RecipeExtractJobs/Table"
 import { RecipeEditsTable, RecipesTable } from "./Recipes/Table"
 import { SettingsTable } from "./Settings/Table"
 import { TimersTable } from "./Timers/Table"
+import { TableChanges } from "./lib/TableChanges"
 
 export const databaseName = "cheffect"
 
@@ -56,6 +57,15 @@ export class V2 extends IndexedDbVersion.make(...v1Tables) {}
 
 // Version 3 adds the ingredient aliases.
 export class V3 extends IndexedDbVersion.make(
+  ...v1Tables,
+  IngredientAliasesTable,
+) {}
+
+// Version 4 changes no table. Recipe snapshots reload only the records that
+// tabs report through `TableChanges`, so a build that doesn't report must not
+// write beside one that does; the upgrade makes tabs still on such a build
+// close and reload. A change to what writers report needs a version too.
+export class V4 extends IndexedDbVersion.make(
   ...v1Tables,
   IngredientAliasesTable,
 ) {}
@@ -110,18 +120,19 @@ export class Database extends IndexedDbDatabase.make(
     Effect.fn(function* (_, api) {
       yield* api.createObjectStore("ingredientAliases")
     }),
-  ) {}
+  )
+  .add(V4, () => Effect.void) {}
 
 export type TableName = IndexedDbTable.TableName<
-  IndexedDbVersion.Tables<typeof V3>
+  IndexedDbVersion.Tables<typeof V4>
 >
 export type RowOf<Name extends TableName> = IndexedDbVersion.SchemaWithName<
-  typeof V3,
+  typeof V4,
   Name
 >["Type"]
 
 export const tableNames: ReadonlyArray<TableName> = Array.from(
-  V3.tables.keys(),
+  V4.tables.keys(),
 ) as Array<TableName>
 
 // The database without any browser wiring, for tests and tools.
@@ -131,7 +142,12 @@ export class QueryBuilder extends Context.Service<QueryBuilder>()(
   "cheffect/IndexedDb/QueryBuilder",
   { make: Database.getQueryBuilder },
 ) {
-  static readonly layer = Layer.effect(this, this.make)
+  // With the table changes its writers report, so a builder and the
+  // snapshots reading through it always share one
+  static readonly layer = Layer.mergeAll(
+    Layer.effect(this, this.make),
+    TableChanges.layer,
+  )
 }
 
 // A handler's writes in one readwrite transaction over the tables, or in the
