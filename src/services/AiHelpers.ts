@@ -6,6 +6,11 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import { CorsProxy } from "./CorsProxy"
+import {
+  findRecipeJsonLd,
+  type PageText,
+  pageText,
+} from "@/Recipes/extractFromHtml"
 import { beautifyChanges } from "@/Groceries/beautify"
 import {
   encodeGroceryItemListXml,
@@ -67,6 +72,33 @@ export const openAiClientLayer = Atom.make((get) => {
   )
 })
 
+const jsonLdPrompt = `Convert the provided schema.org Recipe, given as JSON, into the recipe format.
+
+- Split each ingredient line into quantity, unit and name. Leave the unit null rather than guess one the line does not state.
+- Group ingredients into components when the lines include headings, otherwise use a single component.
+- Convert durations such as "PT1H20M" to minutes.
+- Move notes and tips out of step text into the step's tips.`
+
+const partialJsonLdPrompt = `Extract a recipe from the provided schema.org Recipe JSON and the text of the web page it came from.
+
+The JSON is authoritative. Use the page text only for what the JSON is missing.
+
+- Split each ingredient line into quantity, unit and name. Leave the unit null rather than guess one the line does not state.
+- Group ingredients into components when the recipe has headings, otherwise use a single component.
+- Convert durations such as "PT1H20M" to minutes.`
+
+const pageTextPrompt = "Extract a recipe from the provided web page text."
+
+const formatPageText = (page: PageText): string =>
+  [
+    page.title === null ? null : `Title: ${page.title}`,
+    page.image === null ? null : `Image: ${page.image}`,
+    "",
+    page.text,
+  ]
+    .filter((line) => line !== null)
+    .join("\n")
+
 export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
   make: Effect.gen(function* () {
     const llm = yield* LanguageModel.LanguageModel
@@ -76,19 +108,38 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
       url: string,
     ) {
       yield* Effect.annotateCurrentSpan({ url })
-      const html = yield* proxy.htmlStripped(url)
+      const html = yield* proxy.html(url)
+      const jsonLd = findRecipeJsonLd(html, url)
+      const hasIngredients = (jsonLd?.ingredients.length ?? 0) > 0
+      const hasInstructions = (jsonLd?.instructions.length ?? 0) > 0
+      // Complete JSON-LD is sent alone. With half of it, the page text fills
+      // the gaps. A Recipe block with neither is no help at all.
+      const page =
+        hasIngredients && hasInstructions ? null : pageText(html, url)
+      const [system, text] =
+        page === null
+          ? [jsonLdPrompt, JSON.stringify(jsonLd)]
+          : hasIngredients || hasInstructions
+            ? [
+                partialJsonLdPrompt,
+                `JSON-LD:\n${JSON.stringify(jsonLd)}\n\nPage text:\n${page.text}`,
+              ]
+            : [pageTextPrompt, formatPageText(page)]
       const response = yield* llm.generateObject({
         prompt: [
-          {
-            role: "system",
-            content: "Extract a recipe from the provided HTML.",
-          },
-          { role: "user", content: [{ type: "text", text: html }] },
+          { role: "system", content: system },
+          { role: "user", content: [{ type: "text", text }] },
         ],
         schema: ExtractedRecipe,
       })
       yield* Effect.log(response.value)
-      return response.value
+      // Taken from the page itself when it has them, rather than trusting the
+      // model to copy a URL.
+      return new ExtractedRecipe({
+        ...response.value,
+        imageUrl: jsonLd?.image ?? page?.image ?? response.value.imageUrl,
+        sourceName: jsonLd?.siteName ?? response.value.sourceName,
+      })
     })
 
     const recipesFromImages = Effect.fn("AiHelpers.recipeFromImages")(

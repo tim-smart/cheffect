@@ -6,7 +6,6 @@ import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schedule from "effect/Schedule"
-import * as Cheerio from "cheerio"
 import { pipe } from "effect/Function"
 
 export class CorsProxy extends Context.Service<CorsProxy>()("CorsProxy", {
@@ -30,47 +29,7 @@ export class CorsProxy extends Context.Service<CorsProxy>()("CorsProxy", {
         Effect.flatMap((r) => r.text),
       )
 
-    const htmlStripped = (url: string) =>
-      html(url).pipe(
-        Effect.map((html) => {
-          const $ = Cheerio.load(html)
-          $("script").remove()
-          $("noscript").remove()
-          $("style").remove()
-          $("link").remove()
-          $("nav").remove()
-          $("svg").remove()
-          $("#comments").remove()
-          $("#reviews").remove()
-          $("iframe").remove()
-          $("form").remove()
-          $(".ad").remove()
-          $(".advertisement").remove()
-          $("[aria-hidden='true']").remove()
-          $.root()
-            .contents()
-            .filter(function () {
-              return this.type === "comment"
-            })
-            .remove()
-          $("*").each(function () {
-            const $el = $(this)
-            if ($el.is("meta, img")) {
-              return
-            } else if ($el.find("img").length > 0) {
-              return
-            } else if ($el.text().trim() === "") {
-              $el.remove()
-            } else if ("attribs" in this) {
-              this.attribs = {}
-            }
-          })
-          const stripped = $.html()
-          return stripped.replace(/\s+/g, " ").trim()
-        }),
-      )
-
-    return { html, htmlStripped } as const
+    return { html } as const
   }),
 }) {
   static readonly layer = Layer.effect(this, this.make).pipe(
