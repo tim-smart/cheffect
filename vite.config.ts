@@ -64,7 +64,8 @@ export default defineConfig({
           },
         ],
         launch_handler: {
-          client_mode: "focus-existing",
+          // Route incoming share URLs even when the app is already open.
+          client_mode: "navigate-existing",
         },
         scope: "/",
         share_target: {
