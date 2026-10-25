@@ -8,10 +8,18 @@ import { Button } from "@/components/ui/button"
 import clsx from "clsx"
 import { Placeholder } from "@/components/placeholder"
 import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual"
-import { useEffect, useState, type CSSProperties, type MouseEvent } from "react"
+import {
+  memo,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+} from "react"
 import { FadeImage } from "@/components/FadeImage"
 
-export function RecipeList({
+// Memoised, so the urgent render of a keystroke skips the list while its
+// deferred results are pending
+export const RecipeList = memo(function RecipeList({
   recipes,
   searchQuery,
   onSelect,
@@ -43,7 +51,10 @@ export function RecipeList({
         })?.scrollY,
         count: rowCount,
         estimateSize: () => (tiles ? (tileColumns > 2 ? 272 : 216) : 81),
-        overscan: 10,
+        // Ten 81px rows was tuned for the old cards; tile rows are three
+        // times taller, so four rows reach about as far past the screen and
+        // a keystroke mounts about half as many tiles
+        overscan: tiles ? 4 : 10,
       })
 
   // Rows that mount in the first moments rise in, staggered by their place
@@ -135,7 +146,7 @@ export function RecipeList({
       </div>
     </div>
   )
-}
+})
 
 // How many tiles fit a row: the same breakpoints as the grid's classes, so
 // the virtualizer slices rows the way the grid lays them out
@@ -191,7 +202,10 @@ function NoResults({ searchQuery }: { readonly searchQuery: string }) {
   )
 }
 
-function RecipeTile({ recipe }: { recipe: Recipe }) {
+// Tiles and cards are memoised on the recipe: a search hands back the same
+// recipe objects until the table reloads, so a tile that stays in its row
+// skips its render, the Link's route matching included
+const RecipeTile = memo(function RecipeTile({ recipe }: { recipe: Recipe }) {
   const meta = [
     ...Option.match(recipe.totalTime, {
       onNone: () => [],
@@ -241,9 +255,9 @@ function RecipeTile({ recipe }: { recipe: Recipe }) {
       </div>
     </Link>
   )
-}
+})
 
-function RecipeCard({
+const RecipeCard = memo(function RecipeCard({
   recipe,
   onSelect,
 }: {
@@ -320,4 +334,4 @@ function RecipeCard({
       </div>
     </Link>
   )
-}
+})

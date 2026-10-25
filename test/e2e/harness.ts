@@ -331,6 +331,13 @@ const openPage = async (chrome: Chromium) => {
       { width, height, deviceScaleFactor: 1, mobile },
       `setViewport(${width}, ${height})`,
     )
+  /** Slows the page's CPU by `rate`, e.g. 4 for a mid-range phone. */
+  const throttleCpu = (rate: number) =>
+    sendOrCrash(
+      "Emulation.setCPUThrottlingRate",
+      { rate },
+      `throttleCpu(${rate})`,
+    )
   /** Runs `source` in every document loaded from now on, before its scripts. */
   const addInitScript = (source: string) =>
     sendOrCrash(
@@ -355,12 +362,16 @@ const openPage = async (chrome: Chromium) => {
     swipe,
     press,
     setViewport,
+    throttleCpu,
     addInitScript,
     close,
   }
 }
 
 export type Browser = Awaited<ReturnType<typeof openPage>>
+
+/** A page in a fresh browser context, for scripts that drive the app. */
+export const openBrowser = async () => openPage(await getChromium())
 
 // The number of entries in the app's journal, through a separate connection,
 // as the next page load would see them.
