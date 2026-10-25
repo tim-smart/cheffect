@@ -327,16 +327,26 @@ const toolWords = (
             ? `the ${quote(p.list)} grocery list`
             : "the grocery list",
         outcome: items === undefined ? "" : dot(count(items, "item")),
-        href: "/groceries",
+        href: groceryHref(typeof p.list === "string" ? p.list : null),
       }
     }
     case "AddGroceryItems": {
-      const items = arrayLength(p.groceryItems) ?? 0
+      const items = array(p.groceryItems)
+      // Items name their own list; a link only makes sense when they agree
+      const lists = new Set(
+        items.map((item) => {
+          const list = record(item).list
+          return typeof list === "string" ? list : null
+        }),
+      )
+      const list = lists.size === 1 ? [...lists][0] : undefined
       return {
         icon: ListPlus,
         verb: ["Add", "Adding", "Added"],
-        object: `${count(items, "item")} to the grocery list`,
-        href: "/groceries",
+        object: `${count(items.length, "item")} to the ${
+          typeof list === "string" ? `${quote(list)} list` : "grocery list"
+        }`,
+        href: list === undefined ? undefined : groceryHref(list),
       }
     }
     case "UpdateGroceryItem": {
@@ -345,7 +355,6 @@ const toolWords = (
         icon: ShoppingCart,
         verb: ["Update", "Updating", "Updated"],
         object: item === undefined ? "a grocery item" : quote(item),
-        href: "/groceries",
       }
     }
     case "MergeGroceryItems": {
@@ -356,7 +365,6 @@ const toolWords = (
         object: `${count(items, "grocery item")}${
           typeof p.mergedName === "string" ? ` into ${quote(p.mergedName)}` : ""
         }`,
-        href: "/groceries",
       }
     }
     case "DeleteGroceryItem": {
@@ -364,7 +372,6 @@ const toolWords = (
         icon: ShoppingCart,
         verb: ["Remove", "Removing", "Removed"],
         object: "a grocery item",
-        href: "/groceries",
       }
     }
     case "GetMenus": {
@@ -548,6 +555,9 @@ const record = (value: unknown): Record<string, unknown> =>
 const arrayLength = (value: unknown): number | undefined =>
   Array.isArray(value) ? value.length : undefined
 
+const array = (value: unknown): ReadonlyArray<unknown> =>
+  Array.isArray(value) ? value : []
+
 const quote = (value: unknown): string =>
   typeof value === "string" && value.trim() !== ""
     ? `“${value.trim()}”`
@@ -589,6 +599,12 @@ const formatDuration = (ms: number): string => {
 
 const recipeHref = (id: unknown) =>
   typeof id === "string" && id !== "" ? `/recipes/${id}` : undefined
+
+// The groceries page has one route for every list; the chat reads the list
+// off the link and chooses it before navigating. An empty name is the
+// default list.
+const groceryHref = (list: string | null) =>
+  `/groceries?list=${encodeURIComponent(list ?? "")}`
 
 const menuHref = (id: unknown) =>
   typeof id === "string" && id !== "" ? `/menus/${id}` : undefined

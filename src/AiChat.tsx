@@ -21,6 +21,7 @@ import { Streamdown } from "streamdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
 import { aiChatOpenAtom } from "./atoms"
+import { groceryCurrentListAtom } from "./Groceries/currentList"
 import {
   clearAtom,
   currentPromptAtom,
@@ -137,6 +138,7 @@ function ModalContent({
     initial: "instant",
     resize: "smooth",
   })
+  const setGroceryList = useAtomSet(groceryCurrentListAtom)
   const viewport = useVisualViewport()
   // Safari in landscape can leave less room than the message field needs:
   // the chat becomes a single row with the field and a way to hide the
@@ -236,6 +238,11 @@ function ModalContent({
             if (!(e.target instanceof HTMLAnchorElement)) return
             e.preventDefault()
             const url = new URL(e.target.href)
+            // The groceries page shows whichever list this device last
+            // chose, so a link that names a list chooses it first
+            if (url.pathname === "/groceries" && url.searchParams.has("list")) {
+              setGroceryList(url.searchParams.get("list") || null)
+            }
             router.navigate({ to: url.pathname })
             onClose()
           }}
@@ -302,8 +309,13 @@ function MessagesList({
     )
   }
   const items = chatItems(messages)
-  // Only the latest run of tool calls can still be waiting on results
+  // Only tool calls made for the latest message can still be waiting on
+  // results; a run from an earlier message that was stopped stays stopped
+  const lastUserIndex = items.findLastIndex(
+    (item) => item.kind === "text" && item.role === "user",
+  )
   const lastToolsIndex = items.findLastIndex((item) => item.kind === "tools")
+  const activeToolsIndex = lastToolsIndex > lastUserIndex ? lastToolsIndex : -1
   return (
     <div ref={ref} className="space-y-3 py-4">
       {items.map((item, i) =>
@@ -311,7 +323,7 @@ function MessagesList({
           <ToolActivityList
             key={i}
             calls={item.calls}
-            active={isLoading && i === lastToolsIndex}
+            active={isLoading && i === activeToolsIndex}
           />
         ) : (
           <div
