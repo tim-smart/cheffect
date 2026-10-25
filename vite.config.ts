@@ -10,6 +10,12 @@ const target = ["chrome111", "edge111", "firefox114", "safari15", "ios15"]
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Vercel deployments serve `api/fetch.ts`, so recipe imports fetch through
+  // it. Vercel's own `VERCEL` variable never reaches the bundle.
+  define: process.env.VERCEL
+    ? { "import.meta.env.VITE_VERCEL": JSON.stringify("true") }
+    : {},
+
   plugins: [
     TanStackRouterVite(),
     react(),

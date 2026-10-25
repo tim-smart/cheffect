@@ -74,6 +74,37 @@ Without Docker, `pnpm build` produces the same two parts: the web app in `dist/`
 and the server in `dist-server/main.mjs` (`pnpm start`). A plain `pnpm build`
 has no default sync server; users enter one in Settings.
 
+## Importing recipes from URLs
+
+To import a recipe from a URL, the app needs the page's HTML. It asks the site
+directly first. That works for sites that allow cross-origin requests, and the
+request comes from your own browser. Most recipe sites don't allow it, so the
+app falls back to a fetch service picked for the build. There's nothing to set
+up:
+
+- The Docker image uses its own server's `/fetch` route.
+- Deployments on Vercel use `api/fetch.ts`, served by the same deployment.
+- Any other build, `pnpm dev` included, uses
+  [Jina Reader](https://jina.ai/reader/) without a key, which allows 20
+  requests a minute.
+
+The fetch service receives the URL of each recipe imported this way, but not
+your OpenAI key. With Jina, that's a third party.
+
+Some sites block every server, so they fail however they are fetched. Allrecipes
+and Serious Eats are two known examples.
+
+### The `/fetch` route
+
+The Docker image serves `GET /fetch?url=...` and the Vercel build serves
+`/api/fetch?url=...`. Both fetch only public http(s) addresses. Private,
+loopback and link-local addresses are refused, every redirect is checked again,
+and fetches stop after 15 seconds or 2 MB. Pages come back as sandboxed plain
+text, so opening a `/fetch` link in a browser never runs the page's scripts on
+the app's origin. There is no authentication, so if it
+faces the internet anyone can use it to fetch pages. Put it behind your own
+reverse proxy or authentication if that matters to you.
+
 ## Tests
 
 ```bash

@@ -132,6 +132,14 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
     const missing = yield* get("/assets/missing.js")
     assert.equal(missing.status, 404)
     assert.equal(missing.headers.get("cache-control"), null)
+
+    // `/fetch` is a route of its own, not an SPA fallback, and refuses to
+    // fetch this server's own address.
+    const fetched = yield* get(
+      `/fetch?url=${encodeURIComponent(`http://127.0.0.1:${port}/`)}`,
+    )
+    assert.equal(fetched.status, 403)
+    assert.equal(fetched.headers.get("access-control-allow-origin"), "*")
   }).pipe(Effect.provide(ServerLayer), Effect.runPromise)
 })
 
