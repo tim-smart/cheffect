@@ -1,4 +1,5 @@
-import { fetchResponse } from "../server/fetchGuard"
+// Vercel emits separate ES modules; Node needs the JavaScript file extension.
+import { fetchResponse } from "../server/fetchGuard.js"
 
 // The recipe importer's fetch endpoint on Vercel, the same as the Docker
 // server's `/fetch`. `vercel.json` keeps `api/` out of the SPA rewrite.
