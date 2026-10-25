@@ -181,9 +181,9 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
           prompt: [
             {
               role: "system",
-              content:
-                "You will be provided a recipe in XML format. Convert any quantities and units to be appropriate for the following country: " +
-                country,
+              content: `You will be provided a recipe in XML format. Convert any quantities and units to be appropriate for the following country: ${country}
+
+Only convert the units that aren't used in the target country - while preserving those that can be shared (like tsp, tbsp, cups etc)`,
             },
             { role: "user", content: [{ type: "text", text: recipe.toXml() }] },
           ],
