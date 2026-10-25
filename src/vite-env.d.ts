@@ -3,4 +3,5 @@
 
 interface ImportMetaEnv {
   readonly VITE_SYNC_SAME_ORIGIN?: string
+  readonly VITE_IMPORT_FETCH_URL?: string
 }

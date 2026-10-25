@@ -11,6 +11,7 @@ import * as RpcSerialization from "effect/rpc/RpcSerialization"
 import * as RpcServer from "effect/rpc/RpcServer"
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer"
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient"
+import { fetchResponse } from "./fetchGuard"
 
 // The combined image's server: the front end build and the encrypted EventLog
 // server on one origin. Live fan-out is an in-process PubSub, so it must run
@@ -28,6 +29,28 @@ const SyncLayer = (databasePath: string) =>
     Layer.provide(SqlEventLogServerEncrypted.layerStorageSubtle()),
     Layer.provide(SqliteClient.layer({ filename: databasePath })),
   )
+
+// Fetch
+//
+// `/fetch?url=` fetches a page for the recipe importer, so imports work for
+// sites that don't allow cross-origin requests. See `fetchGuard.ts` for what
+// it refuses to fetch.
+
+const FetchLayer = HttpRouter.add("GET", "/fetch", (request) =>
+  Effect.promise(() =>
+    fetchResponse(
+      new URL(request.url, "http://localhost").searchParams.get("url"),
+    ),
+  ).pipe(
+    Effect.map(({ status, headers, body }) =>
+      HttpServerResponse.text(body, {
+        status,
+        headers,
+        contentType: headers["content-type"],
+      }),
+    ),
+  ),
+)
 
 // Front end
 //
@@ -79,6 +102,7 @@ export const layer = (options: {
     Layer.mergeAll(
       FrontendLayer(options.root),
       SyncLayer(options.databasePath),
+      FetchLayer,
     ),
     { disableLogger: true },
   ).pipe(

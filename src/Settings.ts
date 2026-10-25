@@ -148,6 +148,34 @@ export const openAiApiUrl = new Setting({
   initialValue: "https://api.openai.com/v1",
 })
 
+// The recipe importer's fetch endpoint, a URL with `{url}` where the page's
+// URL goes. Docker builds default to their own server's `/fetch`, and a build
+// can set its own default with `VITE_IMPORT_FETCH_URL`. With none, imports
+// only work for sites that allow cross-origin requests.
+export const defaultImportFetchUrl = (): string | undefined =>
+  import.meta.env?.VITE_IMPORT_FETCH_URL ||
+  (import.meta.env?.VITE_SYNC_SAME_ORIGIN === "true"
+    ? "/fetch?url={url}"
+    : undefined)
+
+export const importFetchUrl = new Setting({
+  name: "importFetchUrl",
+  label: "Recipe import fetch URL",
+  schema: Schema.NonEmptyString,
+  schemaInput: OptionFromString,
+  initialValue: defaultImportFetchUrl(),
+})
+
+// Sent to the fetch endpoint as a bearer token, never put in the URL.
+export const importFetchApiKey = new Setting({
+  name: "importFetchApiKey",
+  label: "Recipe import fetch API key",
+  schema: Schema.RedactedFromValue(Schema.String),
+  schemaInput: OptionFromString.pipe(
+    Schema.decodeTo(Schema.Option(Schema.RedactedFromValue(Schema.String))),
+  ),
+})
+
 export const aiChatModel = new Setting({
   name: "aiChatModel",
   label: "AI chat model",

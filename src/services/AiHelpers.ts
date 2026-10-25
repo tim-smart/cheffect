@@ -5,7 +5,7 @@ import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
-import { CorsProxy } from "./CorsProxy"
+import { PageFetcher } from "./PageFetcher"
 import {
   findRecipeJsonLd,
   type PageText,
@@ -102,13 +102,13 @@ const formatPageText = (page: PageText): string =>
 export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
   make: Effect.gen(function* () {
     const llm = yield* LanguageModel.LanguageModel
-    const proxy = yield* CorsProxy
+    const fetcher = yield* PageFetcher
 
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
       url: string,
     ) {
       yield* Effect.annotateCurrentSpan({ url })
-      const html = yield* proxy.html(url)
+      const html = yield* fetcher.html(url)
       const jsonLd = findRecipeJsonLd(html, url)
       const hasIngredients = (jsonLd?.ingredients.length ?? 0) > 0
       const hasInstructions = (jsonLd?.instructions.length ?? 0) > 0
@@ -247,7 +247,7 @@ ${encodeGroceryItemListXml(items)}
   }),
 }) {
   static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(CorsProxy.layer),
+    Layer.provide(PageFetcher.layer),
   )
 
   static runtime = Atom.runtime((get) =>

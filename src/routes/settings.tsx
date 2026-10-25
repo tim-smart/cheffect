@@ -29,6 +29,8 @@ import {
   mealPlanWeekStart,
   openAiApiKey,
   openAiApiUrl,
+  importFetchApiKey,
+  importFetchUrl,
   Setting,
   exportAllAtom,
   importAllAtom,
@@ -238,6 +240,37 @@ function SettingsPage() {
             )}
           />
           <SettingCombobox setting={aiCountry} options={countryOptions} />
+          <SettingControl
+            setting={importFetchUrl}
+            render={({ value, onChange, onBlur, onKeyDown }) => (
+              <Input
+                id={importFetchUrl.name}
+                type="text"
+                placeholder="https://r.jina.ai/{url}"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={() => onBlur()}
+                onKeyDown={onKeyDown}
+              />
+            )}
+          />
+          <p className="text-sm text-muted-foreground -mt-2">
+            Used when a site blocks direct requests. The recipe's URL replaces{" "}
+            <code>{"{url}"}</code> and is sent to this address.
+          </p>
+          <SettingControl
+            setting={importFetchApiKey}
+            render={({ value, onChange, onBlur, onKeyDown }) => (
+              <Input
+                id={importFetchApiKey.name}
+                type="password"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={() => onBlur()}
+                onKeyDown={onKeyDown}
+              />
+            )}
+          />
           <Button
             type="button"
             variant="secondary"

@@ -8,8 +8,22 @@ import tailwindcss from "@tailwindcss/vite"
 // Vite's default baseline, lowered to support iOS 15
 const target = ["chrome111", "edge111", "firefox114", "safari15", "ios15"]
 
+// Vercel deployments serve `api/fetch.ts`, so recipe imports default to it.
+// Vercel's own `VERCEL` variable never reaches the bundle.
+const vercelImportFetchUrl =
+  process.env.VERCEL && !process.env.VITE_IMPORT_FETCH_URL
+    ? "/api/fetch?url={url}"
+    : undefined
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: vercelImportFetchUrl
+    ? {
+        "import.meta.env.VITE_IMPORT_FETCH_URL":
+          JSON.stringify(vercelImportFetchUrl),
+      }
+    : {},
+
   plugins: [
     TanStackRouterVite(),
     react(),
