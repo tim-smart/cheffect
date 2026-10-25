@@ -43,7 +43,11 @@ export class RecipeExtractJobRepo extends Context.Service<RecipeExtractJobRepo>(
 
       return {
         pending: snapshot.stream.pipe(
-          Stream.map((rows) => rows.filter((job) => job.completedAt === null)),
+          Stream.map((rows) =>
+            rows.filter(
+              (job) => job.completedAt === null && job.failedAt === null,
+            ),
+          ),
         ),
         add: Effect.fnUntraced(function* (url: string) {
           const job = RecipeExtractJob.insert.make({
@@ -62,6 +66,19 @@ export class RecipeExtractJobRepo extends Context.Service<RecipeExtractJobRepo>(
           yield* jobs.upsert({
             ...job.value,
             completedAt: yield* DateTime.now,
+          })
+          yield* invalidate
+        }, withWriteLock),
+        fail: Effect.fnUntraced(function* (
+          id: RecipeExtractJobId,
+          error: string,
+        ) {
+          const job = yield* byIdFresh(id)
+          if (Option.isNone(job)) return
+          yield* jobs.upsert({
+            ...job.value,
+            failedAt: yield* DateTime.now,
+            error,
           })
           yield* invalidate
         }, withWriteLock),
