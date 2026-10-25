@@ -23,6 +23,7 @@ import { RecipeExtractJobsTable } from "./RecipeExtractJobs/Table"
 import { RecipeEditsTable, RecipesTable } from "./Recipes/Table"
 import { SettingsTable } from "./Settings/Table"
 import { TimersTable } from "./Timers/Table"
+import { TableChanges } from "./lib/TableChanges"
 
 export const databaseName = "cheffect"
 
@@ -131,7 +132,12 @@ export class QueryBuilder extends Context.Service<QueryBuilder>()(
   "cheffect/IndexedDb/QueryBuilder",
   { make: Database.getQueryBuilder },
 ) {
-  static readonly layer = Layer.effect(this, this.make)
+  // With the table changes its writers report, so a builder and the
+  // snapshots reading through it always share one
+  static readonly layer = Layer.mergeAll(
+    Layer.effect(this, this.make),
+    TableChanges.layer,
+  )
 }
 
 // A handler's writes in one readwrite transaction over the tables, or in the

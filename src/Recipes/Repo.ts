@@ -22,8 +22,22 @@ export interface Recipes {
   readonly byId: ReadonlyMap<string, Recipe>
 }
 
+// A row the snapshot kept through a reload keeps its recipe, so a write
+// rebuilds only the recipes it touched, and what is cached on a recipe (its
+// search text) survives.
+const recipeCache = new WeakMap<RecipeRow, Recipe>()
+
+const toRecipe = (row: RecipeRow): Recipe => {
+  let recipe = recipeCache.get(row)
+  if (recipe === undefined) {
+    recipe = new Recipe(row)
+    recipeCache.set(row, recipe)
+  }
+  return recipe
+}
+
 export const decodeRecipes = (rows: ReadonlyArray<RecipeRow>): Recipes => {
-  const all = rows.map((row) => new Recipe(row))
+  const all = rows.map(toRecipe)
   return {
     all,
     byId: new Map(all.map((recipe) => [recipe.idString, recipe])),
@@ -160,8 +174,12 @@ export class RecipeRepo extends Context.Service<RecipeRepo>()(
   "cheffect/Recipes/Repo/RecipeRepo",
   {
     make: Effect.gen(function* () {
-      const recipes = yield* makeSnapshot("recipes")
-      const recipeEdits = yield* makeSnapshot("recipeEdits")
+      // Only the recipe handlers write these tables, so a write reloads just
+      // the records it touched.
+      const recipes = yield* makeSnapshot("recipes", { incremental: true })
+      const recipeEdits = yield* makeSnapshot("recipeEdits", {
+        incremental: true,
+      })
       const toRecipes = memoize(decodeRecipes)
       const toRecipeEdits = memoize(decodeRecipeEdits)
 

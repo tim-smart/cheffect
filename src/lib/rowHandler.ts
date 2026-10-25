@@ -2,6 +2,7 @@ import * as Effect from "effect/Effect"
 import * as EventRow from "effect/eventlog/EventRow"
 import type * as Schema from "effect/Schema"
 import type { QueryBuilder, RowOf, TableName } from "@/IndexedDb"
+import { TableChanges } from "./TableChanges"
 
 // The `EventRow.handler` for a row kept as one record of one table. `set`
 // replaces the record, `patch` writes its fields only when it exists, and
@@ -10,6 +11,9 @@ import type { QueryBuilder, RowOf, TableName } from "@/IndexedDb"
 // `tableKey` turns the row key, the typed values of its key fields, into the
 // record's key. `toRecord` builds the record from a row when they differ,
 // e.g. to store the primary key.
+//
+// Every record it writes is reported to `TableChanges`, so a snapshot of the
+// table can read back just those records.
 export const tableRowHandler = <
   Name extends TableName,
   Tag extends string,
@@ -29,10 +33,13 @@ export const tableRowHandler = <
   // The query builder's types don't follow a generic table name.
   const records = db.from(table) as any
   const toRecord = options.toRecord ?? ((row) => row)
+  const changed = (key: Schema.Schema.Type<KeySchema>) =>
+    TableChanges.use((changes) => changes.changed(table, options.tableKey(key)))
   return EventRow.handler(row, {
-    set: (row) =>
+    set: (row, key) =>
       (records.upsert(toRecord(row)) as Effect.Effect<unknown, unknown>).pipe(
         Effect.orDie,
+        Effect.andThen(changed(key)),
       ),
     patch: (key, fields) =>
       Effect.gen(function* () {
@@ -45,6 +52,7 @@ export const tableRowHandler = <
           unknown,
           unknown
         >
+        yield* changed(key)
       }).pipe(Effect.orDie),
     remove: (key) =>
       (
@@ -52,6 +60,6 @@ export const tableRowHandler = <
           unknown,
           unknown
         >
-      ).pipe(Effect.orDie),
+      ).pipe(Effect.orDie, Effect.andThen(changed(key))),
   })
 }
