@@ -8,6 +8,7 @@ import {
   Maximize2,
   MessageSquare,
   Minimize2,
+  Minus,
   Paperclip,
   Send,
   Square,
@@ -221,9 +222,10 @@ function ModalContent({
               className="rounded-full"
               size="icon"
               variant="ghost"
-              aria-label="Close chat"
+              aria-label="Minimize chat"
+              title="Minimize"
             >
-              <X />
+              <Minus />
             </Button>
           </div>
         </div>
