@@ -10,7 +10,14 @@
 - AI chat assistant for cooking help
 - Optionally sync your data across devices, end-to-end encrypted
 
-<img src="/public/screenshots/android.jpg" alt="Cheffect Screenshot" width="300" />
+<img src="/public/screenshots/desktop.jpg" alt="Cheffect on desktop: the recipe library" />
+
+<p>
+  <img src="/public/screenshots/mobile-recipes.jpg" alt="Cheffect on mobile: the recipe library" width="24%" />
+  <img src="/public/screenshots/mobile-recipe.jpg" alt="Cheffect on mobile: a recipe with its ingredients" width="24%" />
+  <img src="/public/screenshots/mobile-meal-plan.jpg" alt="Cheffect on mobile: the weekly meal plan" width="24%" />
+  <img src="/public/screenshots/mobile-grocery.jpg" alt="Cheffect on mobile: the grocery list grouped by aisle" width="24%" />
+</p>
 
 ## Docker Deployment
 
