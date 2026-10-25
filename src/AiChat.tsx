@@ -5,14 +5,12 @@ import {
   ChevronDown,
   Eraser,
   FileText,
-  Globe,
   Maximize2,
   MessageSquare,
   Minimize2,
   Paperclip,
   Send,
   Square,
-  Wrench,
   X,
 } from "lucide-react"
 import * as Atom from "effect/reactivity/Atom"
@@ -23,12 +21,14 @@ import { Streamdown } from "streamdown"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
 import { aiChatOpenAtom } from "./atoms"
+import { groceryCurrentListAtom } from "./Groceries/currentList"
 import {
   clearAtom,
   currentPromptAtom,
   isVisualMessage,
   sendAtom,
 } from "./AiChat/AiChatService"
+import { ToolActivityList, type ToolCall } from "./AiChat/ToolActivity"
 import { router, scrollRestorationKey } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
@@ -138,6 +138,7 @@ function ModalContent({
     initial: "instant",
     resize: "smooth",
   })
+  const setGroceryList = useAtomSet(groceryCurrentListAtom)
   const viewport = useVisualViewport()
   // Safari in landscape can leave less room than the message field needs:
   // the chat becomes a single row with the field and a way to hide the
@@ -237,6 +238,11 @@ function ModalContent({
             if (!(e.target instanceof HTMLAnchorElement)) return
             e.preventDefault()
             const url = new URL(e.target.href)
+            // The groceries page shows whichever list this device last
+            // chose, so a link that names a list chooses it first
+            if (url.pathname === "/groceries" && url.searchParams.has("list")) {
+              setGroceryList(url.searchParams.get("list") || null)
+            }
             router.navigate({ to: url.pathname })
             onClose()
           }}
@@ -302,110 +308,125 @@ function MessagesList({
       </div>
     )
   }
+  const items = chatItems(messages)
+  // Only tool calls made for the latest message can still be waiting on
+  // results; a run from an earlier message that was stopped stays stopped
+  const lastUserIndex = items.findLastIndex(
+    (item) => item.kind === "text" && item.role === "user",
+  )
+  const lastToolsIndex = items.findLastIndex((item) => item.kind === "tools")
+  const activeToolsIndex = lastToolsIndex > lastUserIndex ? lastToolsIndex : -1
   return (
     <div ref={ref} className="space-y-3 py-4">
-      {messages.filter(isVisualMessage).map((message, i) => {
-        // Provider-executed tools (web search) put their results in the
-        // assistant message itself, alongside any text
-        const toolResults = message.content.filter(
-          (part) => part.type === "tool-result",
-        )
-        const textParts = message.content.filter((part) => part.type === "text")
-        return (
-          <div key={i} className="flex flex-col gap-3">
-            {toolResults.length > 0 && (
-              <div className="flex flex-col gap-1 text-muted-foreground text-sm">
-                {toolResults.map((part) => (
-                  <ToolResultLine key={part.id} part={part} />
-                ))}
-              </div>
-            )}
-            {textParts.length > 0 && (
-              <div
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={cn(
-                    // 60ch of text plus the px-4 padding, but never wider
-                    // than 90% of the panel on narrow screens
-                    `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted dark:bg-border text-foreground",
-                  )}
+      {items.map((item, i) =>
+        item.kind === "tools" ? (
+          <ToolActivityList
+            key={i}
+            calls={item.calls}
+            active={isLoading && i === activeToolsIndex}
+          />
+        ) : (
+          <div
+            key={i}
+            className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={cn(
+                // 60ch of text plus the px-4 padding, but never wider
+                // than 90% of the panel on narrow screens
+                `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
+                item.role === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted dark:bg-border text-foreground",
+              )}
+            >
+              {item.parts.map((part, idx) => (
+                <Streamdown
+                  key={idx}
+                  animated
+                  isAnimating={isLoading && item.role === "assistant"}
+                  linkSafety={{ enabled: false }}
                 >
-                  {textParts.map((part, idx) => (
-                    <Streamdown
-                      key={idx}
-                      animated
-                      isAnimating={isLoading && message.role === "assistant"}
-                      linkSafety={{ enabled: false }}
-                    >
-                      {part.text}
-                    </Streamdown>
-                  ))}
-                </div>
-              </div>
-            )}
+                  {part.text}
+                </Streamdown>
+              ))}
+            </div>
           </div>
-        )
-      })}
+        ),
+      )}
     </div>
   )
 }
 
-function ToolResultLine({ part }: { readonly part: Prompt.ToolResultPart }) {
-  const isWebSearch = part.name === "OpenAiWebSearch"
-  const Icon = isWebSearch ? Globe : Wrench
-  return (
-    <span className="flex items-start gap-1.5 min-w-0">
-      <Icon className="size-3.5 shrink-0 mt-[0.2em]" aria-hidden />
-      <span className="min-w-0 break-words">
-        {isWebSearch
-          ? webSearchLabel(part.result, part.isFailure)
-          : `Tool call "${part.name}"`}
-      </span>
-    </span>
-  )
-}
+type ChatItem =
+  | {
+      readonly kind: "text"
+      readonly role: "user" | "assistant"
+      readonly parts: ReadonlyArray<Prompt.TextPart>
+    }
+  | {
+      readonly kind: "tools"
+      readonly calls: ReadonlyArray<ToolCall>
+    }
 
-const webSearchLabel = (result: unknown, isFailure: boolean): string => {
-  if (isFailure) return "Web search failed"
-  const action =
-    typeof result === "object" && result !== null && "action" in result
-      ? (result.action as {
-          readonly type?: string
-          readonly query?: string
-          readonly queries?: ReadonlyArray<string>
-          readonly url?: string | null
-          readonly pattern?: string
+/**
+ * What the chat shows, in order: text bubbles and runs of tool calls. A tool
+ * call is shown where the assistant made it, with its result attached once
+ * the tool message carrying it arrives, so a call still running has its place
+ * before the result exists. Consecutive calls, even across messages, form one
+ * run. Provider-executed tools (web search) only report a result, which
+ * stands in for the call.
+ */
+const chatItems = (
+  messages: ReadonlyArray<Prompt.Message>,
+): ReadonlyArray<ChatItem> => {
+  const results = new Map<string, Prompt.ToolResultPart>()
+  const calls = new Set<string>()
+  for (const message of messages) {
+    if (message.role === "system") continue
+    for (const part of message.content) {
+      if (part.type === "tool-result") results.set(part.id, part)
+      else if (part.type === "tool-call") calls.add(part.id)
+    }
+  }
+  const items: Array<ChatItem> = []
+  const addCall = (call: ToolCall) => {
+    const last = items.at(-1)
+    if (last?.kind === "tools") {
+      items[items.length - 1] = { kind: "tools", calls: [...last.calls, call] }
+    } else {
+      items.push({ kind: "tools", calls: [call] })
+    }
+  }
+  for (const message of messages.filter(isVisualMessage)) {
+    let text: Array<Prompt.TextPart> | undefined
+    for (const part of message.content) {
+      if (part.type === "text" && message.role !== "tool") {
+        if (text === undefined) {
+          text = []
+          items.push({ kind: "text", role: message.role, parts: text })
+        }
+        text.push(part)
+      } else if (part.type === "tool-call") {
+        text = undefined
+        addCall({
+          id: part.id,
+          name: part.name,
+          params: part.params,
+          result: results.get(part.id),
         })
-      : undefined
-  switch (action?.type) {
-    case "open_page": {
-      const host = hostname(action.url)
-      return host ? `Opened ${host}` : "Opened a web page"
-    }
-    case "find_in_page": {
-      const host = hostname(action.url) ?? "a web page"
-      return action.pattern
-        ? `Searched ${host} for “${action.pattern}”`
-        : `Searched ${host}`
-    }
-    default: {
-      const query = action?.query ?? action?.queries?.[0]
-      return query ? `Searched the web for “${query}”` : "Searched the web"
+      } else if (part.type === "tool-result" && !calls.has(part.id)) {
+        text = undefined
+        addCall({
+          id: part.id,
+          name: part.name,
+          params: undefined,
+          result: part,
+        })
+      }
     }
   }
-}
-
-const hostname = (url: string | null | undefined): string | undefined => {
-  if (!url) return undefined
-  try {
-    return new URL(url).hostname.replace(/^www\./, "")
-  } catch {
-    return undefined
-  }
+  return items
 }
 
 const tips = [

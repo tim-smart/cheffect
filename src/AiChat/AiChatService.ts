@@ -931,7 +931,10 @@ export const isVisualPart = (
     | Prompt.UserMessagePart
     | Prompt.AssistantMessagePart
     | Prompt.ToolMessagePart,
-): boolean => part.type === "text" || part.type === "tool-result"
+): boolean =>
+  part.type === "text" ||
+  part.type === "tool-call" ||
+  part.type === "tool-result"
 
 const makeMessage = Effect.fnUntraced(function* (options: {
   readonly text: string
