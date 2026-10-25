@@ -22,7 +22,7 @@ export interface Recipes {
   readonly byId: ReadonlyMap<string, Recipe>
 }
 
-const decodeRecipes = (rows: ReadonlyArray<RecipeRow>): Recipes => {
+export const decodeRecipes = (rows: ReadonlyArray<RecipeRow>): Recipes => {
   const all = rows.map((row) => new Recipe(row))
   return {
     all,
@@ -64,9 +64,60 @@ const sorters: Record<SortBy, (a: Recipe, b: Recipe) => number> = {
   title: (a, b) => compareText(a.title, b.title),
 }
 
+// The live recipes in each order, sorted the first time a snapshot is read
+// in it, so a search filters a sorted list rather than sorting its matches.
+const sortedCache = new WeakMap<Recipes, Map<SortBy, ReadonlyArray<Recipe>>>()
+
+const sortedRecipes = (
+  recipes: Recipes,
+  sortBy: SortBy,
+): ReadonlyArray<Recipe> => {
+  let orders = sortedCache.get(recipes)
+  if (orders === undefined) {
+    orders = new Map()
+    sortedCache.set(recipes, orders)
+  }
+  let sorted = orders.get(sortBy)
+  if (sorted === undefined) {
+    sorted = recipes.all
+      .filter((recipe) => recipe.deletedAt === null)
+      .sort(sorters[sortBy])
+    orders.set(sortBy, sorted)
+  }
+  return sorted
+}
+
+// A recipe's title and ingredient names, case-folded once rather than on
+// every keystroke. The names are joined with a character no query holds, so
+// one substring test stands for a test of each name.
+interface SearchText {
+  readonly title: string
+  readonly ingredients: string
+}
+
+const searchTextCache = new WeakMap<Recipe, SearchText>()
+
+const searchText = (recipe: Recipe): SearchText => {
+  let text = searchTextCache.get(recipe)
+  if (text === undefined) {
+    text = {
+      title: foldCase(recipe.title),
+      ingredients: recipe.ingredients
+        .flatMap((component) =>
+          component.ingredients.map((ingredient) => foldCase(ingredient.name)),
+        )
+        .join("\0"),
+    }
+    searchTextCache.set(recipe, text)
+  }
+  return text
+}
+
 // The recipe list, the meal plan drawer and the AI `SearchRecipes` tool all
 // read through this. Soft-deleted recipes are left out. With a query, a title
 // match scores 20 and an ingredient name match 10, and ties keep the sort.
+// The result may be shared with other reads of the snapshot, so it must not
+// be mutated.
 export const searchRecipes = (
   recipes: Recipes,
   options: {
@@ -74,28 +125,22 @@ export const searchRecipes = (
     readonly sortBy: SortBy
   },
 ): ReadonlyArray<Recipe> => {
-  const live = recipes.all.filter((recipe) => recipe.deletedAt === null)
-  const sort = sorters[options.sortBy]
+  const sorted = sortedRecipes(recipes, options.sortBy)
   const query = foldCase(options.query.trim())
-  if (query === "") return live.sort(sort)
-  const weights = new Map<Recipe, number>()
-  for (const recipe of live) {
-    let weight = 0
-    if (foldCase(recipe.title).includes(query)) weight += 20
-    if (
-      recipe.ingredients.some((component) =>
-        component.ingredients.some((ingredient) =>
-          foldCase(ingredient.name).includes(query),
-        ),
-      )
-    ) {
-      weight += 10
-    }
-    if (weight > 0) weights.set(recipe, weight)
+  if (query === "") return sorted
+  // One list per score, each filled in sort order
+  const both: Array<Recipe> = []
+  const title: Array<Recipe> = []
+  const ingredient: Array<Recipe> = []
+  for (const recipe of sorted) {
+    const text = searchText(recipe)
+    const inTitle = text.title.includes(query)
+    const inIngredients = text.ingredients.includes(query)
+    if (inTitle && inIngredients) both.push(recipe)
+    else if (inTitle) title.push(recipe)
+    else if (inIngredients) ingredient.push(recipe)
   }
-  return Array.from(weights.keys()).sort(
-    (a, b) => weights.get(b)! - weights.get(a)! || sort(a, b),
-  )
+  return both.concat(title, ingredient)
 }
 
 // Decoding runs once per snapshot reload, however many reads share it.

@@ -16,7 +16,7 @@ import * as Effect from "effect/Effect"
 import * as Option from "effect/Option"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
-import React, { useState } from "react"
+import React, { useDeferredValue, useState } from "react"
 import {
   mealPlanRecipesAtom,
   mealPlanRecipesQueryAtom,
@@ -129,8 +129,9 @@ function SearchResults({
   getScrollElement: () => HTMLElement | null
   onSelect: (recipe: Recipe) => void
 }) {
-  const query = useAtomValue(mealPlanRecipesQueryAtom)
-  const recipes = useAtomValue(mealPlanRecipesAtom)
+  // Typing repaints the input first, as on the recipes page
+  const query = useDeferredValue(useAtomValue(mealPlanRecipesQueryAtom))
+  const recipes = useDeferredValue(useAtomValue(mealPlanRecipesAtom))
   return AsyncResult.builder(recipes)
     .onSuccess((recipes) => (
       <RecipeList

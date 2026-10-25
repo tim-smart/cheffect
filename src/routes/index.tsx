@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { useAtom, useAtomValue } from "@effect/atom-react"
-import { type Recipe, SortBy } from "@/domain/Recipe"
+import { useDeferredValue } from "react"
+import { SortBy } from "@/domain/Recipe"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -24,8 +25,11 @@ export const Route = createFileRoute("/")({
 })
 
 export default function CheffectHome() {
-  const recipes = useAtomValue(allRecipesAtom)
-  const searching = useAtomValue(recipeSearchQueryAtom) !== ""
+  // The search input repaints at once and the list follows in a background
+  // render, which the next keystroke interrupts, so typing never waits on
+  // the tiles
+  const recipes = useDeferredValue(useAtomValue(allRecipesAtom))
+  const searchQuery = useDeferredValue(useAtomValue(recipeSearchQueryAtom))
 
   return (
     <div className="page-wide pt-3 md:pt-6 pb-content!">
@@ -40,7 +44,7 @@ export default function CheffectHome() {
           </h2>
           {AsyncResult.isSuccess(recipes) && (
             <span className="ml-auto md:ml-4 text-sm text-muted-foreground tabular-nums">
-              {recipes.value.length} {searching ? "matching" : "saved"}
+              {recipes.value.length} {searchQuery !== "" ? "matching" : "saved"}
             </span>
           )}
         </div>
@@ -52,16 +56,13 @@ export default function CheffectHome() {
       <div className="space-y-4">
         {AsyncResult.builder(recipes)
           .onInitial(() => <RecipeListSkeleton />)
-          .onSuccess((recipes) => <WrappedList recipes={recipes} />)
+          .onSuccess((recipes) => (
+            <RecipeList recipes={recipes} searchQuery={searchQuery} />
+          ))
           .render()}
       </div>
     </div>
   )
-}
-
-function WrappedList({ recipes }: { recipes: ReadonlyArray<Recipe> }) {
-  const searchQuery = useAtomValue(recipeSearchQueryAtom)
-  return <RecipeList recipes={recipes} searchQuery={searchQuery} />
 }
 
 function SearchInput() {
