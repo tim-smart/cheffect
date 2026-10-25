@@ -15,7 +15,7 @@ import {
 import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { openAiApiKey, openAiModel } from "@/Settings"
+import { openAiApiKey, openAiApiUrl, openAiModel } from "@/Settings"
 import * as Option from "effect/Option"
 import * as HttpClient from "effect/http/HttpClient"
 import * as Schedule from "effect/Schedule"
@@ -40,6 +40,10 @@ export const openAiClientLayer = Atom.make((get) => {
   const modelOption = AsyncResult.value(get(openAiModel.atom)).pipe(
     Option.flatten,
   )
+  const apiUrl = AsyncResult.value(get(openAiApiUrl.atom)).pipe(
+    Option.flatten,
+    Option.getOrUndefined,
+  )
   if (Option.isNone(apiKeyOption) || Option.isNone(modelOption)) {
     return Layer.effect(OpenAiClient.OpenAiClient, Effect.never).pipe(
       Layer.merge(Layer.effect(LanguageModel.LanguageModel, Effect.never)),
@@ -51,6 +55,7 @@ export const openAiClientLayer = Atom.make((get) => {
     Layer.provideMerge(
       OpenAiClient.layer({
         apiKey: apiKeyOption.value,
+        apiUrl,
         transformClient: HttpClient.retryTransient({
           schedule: Schedule.min([
             Schedule.exponential(500, 1.5),
