@@ -6,6 +6,7 @@ import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
+import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import {
   layerHandlerTransaction,
   layerJournal,
@@ -30,7 +31,7 @@ import {
   makeFakeRemote,
   testIdentity,
 } from "./harness/eventlog"
-import { layerFreshIndexedDb } from "./harness/indexeddb"
+import { freshIndexedDb, layerFreshIndexedDb } from "./harness/indexeddb"
 
 // The recipes snapshot reloads only the records a write touched. After any
 // write it must hold what a full read of the table would: the same rows, in
@@ -42,6 +43,7 @@ const recipeEvent = RecipeEvents.events[RecipeEvent.tag]
 const device = (
   remote: FakeRemote,
   handlers: typeof RecipesLayer = RecipesLayer,
+  indexedDb: Layer.Layer<IndexedDb.IndexedDb> = layerFreshIndexedDb,
 ) => {
   const eventLog = EventLog.layer(EventLog.schema(RecipeEvents), handlers).pipe(
     Layer.provideMerge(layerJournal),
@@ -56,7 +58,7 @@ const device = (
     Layer.provideMerge(QueryBuilder.layer),
     Layer.provideMerge(layerDatabase),
     Layer.provideMerge(Reactivity.layer),
-    Layer.provideMerge(layerFreshIndexedDb),
+    Layer.provideMerge(indexedDb),
   )
 }
 
@@ -221,4 +223,45 @@ test("an invalidation without reported keys reloads the whole table", async () =
 
   assert.deepEqual(result.snapshot, result.table)
   assert.equal(result.snapshot.length, library.length + 1)
+})
+
+// Another tab writes to the same database. Its entry reaches this tab as a
+// duplicate in a remote batch, which invalidates the recipe without running
+// its handler here, next to a fresh entry whose handler reports its key.
+test("a remote batch with a duplicate entry still shows the duplicate's write", async () => {
+  const [fresh, duplicated] = library
+  const shared = Layer.succeed(IndexedDb.IndexedDb, freshIndexedDb())
+  const result = await Effect.gen(function* () {
+    const remote = yield* makeFakeRemote
+    const otherRemote = yield* makeFakeRemote
+    return yield* Effect.gen(function* () {
+      yield* writeEvents(library.map((r) => RecipeEvent.set(r)))
+      yield* settled((all) => all.length === library.length)
+      const entry = yield* Effect.gen(function* () {
+        yield* writeEvent(
+          recipeIngredientScale(duplicated.id, 5, DateTime.nowUnsafe()),
+        )
+        const entries = yield* EventLog.EventLog.use((log) => log.entries)
+        return entries.at(-1)!
+      }).pipe(
+        Effect.provide(Layer.fresh(device(otherRemote, RecipesLayer, shared))),
+      )
+      yield* remote.deliver([
+        entry,
+        makeEntry({
+          msecs: Date.now() + 1,
+          event: recipeEvent,
+          payload: recipeIngredientScale(fresh.id, 3, DateTime.nowUnsafe())
+            .payload,
+        }),
+      ])
+      const scale = (all: ReadonlyArray<Recipe>, target: Recipe) =>
+        all.find((r) => r.idString === target.idString)?.ingredientScale
+      return yield* settled(
+        (all) => scale(all, fresh) === 3 && scale(all, duplicated) === 5,
+      )
+    }).pipe(Effect.provide(device(remote, RecipesLayer, shared)))
+  }).pipe(Effect.runPromise)
+
+  assert.deepEqual(result.snapshot, result.table)
 })
