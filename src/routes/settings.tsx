@@ -28,6 +28,7 @@ import {
   aiCountry,
   mealPlanWeekStart,
   openAiApiKey,
+  openAiApiUrl,
   Setting,
   exportAllAtom,
   importAllAtom,
@@ -197,6 +198,19 @@ function SettingsPage() {
           >
             Create an OpenAI API key
           </a>
+          <SettingControl
+            setting={openAiApiUrl}
+            render={({ value, onChange, onBlur, onKeyDown }) => (
+              <Input
+                id={openAiApiUrl.name}
+                type="url"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={() => onBlur()}
+                onKeyDown={onKeyDown}
+              />
+            )}
+          />
           <SettingControl
             setting={aiChatModel}
             render={({ value, onChange, onBlur, onKeyDown }) => (

@@ -139,6 +139,15 @@ export const openAiApiKey = new Setting({
   ),
 })
 
+// Any OpenAI-compatible API can stand in for OpenAI.
+export const openAiApiUrl = new Setting({
+  name: "openAiApiUrl",
+  label: "OpenAI API URL",
+  schema: Schema.NonEmptyString,
+  schemaInput: OptionFromString,
+  initialValue: "https://api.openai.com/v1",
+})
+
 export const aiChatModel = new Setting({
   name: "aiChatModel",
   label: "AI chat model",
