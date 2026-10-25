@@ -3,7 +3,11 @@ import * as assert from "node:assert/strict"
 import * as Http from "node:http"
 import type { AddressInfo } from "node:net"
 import * as Zlib from "node:zlib"
-import { fetchPage, type FetchOptions } from "../server/fetchGuard"
+import {
+  fetchPage,
+  fetchResponse,
+  type FetchOptions,
+} from "../server/fetchGuard"
 
 // The importer's `/fetch` endpoint fetches whatever URL it is given, so it
 // only reaches public addresses, on every redirect, and gives up on pages
@@ -73,6 +77,13 @@ test("gives up on pages that are too large or too slow", async () => {
       if (req.url === "/large") {
         res.writeHead(200, { "content-type": "text/html" })
         res.end("x".repeat(10_000))
+      } else if (req.url === "/stalled-gzip") {
+        // part of a compressed body, then nothing
+        res.writeHead(200, {
+          "content-type": "text/html",
+          "content-encoding": "gzip",
+        })
+        res.write(Zlib.gzipSync("x".repeat(10_000)).subarray(0, 20))
       }
       // anything else never answers
     },
@@ -85,6 +96,32 @@ test("gives up on pages that are too large or too slow", async () => {
         fetchPage(`${base}/slow`, { ...loopbackOnly, timeoutMs: 200 }),
         504,
       )
+      await rejectsWith(
+        fetchPage(`${base}/stalled-gzip`, { ...loopbackOnly, timeoutMs: 200 }),
+        504,
+      )
+    },
+  )
+})
+
+// Pages are returned as plain text that browsers won't sniff, so opening a
+// `/fetch` link never runs the fetched page's scripts on the app's origin.
+test("a fetched page is never served as a document", async () => {
+  await withServer(
+    (_, res) => {
+      res.writeHead(200, { "content-type": "text/html" })
+      res.end("<script>alert(1)</script>")
+    },
+    async (base) => {
+      const { status, headers, body } = await fetchResponse(
+        `${base}/`,
+        loopbackOnly,
+      )
+      assert.equal(status, 200)
+      assert.equal(body, "<script>alert(1)</script>")
+      assert.equal(headers["content-type"], "text/plain; charset=utf-8")
+      assert.equal(headers["x-content-type-options"], "nosniff")
+      assert.equal(headers["content-security-policy"], "sandbox")
     },
   )
 })

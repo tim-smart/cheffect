@@ -99,7 +99,9 @@ and Serious Eats are two known examples.
 The Docker image serves `GET /fetch?url=...` and the Vercel build serves
 `/api/fetch?url=...`. Both fetch only public http(s) addresses. Private,
 loopback and link-local addresses are refused, every redirect is checked again,
-and fetches stop after 15 seconds or 2 MB. There is no authentication, so if it
+and fetches stop after 15 seconds or 2 MB. Pages come back as sandboxed plain
+text, so opening a `/fetch` link in a browser never runs the page's scripts on
+the app's origin. There is no authentication, so if it
 faces the internet anyone can use it to fetch pages. Put it behind your own
 reverse proxy or authentication if that matters to you.
 

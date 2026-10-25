@@ -3,6 +3,7 @@ import * as Http from "node:http"
 import * as Https from "node:https"
 import * as Net from "node:net"
 import * as Zlib from "node:zlib"
+import * as Stream from "node:stream"
 import type { Readable } from "node:stream"
 
 // Fetches a web page for the recipe importer, for the Docker server's `/fetch`
@@ -96,18 +97,25 @@ const guardedLookup =
     })
   }
 
+// `pipeline` destroys the decompressor when the response aborts or fails, so
+// a timeout ends the read instead of leaving it waiting for more bytes.
 const decompress = (response: Http.IncomingMessage): Readable => {
-  switch (response.headers["content-encoding"]) {
-    case "gzip":
-    case "x-gzip":
-      return response.pipe(Zlib.createGunzip())
-    case "deflate":
-      return response.pipe(Zlib.createInflate())
-    case "br":
-      return response.pipe(Zlib.createBrotliDecompress())
-    default:
-      return response
-  }
+  const decoder = (() => {
+    switch (response.headers["content-encoding"]) {
+      case "gzip":
+      case "x-gzip":
+        return Zlib.createGunzip()
+      case "deflate":
+        return Zlib.createInflate()
+      case "br":
+        return Zlib.createBrotliDecompress()
+      default:
+        return undefined
+    }
+  })()
+  return decoder === undefined
+    ? response
+    : Stream.pipeline(response, decoder, () => {})
 }
 
 const charset = (contentType: string): string => {
@@ -231,7 +239,9 @@ export interface FetchResponse {
 
 // The `/fetch?url=` answer: the page as text with the site's status, or an
 // error status with a short reason. Any origin may call it, because the app
-// can be served from anywhere.
+// can be served from anywhere. The page is the site's HTML but is served as
+// plain text, unsniffable and sandboxed: the endpoint shares the app's origin,
+// so a page opened from a `/fetch` link must never run as a document there.
 export const fetchResponse = async (
   url: string | null,
   options?: FetchOptions,
@@ -240,6 +250,8 @@ export const fetchResponse = async (
     "access-control-allow-origin": "*",
     "cache-control": "no-store",
     "content-type": "text/plain; charset=utf-8",
+    "x-content-type-options": "nosniff",
+    "content-security-policy": "sandbox",
   }
   if (url === null || url === "") {
     return { status: 400, headers, body: "The url parameter is required" }
@@ -247,13 +259,7 @@ export const fetchResponse = async (
   try {
     const page = await fetchPage(url, options)
     const ok = page.status >= 200 && page.status < 300
-    return {
-      status: page.status,
-      headers: ok
-        ? { ...headers, "content-type": "text/html; charset=utf-8" }
-        : headers,
-      body: ok ? page.body : "",
-    }
+    return { status: page.status, headers, body: ok ? page.body : "" }
   } catch (error) {
     const status = error instanceof FetchGuardError ? error.status : 502
     const message = error instanceof Error ? error.message : String(error)

@@ -60,14 +60,21 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
       )
 
       // Tried once: a site without CORS headers fails as a transport error,
-      // which retrying won't fix.
+      // which retrying won't fix. A site that never answers falls through to
+      // the endpoint after a deadline.
       const direct = (url: string) =>
-        client.get(url).pipe(Effect.flatMap((r) => r.text))
+        client.get(url).pipe(
+          Effect.flatMap((r) => r.text),
+          Effect.timeout("10 seconds"),
+        )
 
+      // The deadline covers every attempt, so a stalled endpoint still fails
+      // the import.
       const viaEndpoint = (url: string) =>
-        endpointClient
-          .execute(endpointRequest(endpoint, url))
-          .pipe(Effect.flatMap((r) => r.text))
+        endpointClient.execute(endpointRequest(endpoint, url)).pipe(
+          Effect.flatMap((r) => r.text),
+          Effect.timeout("1 minute"),
+        )
 
       const html = Effect.fn("PageFetcher.html")(function* (url: string) {
         return yield* direct(url).pipe(Effect.catch(() => viaEndpoint(url)))
