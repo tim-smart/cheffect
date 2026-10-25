@@ -19,8 +19,11 @@ export class CorsProxy extends Context.Service<CorsProxy>()("CorsProxy", {
         Effect.provideService(HttpClient.TracerPropagationEnabled, false),
       ),
       HttpClient.filterStatusOk,
+      // Transport errors, timeouts and 408/429/5xx responses, honouring
+      // Retry-After. Bot walls (402, 403) are not retried.
       HttpClient.retryTransient({
         schedule: Schedule.spaced(1000),
+        times: 3,
       }),
     )
 
