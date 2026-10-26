@@ -67,6 +67,7 @@ import {
   AiMemoryEntryIdFromString,
 } from "@/domain/AiMemoryEntry"
 import { AiChatTurnId, PromptJson } from "@/domain/AiChatTurn"
+import { attachmentType, inlineTextFiles } from "./Attachments"
 import { AiChatTurnEvent, AiMemoryEntryEvent } from "./Events"
 import { inactiveAt, isInactive, resumeTurn } from "./Inactivity"
 import { AiChatRepo } from "./Repo"
@@ -827,7 +828,7 @@ ${MenuEntry.toXml(entries)}`
           while (true) {
             yield* pipe(
               LanguageModel.streamText({
-                prompt: history,
+                prompt: inlineTextFiles(history),
                 toolkit: tools,
                 toolChoice: "auto",
               }),
@@ -1008,7 +1009,7 @@ const makeMessage = Effect.fnUntraced(function* (options: {
       )
       content.push(
         Prompt.filePart({
-          mediaType: file.type,
+          mediaType: attachmentType(file) ?? file.type,
           fileName: file.name,
           data,
         }),
