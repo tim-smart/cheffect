@@ -1,4 +1,5 @@
 import { AiChatModal } from "@/AiChat"
+import { QuickSearch } from "@/QuickSearch"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
@@ -130,6 +131,7 @@ export const Route = createRootRoute({
             <Outlet />
           </div>
           <AiChatModal />
+          <QuickSearch />
           <Toaster toastOptions={{ style: { bottom: "4rem" } }} />
         </main>
 
