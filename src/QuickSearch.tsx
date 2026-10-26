@@ -20,8 +20,9 @@ import { ChefHat } from "lucide-react"
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 // ⌘K on Apple keyboards, Ctrl+K elsewhere. Ctrl+K on a Mac deletes to the
-// end of the line in text fields, so it is left to do that
-const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.platform)
+// end of the line in text fields, so it is left to do that. Apple keyboards
+// are told apart as the chat's ⌘J does
+const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
 
 const isShortcut = (e: KeyboardEvent) =>
   e.key.toLowerCase() === "k" &&
@@ -55,17 +56,20 @@ export function QuickSearch() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isShortcut(e)) return
       // The shortcut closes the search as it opened it, but leaves other
-      // dialogs, popovers and menus alone: they hold the focus, and opening
-      // over them would stack modals
+      // dialogs, popovers, menus and lists alone, as the chat's shortcut
+      // does: they hold the focus, and opening over them would stack modals
       if (
         !open &&
         e.target instanceof Element &&
-        e.target.closest("[role=dialog], [role=alertdialog], [role=menu]") !==
-          null
+        e.target.closest(
+          "[role=dialog], [role=alertdialog], [role=menu], [role=listbox]",
+        ) !== null
       ) {
         return
       }
       e.preventDefault()
+      // a held key would open and close the search on every repeat
+      if (e.repeat) return
       if (!open && document.activeElement instanceof HTMLElement) {
         returnFocus.current = document.activeElement
       }

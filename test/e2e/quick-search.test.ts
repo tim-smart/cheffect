@@ -23,8 +23,18 @@ const ctrl = 2
 const meta = 4
 
 const keyboards = [
-  { name: "Ctrl+K", platform: "Linux x86_64", modifier: ctrl, other: meta },
-  { name: "⌘K on a Mac", platform: "MacIntel", modifier: meta, other: ctrl },
+  {
+    name: "Ctrl+K",
+    userAgent: "Mozilla/5.0 (X11; Linux x86_64)",
+    modifier: ctrl,
+    other: meta,
+  },
+  {
+    name: "⌘K on a Mac",
+    userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    modifier: meta,
+    other: ctrl,
+  },
 ]
 
 const type = (browser: Browser, input: string, value: string) =>
@@ -162,7 +172,7 @@ for (const keyboard of keyboards) {
           )
         },
         {
-          init: `Object.defineProperty(Navigator.prototype, "platform", { get: () => ${JSON.stringify(keyboard.platform)} })`,
+          init: `Object.defineProperty(Navigator.prototype, "userAgent", { get: () => ${JSON.stringify(keyboard.userAgent)} })`,
         },
       ),
   )
