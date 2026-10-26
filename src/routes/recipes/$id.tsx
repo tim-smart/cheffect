@@ -541,7 +541,9 @@ export function RecipeDetails({
 // Rated in place: a tap on a star saves it, a tap on the chosen star clears
 // it. There is no form to open and nothing to submit, so rating a recipe is
 // one touch at the end of cooking it. Each star is a thumb-sized target with
-// the icon centred, pulled in at the sides so the row's spacing holds
+// the icon centred, pulled in at the sides so the row's spacing holds. An
+// empty star is outlined in the row's own ink, which clears 3:1 against the
+// page in both themes; a lighter tint did not
 function RecipeRating({ recipe }: { recipe: Recipe }) {
   const write = useWrite()
   const rating = recipe.rating === null ? null : Math.round(recipe.rating)
@@ -563,7 +565,7 @@ function RecipeRating({ recipe }: { recipe: Recipe }) {
         <RatingButton
           key={i}
           size={22}
-          className="flex size-9 items-center justify-center text-muted-foreground/40 transition-[color,scale] duration-150 motion-safe:active:scale-90 data-[active=true]:text-primary"
+          className="flex size-9 items-center justify-center text-muted-foreground transition-[color,scale] duration-150 motion-safe:active:scale-90 data-[active=true]:text-primary"
         />
       ))}
     </RatingUi>

@@ -188,32 +188,42 @@ export const Rating = ({
       }
 
       const total = Children.count(children)
-      let newValue = focusedStar !== null ? focusedStar : (value ?? 0)
+      const current = focusedStar ?? value ?? 0
+      let next: number
 
       switch (event.key) {
         case "ArrowRight":
-          if (event.shiftKey || event.metaKey) {
-            newValue = total
-          } else {
-            newValue = Math.min(total, newValue + 1)
-          }
+        case "ArrowDown":
+          next =
+            event.shiftKey || event.metaKey
+              ? total
+              : Math.min(total, current + 1)
           break
         case "ArrowLeft":
-          if (event.shiftKey || event.metaKey) {
-            newValue = 1
-          } else {
-            newValue = Math.max(1, newValue - 1)
-          }
+        case "ArrowUp":
+          next = event.shiftKey || event.metaKey ? 1 : Math.max(1, current - 1)
+          break
+        case "Home":
+          next = 1
+          break
+        case "End":
+          next = total
           break
         default:
           return
       }
 
       event.preventDefault()
-      setFocusedStar(newValue)
-      handleValueChange(event, newValue)
+      setFocusedStar(next)
+      // The arrows choose as they move, like a radio group, and a key at
+      // the end of the row stays where it is. Only a click on the chosen
+      // star clears the rating, so the keys never go through the toggle
+      if (next !== value) {
+        onChange?.(event, next)
+        onValueChange?.(next)
+      }
     },
-    [focusedStar, value, children, readOnly, handleValueChange],
+    [focusedStar, value, children, readOnly, onChange, onValueChange],
   )
 
   useEffect(() => {
