@@ -12,7 +12,7 @@ export const Route = createFileRoute("/add")({
 
 function AddRecipe() {
   const write = useWrite()
-  async function onSubmit(data: typeof RecipeFormSchema.schema.Type) {
+  async function onSubmit(data: typeof RecipeFormSchema.Type) {
     const recipe = Schema.decodeSync(RecipeInsert)(data)
     await write(RecipeEvent.set(recipe))
     router.navigate({ to: "/recipes/$id", params: { id: recipe.idString } })

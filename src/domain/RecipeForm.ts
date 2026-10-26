@@ -1,14 +1,13 @@
 import * as DateTime from "effect/DateTime"
-import { FormBody } from "@/lib/Form"
+import { Field, FormBuilder } from "@lucas-barake/effect-form"
 import {
-  DurationInput,
-  NumberInputOrNull,
-  RatingInput,
-  SelectWithLiteralsOrNull,
-  TextArea,
-  TextInput,
-  TextInputOrNull,
-} from "@/lib/InatoForm"
+  DurationOrNull,
+  LiteralsOrNull,
+  NumberOrNull,
+  RatingOrNull,
+  RequiredString,
+  StringOrNull,
+} from "@/lib/Form"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import {
@@ -20,61 +19,66 @@ import {
   Unit,
 } from "./Recipe"
 import { generateUuidBytes } from "@/lib/Id"
-import * as Array from "effect/Array"
 
-export const RecipeFormSchema = FormBody.struct({
-  title: TextInput.Required,
-  imageUrl: TextInputOrNull,
-  prepTime: DurationInput,
-  cookingTime: DurationInput,
-  servings: NumberInputOrNull,
-  ingredients: {
-    ...FormBody.array(
-      FormBody.struct({
-        name: TextInput.Required,
-        ingredients: {
-          ...FormBody.array(
-            FormBody.struct({
-              name: TextInput.Required,
-              quantity: NumberInputOrNull,
-              unit: SelectWithLiteralsOrNull(Unit.literals),
-            }),
-          ),
-          defaultValue: Array.makeBy(3, () => ({
-            name: "",
-            quantity: "",
-            unit: "",
-          })),
-        },
-      }),
-    ),
-    defaultValue: [
-      {
-        name: "",
-        ingredients: Array.makeBy(3, () => ({
-          name: "",
-          quantity: "",
-          unit: "",
-        })),
-      },
-    ],
-  },
-  steps: {
-    ...FormBody.array(
-      FormBody.struct({
-        text: TextArea.Required,
-        tips: FormBody.array(TextInput.Required),
-      }),
-    ),
-    defaultValue: [{ text: "", tips: [] }],
-  },
-  rating: RatingInput.Optional,
-  sourceName: TextInputOrNull,
-  sourceUrl: TextInputOrNull,
+export const IngredientFormSchema = Schema.Struct({
+  name: RequiredString,
+  quantity: NumberOrNull,
+  unit: LiteralsOrNull(Unit.literals),
 })
 
+export const IngredientsComponentFormSchema = Schema.Struct({
+  name: RequiredString,
+  ingredients: Schema.Array(IngredientFormSchema),
+})
+
+export const StepFormSchema = Schema.Struct({
+  text: RequiredString,
+  tips: Schema.Array(RequiredString),
+})
+
+export const RecipeFormBuilder = FormBuilder.empty
+  .addField("title", RequiredString)
+  .addField("imageUrl", StringOrNull)
+  .addField("prepTime", DurationOrNull)
+  .addField("cookingTime", DurationOrNull)
+  .addField("servings", NumberOrNull)
+  .addField(Field.makeArrayField("ingredients", IngredientsComponentFormSchema))
+  .addField(Field.makeArrayField("steps", StepFormSchema))
+  .addField("rating", RatingOrNull)
+  .addField("sourceName", StringOrNull)
+  .addField("sourceUrl", StringOrNull)
+
+export const RecipeFormSchema = FormBuilder.buildSchema(RecipeFormBuilder)
+
+export const emptyIngredient: typeof IngredientFormSchema.Encoded = {
+  name: "",
+  quantity: "",
+  unit: "",
+}
+
+export const emptyIngredientsComponent: typeof IngredientsComponentFormSchema.Encoded =
+  {
+    name: "",
+    ingredients: [emptyIngredient, emptyIngredient, emptyIngredient],
+  }
+
+export const emptyStep: typeof StepFormSchema.Encoded = { text: "", tips: [] }
+
+export const emptyRecipeForm: typeof RecipeFormSchema.Encoded = {
+  title: "",
+  imageUrl: "",
+  prepTime: "",
+  cookingTime: "",
+  servings: "",
+  ingredients: [emptyIngredientsComponent],
+  steps: [emptyStep],
+  rating: "",
+  sourceName: "",
+  sourceUrl: "",
+}
+
 const decodeFromForm = (
-  input: typeof RecipeFormSchema.schema.Type,
+  input: typeof RecipeFormSchema.Type,
 ): ConstructorParameters<typeof Recipe>[0] => ({
   ...input,
   id: RecipeId.make(generateUuidBytes()),
@@ -93,12 +97,12 @@ const decodeFromForm = (
 })
 
 export const RecipeCreate = Schema.revealCodec(
-  RecipeFormSchema.schema.pipe(
+  RecipeFormSchema.pipe(
     Schema.decodeTo(
       Schema.toType(Recipe.jsonCreate),
       SchemaTransformation.transform<
         typeof Recipe.jsonCreate.Type,
-        typeof RecipeFormSchema.schema.Type
+        typeof RecipeFormSchema.Type
       >({
         decode: decodeFromForm,
         encode: (recipe) => recipe,
@@ -108,13 +112,10 @@ export const RecipeCreate = Schema.revealCodec(
 )
 
 export const RecipeInsert = Schema.revealCodec(
-  Schema.toType(RecipeFormSchema.schema).pipe(
+  Schema.toType(RecipeFormSchema).pipe(
     Schema.decodeTo(
       Schema.toType(Recipe),
-      SchemaTransformation.transform<
-        Recipe,
-        typeof RecipeFormSchema.schema.Type
-      >({
+      SchemaTransformation.transform<Recipe, typeof RecipeFormSchema.Type>({
         decode: (input) => Recipe.make(decodeFromForm(input)),
         encode: (recipe) => recipe,
       }),
