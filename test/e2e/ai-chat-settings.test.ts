@@ -66,7 +66,10 @@ test(
       )
       await browser.waitFor(`!!${input}`)
       await send("What is in season?")
-      assert.equal(await browser.evaluate(`window.__chatRequests.length`), 1)
+      assert.deepEqual(
+        await browser.evaluate(`window.__chatRequests.map((r) => r.url)`),
+        ["https://api.openai.com/v1/responses"],
+      )
       assert.deepEqual(await browser.evaluate(bubbles), [
         "What is in season?",
         "Pumpkins are in season.",
