@@ -489,6 +489,7 @@ export function RecipeDetails({
                 ref={(el) => {
                   stepElements[stepIndex] = el!
                 }}
+                aria-current={currentStep === stepIndex ? "step" : undefined}
                 className={`rounded-xl px-2 py-2.5 transition-colors ${
                   currentStep === stepIndex
                     ? "bg-primary-muted"
@@ -587,6 +588,7 @@ function IngredientDropdown({ recipe }: { recipe: Recipe }) {
           variant="ghost"
           size="sm"
           className="p-2 hover:bg-border active:bg-border"
+          aria-label="Ingredient options"
         >
           <MoreVertical />
         </Button>

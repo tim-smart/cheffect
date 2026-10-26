@@ -61,10 +61,10 @@ test(
         rows: Array<string>
         bubbles: Array<string>
       }>(`(() => {
-        const messages = document.querySelector(".lucide-globe").closest(".overflow-y-auto")
+        const messages = document.querySelector('[role="log"]')
         return {
-          rows: [...messages.querySelectorAll(".lucide-globe")].map((icon) => icon.parentElement.textContent),
-          bubbles: [...messages.querySelectorAll(".rounded-2xl")].map((bubble) => bubble.textContent.trim()),
+          rows: [...messages.querySelectorAll("button[aria-expanded]")].map((row) => row.textContent),
+          bubbles: [...messages.querySelectorAll('[role="article"]')].map((bubble) => bubble.textContent.trim()),
         }
       })()`)
       assert.deepEqual(rendered.rows, [

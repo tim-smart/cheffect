@@ -207,7 +207,7 @@ export function MealPlanPage() {
             </Button>
 
             <div className="text-center flex-1 flex flex-col items-center gap-0.5">
-              <span className="text-sm font-medium">
+              <h2 className="text-sm font-medium">
                 {DateTime.formatUtc(weekStart, {
                   month: "short",
                   day: "numeric",
@@ -220,7 +220,7 @@ export function MealPlanPage() {
                     day: "numeric",
                   }),
                 )}
-              </span>
+              </h2>
               {isCurrentWeek ? (
                 <span className="inline-flex items-center h-6 text-xs text-muted-foreground">
                   This week
@@ -286,7 +286,7 @@ function WeekList({
   const notesByDay = latestNoteByDay(dayNotes)
 
   return (
-    <div className="divide-y divide-border">
+    <div role="list" className="divide-y divide-border">
       {weekDays.map((date, weekDay) => {
         const isTodayDate = isToday(date)
         const dayEntries = entries.filter((entry) =>
@@ -380,7 +380,10 @@ function DayListItem({
     // On desktops each day is a row of the week's agenda: the day and its
     // buttons in a column on the left, its meals and note beside them. The
     // grid places things; the DOM keeps the order the keyboard follows
-    <div className="py-2.5 md:py-4 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-x-6">
+    <div
+      role="listitem"
+      className="py-2.5 md:py-4 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-x-6"
+    >
       {/* Day Header with Add Button */}
       <div className="w-full flex items-center justify-between md:contents">
         <div className="flex items-center gap-3 flex-1 md:col-start-1 md:row-start-1">

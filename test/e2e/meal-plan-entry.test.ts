@@ -19,11 +19,11 @@ const watchScreens = `(() => {
     for (const record of records) for (const node of record.addedNodes) {
       if (node.nodeType !== 1) continue
       window.__screens.push({
-        recipes: !!node.querySelector("h2"),
+        recipes: !!node.querySelector('[aria-label="Sort recipes"]'),
         week: !!node.querySelector('button[aria-label="Add a meal"]'),
       })
     }
-  }).observe(document.querySelector("#root > div > main"), { childList: true })
+  }).observe(document.querySelector("main"), { childList: true })
   return true
 })()`
 
@@ -54,7 +54,7 @@ test(
       await browser.waitFor(`(() => {
         const empty = [...document.querySelectorAll("main p")].find((p) => p.textContent === "Nothing planned")
         if (!empty) return false
-        empty.closest(".divide-y > div").setAttribute("data-test-day", "")
+        empty.closest('[role="listitem"]').setAttribute("data-test-day", "")
         return true
       })()`)
       const day = `document.querySelector("[data-test-day]")`

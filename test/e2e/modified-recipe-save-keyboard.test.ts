@@ -118,7 +118,7 @@ const sse = (events: ReadonlyArray<{ type: string }>) =>
 const chatInput = `document.querySelector('textarea[placeholder="Type your message..."]')`
 const banner = `document.querySelector('[role="status"]')`
 const saveButton = `[...${banner}.querySelectorAll("button")].find((b) => b.textContent === "Save")`
-const highlightedStep = `[...document.querySelectorAll(".space-y-0\\\\.5 > div")].findIndex((step) => step.classList.contains("bg-primary-muted"))`
+const currentStep = `document.querySelector('[aria-current="step"] p')?.textContent`
 
 test(
   "Space on the banner's Save button saves the assistant's edits without changing the step",
@@ -173,15 +173,15 @@ test(
         editedTitle,
         "the page shows the edit before saving",
       )
-      assert.equal(await browser.evaluate(highlightedStep), 0)
+      assert.equal(await browser.evaluate(currentStep), "Mix.")
 
       // Save with the keyboard
       await browser.evaluate(`(${saveButton}).focus()`)
       await browser.press(" ", "Space", 32)
       await browser.waitFor(`!${banner}`)
       assert.equal(
-        await browser.evaluate(highlightedStep),
-        0,
+        await browser.evaluate(currentStep),
+        "Mix.",
         "the step did not change",
       )
       assert.equal(

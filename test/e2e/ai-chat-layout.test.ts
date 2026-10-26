@@ -10,7 +10,7 @@ import { type Browser, hasChromium, sleep, withSeededApp } from "./harness"
 // the geometry the iOS 26.3 simulator logged on an iPhone 17 Pro.
 
 const input = `document.querySelector('textarea[placeholder="Type your message..."]')`
-const panel = `(${input}).closest(".fixed")`
+const panel = `document.querySelector('[role="region"][aria-label="AI Sous-chef"]')`
 const maximize = `document.querySelector('button[aria-label="Maximize chat"]')`
 const restore = `document.querySelector('button[aria-label="Restore chat size"]')`
 const hideKeyboard = `document.querySelector('button[aria-label="Hide keyboard"]')`

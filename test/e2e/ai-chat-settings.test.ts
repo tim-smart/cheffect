@@ -8,7 +8,7 @@ const sse = fixture
   .join("")
 const input = `document.querySelector('textarea[placeholder="Type your message..."]')`
 const submit = `(${input}).closest("form").querySelector('button[type="submit"]')`
-const bubbles = `[...(${input}).closest("form").parentElement.querySelectorAll(".rounded-2xl")].map((bubble) => bubble.textContent.trim())`
+const bubbles = `[...document.querySelectorAll('[role="log"] [role="article"]')].map((bubble) => bubble.textContent.trim())`
 
 test(
   "changing OpenAI settings does not replay chat and applies to the next send",
@@ -36,7 +36,8 @@ test(
         const originalFetch = window.fetch
         window.fetch = async (input, init) => {
           const request = new Request(input, init)
-          if (request.url.startsWith("https://api.openai.com/") || request.url.startsWith("https://llm.example.com/")) {
+          // only the API URLs the settings name, the default and the custom one
+          if (request.url.startsWith("https://api.openai.com/v1/") || request.url.startsWith("https://llm.example.com/v1/")) {
             window.__chatRequests.push({
               url: request.url,
               authorization: request.headers.get("authorization"),

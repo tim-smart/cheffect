@@ -172,6 +172,8 @@ function ModalContent({
           covers exactly the visible part of the page. Desktop: a panel above
           the floating buttons, or most of the window when maximized. */}
       <div
+        role="region"
+        aria-label="AI Sous-chef"
         className={cn(
           "flex flex-col fixed z-50 bg-background shadow-2xl inset-x-0 overscroll-none",
           viewport.obstructed
@@ -232,6 +234,8 @@ function ModalContent({
         {/* Messages */}
         <div
           ref={scrollRef}
+          role="log"
+          aria-label="Messages"
           className={cn(
             "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 bg-card",
             cramped && "hidden",
@@ -333,6 +337,7 @@ function MessagesList({
             className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
+              role="article"
               className={cn(
                 // 60ch of text plus the px-4 padding, but never wider
                 // than 90% of the panel on narrow screens

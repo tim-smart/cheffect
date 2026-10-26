@@ -14,7 +14,7 @@ import fixture from "../fixtures/openai-web-search-stream.json" with { type: "js
 
 const input = `document.querySelector('textarea[placeholder="Type your message..."]')`
 const submit = `(${input}).closest("form").querySelector('button[type="submit"]')`
-const rows = `[...document.querySelectorAll('.overflow-y-auto button[aria-expanded]')].map((row) => row.textContent.trim())`
+const rows = `[...document.querySelectorAll('[role="log"] button[aria-expanded]')].map((row) => row.textContent.trim())`
 
 const sse = (event: object) =>
   `event: ${(event as { type: string }).type}\ndata: ${JSON.stringify(event)}\n\n`
@@ -215,7 +215,7 @@ test(
       ])
 
       await browser.click(
-        `document.querySelector('.overflow-y-auto a[href="/groceries?list=Party"]')`,
+        `document.querySelector('[role="log"] a[href="/groceries?list=Party"]')`,
       )
       await browser.waitFor(`location.pathname === "/groceries"`)
       await browser.waitFor(
