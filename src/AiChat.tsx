@@ -39,13 +39,12 @@ import { router, scrollRestorationKey } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
 
-// ⌘/ on Apple keyboards and Ctrl+/ elsewhere opens and closes the chat. No
-// browser binds Ctrl+/, and Safari's ⌘/ only toggles its status bar. Ctrl+J
-// is Downloads in Chrome and Edge, ⌘. is Stop in Firefox, and ⌘; checks
-// spelling in the message field
+// ⌘J on Apple keyboards and Ctrl+J elsewhere opens and closes the chat, where
+// other apps put their assistant. In Chrome and Edge on Windows and Linux
+// this takes Ctrl+J from Downloads while the app has focus
 const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
-const toggleShortcut = isApple ? "⌘/" : "Ctrl+/"
-const toggleKeyShortcuts = isApple ? "Meta+/" : "Control+/"
+const toggleShortcut = isApple ? "⌘J" : "Ctrl+J"
+const toggleKeyShortcuts = isApple ? "Meta+J" : "Control+J"
 // layers that hold focus until they close, and get the shortcut's key
 const modalLayers =
   "[role=dialog], [role=alertdialog], [role=menu], [role=listbox]"
@@ -132,16 +131,17 @@ export function AiChatModal() {
   }, [isOpen])
 
   // The shortcut works from anywhere, the message field included: it needs
-  // the modifier, so it never takes a key that would type text. Shift is
-  // fine, as some layouts need it for "/", but not Alt: AltGr is Ctrl+Alt
-  // on Windows, and types "/" on some layouts. A dialog or menu keeps the
-  // key, since the chat can't take focus from it
+  // the modifier, so it never takes a key that would type text. Not with
+  // Shift, which is the browsers' developer tools, or Alt, as AltGr is
+  // Ctrl+Alt on Windows. A dialog or menu keeps the key, since the chat
+  // can't take focus from it
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
-        e.key !== "/" ||
+        (e.key !== "j" && e.key !== "J") ||
         (isApple ? !e.metaKey || e.ctrlKey : !e.ctrlKey || e.metaKey) ||
         e.altKey ||
+        e.shiftKey ||
         (e.target instanceof Element && e.target.closest(modalLayers) !== null)
       ) {
         return

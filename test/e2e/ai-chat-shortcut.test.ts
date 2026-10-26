@@ -2,7 +2,7 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import { hasChromium, journalSettled, withSeededApp } from "./harness"
 
-// Ctrl+/ (⌘/ on Apple keyboards) opens the chat from anywhere and closes it
+// Ctrl+J (⌘J on Apple keyboards) opens the chat from anywhere and closes it
 // again, from the message field too, and focus goes back where it was. An
 // open menu keeps the key. Chromium here runs on Linux, so Ctrl.
 
@@ -14,7 +14,7 @@ const recipeOptions = `document.querySelector('[aria-label="Recipe options"]')`
 const ctrl = 2
 
 test(
-  "Ctrl+/ toggles the AI chat and returns focus",
+  "Ctrl+J toggles the AI chat and returns focus",
   { skip: !hasChromium && "chromium not found", timeout: 120_000 },
   async () =>
     withSeededApp(async ({ browser, base, recipeId }) => {
@@ -34,10 +34,10 @@ test(
       await browser.waitFor(`!!${recipeOptions}`)
       assert.equal(
         await browser.evaluate(`(${chatButton}).title`),
-        "AI Sous-chef (Ctrl+/)",
+        "AI Sous-chef (Ctrl+J)",
         "the chat button names its shortcut",
       )
-      const toggle = () => browser.press("/", "Slash", 191, ctrl)
+      const toggle = () => browser.press("j", "KeyJ", 74, ctrl)
 
       // nothing had focus, so closing leaves it on the chat button
       await toggle()
@@ -51,7 +51,7 @@ test(
       assert.equal(
         await browser.evaluate(`(${input}).value`),
         "",
-        "no / was typed",
+        "no j was typed",
       )
 
       // closing returns focus to the control that had it
