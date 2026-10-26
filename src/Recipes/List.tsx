@@ -40,7 +40,10 @@ export const RecipeList = memo(function RecipeList({
   const tileColumns = useTileColumns()
   const columns = tiles ? tileColumns : 1
   const rowCount = Math.ceil(recipes.length / columns)
-  const tileRowHeight = useRef(tileColumns > 2 ? 296 : 218)
+  const [initialTileRowHeight] = useState(() =>
+    rememberedTileRowHeight(tileColumns),
+  )
+  const tileRowHeight = useRef(initialTileRowHeight)
   const virtualizer = getScrollElement
     ? useVirtualizer({
         count: recipes.length,
@@ -62,8 +65,8 @@ export const RecipeList = memo(function RecipeList({
 
   // Every tile row is the same height, but how tall depends on the width of
   // a column, which the photos keep in proportion to. The height is read off
-  // a mounted row and becomes the estimate for all of them, so the rows above
-  // a restored scroll position are placed exactly where they were
+  // a mounted row, remembered for the next mount at this width, and made the
+  // estimate for every row of this one
   const tileRows = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     const row = tileRows.current?.firstElementChild
@@ -72,7 +75,14 @@ export const RecipeList = memo(function RecipeList({
     const height = Math.round(row.getBoundingClientRect().height)
     if (height === 0 || height === tileRowHeight.current) return
     tileRowHeight.current = height
+    rememberTileRowHeight(height)
+    // Drops every row's size so the next layout takes the new estimate. The
+    // layout is only rebuilt when it is next read, and a row the browser
+    // re-measures before then is compared against the old one and pins the
+    // rebuild to its own index, leaving the rows above it where they were;
+    // so it is read now
     virtualizer.measure()
+    virtualizer.getTotalSize()
   })
 
   // Rows that mount in the first moments rise in, staggered by their place
@@ -166,6 +176,37 @@ export const RecipeList = memo(function RecipeList({
     </div>
   )
 })
+
+// The height of a tile row at a viewport width, kept where the router keeps
+// the scroll position it goes with, so a list that mounts at a restored
+// position, on the way back from a recipe or after a reload, places every
+// row where it was before its first paint. Until a row has been measured at
+// this width, the breakpoint's typical height stands in
+const tileRowHeightKey = "cheffect:tileRowHeight"
+
+function rememberedTileRowHeight(columns: number) {
+  try {
+    const remembered = sessionStorage.getItem(tileRowHeightKey)
+    if (remembered !== null) {
+      const [width, height] = remembered.split(":").map(Number)
+      if (width === document.documentElement.clientWidth) return height
+    }
+  } catch {
+    // storage is unavailable; the typical height will do
+  }
+  return columns > 2 ? 296 : 218
+}
+
+function rememberTileRowHeight(height: number) {
+  try {
+    sessionStorage.setItem(
+      tileRowHeightKey,
+      `${document.documentElement.clientWidth}:${height}`,
+    )
+  } catch {
+    // storage is unavailable; the next mount measures again
+  }
+}
 
 // How many tiles fit a row: the same breakpoints as the grid's classes, so
 // the virtualizer slices rows the way the grid lays them out

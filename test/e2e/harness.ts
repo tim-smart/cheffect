@@ -429,7 +429,8 @@ const getServer = () =>
 
 /**
  * Opens the app in a fresh browser context so the dev seed runs, and passes
- * the id of a seeded recipe to `f`.
+ * the id of a seeded recipe to `f`. `init` runs in the page before the app
+ * does, for settings the seed reads.
  */
 export const withSeededApp = async (
   f: (app: {
@@ -437,10 +438,12 @@ export const withSeededApp = async (
     readonly base: string
     readonly recipeId: string
   }) => Promise<void>,
+  { init }: { readonly init?: string } = {},
 ) => {
   const base = await getServer()
   const browser = await openPage(await getChromium())
   try {
+    if (init !== undefined) await browser.addInitScript(init)
     // the dev server seeds recipes into an empty store; the first load
     // transforms every module
     await browser.navigate(`${base}/`)
