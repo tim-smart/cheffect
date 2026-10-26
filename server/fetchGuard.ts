@@ -35,8 +35,21 @@ export interface FetchOptions {
   readonly isAllowedAddress?: (address: string) => boolean
 }
 
-const userAgent =
+const desktopUserAgent =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+
+const mobileUserAgent =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+
+// YouTube's desktop pages for Shorts run past the size limit. A mobile browser
+// is redirected to m.youtube.com, whose pages are half the size and carry the
+// same video details.
+export const userAgentFor = (url: URL): string => {
+  const host = url.hostname.toLowerCase()
+  return host === "youtube.com" || host.endsWith(".youtube.com")
+    ? mobileUserAgent
+    : desktopUserAgent
+}
 
 const blocked = new Net.BlockList()
 for (const [network, prefix] of [
@@ -143,7 +156,7 @@ const request = (
       lookup: guardedLookup(options.isAllowedAddress),
       signal,
       headers: {
-        "user-agent": userAgent,
+        "user-agent": userAgentFor(url),
         accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "accept-language": "en-US,en;q=0.9",

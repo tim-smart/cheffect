@@ -7,6 +7,7 @@ import {
   fetchPage,
   fetchResponse,
   type FetchOptions,
+  userAgentFor,
 } from "../server/fetchGuard"
 
 // The importer's `/fetch` endpoint fetches whatever URL it is given, so it
@@ -123,5 +124,15 @@ test("a fetched page is never served as a document", async () => {
       assert.equal(headers["x-content-type-options"], "nosniff")
       assert.equal(headers["content-security-policy"], "sandbox")
     },
+  )
+})
+
+test("YouTube is fetched as a phone, so Shorts pages fit the size limit", () => {
+  const mobile = userAgentFor(new URL("https://www.youtube.com/watch?v=x"))
+  assert.match(mobile, /iPhone/)
+  assert.equal(userAgentFor(new URL("https://m.youtube.com/watch?v=x")), mobile)
+  assert.doesNotMatch(
+    userAgentFor(new URL("https://notyoutube.com/recipe")),
+    /iPhone/,
   )
 })
