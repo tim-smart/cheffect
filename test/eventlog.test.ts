@@ -5,13 +5,13 @@ import * as Layer from "effect/Layer"
 import * as ManagedRuntime from "effect/ManagedRuntime"
 import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as EventLogEncryption from "effect/eventlog/EventLogEncryption"
 import * as KeyValueStore from "effect/persistence/KeyValueStore"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import * as AtomRegistry from "effect/reactivity/AtomRegistry"
-import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import {
   durabilityBarrier,
   identityKey,
@@ -21,12 +21,9 @@ import {
   resolveSyncUrl,
 } from "@/EventLog"
 import { QueryBuilder, databaseBlockedAtom, layerDatabase } from "@/IndexedDb"
+import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { RecipeExtractJob } from "@/domain/RecipeExtractJob"
-import {
-  countRecords,
-  freshIndexedDb,
-  layerFreshIndexedDb,
-} from "./harness/indexeddb"
+import { freshIndexedDb, layerFreshIndexedDb } from "./harness/indexeddb"
 
 // The identity is a kvs setting like the server URL and Enable Sync: it is
 // read and written through the schema store that `Atom.kvs` uses, so the
@@ -219,10 +216,9 @@ test("the durability barrier spans the cheffect tables and the journal's entries
     Layer.provideMerge(Reactivity.layer),
     Layer.provideMerge(layerFreshIndexedDb),
   )
-  const counts = await Effect.gen(function* () {
+  const reopened = await Effect.gen(function* () {
     const db = yield* QueryBuilder
     const journal = yield* EventJournal.EventJournal
-    const { indexedDB } = yield* IndexedDb.IndexedDb
 
     yield* db.from("recipeExtractJobs").insert(
       RecipeExtractJob.insert.make({
@@ -238,12 +234,37 @@ test("the durability barrier spans the cheffect tables and the journal's entries
     })
     yield* durabilityBarrier
 
-    // what the next page load would see through its own connections
+    // what the next page load reads through its own connections
+    const jobs = yield* RecipeExtractJobRepo.use((repo) =>
+      Stream.runHead(repo.pending),
+    ).pipe(
+      Effect.provide(
+        Layer.fresh(
+          RecipeExtractJobRepo.layer.pipe(
+            Layer.provideMerge(QueryBuilder.layer),
+            Layer.provideMerge(layerDatabase),
+            Layer.provideMerge(Reactivity.layer),
+          ),
+        ),
+      ),
+    )
+    const entries = yield* EventJournal.EventJournal.use(
+      (journal) => journal.entries,
+    ).pipe(
+      Effect.provide(
+        Layer.fresh(
+          EventJournal.layerIndexedDb({ database: journalDatabaseName }),
+        ),
+      ),
+    )
     return {
-      jobs: yield* countRecords(indexedDB, "cheffect", "recipeExtractJobs"),
-      entries: yield* countRecords(indexedDB, journalDatabaseName, "entries"),
+      jobs: Option.map(jobs, (rows) => rows.map((job) => job.url)),
+      entries: entries.map((entry) => entry.primaryKey),
     }
-  }).pipe(Effect.provide(layer), Effect.runPromise)
+  }).pipe(Effect.scoped, Effect.provide(layer), Effect.runPromise)
 
-  assert.deepEqual(counts, { jobs: 1, entries: 1 })
+  assert.deepEqual(reopened, {
+    jobs: Option.some(["https://example.com/soup"]),
+    entries: ["k"],
+  })
 })

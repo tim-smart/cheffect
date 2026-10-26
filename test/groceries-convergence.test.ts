@@ -15,6 +15,8 @@ import {
   IngredientAisleEvent,
   IngredientAliasEvent,
 } from "@/Groceries/Events"
+import { canonicalName } from "@/Groceries/aliases"
+import { GroceryRepo } from "@/Groceries/Repo"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import type { GroceryAisle } from "@/domain/GroceryItem"
 import {
@@ -27,13 +29,7 @@ import { generateUuidBytes } from "@/lib/Id"
 import { planGroceryAdds } from "@/Groceries/tidy"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry } from "./harness/eventlog"
-import {
-  type MakeLayer,
-  converge,
-  only,
-  pick,
-  readTable,
-} from "./harness/convergence"
+import { type MakeLayer, converge, only, pick } from "./harness/convergence"
 
 // The Groceries handlers converge whatever order remote entries arrive in. A
 // patch on an item that's missing does nothing, and a remove hard-deletes,
@@ -135,7 +131,7 @@ const aisleRemoved = (msecs: number, name: string) =>
     payload: IngredientAisleEvent.remove({ name }).payload,
   })
 
-const layer: MakeLayer = (identity, remote) => {
+const layer: MakeLayer<GroceryRepo> = (identity, remote) => {
   const eventLog = EventLog.layer(
     EventLog.schema(GroceryEvents),
     GroceriesLayer,
@@ -143,7 +139,11 @@ const layer: MakeLayer = (identity, remote) => {
     Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
     Layer.provide(Layer.succeed(EventLog.Identity, identity)),
   )
-  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+  return Layer.mergeAll(
+    eventLog,
+    remote.pipe(Layer.provide(eventLog)),
+    GroceryRepo.layer,
+  ).pipe(
     Layer.provideMerge(QueryBuilder.layer),
     Layer.provideMerge(layerDatabase),
     Layer.provideMerge(Reactivity.layer),
@@ -152,10 +152,11 @@ const layer: MakeLayer = (identity, remote) => {
 }
 
 const read = Effect.gen(function* () {
+  const repo = yield* GroceryRepo
   return {
-    groceryItems: yield* readTable("groceryItems"),
-    ingredientAisles: yield* readTable("ingredientAisles"),
-    ingredientAliases: yield* readTable("ingredientAliases"),
+    groceryItems: yield* repo.items,
+    ingredientAisles: [...(yield* repo.aisles)],
+    ingredientAliases: yield* repo.aliases,
   }
 })
 
@@ -313,9 +314,7 @@ test("an ingredient aisle remove outlasts older sets and yields to newer ones, w
       aisleSet(3000, "CARROTS ", "Deli"),
     ],
   })
-  assert.deepEqual(carrots.ingredientAisles, [
-    { name: "carrots", aisle: "Deli" },
-  ])
+  assert.deepEqual(carrots.ingredientAisles, [["carrots", "Deli"]])
   const milk = await converge({
     layer,
     read,
@@ -327,7 +326,7 @@ test("an ingredient aisle remove outlasts older sets and yields to newer ones, w
   assert.deepEqual(milk.ingredientAisles, [])
 })
 
-test("a user's alias and the AI's for the same name are separate rows, so a later AI write never replaces the user's", async () => {
+test("a user's pin on a name outlasts the AI's later aliases for it", async () => {
   const set = (
     msecs: number,
     name: string,
@@ -348,11 +347,8 @@ test("a user's alias and the AI's for the same name are separate rows, so a late
       set(3000, "GARLIC, MINCED", "ai", "Garlic clove"),
     ],
   })
-  assert.deepEqual(
-    ingredientAliases.map((row) => pick(row, ["name", "source", "canonical"])),
-    [
-      { name: "garlic, minced", source: "ai", canonical: "Garlic clove" },
-      { name: "garlic, minced", source: "user", canonical: null },
-    ],
+  assert.equal(
+    canonicalName(ingredientAliases, "Garlic, minced"),
+    "Garlic, minced",
   )
 })

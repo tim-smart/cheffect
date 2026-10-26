@@ -6,13 +6,13 @@ import * as Reactivity from "effect/reactivity/Reactivity"
 import { AiChatLayer } from "@/AiChat/Handlers"
 import { CheffectEvents, journalDatabaseName } from "@/EventLog"
 import { GroceriesLayer } from "@/Groceries"
-import { QueryBuilder, layerDatabase, tableNames } from "@/IndexedDb"
+import { exportAll } from "@/ExportFile"
+import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { MealPlanLayer } from "@/MealPlan"
 import { MenusLayer } from "@/Menus"
 import { RecipesLayer } from "@/Recipes"
 import { SettingsLayer } from "@/Settings/Handlers"
 import { TimersLayer } from "@/Timers"
-import { readTable, type Row } from "./convergence"
 import { testIdentity } from "./eventlog"
 import { layerFreshIndexedDb } from "./indexeddb"
 
@@ -39,13 +39,13 @@ export const layerCheffect = EventLog.layer(
   Layer.provideMerge(layerFreshIndexedDb),
 )
 
-// Every table's rows as the next page load would read them.
-export const snapshot = Effect.gen(function* () {
-  const state: Record<string, ReadonlyArray<Row>> = {}
-  for (const name of tableNames) {
-    state[name] = yield* readTable(name)
+// What "Export all data" would write, by row kind.
+export const exported = Effect.map(exportAll, (file) => {
+  const rows: Record<string, Array<any>> = {}
+  if (file.version === 2) {
+    for (const { tag, row } of file.rows) (rows[tag] ??= []).push(row)
   }
-  return state
+  return rows
 })
 
 export const journalEntries = EventLog.EventLog.use((log) => log.entries)

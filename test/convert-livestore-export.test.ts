@@ -12,7 +12,7 @@ import { normalizeIngredientName } from "@/domain/GroceryItem"
 import { ExportFileJson, importAll } from "@/ExportFile"
 import { uuidString } from "@/lib/Id"
 import oldExport from "./fixtures/livestore-export.json" with { type: "json" }
-import { layerCheffect, snapshot } from "./harness/cheffect"
+import { exported, layerCheffect } from "./harness/cheffect"
 
 // The conversion CLI turns an old LiveStore "Export all
 // data" file into the new export format. `livestore-export.json` is the
@@ -100,28 +100,28 @@ test("converts the sample old export into a file that imports", async () => {
   assert.deepEqual(item.recipeIds.map(uuidString), oldItem.recipeIds)
   assert.equal(DateTime.toEpochMillis(item.createdAt), oldItem.createdAt)
 
-  const state = await importAll(output).pipe(
-    Effect.andThen(snapshot),
+  const rows = await importAll(output).pipe(
+    Effect.andThen(exported),
     Effect.timeout("10 seconds"),
     Effect.provide(layerCheffect),
     Effect.runPromise,
   )
   assert.deepEqual(
-    state.recipes.map((row) => uuidString(row.id as Uint8Array)),
+    rows.Recipe.map((row) => uuidString(row.id)),
     [oldRecipe.id],
   )
-  assert.equal(state.groceryItems.length, 2)
-  assert.deepEqual(state.ingredientAisles, [
+  assert.equal(rows.GroceryItem.length, 2)
+  assert.deepEqual(rows.IngredientAisle, [
     { name: normalizeIngredientName(oldItem.name), aisle: oldItem.aisle },
   ])
-  for (const table of [
-    "mealPlan",
-    "mealPlanDayNotes",
-    "menus",
-    "menuEntries",
-    "menuDayNotes",
-    "aiMemoryEntries",
+  for (const kind of [
+    "MealPlanEntry",
+    "MealPlanDayNote",
+    "Menu",
+    "MenuEntry",
+    "MenuDayNote",
+    "AiMemoryEntry",
   ]) {
-    assert.equal(state[table].length, 1, table)
+    assert.equal(rows[kind]?.length, 1, kind)
   }
 })

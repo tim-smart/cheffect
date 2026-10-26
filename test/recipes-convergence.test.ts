@@ -10,6 +10,7 @@ import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { RecipesLayer } from "@/Recipes"
+import { RecipeRepo } from "@/Recipes/Repo"
 import {
   RecipeEvent,
   RecipeEvents,
@@ -28,13 +29,7 @@ import {
 } from "@/domain/Recipe"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry, makeFakeRemote, testIdentity } from "./harness/eventlog"
-import {
-  type MakeLayer,
-  converge,
-  only,
-  pick,
-  readTable,
-} from "./harness/convergence"
+import { type MakeLayer, converge, only, pick } from "./harness/convergence"
 
 // The Recipes handlers converge whatever order remote entries arrive in:
 // patched fields merge with the newest entry winning, and soft delete is just
@@ -137,7 +132,7 @@ const deleted = (msecs: number) =>
     payload: recipeDeleted(recipeId, at(msecs)).payload,
   })
 
-const layer: MakeLayer = (identity, remote) => {
+const layer: MakeLayer<RecipeRepo> = (identity, remote) => {
   const eventLog = EventLog.layer(
     EventLog.schema(RecipeEvents),
     RecipesLayer,
@@ -145,7 +140,11 @@ const layer: MakeLayer = (identity, remote) => {
     Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
     Layer.provide(Layer.succeed(EventLog.Identity, identity)),
   )
-  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+  return Layer.mergeAll(
+    eventLog,
+    remote.pipe(Layer.provide(eventLog)),
+    RecipeRepo.layer,
+  ).pipe(
     Layer.provideMerge(QueryBuilder.layer),
     Layer.provideMerge(layerDatabase),
     Layer.provideMerge(Reactivity.layer),
@@ -153,7 +152,19 @@ const layer: MakeLayer = (identity, remote) => {
   )
 }
 
-const read = Effect.map(readTable("recipes"), (recipes) => ({ recipes }))
+// The recipes as the app reads them, with times in milliseconds.
+const read = RecipeRepo.use((repo) => repo.current).pipe(
+  Effect.map(({ all }) => ({
+    recipes: all.map((recipe) => ({
+      title: recipe.title,
+      ingredientScale: recipe.ingredientScale,
+      rating: recipe.rating,
+      createdAt: recipe.createdAt.epochMilliseconds,
+      updatedAt: recipe.updatedAt.epochMilliseconds,
+      deletedAt: recipe.deletedAt?.epochMilliseconds ?? null,
+    })),
+  })),
+)
 
 test("a local whole-Recipe update preserves createdAt", async () => {
   const identity = await Effect.runPromise(testIdentity)

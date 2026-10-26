@@ -7,10 +7,8 @@ import * as Layer from "effect/Layer"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
-import * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import {
   type EventPayload,
-  journalDatabaseName,
   layerHandlerTransaction,
   layerJournal,
   writeEvents,
@@ -22,16 +20,16 @@ import {
   groceryItemChange,
   IngredientAisleEvent,
 } from "@/Groceries/Events"
-import { QueryBuilder, databaseName, layerDatabase } from "@/IndexedDb"
+import { GroceryRepo } from "@/Groceries/Repo"
+import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { GroceryItem, GroceryItemId } from "@/domain/GroceryItem"
 import { generateUuidBytes } from "@/lib/Id"
-import { readTable } from "./harness/convergence"
 import {
   type FakeRemote,
   makeFakeRemote,
   testIdentity,
 } from "./harness/eventlog"
-import { countRecords, layerFreshIndexedDb } from "./harness/indexeddb"
+import { layerFreshIndexedDb } from "./harness/indexeddb"
 
 // `writeEvents` through Effect's `writeMany`, with the app's handler
 // transaction wrapping a batch's handlers. Every entry is stamped in the same
@@ -78,6 +76,26 @@ const journalEvents = EventLog.EventLog.use((log) => log.entries).pipe(
   Effect.map((entries) => [...entries].sort(EventJournal.Entry.Order)),
 )
 
+// What a new page load reads from the same databases: the journal's entries
+// and the grocery items.
+const reopened = Effect.gen(function* () {
+  const entries = yield* EventJournal.EventJournal.use(
+    (journal) => journal.entries,
+  ).pipe(Effect.provide(Layer.fresh(layerJournal)))
+  const items = yield* GroceryRepo.use((repo) => repo.items).pipe(
+    Effect.provide(
+      Layer.fresh(
+        GroceryRepo.layer.pipe(
+          Layer.provideMerge(QueryBuilder.layer),
+          Layer.provideMerge(layerDatabase),
+          Layer.provideMerge(Reactivity.layer),
+        ),
+      ),
+    ),
+  )
+  return { entries: entries.length, items: items.map((item) => item.name) }
+})
+
 // The ids the remote has received, each once, in the order first sent, once
 // it has received `count` of them.
 const awaitUploads = (remote: FakeRemote, count: number) =>
@@ -108,27 +126,18 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
     const remote = yield* makeFakeRemote
     return yield* Effect.gen(function* () {
       yield* writeEvents(batch)
-      const { indexedDB } = yield* IndexedDb.IndexedDb
-      const onDisk = {
-        entries: yield* countRecords(indexedDB, journalDatabaseName, "entries"),
-        groceryItems: yield* countRecords(
-          indexedDB,
-          databaseName,
-          "groceryItems",
-        ),
-      }
+      const onDisk = yield* reopened
       const entries = yield* journalEvents
       return {
         onDisk,
         events: entries.map((entry) => [entry.event, entry.primaryKey]),
         ids: entries.map((entry) => entry.idString),
         uploaded: yield* awaitUploads(remote, batch.length),
-        items: (yield* readTable("groceryItems")).map((row) => row.name),
       }
     }).pipe(Effect.provide(device(remote)))
   }).pipe(Effect.runPromise)
 
-  assert.deepEqual(result.onDisk, { entries: 6, groceryItems: 1 })
+  assert.deepEqual(result.onDisk, { entries: 6, items: ["Oat milk"] })
   assert.deepEqual(result.events, [
     ["GroceryItem", milk.idString],
     ["GroceryItem", eggs.idString],
@@ -138,7 +147,6 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
     ["IngredientAisle", "milk"],
   ])
   assert.deepEqual(result.uploaded, result.ids)
-  assert.deepEqual(result.items, ["Oat milk"])
 })
 
 // An item remove fails, after the sets before it in the batch have run.
@@ -175,10 +183,7 @@ test("a handler failure leaves none of its batch written or uploaded", async () 
           GroceryItemEvent.remove({ id: milk.id }),
         ]),
       )
-      const afterFailure = {
-        items: yield* readTable("groceryItems"),
-        entries: (yield* journalEvents).length,
-      }
+      const afterFailure = yield* reopened
       // A later batch goes through, and is all the remote ever receives.
       yield* writeEvents([GroceryItemEvent.set(bread)])
       const uploaded = yield* awaitUploads(remote, 1)
@@ -192,7 +197,7 @@ test("a handler failure leaves none of its batch written or uploaded", async () 
   }).pipe(Effect.runPromise)
 
   assert.equal(result.failed, true)
-  assert.deepEqual(result.afterFailure, { items: [], entries: 0 })
+  assert.deepEqual(result.afterFailure, { entries: 0, items: [] })
   assert.equal(result.written.length, 1)
   assert.deepEqual(result.uploaded, result.written)
 })

@@ -23,8 +23,6 @@ import {
 } from "@/Recipes/Events"
 import { RecipeRepo } from "@/Recipes/Repo"
 import { ExtractedRecipe, Recipe } from "@/domain/Recipe"
-import { uuidString } from "@/lib/Id"
-import { readTable } from "./harness/convergence"
 import {
   type FakeRemote,
   makeEntry,
@@ -33,8 +31,8 @@ import {
 } from "./harness/eventlog"
 import { freshIndexedDb, layerFreshIndexedDb } from "./harness/indexeddb"
 
-// After any write the recipes snapshot must hold what a full read of the
-// table would: the same rows, in key order, whether the write was a local
+// After any write the recipes snapshot must hold what a new page load would
+// read: the same recipes, in the same order, whether the write was a local
 // batch, a remote batch, or rolled back.
 
 const recipeEvent = RecipeEvents.events[RecipeEvent.tag]
@@ -75,7 +73,23 @@ const recipe = (title: string) =>
 
 const library = Array.from({ length: 8 }, (_, i) => recipe(`Recipe ${i}`))
 
-// The snapshot once `done` holds, then what it and the table hold, by id.
+// The recipes a new page load reads from the same database.
+const reopened = RecipeRepo.use((repo) => repo.current).pipe(
+  Effect.provide(
+    Layer.fresh(
+      RecipeRepo.layer.pipe(
+        Layer.provideMerge(QueryBuilder.layer),
+        Layer.provideMerge(layerDatabase),
+        Layer.provideMerge(Reactivity.layer),
+      ),
+    ),
+  ),
+)
+
+const summary = (all: ReadonlyArray<Recipe>) =>
+  all.map((r) => [r.idString, r.title, r.ingredientScale])
+
+// The snapshot once `done` holds, and what a new page load reads then.
 const settled = (done: (all: ReadonlyArray<Recipe>) => boolean) =>
   Effect.gen(function* () {
     const repo = yield* RecipeRepo
@@ -84,19 +98,10 @@ const settled = (done: (all: ReadonlyArray<Recipe>) => boolean) =>
       yield* Effect.sleep("2 millis")
       current = yield* repo.current
     }
-    const rows = yield* readTable("recipes")
     return {
       all: current.all,
-      snapshot: current.all.map((r) => [
-        r.idString,
-        r.title,
-        r.ingredientScale,
-      ]),
-      table: rows.map((row) => [
-        uuidString(row.id as Uint8Array),
-        row.title,
-        row.ingredientScale,
-      ]),
+      snapshot: summary(current.all),
+      reopened: summary((yield* reopened).all),
     }
   }).pipe(Effect.timeout("5 seconds"))
 
@@ -128,7 +133,7 @@ test("a remote batch shows the recipes it adds and changes", async () => {
     }).pipe(Effect.provide(device(remote)))
   }).pipe(Effect.runPromise)
 
-  assert.deepEqual(result.snapshot, result.table)
+  assert.deepEqual(result.snapshot, result.reopened)
   assert.equal(result.snapshot.length, library.length + 1)
   assert.deepEqual(
     result.snapshot.find(([id]) => id === scaled.idString)?.[2],
@@ -155,7 +160,7 @@ const failingEditRemove = Layer.effectDiscard(
   ),
 ).pipe(Layer.provideMerge(RecipesLayer))
 
-test("a rolled-back batch leaves the snapshot as the table holds it", async () => {
+test("a rolled-back batch leaves the snapshot as a new page load reads it", async () => {
   const [scaled] = library
   const rolledBack = recipe("Never stored")
   const later = recipe("Stored later")
@@ -179,7 +184,7 @@ test("a rolled-back batch leaves the snapshot as the table holds it", async () =
   }).pipe(Effect.runPromise)
 
   assert.equal(result.failed, true)
-  assert.deepEqual(result.snapshot, result.table)
+  assert.deepEqual(result.snapshot, result.reopened)
   assert.equal(result.snapshot.length, library.length + 1)
   assert.equal(has(rolledBack)(result.all), false)
   assert.deepEqual(
@@ -226,7 +231,7 @@ test("a remote batch with a duplicate entry still shows the duplicate's write", 
     }).pipe(Effect.provide(device(remote, RecipesLayer, shared)))
   }).pipe(Effect.runPromise)
 
-  assert.deepEqual(result.snapshot, result.table)
+  assert.deepEqual(result.snapshot, result.reopened)
 })
 
 // Where there is no BroadcastChannel nothing tells this tab what another tab
@@ -265,7 +270,7 @@ test("without a BroadcastChannel, this tab's next write shows another tab's writ
     }).pipe(Effect.runPromise)
 
     assert.equal(result.theirs, 5)
-    assert.deepEqual(result.snapshot, result.table)
+    assert.deepEqual(result.snapshot, result.reopened)
   } finally {
     globalThis.BroadcastChannel = channel
   }

@@ -4,22 +4,12 @@ import * as Layer from "effect/Layer"
 import type * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as IndexedDb from "@effect/platform-browser/IndexedDb"
-import { databaseName } from "@/IndexedDb"
 import { makeFakeRemote, testIdentity } from "./eventlog"
-import { readRecords } from "./indexeddb"
 import { everyOrder } from "./orders"
 
 // The scenario runner for module convergence tests: real tables and
-// handlers, entries through a fake remote, every ordering on a fresh database.
-
-export type Row = Record<string, unknown>
-
-// A store's rows as the next page load would read them.
-export const readTable = (store: string) =>
-  Effect.gen(function* () {
-    const { indexedDB } = yield* IndexedDb.IndexedDb
-    return yield* readRecords(indexedDB, databaseName, store)
-  })
+// handlers, entries through a fake remote, every ordering on a fresh database,
+// each state read the way the app reads it.
 
 // Builds the layer for one run: the module's EventLog with the given identity,
 // and the fake remote registered next to it. `R` is anything else `read` needs.
@@ -78,10 +68,12 @@ export const converge = async <A, R = never>(options: {
   return first.state
 }
 
-export const only = (rows: ReadonlyArray<Row>): Row => {
+export const only = <A>(rows: ReadonlyArray<A>): A => {
   assert.equal(rows.length, 1)
   return rows[0]
 }
 
-export const pick = (row: Row, keys: ReadonlyArray<string>) =>
-  Object.fromEntries(keys.map((key) => [key, row[key]]))
+export const pick = <A extends object>(
+  row: A,
+  keys: ReadonlyArray<keyof A & string>,
+) => Object.fromEntries(keys.map((key) => [key, row[key]]))

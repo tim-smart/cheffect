@@ -4,17 +4,19 @@ import * as DateTime from "effect/DateTime"
 import * as Duration from "effect/Duration"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Schema from "effect/Schema"
+import * as Stream from "effect/Stream"
 import * as EventJournal from "effect/eventlog/EventJournal"
 import * as EventLog from "effect/eventlog/EventLog"
 import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { TimersLayer } from "@/Timers"
+import { TimerRepo } from "@/Timers/Repo"
 import { TimerEvent, TimerEvents, timerRunningState } from "@/Timers/Events"
 import { Timer, TimerIdFromString } from "@/domain/Timer"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry, makeFakeRemote, testIdentity } from "./harness/eventlog"
-import { only, pick, readTable } from "./harness/convergence"
 
 // Pause and add-time compute a whole Timer, createdAt included, and write a
 // patch of only its running state.
@@ -51,7 +53,11 @@ const makeLayer = (
     Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
     Layer.provide(Layer.succeed(EventLog.Identity, identity)),
   )
-  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+  return Layer.mergeAll(
+    eventLog,
+    remote.pipe(Layer.provide(eventLog)),
+    TimerRepo.layer,
+  ).pipe(
     Layer.provideMerge(QueryBuilder.layer),
     Layer.provideMerge(layerDatabase),
     Layer.provideMerge(Reactivity.layer),
@@ -77,14 +83,20 @@ test("a local whole-Timer update pauses the timer and preserves createdAt", asyn
           }),
         ),
       })
-      return yield* readTable("timers")
+      return yield* TimerRepo.use((repo) => Stream.runHead(repo.stream)).pipe(
+        Effect.map(Option.getOrThrow),
+      )
     }).pipe(
       Effect.timeout("5 seconds"),
       Effect.provide(makeLayer(identity, remote.layer)),
     )
   }).pipe(Effect.runPromise)
-  assert.deepEqual(pick(only(timers), ["createdAt", "pausedRemaining"]), {
-    createdAt: 1000,
-    pausedRemaining: 240_000,
-  })
+  assert.deepEqual(
+    timers.map((timer) => ({
+      createdAt: timer.createdAt.epochMilliseconds,
+      pausedRemaining:
+        timer.pausedRemaining && Duration.toMillis(timer.pausedRemaining),
+    })),
+    [{ createdAt: 1000, pausedRemaining: 240_000 }],
+  )
 })

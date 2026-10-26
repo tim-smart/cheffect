@@ -7,19 +7,30 @@ import * as Exit from "effect/Exit"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
 import type * as EventJournal from "effect/eventlog/EventJournal"
-import { AiChatTurnEvent } from "@/AiChat/Events"
+import { AiChatTurnEvent, AiMemoryEntryEvent } from "@/AiChat/Events"
 import { CheffectEvents, type EventPayload, writeEvent } from "@/EventLog"
 import { ExportFileJson, exportAll, importAll } from "@/ExportFile"
-import { GroceryItemEvent } from "@/Groceries/Events"
-import { MenuEvent, menuUpdate } from "@/Menus/Events"
+import {
+  GroceryAisleOrderEvent,
+  GroceryItemEvent,
+  IngredientAisleEvent,
+} from "@/Groceries/Events"
+import { MealPlanDayNoteEvent, MealPlanEntryEvent } from "@/MealPlan/Events"
+import {
+  MenuDayNoteEvent,
+  MenuEntryEvent,
+  MenuEvent,
+  menuUpdate,
+} from "@/Menus/Events"
 import { RecipeEditEvent, RecipeEvent, recipeDeleted } from "@/Recipes/Events"
 import { SettingEvent } from "@/Settings/Events"
+import { TimerEvent } from "@/Timers/Events"
 import { AiChatTurnIdFromString } from "@/domain/AiChatTurn"
 import { GroceryItemIdFromString } from "@/domain/GroceryItem"
 import { MenuIdFromString } from "@/domain/Menu"
 import { RecipeIdFromString } from "@/domain/Recipe"
 import { sampleRecipe } from "./fixtures/event-samples"
-import { journalEntries, layerCheffect, snapshot } from "./harness/cheffect"
+import { exported, journalEntries, layerCheffect } from "./harness/cheffect"
 import { makeEntry, makeFakeRemote } from "./harness/eventlog"
 
 // "Import all data". Import validates the whole file before it writes
@@ -35,21 +46,22 @@ const v1File = readFileSync(
   "utf8",
 )
 
-const exportedTables = [
-  "recipes",
-  "recipeEdits",
-  "groceryItems",
-  "ingredientAisles",
-  "groceryAisleOrders",
-  "mealPlan",
-  "mealPlanDayNotes",
-  "menus",
-  "menuEntries",
-  "menuDayNotes",
-  "aiMemoryEntries",
-  "timers",
-  "settings",
-] as const
+// One row of each kind the version 1 file has an event for.
+const v1Kinds = [
+  RecipeEvent.tag,
+  RecipeEditEvent.tag,
+  GroceryItemEvent.tag,
+  IngredientAisleEvent.tag,
+  GroceryAisleOrderEvent.tag,
+  MealPlanEntryEvent.tag,
+  MealPlanDayNoteEvent.tag,
+  MenuEvent.tag,
+  MenuEntryEvent.tag,
+  MenuDayNoteEvent.tag,
+  AiMemoryEntryEvent.tag,
+  TimerEvent.tag,
+  SettingEvent.tag,
+]
 
 const recipeId = Schema.decodeSync(RecipeIdFromString)(
   "0193c7a0-1b2c-4def-8123-456789abcdef",
@@ -71,25 +83,25 @@ const run = <A, E>(
   )
 
 test("a version 1 export imports as the rows its events created", async () => {
-  const state = await run(importAll(v1File).pipe(Effect.andThen(snapshot)))
-  for (const table of exportedTables) {
-    assert.equal(state[table].length, 1, table)
-  }
+  const rows = await run(importAll(v1File).pipe(Effect.andThen(exported)))
+  assert.deepEqual(
+    Object.fromEntries(
+      Object.entries(rows).map(([kind, of]) => [kind, of.length]),
+    ),
+    Object.fromEntries(v1Kinds.map((kind) => [kind, 1])),
+  )
   // A recipe created then had no ingredient scale, and an item added
   // without a list is on the default one.
-  assert.equal(state.recipes[0].ingredientScale, 1)
-  assert.equal(state.groceryItems[0].list, null)
-  // Learned aisles and aisle orders are stored under their row keys.
-  assert.deepEqual(state.ingredientAisles, [
+  assert.equal(rows[RecipeEvent.tag][0].ingredientScale, 1)
+  assert.equal(rows[GroceryItemEvent.tag][0].list, null)
+  assert.deepEqual(rows[IngredientAisleEvent.tag], [
     { name: "carrots", aisle: "Produce" },
   ])
-  assert.equal(state.groceryAisleOrders[0].id, '[null,"Produce"]')
-  assert.equal(state.menus[0].removed, false)
 })
 
 // Each `run` is a separate device.
 test("an export imports on another device as the same rows", async () => {
-  const { exported, exporter } = await run(
+  const { file, exporter } = await run(
     Effect.gen(function* () {
       yield* importAll(v1File)
       yield* writeEvent(
@@ -100,14 +112,12 @@ test("an export imports on another device as the same rows", async () => {
           },
         ),
       )
-      const exported = Schema.encodeSync(ExportFileJson)(yield* exportAll)
-      return { exported, exporter: yield* snapshot }
+      const file = Schema.encodeSync(ExportFileJson)(yield* exportAll)
+      return { file, exporter: yield* exported }
     }),
   )
-  assert.equal(JSON.parse(exported).version, 2)
-  assert.equal(exporter.recipes[0].ingredientScale, 2.5)
-  const importer = await run(importAll(exported).pipe(Effect.andThen(snapshot)))
-  assert.equal(importer.recipes[0].ingredientScale, 2.5)
+  assert.equal(exporter[RecipeEvent.tag][0].ingredientScale, 2.5)
+  const importer = await run(importAll(file).pipe(Effect.andThen(exported)))
   assert.deepStrictEqual(importer, exporter)
 })
 
@@ -127,14 +137,14 @@ test("an import leaves a row deleted or edited here as it is", async () => {
           updatedAt: DateTime.makeUnsafe(1_770_000_000_000),
         }),
       )
-      const before = yield* snapshot
+      const before = yield* exported
       yield* importAll(v1File)
-      return { before, after: yield* snapshot }
+      return { before, after: yield* exported }
     }),
   )
-  assert.deepEqual(before.groceryItems, [])
+  assert.equal(before[GroceryItemEvent.tag], undefined)
   assert.deepEqual(
-    before.menus.map((row) => row.name),
+    before[MenuEvent.tag].map((row) => row.name),
     ["Winter favourites"],
   )
   assert.deepStrictEqual(after, before)
@@ -176,7 +186,7 @@ const otherRecipeId = Schema.decodeSync(RecipeIdFromString)(
 const otherRecipe = { ...sampleRecipe, id: otherRecipeId }
 
 test("an export leaves out deleted recipes, removed drafts and menus, the API key and chat history", async () => {
-  const exported = await runSeeded(
+  const rows = await runSeeded(
     seed([
       RecipeEvent.set(sampleRecipe),
       RecipeEvent.set(otherRecipe),
@@ -196,17 +206,13 @@ test("an export leaves out deleted recipes, removed drafts and menus, the API ke
         entryTime: 1_000,
       }),
     ]),
-    exportAll.pipe(Effect.map(Schema.encodeSync(ExportFileJson))),
+    exported,
   )
-  const state = await run(importAll(exported).pipe(Effect.andThen(snapshot)))
   assert.deepEqual(
-    state.recipes.map((row) => row.title),
-    [sampleRecipe.title],
+    Object.keys(rows).map((kind) => [kind, rows[kind].length]),
+    [[RecipeEvent.tag, 1]],
   )
-  assert.deepEqual(state.recipeEdits, [])
-  assert.deepEqual(state.menus, [])
-  assert.deepEqual(state.settings, [])
-  assert.deepEqual(state.aiChatTurns, [])
+  assert.equal(rows[RecipeEvent.tag][0].title, sampleRecipe.title)
 })
 
 test("a file with one invalid event writes nothing", async () => {
@@ -216,17 +222,14 @@ test("a file with one invalid event writes nothing", async () => {
     ...parsed,
     events: [...parsed.events.slice(0, -1), { tag: last.tag, payload: {} }],
   })
-  const { exit, entries, state } = await run(
+  const { exit, entries, rows } = await run(
     Effect.gen(function* () {
       const exit = yield* Effect.exit(importAll(bad))
       const entries = yield* journalEntries
-      const state = yield* snapshot
-      return { exit, entries, state }
+      return { exit, entries, rows: yield* exported }
     }),
   )
   assert.ok(Exit.isFailure(exit), "the import should fail")
   assert.equal(entries.length, 0)
-  for (const [table, rows] of Object.entries(state)) {
-    assert.deepEqual(rows, [], `${table} should be empty`)
-  }
+  assert.deepEqual(rows, {})
 })

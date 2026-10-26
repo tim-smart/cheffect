@@ -27,8 +27,8 @@ import {
   syncServerUrlAtom,
   writeEventAtom,
 } from "@/EventLog"
-import { QueryBuilder } from "@/IndexedDb"
 import { RecipeEvent } from "@/Recipes/Events"
+import { recipesAtom } from "@/Recipes/runtime"
 import { sampleRecipe } from "./fixtures/event-samples"
 import * as Server from "../server/Server"
 import { freshIndexedDb } from "./harness/indexeddb"
@@ -169,9 +169,6 @@ const freshBrowserStorage = () => {
 const appEntries = eventLogAtom.atom(
   EventLog.EventLog.use((log) => log.entries),
 )
-const appRecipes = eventLogAtom.atom(
-  QueryBuilder.use((db) => db.from("recipes").select()),
-)
 
 test("changing the server URL uploads this device's journal to the new server and keeps its data", async () => {
   freshBrowserStorage()
@@ -206,7 +203,10 @@ test("changing the server URL uploads this device's journal to the new server an
     yield* waitForEntry(written).pipe(Effect.provide(onSecond))
 
     assert.equal(localStorage.getItem(identityKey), identityString)
-    const recipes = yield* AtomRegistry.getResult(registry, appRecipes)
-    assert.equal(recipes.length, 1)
+    const recipes = yield* AtomRegistry.getResult(registry, recipesAtom)
+    assert.deepEqual(
+      recipes.all.map((recipe) => recipe.title),
+      [sampleRecipe.title],
+    )
   }).pipe(Effect.timeout("10 seconds"), Effect.scoped, Effect.runPromise)
 })
