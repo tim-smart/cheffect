@@ -23,7 +23,7 @@ test(
           chatAboveExisting: !!chat && !!(chat.compareDocumentPosition(existing) & Node.DOCUMENT_POSITION_FOLLOWING),
         }
       })()`)
-      assert.equal(settings.chat, "gpt-6.1-sol", "new chat model default")
+      assert.equal(settings.chat, "gpt-6-sol", "new chat model default")
       assert.equal(settings.existing, "gpt-6-luna", "existing model default")
       assert.ok(
         settings.chatAboveExisting,

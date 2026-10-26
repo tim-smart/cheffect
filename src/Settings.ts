@@ -153,7 +153,7 @@ export const aiChatModel = new Setting({
   label: "AI chat model",
   schema: Schema.NonEmptyString,
   schemaInput: OptionFromString,
-  initialValue: "gpt-6.1-sol",
+  initialValue: "gpt-6-sol",
 })
 
 export const openAiModel = new Setting({
