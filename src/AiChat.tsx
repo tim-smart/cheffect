@@ -22,6 +22,7 @@ import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { Streamdown } from "streamdown"
 import { formatDistanceToNowStrict } from "date-fns"
 import { useStickToBottom } from "use-stick-to-bottom"
+import { toast } from "sonner"
 import { cn } from "./lib/utils"
 import { aiChatOpenAtom } from "./atoms"
 import { groceryCurrentListAtom } from "./Groceries/currentList"
@@ -35,6 +36,7 @@ import {
   sendAtom,
 } from "./AiChat/AiChatService"
 import { ToolActivityList, type ToolCall } from "./AiChat/ToolActivity"
+import { accept, attachmentType } from "./AiChat/Attachments"
 import { router, scrollRestorationKey } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
@@ -704,11 +706,30 @@ function PromptInput({
             ref={fileRef}
             type="file"
             className="hidden"
-            accept="image/*,android/allowCamera,application/pdf"
+            accept={accept}
             multiple
             onChange={(e) => {
-              const selectedFiles = e.target.files
-              if (!selectedFiles || selectedFiles.length === 0) return
+              const selectedFiles = Array.from(e.target.files ?? [])
+              const unsupported = selectedFiles.filter(
+                (f) => attachmentType(f) === undefined,
+              )
+              if (unsupported.length > 0) {
+                toast.error(
+                  `Can't attach ${unsupported.map((f) => f.name).join(", ")}`,
+                  {
+                    description:
+                      "Attach images (PNG, JPEG, WebP, GIF), PDFs, or text, Markdown, CSV or JSON files.",
+                  },
+                )
+              }
+              // Reset the input value to allow selecting the same file again
+              setTimeout(() => {
+                e.target.value = ""
+              }, 0)
+              const supported = selectedFiles.filter(
+                (f) => attachmentType(f) !== undefined,
+              )
+              if (supported.length === 0) return
               setFiles((prevFiles) => {
                 const dataTransfer = new DataTransfer()
                 const names = new Set<string>()
@@ -718,16 +739,12 @@ function PromptInput({
                     return dataTransfer.items.add(f)
                   })
                 }
-                Array.from(selectedFiles).forEach((f) => {
+                supported.forEach((f) => {
                   if (names.has(f.name)) return
                   return dataTransfer.items.add(f)
                 })
                 return dataTransfer.files
               })
-              // Reset the input value to allow selecting the same file again
-              setTimeout(() => {
-                e.target.value = ""
-              }, 0)
             }}
           />
         </div>
