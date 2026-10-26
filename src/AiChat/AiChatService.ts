@@ -792,7 +792,7 @@ ${MenuEntry.toXml(entries)}`
           const client = yield* OpenAiClient.OpenAiClient
           const modelString = Option.getOrElse(
             yield* Atom.getResult(aiChatModel.atom),
-            () => "gpt-6.1-sol",
+            () => "gpt-6-sol",
           )
           const model = yield* OpenAiLanguageModel.make({
             model: modelString,
