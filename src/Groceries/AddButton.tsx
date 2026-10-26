@@ -66,8 +66,10 @@ export function AddToGroceriesButton({
           <ShoppingCart />
         </Button>
       </DialogTrigger>
+      {/* Less padding on top, as the title's line height and the close
+          button's row already add room above the title */}
       <DialogContent
-        className="w-[calc(100%-2rem)] max-w-sm max-h-[85dvh] grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl"
+        className="w-[calc(100%-2rem)] max-w-sm max-h-[85dvh] grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl pt-4"
         aria-describedby={undefined}
         hideClose
       >
