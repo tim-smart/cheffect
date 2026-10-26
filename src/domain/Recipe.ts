@@ -289,6 +289,7 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
     if (this.servings !== null) return false
     if (this.rating !== null) return false
     if (this.sourceUrl !== null) return false
+    if (this.sourceName) return false
     return true
   }
 
@@ -410,6 +411,10 @@ export const recipeToHtml = (recipe: Recipe) => {
     const label = recipe.sourceName ?? "Source"
     details.push(
       `<li><strong>Source:</strong> <a href="${escapeHtml(recipe.sourceUrl)}">${escapeHtml(label)}</a></li>`,
+    )
+  } else if (recipe.sourceName) {
+    details.push(
+      `<li><strong>Source:</strong> ${escapeHtml(recipe.sourceName)}</li>`,
     )
   }
 
