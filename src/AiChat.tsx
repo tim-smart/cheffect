@@ -39,12 +39,28 @@ import { router, scrollRestorationKey } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
 
+// ⌘J on Apple keyboards and Ctrl+J elsewhere opens and closes the chat. ⌘K is
+// left for search, and J is where other apps put their assistant
+const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+const toggleShortcut = isApple ? "⌘J" : "Ctrl+J"
+const toggleKeyShortcuts = isApple ? "Meta+J" : "Control+J"
+
 export function AiChatModal() {
   const aiEnabled = useAtomValue(isAiEnabledAtom)
   const [isOpen, setIsOpen] = useAtom(aiChatOpenAtom)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const pushedHistoryRef = useRef(false)
+
+  const open = () => {
+    if (!aiEnabled) {
+      router.navigate({ to: "/settings" })
+      return
+    }
+    setIsOpen(true)
+    ref.current?.classList.remove("hidden")
+    inputRef.current?.focus()
+  }
 
   // Handle history state when modal opens/closes
   useEffect(() => {
@@ -93,22 +109,47 @@ export function AiChatModal() {
     }
   }, [isOpen])
 
+  // The shortcut works from anywhere, the message field included: it needs
+  // the modifier, so it never takes a key that would type text. It doesn't
+  // open the chat over a dialog, which keeps focus to itself
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (e.key !== "j" && e.key !== "J") ||
+        (isApple ? !e.metaKey || e.ctrlKey : !e.ctrlKey || e.metaKey) ||
+        e.altKey ||
+        e.shiftKey
+      ) {
+        return
+      }
+      e.preventDefault()
+      if (e.repeat) return
+      if (isOpen) {
+        setIsOpen(false)
+      } else if (
+        !(e.target instanceof Element) ||
+        e.target.closest("[role=dialog], [role=alertdialog]") === null
+      ) {
+        open()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isOpen, aiEnabled])
+
   return (
     <>
       <div className="fixed floating-r floating-b z-50 flex items-center gap-2">
         <TimerList />
         {/* Floating Action Button */}
         <button
-          onClick={() => {
-            if (!aiEnabled) {
-              return router.navigate({ to: "/settings" })
-            }
-            setIsOpen(true)
-            ref.current?.classList.remove("hidden")
-            inputRef.current?.focus()
-          }}
+          onClick={open}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg motion-safe:active:scale-95 transition-transform"
           aria-label="Open AI Chat"
+          aria-keyshortcuts={toggleKeyShortcuts}
+          title={`AI Sous-chef (${toggleShortcut})`}
         >
           <MessageSquare className="h-6 w-6" />
         </button>
@@ -230,7 +271,8 @@ function ModalContent({
               size="icon"
               variant="ghost"
               aria-label="Minimize chat"
-              title="Minimize"
+              aria-keyshortcuts={toggleKeyShortcuts}
+              title={`Minimize (${toggleShortcut})`}
             >
               <Minus />
             </Button>

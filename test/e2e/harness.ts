@@ -308,13 +308,25 @@ const openPage = async (chrome: Chromium) => {
    * Presses and releases a key with real key events, so the browser runs the
    * default action: Space on a focused button clicks it, which a synthetic
    * KeyboardEvent never does. `key` is the KeyboardEvent key (" ", "Enter").
+   * `modifiers` are the keys held down with it: Alt 1, Ctrl 2, Meta 4,
+   * Shift 8, summed.
    */
-  const press = async (key: string, code: string, keyCode: number) => {
+  const press = async (
+    key: string,
+    code: string,
+    keyCode: number,
+    modifiers = 0,
+  ) => {
     const what = `press(${key})`
-    const base = { key, code, windowsVirtualKeyCode: keyCode }
+    const base = { key, code, windowsVirtualKeyCode: keyCode, modifiers }
     await sendOrCrash(
       "Input.dispatchKeyEvent",
-      { type: "keyDown", text: key.length === 1 ? key : undefined, ...base },
+      {
+        type: "keyDown",
+        // a held modifier makes the key a command, not text
+        text: key.length === 1 && modifiers === 0 ? key : undefined,
+        ...base,
+      },
       what,
     )
     await sendOrCrash(
