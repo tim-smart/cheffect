@@ -1,5 +1,6 @@
 import * as Model from "effect/schema/Model"
 import * as Schema from "effect/Schema"
+import * as SchemaTransformation from "effect/SchemaTransformation"
 import {
   generateUuidBytes,
   idEquals,
@@ -15,25 +16,47 @@ import * as Csv from "@vanillaes/csv"
 
 // Synced in grocery items, learned aisles and aisle orders, and every stored
 // entry is decoded again with the current schema. A new aisle needs every
-// client updated first: an older one drops entries that use it.
+// client updated first: an older one drops entries that use it. A removed
+// aisle stays readable through `StoredGroceryAisle`.
 export const GroceryAisle = Schema.Literals([
+  "Baby",
   "Bakery",
   "Baking Supplies",
   "Beverages",
   "Breakfast",
   "Canned & Jar Goods",
+  "Condiments & Sauces",
   "Dairy & Eggs",
   "Deli",
   "Frozen Foods",
   "Herbs & Spices",
   "Household",
   "Meat & Seafood",
+  "Oils & Vinegars",
   "Pantry",
+  "Pasta, Rice & Grains",
+  "Personal Care",
+  "Pet",
   "Produce",
-  "Seafood",
   "Snacks",
 ])
 export type GroceryAisle = typeof GroceryAisle.Type
+
+// The aisle as stored and synced. "Seafood" was folded into "Meat & Seafood",
+// and entries written before that, or by a client not yet updated, still
+// hold it.
+export const StoredGroceryAisle = Schema.Literals([
+  ...GroceryAisle.literals,
+  "Seafood",
+]).pipe(
+  Schema.decodeTo(
+    GroceryAisle,
+    SchemaTransformation.transform({
+      decode: (aisle) => (aisle === "Seafood" ? "Meat & Seafood" : aisle),
+      encode: (aisle) => aisle,
+    }),
+  ),
+)
 
 // The list that holds what's already in the pantry. Ingredients named on it
 // (and not checked off) start unselected in the recipe's add-to-groceries dialog.

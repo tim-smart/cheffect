@@ -9,6 +9,7 @@ import {
   GroceryItem,
   normalizeIngredientName,
   sameRecipeIds,
+  StoredGroceryAisle,
 } from "@/domain/GroceryItem"
 import { IngredientAisle } from "@/domain/IngredientAisle"
 import { IngredientAlias, ingredientAliasKey } from "@/domain/IngredientAlias"
@@ -17,14 +18,18 @@ import { uuidKey } from "@/lib/Id"
 // Tags are permanent wire names. Every stored entry is decoded again with the
 // current row schema, so a field may only be added with a decoding default,
 // or removed. `GroceryAisle` is a literal union: adding an aisle needs every
-// client updated first.
+// client updated first, and a removed one stays in `StoredGroceryAisle`,
+// decoded as the aisle that replaced it.
 //
 // Writing an item never touches the aisles: the writer sets and removes the
 // learned aisle itself. Clearing a list removes each item the writer saw, so
 // an item added concurrently on another device survives it.
 export const GroceryItemEvent = EventRow.make("GroceryItem", {
   key: uuidKey,
-  schema: Schema.Struct(GroceryItem.fields),
+  schema: Schema.Struct({
+    ...GroceryItem.fields,
+    aisle: Schema.NullOr(StoredGroceryAisle),
+  }),
 })
 
 // Keyed by the normalised ingredient name.

@@ -3,6 +3,7 @@ import * as assert from "node:assert/strict"
 import * as Schema from "effect/Schema"
 import type * as Event from "effect/eventlog/Event"
 import { CheffectEvents } from "@/EventLog"
+import { GroceryItemEvent, IngredientAisleEvent } from "@/Groceries/Events"
 import fixtures from "./fixtures/eventlog-events.json" with { type: "json" }
 
 // Every event is persisted in the journal and synced to other devices, so its
@@ -37,4 +38,22 @@ test("every event has a wire fixture, and each decodes and re-encodes to the sam
       what,
     )
   }
+})
+
+test("entries with an aisle since folded into another decode as that aisle", () => {
+  const decode = (event: Event.Any, json: unknown) =>
+    Schema.decodeUnknownSync(Schema.toCodecJson(event.payload))(json)
+  const aisleSet = (aisle: string) =>
+    decode(IngredientAisleEvent, {
+      _tag: "set",
+      row: { name: "salmon", aisle },
+    })
+  const itemPatch = (aisle: string) =>
+    decode(GroceryItemEvent, {
+      _tag: "patch",
+      key: { id: "AZPHoBssTe+BI8D/7gAAAQ==" },
+      fields: { aisle },
+    })
+  assert.deepEqual(aisleSet("Seafood"), aisleSet("Meat & Seafood"))
+  assert.deepEqual(itemPatch("Seafood"), itemPatch("Meat & Seafood"))
 })
