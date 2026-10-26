@@ -177,3 +177,44 @@ for (const keyboard of keyboards) {
       ),
   )
 }
+
+// A longer query starts its results at the top, even when the list was
+// scrolled and the first result stays the same. The padding recipes are
+// "Recipe 0001" onwards, so "Recipe 0" and "Recipe 000" both lead with 0001
+test(
+  "a query typed after scrolling the results shows them from the top",
+  { skip: !hasChromium && "chromium not found", timeout: 180_000 },
+  () =>
+    withSeededApp(
+      async ({ browser }) => {
+        const list = `${dialog}.querySelector("[cmdk-list]")`
+        const first = `${dialog}.querySelector("[cmdk-item]")`
+        await browser.setViewport(1280, 900, { mobile: false })
+        await browser.press("k", "KeyK", 75, ctrl)
+        await browser.waitFor(`document.activeElement === ${dialogInput}`)
+        await type(browser, dialogInput, "Recipe 0")
+        await browser.waitFor(
+          `${first}?.textContent.includes("Recipe 0001") && ${list}.scrollHeight > ${list}.clientHeight`,
+        )
+        await browser.evaluate(`${list}.scrollTop = ${list}.scrollHeight`)
+        await browser.waitFor(`${list}.scrollTop > 0`)
+
+        await type(browser, dialogInput, "Recipe 000")
+        await browser.waitFor(
+          `${dialog}.querySelectorAll("[cmdk-item]").length === 9`,
+        )
+        await sleep(300)
+        assert.equal(await browser.evaluate(`${list}.scrollTop`), 0)
+        assert.equal(
+          await browser.evaluate(
+            `${first}.getAttribute("data-selected") === "true"`,
+          ),
+          true,
+          "the first result is the selected one",
+        )
+      },
+      {
+        init: `Object.defineProperty(Navigator.prototype, "userAgent", { get: () => "Mozilla/5.0 (X11; Linux x86_64)" }); localStorage.setItem("cheffect:devSeedPadding", "80")`,
+      },
+    ),
+)

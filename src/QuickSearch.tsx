@@ -124,15 +124,25 @@ function SearchCommand({ go }: { readonly go: Go }) {
   // deferred: there are few of them, and cmdk selects the first result as
   // the query changes, which has to be the first of the new results
   const [query, setQuery] = useState("")
+  // Every query starts its results at the top. cmdk only scrolls to the
+  // first result when the selection changes, so a list scrolled by hand
+  // would stay where it was while the first result stayed the same
+  const listRef = useRef<HTMLDivElement>(null)
   return (
     <Command shouldFilter={false} loop className="rounded-none bg-background">
       <CommandInput
         value={query}
-        onValueChange={setQuery}
+        onValueChange={(query: string) => {
+          setQuery(query)
+          if (listRef.current) listRef.current.scrollTop = 0
+        }}
         placeholder="Search recipes..."
         className="h-13 text-base md:text-sm"
       />
-      <CommandList className="max-h-[min(24rem,60vh)] scroll-py-2 overscroll-contain">
+      <CommandList
+        ref={listRef}
+        className="max-h-[min(24rem,60vh)] scroll-py-2 overscroll-contain"
+      >
         <CommandEmpty className="py-10 text-center text-sm text-muted-foreground">
           No recipes found
         </CommandEmpty>
