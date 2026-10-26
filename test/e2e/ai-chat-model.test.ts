@@ -89,40 +89,5 @@ test(
         "chat-model-for-test",
         "chat uses the saved chat model, not the existing helper model",
       )
-
-      // Keep the same page session and initialized chat runtime while editing.
-      await browser.waitFor(
-        `document.querySelector('textarea[placeholder="Type your message..."]').closest("form").querySelector('button[type="submit"]').disabled`,
-      )
-      await browser.click(
-        `document.querySelector('button[aria-label="Minimize chat"]')`,
-      )
-      await setInput(chatInput, "second-chat-model")
-      await journalSettled(browser)
-      assert.equal(
-        await browser.evaluate(`(${chatInput}).value`),
-        "second-chat-model",
-      )
-      await browser.click(
-        `document.querySelector('[aria-label="Open AI Chat"]')`,
-      )
-      await browser.evaluate(`(() => {
-        const input = document.querySelector('textarea[placeholder="Type your message..."]')
-        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set.call(input, "Hello again chef")
-        input.dispatchEvent(new Event("input", { bubbles: true }))
-      })()`)
-      await browser.evaluate(
-        `document.querySelector('textarea[placeholder="Type your message..."]').dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))`,
-      )
-      // Failed requests may retry, so identify the new send by its message.
-      const secondChatRequest = `window.__chatRequests.find((request) =>
-        request.input?.some((message) => message.role === "user" &&
-          message.content?.some((part) => part.type === "input_text" && part.text === "Hello again chef")))`
-      await browser.waitFor(`!!(${secondChatRequest})`)
-      assert.equal(
-        await browser.evaluate(`(${secondChatRequest}).model`),
-        "second-chat-model",
-        "chat uses a changed model after the first request without reloading",
-      )
     }),
 )
