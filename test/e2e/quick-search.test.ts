@@ -187,9 +187,11 @@ for (const keyboard of keyboards) {
   )
 }
 
-// A longer query starts its results at the top, even when the list was
-// scrolled and the first result stays the same. The padding recipes are
-// "Recipe 0001" onwards, so "Recipe 0" and "Recipe 000" both lead with 0001
+// A changed query starts its results at the top, with the first selected,
+// however the list was scrolled: by hand, where the first result stays the
+// same, or by the keys, where the selection moved down the list. The padding
+// recipes are "Recipe 0001" onwards, so every "Recipe 0…" query leads with
+// 0001
 test(
   "a query typed after scrolling the results shows them from the top",
   { skip: !hasChromium && "chromium not found", timeout: 180_000 },
@@ -212,15 +214,30 @@ test(
         await browser.waitFor(
           `${dialog}.querySelectorAll("[cmdk-item]").length === 9`,
         )
-        await sleep(300)
-        assert.equal(await browser.evaluate(`${list}.scrollTop`), 0)
-        assert.equal(
-          await browser.evaluate(
-            `${first}.getAttribute("data-selected") === "true"`,
-          ),
-          true,
-          "the first result is the selected one",
+        const expectFirstAtTop = async () => {
+          await sleep(300)
+          assert.equal(await browser.evaluate(`${list}.scrollTop`), 0)
+          assert.equal(
+            await browser.evaluate(
+              `${first}.getAttribute("data-selected") === "true"`,
+            ),
+            true,
+            "the first result is the selected one",
+          )
+        }
+        await expectFirstAtTop()
+
+        // End selects the last result, scrolling to it; Backspace widens the
+        // query again
+        await browser.press("End", "End", 35)
+        await browser.waitFor(
+          `${dialog}.querySelector('[cmdk-item][data-selected="true"]')?.textContent.includes("Recipe 0009") && ${list}.scrollTop > 0`,
         )
+        await browser.press("Backspace", "Backspace", 8)
+        await browser.waitFor(
+          `${dialogInput}.value === "Recipe 00" && ${dialog}.querySelectorAll("[cmdk-item]").length === 50`,
+        )
+        await expectFirstAtTop()
       },
       {
         init: `Object.defineProperty(Navigator.prototype, "userAgent", { get: () => "Mozilla/5.0 (X11; Linux x86_64)" }); localStorage.setItem("cheffect:devSeedPadding", "80")`,
