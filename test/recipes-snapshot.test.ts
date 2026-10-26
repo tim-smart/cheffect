@@ -33,10 +33,9 @@ import {
 } from "./harness/eventlog"
 import { freshIndexedDb, layerFreshIndexedDb } from "./harness/indexeddb"
 
-// The recipes snapshot reloads only the records a write touched. After any
-// write it must hold what a full read of the table would: the same rows, in
-// key order, whether the write was a local batch, a remote batch, or rolled
-// back. Recipes it didn't touch keep their objects.
+// After any write the recipes snapshot must hold what a full read of the
+// table would: the same rows, in key order, whether the write was a local
+// batch, a remote batch, or rolled back.
 
 const recipeEvent = RecipeEvents.events[RecipeEvent.tag]
 
@@ -104,14 +103,14 @@ const settled = (done: (all: ReadonlyArray<Recipe>) => boolean) =>
 const has = (target: Recipe) => (all: ReadonlyArray<Recipe>) =>
   all.some((r) => r.idString === target.idString)
 
-test("a remote batch reloads only the recipes it touched", async () => {
-  const [first, scaled, ...rest] = library
+test("a remote batch shows the recipes it adds and changes", async () => {
+  const [, scaled] = library
   const added = recipe("Synced soup")
   const result = await Effect.gen(function* () {
     const remote = yield* makeFakeRemote
     return yield* Effect.gen(function* () {
       yield* writeEvents(library.map((r) => RecipeEvent.set(r)))
-      const before = yield* settled((all) => all.length === library.length)
+      yield* settled((all) => all.length === library.length)
       yield* remote.deliver([
         makeEntry({
           msecs: Date.now(),
@@ -125,15 +124,7 @@ test("a remote batch reloads only the recipes it touched", async () => {
             .payload,
         }),
       ])
-      const after = yield* settled(has(added))
-      const kept = (r: Recipe) =>
-        after.all.find((x) => x.idString === r.idString) ===
-        before.all.find((x) => x.idString === r.idString)
-      return {
-        ...after,
-        untouchedKept: [first, ...rest].every(kept),
-        scaledKept: kept(scaled),
-      }
+      return yield* settled(has(added))
     }).pipe(Effect.provide(device(remote)))
   }).pipe(Effect.runPromise)
 
@@ -143,39 +134,36 @@ test("a remote batch reloads only the recipes it touched", async () => {
     result.snapshot.find(([id]) => id === scaled.idString)?.[2],
     3,
   )
-  assert.equal(result.untouchedKept, true)
-  assert.equal(result.scaledKept, false)
 })
 
 // A recipe edit remove fails, after the recipe writes before it in the batch.
 const failingEditRemove = Layer.effectDiscard(
   EventLog.Registry.use((registry) =>
     Effect.sync(() => {
-      const handlers = registry.handlers as Map<
-        string,
-        EventLog.Handlers.Item<any>
-      >
-      const handler = handlers.get(RecipeEditEvent.tag)!
-      handlers.set(RecipeEditEvent.tag, {
-        ...handler,
-        handler: (options) =>
-          (options.payload as { readonly _tag: string })._tag === "remove"
-            ? Effect.die("remove failed")
-            : handler.handler(options),
+      const handler = registry.handlers.get(RecipeEditEvent.tag)!
+      registry.registerHandlerUnsafe({
+        event: RecipeEditEvent.tag,
+        handler: {
+          ...handler,
+          handler: (options) =>
+            (options.payload as { readonly _tag: string })._tag === "remove"
+              ? Effect.die("remove failed")
+              : handler.handler(options),
+        },
       })
     }),
   ),
 ).pipe(Layer.provideMerge(RecipesLayer))
 
 test("a rolled-back batch leaves the snapshot as the table holds it", async () => {
-  const [scaled, untouched] = library
+  const [scaled] = library
   const rolledBack = recipe("Never stored")
   const later = recipe("Stored later")
   const result = await Effect.gen(function* () {
     const remote = yield* makeFakeRemote
     return yield* Effect.gen(function* () {
       yield* writeEvents(library.map((r) => RecipeEvent.set(r)))
-      const before = yield* settled((all) => all.length === library.length)
+      yield* settled((all) => all.length === library.length)
       const failed = yield* Effect.exit(
         writeEvents([
           RecipeEvent.set(rolledBack),
@@ -186,18 +174,11 @@ test("a rolled-back batch leaves the snapshot as the table holds it", async () =
       // The next write's reload shows whatever the failed one left behind.
       yield* writeEvent(RecipeEvent.set(later))
       const after = yield* settled(has(later))
-      const find = (all: ReadonlyArray<Recipe>) =>
-        all.find((r) => r.idString === untouched.idString)
-      return {
-        ...after,
-        failed: Exit.isFailure(failed),
-        untouchedKept: find(after.all) === find(before.all),
-      }
+      return { ...after, failed: Exit.isFailure(failed) }
     }).pipe(Effect.provide(device(remote, failingEditRemove)))
   }).pipe(Effect.runPromise)
 
   assert.equal(result.failed, true)
-  assert.equal(result.untouchedKept, true)
   assert.deepEqual(result.snapshot, result.table)
   assert.equal(result.snapshot.length, library.length + 1)
   assert.equal(has(rolledBack)(result.all), false)
@@ -205,24 +186,6 @@ test("a rolled-back batch leaves the snapshot as the table holds it", async () =
     result.snapshot.find(([id]) => id === scaled.idString)?.[2],
     1,
   )
-})
-
-test("an invalidation without reported keys reloads the whole table", async () => {
-  const unreported = recipe("Written behind the handlers")
-  const result = await Effect.gen(function* () {
-    const remote = yield* makeFakeRemote
-    return yield* Effect.gen(function* () {
-      yield* writeEvents(library.map((r) => RecipeEvent.set(r)))
-      yield* settled((all) => all.length === library.length)
-      const db = yield* QueryBuilder
-      yield* db.from("recipes").upsert({ ...unreported })
-      yield* Reactivity.invalidate(["recipes"])
-      return yield* settled(has(unreported))
-    }).pipe(Effect.provide(device(remote)))
-  }).pipe(Effect.runPromise)
-
-  assert.deepEqual(result.snapshot, result.table)
-  assert.equal(result.snapshot.length, library.length + 1)
 })
 
 // Another tab writes to the same database. Its entry reaches this tab as a

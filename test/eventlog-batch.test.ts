@@ -145,17 +145,16 @@ test("a batch is on disk when it returns, in the order written, and uploaded", a
 const failingDelete = Layer.effectDiscard(
   EventLog.Registry.use((registry) =>
     Effect.sync(() => {
-      const handlers = registry.handlers as Map<
-        string,
-        EventLog.Handlers.Item<any>
-      >
-      const handler = handlers.get(GroceryItemEvent.tag)!
-      handlers.set(GroceryItemEvent.tag, {
-        ...handler,
-        handler: (options) =>
-          (options.payload as { readonly _tag: string })._tag === "remove"
-            ? Effect.die("delete failed")
-            : handler.handler(options),
+      const handler = registry.handlers.get(GroceryItemEvent.tag)!
+      registry.registerHandlerUnsafe({
+        event: GroceryItemEvent.tag,
+        handler: {
+          ...handler,
+          handler: (options) =>
+            (options.payload as { readonly _tag: string })._tag === "remove"
+              ? Effect.die("delete failed")
+              : handler.handler(options),
+        },
       })
     }),
   ),
