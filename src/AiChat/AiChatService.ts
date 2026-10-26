@@ -573,7 +573,6 @@ class AiChatService extends Context.Service<AiChatService>()(
   "cheffect/AiChat/AiChatService",
   {
     make: Effect.gen(function* () {
-      const client = yield* OpenAiClient.OpenAiClient
       const registry = yield* AtomRegistry.AtomRegistry
       const repo = yield* AiChatRepo
       const context = yield* Effect.context<
@@ -790,6 +789,7 @@ ${MenuEntry.toXml(entries)}`
           readonly text: string
           readonly files: FileList | null
         }) {
+          const client = yield* OpenAiClient.OpenAiClient
           const modelString = Option.getOrElse(
             yield* Atom.getResult(aiChatModel.atom),
             () => "gpt-6.1-sol",
@@ -887,7 +887,6 @@ ${MenuEntry.toXml(entries)}`
 const runtime = Atom.runtime((get) =>
   AiChatService.layer.pipe(
     Layer.provide([
-      get(openAiClientLayer),
       get(aiChatRuntime.layer),
       get(mealPlanRuntime.layer),
       get(menusRuntime.layer),
@@ -904,9 +903,11 @@ export const sendAtom = runtime.fn<{
   readonly text: string
   readonly files: FileList | null
 }>()(
-  Effect.fnUntraced(function* (message) {
+  Effect.fnUntraced(function* (message, get) {
     const ai = yield* AiChatService
-    return yield* ai.send(message)
+    // Resolve settings per send. Making them runtime dependencies replays the
+    // function atom's last message whenever a setting changes.
+    return yield* ai.send(message).pipe(Effect.provide(get(openAiClientLayer)))
   }),
 )
 
