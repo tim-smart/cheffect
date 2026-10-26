@@ -36,12 +36,16 @@ import {
 import type { RecipeId } from "@/domain/Recipe"
 import { type EventPayload, useWrite, useWriteEvents } from "@/EventLog"
 import { generateUuidBytes, uuidString } from "@/lib/Id"
-import { FormBody, FormDisplay } from "@/lib/Form"
+import { FormBuilder } from "@lucas-barake/effect-form"
 import {
-  SelectWithLiteralsOrNull,
-  TextInputOrNull,
+  Form,
+  LiteralsOrNull,
+  RequiredString,
+  Select,
+  StringOrNull,
   TextInput,
-} from "@/lib/InatoForm"
+  useForm,
+} from "@/lib/Form"
 import * as DateTime from "effect/DateTime"
 import {
   beautifyGroceriesAtom,
@@ -250,13 +254,19 @@ function GroceryList() {
   )
 }
 
-const ItemFormSchema = FormBody.struct({
-  name: TextInput.Required,
-  quantity: TextInputOrNull,
-  aisle: SelectWithLiteralsOrNull(GroceryAisle.literals),
-})
+const ItemFormBuilder = FormBuilder.empty
+  .addField("name", RequiredString)
+  .addField("quantity", StringOrNull)
+  .addField("aisle", LiteralsOrNull(GroceryAisle.literals))
 
-const Display = FormDisplay.make(ItemFormSchema, Button)
+const useItemForm = () =>
+  useForm(ItemFormBuilder, {
+    name: TextInput,
+    quantity: TextInput,
+    aisle: Select,
+  })
+
+type ItemForm = ReturnType<typeof useItemForm>
 
 const aisleOptions = GroceryAisle.literals.map((value) => ({
   label: value,
@@ -282,24 +292,17 @@ function GroceryItemForm({
   autocomplete?: boolean
   showDetails?: boolean
 }) {
+  const form = useItemForm()
   const isEditing = !!initialValue
   return (
-    <Display.Form
-      initialValues={
-        initialValue
-          ? {
-              encoded: {
-                ...initialValue,
-                quantity: initialValue.quantity ?? "",
-                aisle: initialValue.aisle ?? "",
-              },
-            }
-          : undefined
-      }
-      onError={(error) => {
-        console.error("Form submission error:", error)
+    <Form
+      form={form}
+      defaultValues={{
+        name: initialValue?.name ?? "",
+        quantity: initialValue?.quantity ?? "",
+        aisle: initialValue?.aisle ?? "",
       }}
-      onSubmit={({ decoded }, controls) => {
+      onSubmit={(decoded) => {
         const item = initialValue
           ? new GroceryItem({
               ...initialValue,
@@ -308,33 +311,29 @@ function GroceryItemForm({
             })
           : GroceryItem.fromForm(decoded, currentList)
         onSubmit(item)
-        controls.reset()
       }}
+      resetOnSubmit
     >
-      <NameAutoCompleteSync />
+      <NameAutoCompleteSync form={form} />
       <div className={cn(className, compact ? "py-2" : "p-3")}>
         {!compact && !isEditing && (
           <h3 className="font-medium mb-2">Add New Item</h3>
         )}
         <div className={compact ? "space-y-1" : "space-y-2"}>
           {autocomplete ? (
-            <NameAutoComplete />
+            <NameAutoComplete form={form} />
           ) : (
-            <Display.name placeholder="Item name" />
+            <form.name placeholder="Item name" />
           )}
           {showDetails && (
             <>
               <div className={`flex ${compact ? "gap-1" : "gap-2"}`}>
-                <Display.quantity
+                <form.quantity
                   placeholder="Quantity (optional)"
                   className="flex-1"
-                  {...{ tabIndex: -1 }}
+                  tabIndex={-1}
                 />
-                <Display.aisle
-                  options={aisleOptions}
-                  placeholder="Other"
-                  {...{ tabIndex: -1 }}
-                />
+                <form.aisle options={aisleOptions} placeholder="Other" />
               </div>
               <div
                 className={`flex gap-2 ${compact ? "h-0 overflow-hidden" : ""}`}
@@ -359,7 +358,7 @@ function GroceryItemForm({
           )}
         </div>
       </div>
-    </Display.Form>
+    </Form>
   )
 }
 
@@ -767,11 +766,11 @@ function RecipeTitle({ id }: { readonly id: RecipeId }) {
   return Option.isSome(title) ? <span>{title.value}</span> : null
 }
 
-function NameAutoCompleteSync() {
-  const name = Display.name.useControls().watch()
+function NameAutoCompleteSync({ form }: { form: ItemForm }) {
+  const name = useAtomValue(form.getFieldAtoms(form.fields.name).value)
   const setName = useAtomSet(groceryNameAtom)
   useEffect(() => {
-    setName(name ?? "")
+    setName(Option.getOrElse(name, () => ""))
   }, [name])
   return null
 }
@@ -780,9 +779,9 @@ function NameAutoCompleteSync() {
 const submitForm = (form: HTMLFormElement | null | undefined) =>
   form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
 
-function NameAutoComplete() {
+function NameAutoComplete({ form }: { form: ItemForm }) {
   const write = useWrite()
-  const setName = Display.name.useControls().set
+  const setName = useAtomSet(form.getFieldAtoms(form.fields.name).setValue)
   const results = useAtomValue(groceryNameAutoCompleteAtom)
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -800,24 +799,22 @@ function NameAutoComplete() {
   }
   return (
     <Command className="overflow-visible bg-transparent!">
-      <Display.name
+      <form.name
         placeholder="Add an item..."
-        {...{
-          onFocus(e: React.FocusEvent) {
-            inputRef.current = e.target as HTMLInputElement
-            setFocused(true)
-          },
-          onBlur(e: React.FocusEvent) {
-            if (e.relatedTarget?.hasAttribute("cmdk-list")) return
-            setFocused(false)
-          },
-          onKeyDown(e: React.KeyboardEvent) {
-            if (e.key !== "Enter") return
-            const input = e.target as HTMLInputElement
-            setTimeout(() => {
-              submitForm(input.form)
-            }, 0)
-          },
+        onFocus={(e) => {
+          inputRef.current = e.target
+          setFocused(true)
+        }}
+        onBlur={(e) => {
+          if (e.relatedTarget?.hasAttribute("cmdk-list")) return
+          setFocused(false)
+        }}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return
+          const input = e.target as HTMLInputElement
+          setTimeout(() => {
+            submitForm(input.form)
+          }, 0)
         }}
       />
       <div

@@ -4,7 +4,7 @@ import { RecipeInsert } from "@/domain/RecipeForm"
 import { useWrite } from "@/EventLog"
 import { recipeUpdate } from "@/Recipes/Events"
 import { recipeFormByIdAtom } from "@/Recipes/atoms"
-import { Display, RecipeForm, RecipeFormSkeleton } from "@/Recipes/Form"
+import { RecipeForm, RecipeFormSkeleton, recipeFormId } from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
@@ -25,7 +25,6 @@ function EditRecipeScreen() {
   const result = useAtomValue(recipeFormByIdAtom(id))
   const write = useWrite()
   const [saving, setSaving] = useState(false)
-  const formId = Display.Form.id
   return AsyncResult.builder(result)
     .onInitial(() => <RecipeFormSkeleton />)
     .onSuccess((found) => {
@@ -33,7 +32,7 @@ function EditRecipeScreen() {
       const [initialValue, recipe] = found.value
       return (
         <div className="pb-content">
-          <Header recipe={recipe} formId={formId} saving={saving} />
+          <Header recipe={recipe} formId={recipeFormId} saving={saving} />
           <RecipeForm
             initialValue={initialValue}
             variant="edit"

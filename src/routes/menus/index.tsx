@@ -8,8 +8,8 @@ import {
   Trash,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { FormBody, FormDisplay } from "@/lib/Form"
-import { TextInput } from "@/lib/InatoForm"
+import { FormBuilder } from "@lucas-barake/effect-form"
+import { Form, RequiredString, TextInput, useForm } from "@/lib/Form"
 import { Menu } from "@/domain/Menu"
 import type { Recipe } from "@/domain/Recipe"
 import * as DateTime from "effect/DateTime"
@@ -366,11 +366,7 @@ function AddMenuButton({ small = false }: { small?: boolean }) {
   )
 }
 
-const MenuFormSchema = FormBody.struct({
-  name: TextInput.Required,
-})
-
-const Display = FormDisplay.make(MenuFormSchema, Button)
+const MenuFormBuilder = FormBuilder.empty.addField("name", RequiredString)
 
 function MenuForm({
   className,
@@ -385,22 +381,13 @@ function MenuForm({
   initialValue?: Menu | undefined
   compact?: boolean
 }) {
+  const form = useForm(MenuFormBuilder, { name: TextInput })
   const isEditing = !!initialValue
   return (
-    <Display.Form
-      initialValues={
-        initialValue
-          ? {
-              encoded: {
-                ...initialValue,
-              },
-            }
-          : undefined
-      }
-      onError={(error) => {
-        console.error("Form submission error:", error)
-      }}
-      onSubmit={({ decoded }, controls) => {
+    <Form
+      form={form}
+      defaultValues={{ name: initialValue?.name ?? "" }}
+      onSubmit={(decoded) => {
         const item = initialValue
           ? new Menu({
               ...initialValue,
@@ -409,17 +396,17 @@ function MenuForm({
             })
           : Menu.fromForm(decoded)
         onSubmit(item)
-        controls.reset()
       }}
+      resetOnSubmit
     >
       {compact ? (
-        <Display.name placeholder="Menu name" {...{ autoFocus: true }} />
+        <form.name placeholder="Menu name" autoFocus />
       ) : (
         <div className={cn(className, "bg-card rounded-xl p-3")}>
           {!isEditing && <h3 className="font-medium  mb-2">Add new menu</h3>}
           <div className={"space-y-2"}>
             <div>
-              <Display.name placeholder="Menu name" {...{ autoFocus: true }} />
+              <form.name placeholder="Menu name" autoFocus />
             </div>
             <div className={`flex gap-2`}>
               <Button
@@ -442,6 +429,6 @@ function MenuForm({
           </div>
         </div>
       )}
-    </Display.Form>
+    </Form>
   )
 }
