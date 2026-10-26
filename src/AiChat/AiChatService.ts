@@ -68,7 +68,7 @@ import {
 } from "@/domain/AiMemoryEntry"
 import { AiChatTurnId, PromptJson } from "@/domain/AiChatTurn"
 import { AiChatTurnEvent, AiMemoryEntryEvent } from "./Events"
-import { inactiveAt, isInactive, lastActiveAt } from "./Inactivity"
+import { inactiveAt, isInactive, resumeTurn } from "./Inactivity"
 import { AiChatRepo } from "./Repo"
 import { aiChatRuntime } from "./runtime"
 import { Timer, TimerId } from "@/domain/Timer"
@@ -748,11 +748,10 @@ ${MenuEntry.toXml(entries)}`
       registry.set(currentPromptAtom, yield* Ref.get(chat.history))
       let sending = false
 
-      // A resume only lasts on this device, until the chat is next used.
+      // The chat was last used at its latest turn, resumes included, so a
+      // resume on another device brings the chat back here too.
       let lastTurnAt = initial.lastTurnAt
-      let resumedAt: number | undefined = undefined
-      const lastActive = () => lastActiveAt({ lastTurnAt, resumedAt })
-      const updateLastActive = () => registry.set(lastActiveAtom, lastActive())
+      const updateLastActive = () => registry.set(lastActiveAtom, lastTurnAt)
       updateLastActive()
 
       yield* repo.conversationStream.pipe(
@@ -814,7 +813,7 @@ ${MenuEntry.toXml(entries)}`
           const message = yield* makeMessage(options)
           // A message to an inactive chat that wasn't resumed starts afresh.
           const now = yield* DateTime.now
-          if (isInactive(lastActive(), now.epochMilliseconds)) yield* clear
+          if (isInactive(lastTurnAt, now.epochMilliseconds)) yield* clear
           previous = yield* Ref.get(chat.history)
           shown = previous
           sending = true
@@ -889,14 +888,17 @@ ${MenuEntry.toXml(entries)}`
         const ids = yield* repo.turnIds.pipe(Effect.orDie)
         yield* Ref.set(chat.history, Prompt.empty)
         lastTurnAt = undefined
-        resumedAt = undefined
         updateLastActive()
         yield* writeMany(ids.map((id) => AiChatTurnEvent.remove({ id: id })))
       })
 
-      const resume = Effect.map(DateTime.now, (now) => {
-        resumedAt = now.epochMilliseconds
+      // Set locally first, so a send right after a resume doesn't wait on the
+      // snapshot to see it.
+      const resume = Effect.gen(function* () {
+        const now = yield* DateTime.now
+        lastTurnAt = now.epochMilliseconds
         updateLastActive()
+        yield* write(resumeTurn(now.epochMilliseconds))
       })
 
       return { send, clear, resume } as const
@@ -923,7 +925,7 @@ export const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
   Atom.keepAlive,
 )
 
-// When the chat was last used on this device; see `lastActiveAt`.
+// When the chat was last used, on any device: its latest turn.
 export const lastActiveAtom = Atom.make<number | undefined>(undefined).pipe(
   Atom.keepAlive,
 )
