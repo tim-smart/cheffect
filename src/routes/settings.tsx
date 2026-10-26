@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -79,6 +89,10 @@ function SettingsPage() {
   const exportAllData = useAtomSet(exportAllAtom)
   const [importAllResult, importAllData] = useAtom(importAllAtom)
   const importAllRef = useRef<HTMLInputElement>(null)
+  // The picked file waits here until the import is confirmed. It stays set
+  // after closing so the dialog keeps its text while it fades out.
+  const [importAllFile, setImportAllFile] = useState<File>()
+  const [confirmImportAll, setConfirmImportAll] = useState(false)
 
   const importPaprika = useAtomSet(importPaprikaAtom)
   const importPaprikaRef = useRef<HTMLInputElement>(null)
@@ -140,9 +154,39 @@ function SettingsPage() {
                 // Cleared so picking the same file again imports it again.
                 e.target.value = ""
                 if (!file) return
-                importAllData(file)
+                setImportAllFile(file)
+                setConfirmImportAll(true)
               }}
             />
+            <AlertDialog
+              open={confirmImportAll}
+              onOpenChange={setConfirmImportAll}
+            >
+              <AlertDialogContent className="sm:max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Import all data?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Recipes, meal plans, menus and groceries from{" "}
+                    <span className="font-medium text-foreground break-words">
+                      {importAllFile?.name}
+                    </span>{" "}
+                    are merged into this device. Your settings and grocery
+                    aisles are replaced by the ones in the file. Anything
+                    deleted since the export doesn't come back.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (importAllFile) importAllData(importAllFile)
+                    }}
+                  >
+                    Import and replace settings
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <input
               ref={importPaprikaRef}
               type="file"

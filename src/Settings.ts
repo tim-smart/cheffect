@@ -219,8 +219,6 @@ export const importAllAtom = eventLogAtom.fn<File>()(
           return toast.success("Data imported", {
             id: toastId,
             cancel: undefined,
-            description:
-              "Settings and aisles now match the file. Anything deleted since the export stays deleted.",
           })
         }
         const error = Cause.squash(exit.cause)
