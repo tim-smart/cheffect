@@ -131,10 +131,10 @@ function SortButton() {
 function RecipeListSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 md:gap-x-5 gap-y-4">
-      <Skeleton className="h-32 md:h-44 rounded-xl" />
-      <Skeleton className="h-32 md:h-44 rounded-xl" />
-      <Skeleton className="h-32 md:h-44 rounded-xl" />
-      <Skeleton className="h-32 md:h-44 rounded-xl hidden md:block" />
+      <Skeleton className="aspect-[4/3] rounded-xl" />
+      <Skeleton className="aspect-[4/3] rounded-xl" />
+      <Skeleton className="aspect-[4/3] rounded-xl" />
+      <Skeleton className="aspect-[4/3] rounded-xl hidden md:block" />
     </div>
   )
 }
