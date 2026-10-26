@@ -11,7 +11,11 @@ import {
   AiMemoryEntryIdFromString,
 } from "./domain/AiMemoryEntry"
 import { GroceryAisleOrder } from "./domain/GroceryAisleOrder"
-import { GroceryItem, GroceryItemIdFromString } from "./domain/GroceryItem"
+import {
+  GroceryItem,
+  GroceryItemIdFromString,
+  StoredGroceryAisle,
+} from "./domain/GroceryItem"
 import { IngredientAisle } from "./domain/IngredientAisle"
 import {
   MealPlanDayNote,
@@ -77,6 +81,7 @@ export const ExportEvent = Schema.Union([
     GroceryItem.insert.mapFields((fields) => ({
       ...fields,
       id: GroceryItemIdFromString,
+      aisle: Schema.NullOr(StoredGroceryAisle),
       recipeIds: RecipeIdsFromString,
     })),
   ),

@@ -98,6 +98,15 @@ test("an item without an aisle takes the one learned for it, then for the part b
     "Chicken thighs",
     "Frozen peas",
     "Smoked salmon",
+    "Fish sauce",
+    "Extra virgin olive oil",
+    "Basmati rice",
+    "Chicken stock",
+    "Toothpaste",
+    "Hand soap",
+    "Dish soap",
+    "Cat food",
+    "Nappies",
     "Unobtainium",
   ].map((name) => [name, guessAisle(aisles, name)])
   assert.deepEqual(guesses, [
@@ -108,7 +117,16 @@ test("an item without an aisle takes the one learned for it, then for the part b
     ["Coconut milk", "Canned & Jar Goods"],
     ["Chicken thighs", "Meat & Seafood"],
     ["Frozen peas", "Frozen Foods"],
-    ["Smoked salmon", "Seafood"],
+    ["Smoked salmon", "Meat & Seafood"],
+    ["Fish sauce", "Condiments & Sauces"],
+    ["Extra virgin olive oil", "Oils & Vinegars"],
+    ["Basmati rice", "Pasta, Rice & Grains"],
+    ["Chicken stock", "Pantry"],
+    ["Toothpaste", "Personal Care"],
+    ["Hand soap", "Personal Care"],
+    ["Dish soap", "Household"],
+    ["Cat food", "Pet"],
+    ["Nappies", "Baby"],
     ["Unobtainium", null],
   ])
 })
