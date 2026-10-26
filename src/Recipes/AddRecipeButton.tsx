@@ -23,10 +23,12 @@ import { RegistryContext, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { createRecipeAtom, extractRuntime, recipeFromImagesAtom } from "./atoms"
 import { useContext, useId, useRef, useState, type Ref } from "react"
 import { router } from "@/Router"
+import { isAiEnabledAtom } from "@/services/AiHelpers"
 
 export function AddRecipeButton({ small = false }: { small?: boolean }) {
   const registry = useContext<AtomRegistry>(RegistryContext)
   const canExtract = AsyncResult.isSuccess(useAtomValue(extractRuntime))
+  const aiEnabled = useAtomValue(isAiEnabledAtom)
   const createFromImage = useAtomSet(recipeFromImagesAtom)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [urlOpen, setUrlOpen] = useState(false)
@@ -40,14 +42,25 @@ export function AddRecipeButton({ small = false }: { small?: boolean }) {
           <AddRecipeTrigger small={small} ref={triggerRef} />
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          {canExtract && (
+          {/* Without AI the imports stay on offer and lead to its settings */}
+          {(canExtract || !aiEnabled) && (
             <>
-              <DropdownMenuItem onSelect={() => setUrlOpen(true)}>
+              <DropdownMenuItem
+                onSelect={() => {
+                  if (!aiEnabled) {
+                    return router.navigate({ to: "/settings" })
+                  }
+                  setUrlOpen(true)
+                }}
+              >
                 <Earth />
                 From URL
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
+                  if (!aiEnabled) {
+                    return router.navigate({ to: "/settings" })
+                  }
                   fileInputRef.current!.value = ""
                   fileInputRef.current!.click()
                 }}
