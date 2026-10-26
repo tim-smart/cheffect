@@ -11,6 +11,12 @@ import {
   type PageText,
   pageText,
 } from "@/Recipes/extractFromHtml"
+import {
+  findYouTubeVideo,
+  type YouTubeVideo,
+  youTubeVideoId,
+  youTubeWatchUrl,
+} from "@/Recipes/youtube"
 import { beautifyChanges } from "@/Groceries/beautify"
 import {
   encodeGroceryItemListXml,
@@ -89,6 +95,38 @@ The JSON is authoritative. Use the page text only for what the JSON is missing.
 
 const pageTextPrompt = "Extract a recipe from the provided web page text."
 
+const videoDescriptionPrompt = `Extract a recipe from the description of a video.
+
+The description is all you have: you cannot see or hear the video. Return a null recipe when the description does not list the recipe's ingredients. Never make up a recipe from the title or from what the dish usually contains.
+
+- Split each ingredient line into quantity, unit and name. Leave the unit null rather than guess one the line does not state.
+- Group ingredients into components when the lines include headings, otherwise use a single component.
+- Use only the steps the description gives, and leave the steps empty when it gives none.`
+
+const VideoRecipe = Schema.Struct({
+  recipe: Schema.NullOr(ExtractedRecipe).annotate({
+    description:
+      "The recipe in the description, or null when the description does not list its ingredients.",
+  }),
+})
+
+const formatVideo = (video: YouTubeVideo, description: string): string =>
+  [
+    video.title === null ? null : `Title: ${video.title}`,
+    video.channel === null ? null : `Channel: ${video.channel}`,
+    "",
+    description,
+  ]
+    .filter((line) => line !== null)
+    .join("\n")
+
+// A video import that can't go ahead. The message is shown in the failure
+// toast as it is.
+export class VideoImportError extends Schema.TaggedError<VideoImportError>()(
+  "VideoImportError",
+  { message: Schema.String },
+) {}
+
 const formatPageText = (page: PageText): string =>
   [
     page.title === null ? null : `Title: ${page.title}`,
@@ -104,10 +142,57 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
     const llm = yield* LanguageModel.LanguageModel
     const fetcher = yield* PageFetcher
 
+    // The video's description is sent instead of the page, and the model may
+    // answer that it holds no recipe, so a video whose recipe is only spoken
+    // fails rather than coming back invented.
+    const recipeFromYouTube = Effect.fnUntraced(function* (id: string) {
+      const page = findYouTubeVideo(yield* fetcher.html(youTubeWatchUrl(id)))
+      if (page._tag === "Unavailable") {
+        return yield* new VideoImportError({
+          message:
+            page.reason === null
+              ? "YouTube's page did not include the video"
+              : `YouTube did not return the video: ${page.reason}`,
+        })
+      }
+      const { video } = page
+      if (video.description === null) {
+        return yield* new VideoImportError({
+          message: "This video has no description to find a recipe in",
+        })
+      }
+      const response = yield* llm.generateObject({
+        prompt: [
+          { role: "system", content: videoDescriptionPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: formatVideo(video, video.description) },
+            ],
+          },
+        ],
+        schema: VideoRecipe,
+      })
+      yield* Effect.log(response.value)
+      const recipe = response.value.recipe
+      if (recipe === null) {
+        return yield* new VideoImportError({
+          message: "No recipe found in this video's description",
+        })
+      }
+      return new ExtractedRecipe({
+        ...recipe,
+        imageUrl: video.thumbnail ?? recipe.imageUrl,
+        sourceName: video.channel ?? recipe.sourceName,
+      })
+    })
+
     const recipeFromUrl = Effect.fn("AiHelpers.recipeFromUrl")(function* (
       url: string,
     ) {
       yield* Effect.annotateCurrentSpan({ url })
+      const videoId = youTubeVideoId(url)
+      if (videoId !== null) return yield* recipeFromYouTube(videoId)
       const html = yield* fetcher.html(url)
       const jsonLd = findRecipeJsonLd(html, url)
       const hasIngredients = (jsonLd?.ingredients.length ?? 0) > 0
