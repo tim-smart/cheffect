@@ -362,7 +362,7 @@ export function RecipeDetails({
                 </span>
               </span>
             )}
-            {recipe.sourceUrl && (
+            {recipe.sourceUrl ? (
               <a
                 href={recipe.sourceUrl}
                 className="flex items-center gap-1"
@@ -374,6 +374,15 @@ export function RecipeDetails({
                   {recipe.sourceName ?? "Source"}
                 </span>
               </a>
+            ) : (
+              recipe.sourceName && (
+                <span>
+                  Source{" "}
+                  <span className="font-medium text-foreground">
+                    {recipe.sourceName}
+                  </span>
+                </span>
+              )
             )}
             {recipe.rating && (
               <div className="flex items-center gap-1">
