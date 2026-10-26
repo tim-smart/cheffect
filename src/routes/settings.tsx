@@ -153,7 +153,13 @@ function SettingsPage() {
                   }}
                 >
                   <Import />
-                  Import from Paprika
+                  <div className="flex flex-col">
+                    Import from Paprika
+                    <span className="text-xs text-muted-foreground max-w-56">
+                      Keeps web image links. Photos saved in Paprika aren't
+                      imported yet.
+                    </span>
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -12,6 +12,7 @@ import {
   type Unit,
 } from "@/domain/Recipe"
 import { Rating } from "@/domain/Rating"
+import { gunzipSync, strFromU8, unzipSync } from "fflate"
 
 // Paprika exports
 //
@@ -20,8 +21,9 @@ import { Rating } from "@/domain/Rating"
 // is accepted too. Ingredients and directions are plain text, so they are
 // parsed here without the model: one ingredient or step per line.
 //
-// Paprika's own photo is left out. It is inline JPEG data, too big to sync in
-// every recipe row, so only a web `image_url` is kept.
+// Paprika's own photo is left out for now. It is inline JPEG data, too big to
+// sync in every recipe row, so only a web `image_url` is kept, and the import
+// reports the recipes that end up without a photo.
 
 export class PaprikaImportError extends Schema.TaggedError<PaprikaImportError>()(
   "PaprikaImportError",
@@ -41,6 +43,7 @@ const PaprikaRecipe = Schema.Struct({
   source: OptionalString,
   source_url: OptionalString,
   image_url: OptionalString,
+  photo_data: OptionalString,
   rating: Schema.optional(Schema.NullOr(Schema.Finite)),
   created: OptionalString,
 })
@@ -49,63 +52,32 @@ type PaprikaRecipe = typeof PaprikaRecipe.Type
 const PaprikaRecipeJson = Schema.fromJsonString(PaprikaRecipe)
 
 // Archive
+//
+// Read with fflate rather than `DecompressionStream`, which Safari only has
+// from 16.4.
 
 const fail = (message: string) => new PaprikaImportError({ message })
 
-const decompress = (bytes: Uint8Array, format: CompressionFormat) =>
-  Effect.tryPromise({
-    try: () =>
-      new Response(
-        new Blob([bytes.slice()])
-          .stream()
-          .pipeThrough(new DecompressionStream(format)),
-      ).arrayBuffer(),
-    catch: () => fail("A recipe in the file is damaged"),
-  }).pipe(Effect.map((buffer) => new Uint8Array(buffer)))
-
 const isGzip = (bytes: Uint8Array) => bytes[0] === 0x1f && bytes[1] === 0x8b
 
-// The entries of a zip, read from its central directory. Only stored and
-// deflated entries are supported, which is all Paprika writes.
-const zipEntries = Effect.fnUntraced(function* (
-  bytes: Uint8Array,
-): Effect.fn.Return<Array<Uint8Array>, PaprikaImportError> {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-  let end = bytes.length - 22
-  while (end >= 0 && view.getUint32(end, true) !== 0x06054b50) end--
-  if (end < 0) return yield* fail("Not a Paprika export")
+const entries = (bytes: Uint8Array) =>
+  Effect.try({
+    try: () =>
+      isGzip(bytes)
+        ? [bytes]
+        : Object.values(
+            unzipSync(bytes, {
+              filter: (file) => file.name.endsWith(".paprikarecipe"),
+            }),
+          ),
+    catch: () => fail("Not a Paprika export"),
+  })
 
-  const count = view.getUint16(end + 10, true)
-  let offset = view.getUint32(end + 16, true)
-  const entries: Array<Uint8Array> = []
-  for (let i = 0; i < count; i++) {
-    if (view.getUint32(offset, true) !== 0x02014b50) {
-      return yield* fail("Not a Paprika export")
-    }
-    const method = view.getUint16(offset + 10, true)
-    const size = view.getUint32(offset + 20, true)
-    const nameLength = view.getUint16(offset + 28, true)
-    const extraLength = view.getUint16(offset + 30, true)
-    const commentLength = view.getUint16(offset + 32, true)
-    const local = view.getUint32(offset + 42, true)
-    const name = new TextDecoder().decode(
-      bytes.subarray(offset + 46, offset + 46 + nameLength),
-    )
-    offset += 46 + nameLength + extraLength + commentLength
-    if (!name.endsWith(".paprikarecipe")) continue
-
-    const start =
-      local +
-      30 +
-      view.getUint16(local + 26, true) +
-      view.getUint16(local + 28, true)
-    const data = bytes.subarray(start, start + size)
-    if (method === 0) entries.push(data)
-    else if (method === 8) entries.push(yield* decompress(data, "deflate-raw"))
-    else return yield* fail("Not a Paprika export")
-  }
-  return entries
-})
+const gunzip = (bytes: Uint8Array) =>
+  Effect.try({
+    try: () => strFromU8(gunzipSync(bytes)),
+    catch: () => fail("A recipe in the file is damaged"),
+  })
 
 // Fields
 
@@ -158,8 +130,9 @@ const vulgarFractions: Record<string, number> = {
 
 const fractionChars = Object.keys(vulgarFractions).join("")
 
-// A number as recipes write it: `2`, `0.5`, `1/2`, `1 1/2`, `½` or `1½`.
-const numberSource = `(?:\\d+\\s+\\d+/\\d+|\\d+/\\d+|\\d+(?:\\.\\d+)?\\s*[${fractionChars}]?|[${fractionChars}])`
+// A number as recipes write it: `2`, `0.5`, `1/2`, `1 1/2`, `1-1/2`, `½` or
+// `1½`. Mixed numbers come first, so `1-1/2` isn't read as a range.
+const numberSource = `(?:\\d+(?:\\s+|-)\\d+/\\d+|\\d+/\\d+|\\d+(?:\\.\\d+)?\\s*[${fractionChars}]?|[${fractionChars}])`
 
 // A number, or a range of them, which keeps its lower end.
 const quantityPattern = new RegExp(
@@ -168,7 +141,7 @@ const quantityPattern = new RegExp(
 
 const parseNumber = (s: string): number => {
   let total = 0
-  for (const part of s.trim().split(/\s+/)) {
+  for (const part of s.trim().split(/\s+|-/)) {
     const fraction = part.match(
       new RegExp(`^(\\d*\\.?\\d*)([${fractionChars}])$`),
     )
@@ -204,12 +177,13 @@ const parseIngredient = (line: string): Ingredient => {
   })
 }
 
-// A group heading is a line in bold, or one ending in a colon.
+// A group heading is a line in bold, or one ending in a colon. Either way a
+// line that starts with a quantity is an ingredient.
 const headingName = (line: string): string | null => {
-  const bold = line.match(/^\*\*(.+?)\*\*:?$/)
-  if (bold) return bold[1].replace(/:$/, "").trim()
-  if (line.endsWith(":") && !quantityPattern.test(line)) {
-    return stripBold(line).slice(0, -1).trim()
+  const text = stripBold(line).trim()
+  if (quantityPattern.test(text)) return null
+  if (/^\*\*.+\*\*:?$/.test(line) || text.endsWith(":")) {
+    return text.replace(/:$/, "").trim()
   }
   return null
 }
@@ -323,21 +297,31 @@ const toRecipe = Effect.fnUntraced(function* (paprika: PaprikaRecipe) {
   })
 })
 
+export interface PaprikaImport {
+  readonly recipes: ReadonlyArray<Recipe>
+  // The ids of recipes that had only a Paprika photo, and so have none here.
+  readonly photosLeftOut: ReadonlySet<string>
+}
+
 // The recipes in a Paprika export. The whole file is read before anything is
 // returned, so a damaged file imports nothing.
 export const recipesFromPaprika = Effect.fnUntraced(function* (
   bytes: Uint8Array,
-): Effect.fn.Return<Array<Recipe>, PaprikaImportError> {
-  const entries = isGzip(bytes) ? [bytes] : yield* zipEntries(bytes)
+): Effect.fn.Return<PaprikaImport, PaprikaImportError> {
   const recipes: Array<Recipe> = []
-  for (const entry of entries) {
-    const json = new TextDecoder().decode(yield* decompress(entry, "gzip"))
+  const photosLeftOut = new Set<string>()
+  for (const entry of yield* entries(bytes)) {
+    const json = yield* gunzip(entry)
     const paprika = yield* Schema.decodeEffect(PaprikaRecipeJson)(json).pipe(
       Effect.mapError(() =>
         fail("A recipe in the file isn't a Paprika recipe"),
       ),
     )
-    recipes.push(yield* toRecipe(paprika))
+    const recipe = yield* toRecipe(paprika)
+    if (nonEmpty(paprika.photo_data) && recipe.imageUrl === null) {
+      photosLeftOut.add(recipe.idString)
+    }
+    recipes.push(recipe)
   }
-  return recipes
+  return { recipes, photosLeftOut }
 })

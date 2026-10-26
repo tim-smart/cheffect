@@ -9,7 +9,8 @@ import { recipesFromPaprika } from "@/Recipes/paprika"
 // A Paprika export is a zip of gzipped JSON recipes with plain-text
 // ingredients and directions. `export.paprikarecipes` holds two: a carrot cake
 // using every format the text parsing handles, and a toast with only the
-// required fields filled in.
+// required fields filled in. Both have a Paprika photo, and only the cake also
+// has a web image.
 
 const exportFile = new Uint8Array(
   readFileSync(
@@ -21,7 +22,10 @@ const minutes = (d: Duration.Duration | null) =>
   d === null ? null : Duration.toMinutes(d)
 
 test("a Paprika export imports as recipes, with the same ids every time", async () => {
-  const [cake, toast] = await Effect.runPromise(recipesFromPaprika(exportFile))
+  const {
+    recipes: [cake, toast],
+    photosLeftOut,
+  } = await Effect.runPromise(recipesFromPaprika(exportFile))
 
   assert.equal(cake.title, "Carrot Cake")
   assert.deepEqual(
@@ -38,6 +42,8 @@ test("a Paprika export imports as recipes, with the same ids every time", async 
         name: "Cake",
         ingredients: [
           { name: "flour", quantity: 1.5, unit: "cup" },
+          { name: "milk", quantity: 1.5, unit: "cup" },
+          { name: "vanilla", quantity: 2, unit: "tsp" },
           { name: "sugar", quantity: 2, unit: "tbsp" },
           { name: "eggs", quantity: 2, unit: null },
           { name: "can of chickpeas", quantity: 1, unit: null },
@@ -75,13 +81,26 @@ test("a Paprika export imports as recipes, with the same ids every time", async 
   assert.equal(toast.rating, null)
   assert.equal(toast.sourceName, null)
   assert.equal(toast.imageUrl, null)
+  assert.deepEqual([...photosLeftOut], [toast.idString])
 
   const again = await Effect.runPromise(recipesFromPaprika(exportFile))
   assert.deepEqual(
-    again.map((recipe) => recipe.idString),
+    again.recipes.map((recipe) => recipe.idString),
     [cake.idString, toast.idString],
   )
   assert.notEqual(cake.idString, toast.idString)
+})
+
+test("an export imports without DecompressionStream, as on Safari 15", async () => {
+  const { DecompressionStream } = globalThis
+  // @ts-expect-error Safari before 16.4 has no DecompressionStream
+  delete globalThis.DecompressionStream
+  try {
+    const { recipes } = await Effect.runPromise(recipesFromPaprika(exportFile))
+    assert.equal(recipes.length, 2)
+  } finally {
+    globalThis.DecompressionStream = DecompressionStream
+  }
 })
 
 test("a file that isn't a Paprika export imports nothing", async () => {

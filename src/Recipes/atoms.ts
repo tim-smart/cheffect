@@ -228,8 +228,14 @@ export const importPaprikaAtom = recipesRuntime.fn<File>()(
   Effect.fnUntraced(
     function* (file, get) {
       const buffer = yield* Effect.promise(() => file.arrayBuffer())
-      const recipes = yield* recipesFromPaprika(new Uint8Array(buffer))
-      return yield* get.setResult(importRecipesAtom, recipes)
+      const { recipes, photosLeftOut } = yield* recipesFromPaprika(
+        new Uint8Array(buffer),
+      )
+      const added = yield* get.setResult(importRecipesAtom, recipes)
+      return {
+        added: added.length,
+        withoutPhoto: added.filter((r) => photosLeftOut.has(r.idString)).length,
+      }
     },
     withToast((_) => ({
       loading: "Importing recipes from Paprika",
@@ -237,12 +243,19 @@ export const importPaprikaAtom = recipesRuntime.fn<File>()(
         if (Exit.isFailure(exit)) {
           return toast.error("Failed to import from Paprika", { id: toastId })
         }
-        const added = exit.value
+        const { added, withoutPhoto } = exit.value
         toast.success(
           added === 0
             ? "No new recipes to import"
             : `Imported ${added} ${added === 1 ? "recipe" : "recipes"}`,
-          { id: toastId, cancel: undefined },
+          {
+            id: toastId,
+            cancel: undefined,
+            description:
+              withoutPhoto === 0
+                ? undefined
+                : `${withoutPhoto} ${withoutPhoto === 1 ? "has" : "have"} no photo. Photos saved in Paprika aren't imported yet.`,
+          },
         )
       },
     })),

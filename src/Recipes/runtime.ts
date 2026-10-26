@@ -38,11 +38,11 @@ export const liveRecipesAtom = recipesRuntime.fn<void>()(() =>
 export const importRecipesAtom = recipesRuntime.fn<ReadonlyArray<Recipe>>()(
   Effect.fnUntraced(function* (recipes) {
     const existing = yield* RecipeRepo.use((repo) => repo.current)
-    let added = 0
+    const added: Array<Recipe> = []
     for (const recipe of recipes) {
       if (existing.byId.has(recipe.idString)) continue
       yield* writeEvent(RecipeEvent.set(recipe))
-      added++
+      added.push(recipe)
     }
     return added
   }),
