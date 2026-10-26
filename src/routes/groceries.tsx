@@ -655,12 +655,21 @@ const GroceryListItem = memo(function GroceryListItem({
             className={cn(
               "flex-1 min-w-0 flex flex-col leading-tight py-1 justify-center",
               item.recipeIds ? "pt-2" : "min-h-12",
-              `${item.completed ? "text-muted-foreground line-through decoration-border" : ""}`,
+              item.completed && "text-muted-foreground",
             )}
             onClick={() => toggleItem(item)}
           >
             <div>
-              <span>{item.name}</span>
+              {/* Only the name is struck through, in its own colour; the
+                  quantity and recipe keep their usual tone */}
+              <span
+                className={cn(
+                  item.completed &&
+                    "line-through decoration-1 decoration-current",
+                )}
+              >
+                {item.name}
+              </span>
               {item.quantity && (
                 <span className="text-sm text-muted-foreground ml-2 tabular-nums">
                   {item.quantity}
