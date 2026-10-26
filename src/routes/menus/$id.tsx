@@ -206,7 +206,7 @@ function DayList({
   dayNotes: ReadonlyArray<MenuDayNote>
 }) {
   return (
-    <div className="divide-y divide-border">
+    <div role="list" className="divide-y divide-border">
       {Array.range(1, menu.days).map((day) => {
         const dayEntries = entries.filter((entry) => entry.day === day)
         const dayNote = dayNotes.find((note) => note.day === day)
@@ -293,6 +293,7 @@ function DayListItem({
     // grid places things; the DOM keeps the order the keyboard follows
     <div
       ref={setNodeRef}
+      role="listitem"
       className={cn(
         "py-2.5 md:py-4 md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-x-6",
         isOver && "bg-primary-muted -mx-2 px-2 rounded-xl border-transparent",

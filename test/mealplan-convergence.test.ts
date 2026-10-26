@@ -10,18 +10,15 @@ import * as Reactivity from "effect/reactivity/Reactivity"
 import { QueryBuilder, layerDatabase } from "@/IndexedDb"
 import { MealPlanLayer } from "@/MealPlan"
 import { MealPlanDayNoteEvent, MealPlanEvents } from "@/MealPlan/Events"
+import { MealPlanRepo } from "@/MealPlan/Repo"
+import { RecipeRepo } from "@/Recipes/Repo"
 import {
   MealPlanDayNote,
   MealPlanDayNoteIdFromString,
 } from "@/domain/MealPlanDayNote"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry } from "./harness/eventlog"
-import {
-  type MakeLayer,
-  converge,
-  pick,
-  readTable,
-} from "./harness/convergence"
+import { type MakeLayer, converge } from "./harness/convergence"
 
 // A `set` of a note that exists replaces it as the newest write, and an older
 // `set` keeps the fields newer patches wrote, so two devices importing the
@@ -74,7 +71,7 @@ const noteUpdated = (msecs: number, id: NoteId, onDay: string, note: string) =>
     ).payload,
   })
 
-const layer: MakeLayer = (identity, remote) => {
+const layer: MakeLayer<MealPlanRepo> = (identity, remote) => {
   const eventLog = EventLog.layer(
     EventLog.schema(MealPlanEvents),
     MealPlanLayer,
@@ -82,7 +79,11 @@ const layer: MakeLayer = (identity, remote) => {
     Layer.provide(EventJournal.layerIndexedDb({ database: "test_events" })),
     Layer.provide(Layer.succeed(EventLog.Identity, identity)),
   )
-  return Layer.mergeAll(eventLog, remote.pipe(Layer.provide(eventLog))).pipe(
+  return Layer.mergeAll(
+    eventLog,
+    remote.pipe(Layer.provide(eventLog)),
+    MealPlanRepo.layer.pipe(Layer.provide(RecipeRepo.layer)),
+  ).pipe(
     Layer.provideMerge(QueryBuilder.layer),
     Layer.provideMerge(layerDatabase),
     Layer.provideMerge(Reactivity.layer),
@@ -90,13 +91,16 @@ const layer: MakeLayer = (identity, remote) => {
   )
 }
 
-const read = Effect.map(readTable("mealPlanDayNotes"), (mealPlanDayNotes) => ({
-  mealPlanDayNotes,
-}))
+const read = MealPlanRepo.use((repo) => repo.notes).pipe(
+  Effect.map((notes) => ({
+    mealPlanDayNotes: notes.map((note) => ({
+      day: DateTime.formatIsoDate(note.day),
+      note: note.note,
+    })),
+  })),
+)
 
-const notes = (state: {
-  readonly mealPlanDayNotes: ReadonlyArray<Record<string, unknown>>
-}) => state.mealPlanDayNotes.map((row) => pick(row, ["day", "note"]))
+const notes = (state: Effect.Success<typeof read>) => state.mealPlanDayNotes
 
 test("a re-set day note merges with concurrent patches as the newer write", async () => {
   // A newer set of an existing note writes its fields...

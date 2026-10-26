@@ -12,12 +12,9 @@ test(
       )
       await browser.navigate(`${base}${href}`)
       const heading = `[...document.querySelectorAll("h2")].find((h) => h.textContent.includes("Ingredients"))`
-      await browser.waitFor(
-        `!!(${heading})?.parentElement.querySelectorAll("button")[1]`,
-      )
-      await browser.click(
-        `(${heading}).parentElement.querySelectorAll("button")[1]`,
-      )
+      const options = `document.querySelector('button[aria-label="Ingredient options"]')`
+      await browser.waitFor(`!!${options}`)
+      await browser.click(options)
       await browser.waitFor(`!!document.querySelector('[role="menu"] input')`)
       await browser.evaluate(`(() => {
         const input = document.querySelector('[role="menu"] input')

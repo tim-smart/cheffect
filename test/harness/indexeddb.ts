@@ -19,36 +19,6 @@ export const layerFreshIndexedDb = Layer.sync(
   freshIndexedDb,
 )
 
-// Counts the records a *separate* connection sees, the way the next page load
-// would open the database. Used to check that an awaited write is on disk.
-export const countRecords = (
-  indexedDB: IDBFactory,
-  database: string,
-  store: string,
-): Effect.Effect<number, Error> =>
-  Effect.callback<number, Error>((resume) => {
-    const open = indexedDB.open(database)
-    open.onerror = () => resume(Effect.fail(new Error(String(open.error))))
-    open.onsuccess = () => {
-      const db = open.result
-      try {
-        const request = db
-          .transaction(store, "readonly")
-          .objectStore(store)
-          .count()
-        request.onerror = () =>
-          resume(Effect.fail(new Error(String(request.error))))
-        request.onsuccess = () => {
-          db.close()
-          resume(Effect.succeed(request.result))
-        }
-      } catch (error) {
-        db.close()
-        resume(Effect.fail(new Error(String(error))))
-      }
-    }
-  })
-
 // Writes to a store behind the query builder's back, bypassing the table
 // schema. For putting rows the schema can't decode, to make a read fail.
 export const rawRequest = <A>(
@@ -64,35 +34,4 @@ export const rawRequest = <A>(
     transaction.onabort = () =>
       resume(Effect.fail(new Error(String(transaction.error))))
     transaction.oncomplete = () => resume(Effect.succeed(request.result))
-  })
-
-// Every record in a store as a *separate* connection reads it: the encoded
-// rows, hidden fields included, in key order. Convergence tests compare these
-// so they check what is on disk rather than what a repo decodes.
-export const readRecords = (
-  indexedDB: IDBFactory,
-  database: string,
-  store: string,
-): Effect.Effect<ReadonlyArray<Record<string, unknown>>, Error> =>
-  Effect.callback<ReadonlyArray<Record<string, unknown>>, Error>((resume) => {
-    const open = indexedDB.open(database)
-    open.onerror = () => resume(Effect.fail(new Error(String(open.error))))
-    open.onsuccess = () => {
-      const db = open.result
-      try {
-        const request = db
-          .transaction(store, "readonly")
-          .objectStore(store)
-          .getAll()
-        request.onerror = () =>
-          resume(Effect.fail(new Error(String(request.error))))
-        request.onsuccess = () => {
-          db.close()
-          resume(Effect.succeed(request.result))
-        }
-      } catch (error) {
-        db.close()
-        resume(Effect.fail(new Error(String(error))))
-      }
-    }
   })

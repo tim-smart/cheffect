@@ -23,13 +23,7 @@ import { MenuEntryIdFromString } from "@/domain/MenuEntry"
 import { RecipeIdFromString } from "@/domain/Recipe"
 import { layerFreshIndexedDb } from "./harness/indexeddb"
 import { makeEntry } from "./harness/eventlog"
-import {
-  type MakeLayer,
-  converge,
-  only,
-  pick,
-  readTable,
-} from "./harness/convergence"
+import { type MakeLayer, converge, only, pick } from "./harness/convergence"
 
 // A removed menu stays as a marker. Entries and notes are separate rows, so
 // their writes never conflict with the menu's remove: their handlers skip a
@@ -120,9 +114,8 @@ const layer: MakeLayer<MenuRepo> = (identity, remote) => {
 const read = Effect.gen(function* () {
   const repo = yield* MenuRepo
   return {
-    menus: yield* readTable("menus"),
-    menuEntries: yield* readTable("menuEntries"),
-    menuDayNotes: yield* readTable("menuDayNotes"),
+    menuEntries: yield* repo.entries,
+    menuDayNotes: yield* repo.notes,
     shown: (yield* repo.all).map((menu) => ({
       id: menu.idString,
       name: menu.name,

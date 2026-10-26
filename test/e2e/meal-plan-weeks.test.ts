@@ -1,6 +1,11 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
-import { type Browser, hasChromium, withSeededApp } from "./harness"
+import {
+  type Browser,
+  hasChromium,
+  journalSettled,
+  withSeededApp,
+} from "./harness"
 
 // The meal plan keeps its seven day rows while the weeks change under them,
 // so what a row holds has to go with the day, not the row: a note being
@@ -8,17 +13,17 @@ import { type Browser, hasChromium, withSeededApp } from "./harness"
 // A meal's menu mounts on its first press, and that first press from the
 // keyboard must still land on the menu's first action.
 
-const weekLabel = `document.querySelector("header span.text-sm.font-medium").textContent`
+const weekLabel = `document.querySelector("main header h2").textContent`
 
 // The row of the named weekday, found afresh each time, so the check doesn't
 // depend on the rows being kept
 const dayRow = (weekday: string) =>
-  `[...document.querySelectorAll("main p")].find((p) => p.textContent === ${JSON.stringify(weekday)})?.closest(".divide-y > div")`
+  `[...document.querySelectorAll("main p")].find((p) => p.textContent === ${JSON.stringify(weekday)})?.closest('[role="listitem"]')`
 
 // The weekday of the first day with nothing planned
 const emptyWeekday = `(() => {
   const empty = [...document.querySelectorAll("main p")].find((p) => p.textContent === "Nothing planned")
-  return empty.closest(".divide-y > div").querySelector("p").textContent
+  return empty.closest('[role="listitem"]').querySelector("p").textContent
 })()`
 
 const weekButton = (to: "Next" | "Previous") =>
@@ -40,11 +45,7 @@ const writeNote = async (browser: Browser, weekday: string, text: string) => {
     `document.execCommand("insertText", false, ${JSON.stringify(text)})`,
   )
   await browser.click(`${row}.querySelector("p")`)
-  // the note button shows a plain speech bubble once the day has a note
-  await browser.waitFor(
-    `!!${row}.querySelector('button[aria-label="Close note"] svg.lucide-message-square')`,
-    5000,
-  )
+  await journalSettled(browser)
 }
 
 test(
@@ -77,7 +78,7 @@ test(
       // because a swipe back is also the browser's gesture for history)
       await browser.click(field)
       await browser.waitFor(`document.activeElement === ${field}`, 5000)
-      const firstDay = `document.querySelector("main .divide-y > div")`
+      const firstDay = `document.querySelector('main [role="listitem"]')`
       await browser.evaluate(`${firstDay}.scrollIntoView({ block: "center" })`)
       await browser.swipe(firstDay, -200)
       await weekChanged(browser, lastWeek)

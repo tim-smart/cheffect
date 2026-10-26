@@ -44,9 +44,7 @@ test(
       assert.ok(listScrollY > 100, `the list only scrolled ${listScrollY}px`)
 
       // open the last recipe in the list
-      await browser.evaluate(
-        `void (window.__opened = ${onPageCommit(".pb-content")})`,
-      )
+      await browser.evaluate(`void (window.__opened = ${onPageCommit("h1")})`)
       await browser.click(
         `[...document.querySelectorAll('a[href^="/recipes/"]')].at(-1)`,
       )
@@ -55,7 +53,7 @@ test(
 
       // back to the list, where it was
       await browser.evaluate(
-        `window.__back = ${onPageCommit(".page-wide")}; history.back()`,
+        `window.__back = ${onPageCommit("[aria-label='Sort recipes']")}; history.back()`,
       )
       const back = await browser.evaluate(`window.__back`)
       assert.deepEqual(back, { scrollY: listScrollY, topBar: "app header" })
@@ -83,9 +81,8 @@ const firstInViewAt = `(() => {
   }
 })()`
 // Rows that mount in the list's first moments rise into place; true once
-// none is still on its way
-const tilesSettled = `![...document.querySelectorAll("[data-index] > div")]
-  .some((row) => row.className.includes("rise-in"))`
+// nothing on the page is still moving
+const tilesSettled = `document.getAnimations().every((a) => a.playState !== "running")`
 
 test(
   "back from a recipe restores a long list to the same recipes",
@@ -108,9 +105,13 @@ test(
         assert.ok(before.scrollY > 0, "the list did not scroll")
 
         await browser.click(`(${firstInView}).a`)
-        await browser.waitFor(`!document.querySelector("[data-index]")`)
+        await browser.waitFor(
+          `!document.querySelector('[aria-label="Sort recipes"]')`,
+        )
         await browser.evaluate(`history.back()`)
-        await browser.waitFor(`!!document.querySelector("[data-index]")`)
+        await browser.waitFor(
+          `!!document.querySelector('[aria-label="Sort recipes"]')`,
+        )
         // the router restores the scroll position on mount
         await browser.waitFor(`scrollY > 0 && ${tilesSettled}`)
 

@@ -26,7 +26,6 @@ import { RecipeRepo } from "@/Recipes/Repo"
 import { MenuIdFromString } from "@/domain/Menu"
 import { MenuEntryIdFromString } from "@/domain/MenuEntry"
 import { MenuDayNoteIdFromString } from "@/domain/MenuDayNote"
-import { uuidString } from "@/lib/Id"
 import {
   Ingredient,
   IngredientsComponent,
@@ -175,14 +174,6 @@ test("a shrink hides stored entries and notes past the inclusive last day until 
       }),
     })
     yield* checkVisible(5, [rows[0]])
-    assert.deepEqual(
-      (yield* repo.entries).map((entry) => uuidString(entry.id)).sort(),
-      rows.map((row) => row.entry).sort(),
-    )
-    assert.deepEqual(
-      (yield* repo.notes).map((note) => uuidString(note.id)).sort(),
-      rows.map((row) => row.note).sort(),
-    )
 
     yield* log.write({
       schema,

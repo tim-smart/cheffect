@@ -11,24 +11,23 @@ import { hasChromium, withSeededApp } from "./harness"
 
 const thumbnail = `document.querySelector('main a[href^="/recipes/"] img')`
 
-// Resolves with what the thumbnail shows once the photo has failed.
+// Resolves with what the thumbnail shows once the photo has failed: whether
+// the photo is still drawn, and whether the middle of the thumbnail now shows
+// the chef hat's drawing.
 const failPhoto = `new Promise((resolve) => {
   const img = ${thumbnail}
-  const box = img.parentElement
+  const rect = img.getBoundingClientRect()
   img.addEventListener("error", () => requestAnimationFrame(() => {
-    const hat = box.querySelector("svg")
-    const boxRect = box.getBoundingClientRect()
-    const hatRect = hat?.getBoundingClientRect()
+    const shown = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
     resolve({
-      imageHidden: img.hidden,
-      hatVisible: !!hatRect && hatRect.width > 0 && hatRect.height > 0,
-      boxSize: [Math.round(boxRect.width), Math.round(boxRect.height)],
+      photoShown: img.checkVisibility(),
+      hatShown: !!shown?.closest("svg"),
     })
   }), { once: true })
   img.src = "data:text/plain,not-an-image"
 })`
 
-const expected = { imageHidden: true, hatVisible: true, boxSize: [48, 48] }
+const expected = { photoShown: false, hatShown: true }
 
 test(
   "a recipe photo that fails to load shows the placeholder in its thumbnail",

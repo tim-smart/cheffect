@@ -17,7 +17,8 @@ import {
 
 const stars = `[...document.querySelectorAll('[role=radiogroup] button')]`
 const star = (n: number) => `${stars}[${n - 1}]`
-const filled = `${stars}.filter((b) => b.dataset.active === "true").length`
+// stars drawn filled in, whatever chose them: a rating or a pointer over a star
+const filled = `${stars}.filter((b) => getComputedStyle(b.querySelector("svg")).fill !== "none").length`
 const checked = `${stars}.findIndex((b) => b.getAttribute("aria-checked") === "true") + 1`
 
 const reloadAndExpect = async (

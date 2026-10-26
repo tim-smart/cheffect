@@ -29,11 +29,11 @@ import {
 import { QueryBuilder, databaseName, layerDatabase } from "@/IndexedDb"
 import { RecipesLayer } from "@/Recipes"
 import { RecipeEvent, RecipeEvents } from "@/Recipes/Events"
+import { RecipeRepo } from "@/Recipes/Repo"
 import { RecipeIdFromString } from "@/domain/Recipe"
 import { join, makeShareLink, parseJoinInput } from "@/Sync/Join"
 import { sampleRecipe } from "./fixtures/event-samples"
 import { testIdentity } from "./harness/eventlog"
-import { countRecords } from "./harness/indexeddb"
 
 // Joining another collection. The join wipes the device,
 // then clears the per-collection keys, then writes the new identity, server
@@ -83,19 +83,58 @@ const makeFactory = () => {
 
 type Factory = ReturnType<typeof makeFactory>
 
-// Rows the next page load would find, or `"pending"` while a deletion is
-// still waiting on an open connection: a crash then keeps the data.
-const recordsOnDisk = (
+// What the next page load would find in `database`, through `read`, or
+// `"pending"` while a deletion is still waiting on an open connection: a
+// crash then keeps the data.
+const onDisk = (
   { indexedDB, pendingDeletes }: Factory,
   database: string,
-  store: string,
-): Effect.Effect<number | "pending", Error> =>
+  read: Effect.Effect<number, unknown>,
+): Effect.Effect<number | "pending", unknown> =>
   Effect.gen(function* () {
     if (pendingDeletes.has(database)) return "pending" as const
     const existing = yield* Effect.promise(() => indexedDB.databases())
     if (!existing.some((info) => info.name === database)) return 0
-    return yield* countRecords(indexedDB, database, store)
+    return yield* read
   })
+
+const recipesOnDisk = (factory: Factory) =>
+  onDisk(
+    factory,
+    databaseName,
+    RecipeRepo.use((repo) => repo.current).pipe(
+      Effect.map((recipes) => recipes.all.length),
+      Effect.provide(
+        Layer.fresh(
+          RecipeRepo.layer.pipe(
+            Layer.provideMerge(QueryBuilder.layer),
+            Layer.provideMerge(layerDatabase),
+            Layer.provideMerge(Reactivity.layer),
+            Layer.provideMerge(
+              Layer.succeed(
+                IndexedDb.IndexedDb,
+                IndexedDb.make({ indexedDB: factory.indexedDB, IDBKeyRange }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  )
+
+const entriesOnDisk = (factory: Factory) =>
+  onDisk(
+    factory,
+    journalDatabaseName,
+    EventJournal.EventJournal.use((journal) => journal.entries).pipe(
+      Effect.map((entries) => entries.length),
+      Effect.provide(
+        Layer.fresh(
+          EventJournal.layerIndexedDb({ database: journalDatabaseName }),
+        ),
+      ),
+    ),
+  )
 
 interface DeviceState {
   readonly identity: Option.Option<string>
@@ -110,8 +149,8 @@ const readState = (factory: Factory, kvs: KeyValueStore.KeyValueStore) =>
   Effect.gen(function* () {
     return {
       identity: yield* settings(kvs).identity.get(identityKey),
-      recipes: yield* recordsOnDisk(factory, databaseName, "recipes"),
-      entries: yield* recordsOnDisk(factory, journalDatabaseName, "entries"),
+      recipes: yield* recipesOnDisk(factory),
+      entries: yield* entriesOnDisk(factory),
     } satisfies DeviceState
   })
 

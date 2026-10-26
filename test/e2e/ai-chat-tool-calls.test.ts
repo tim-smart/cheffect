@@ -10,10 +10,11 @@ import fixture from "../fixtures/openai-web-search-stream.json" with { type: "js
 
 // Tool calls the assistant makes show as rows in the chat. A row's state
 // follows the call itself, and a finished call links to what it touched.
+// A reply shows as it streams in, before its text has ended.
 
 const input = `document.querySelector('textarea[placeholder="Type your message..."]')`
 const submit = `(${input}).closest("form").querySelector('button[type="submit"]')`
-const rows = `[...document.querySelectorAll('.overflow-y-auto button[aria-expanded]')].map((row) => row.textContent.trim())`
+const rows = `[...document.querySelectorAll('[role="log"] button[aria-expanded]')].map((row) => row.textContent.trim())`
 
 const sse = (event: object) =>
   `event: ${(event as { type: string }).type}\ndata: ${JSON.stringify(event)}\n\n`
@@ -43,34 +44,42 @@ const functionCall = (name: string, args: object) => {
     }),
   ].join("")
 }
-const textMessage = (text: string) => {
-  const item = {
-    id: "msg_1",
-    type: "message",
-    status: "completed",
-    role: "assistant",
-    content: [],
-  }
-  return [
-    sse({ type: "response.output_item.added", output_index: 0, item }),
+const messageItem = {
+  id: "msg_1",
+  type: "message",
+  status: "completed",
+  role: "assistant",
+  content: [],
+}
+// The start of a text reply, without its end
+const textDelta = (text: string) =>
+  [
+    sse({
+      type: "response.output_item.added",
+      output_index: 0,
+      item: messageItem,
+    }),
     sse({
       type: "response.output_text.delta",
-      item_id: item.id,
+      item_id: messageItem.id,
       output_index: 0,
       content_index: 0,
       delta: text,
     }),
+  ].join("")
+const textMessage = (text: string) =>
+  [
+    textDelta(text),
     sse({
       type: "response.output_item.done",
       output_index: 0,
       item: {
-        ...item,
+        ...messageItem,
         content: [{ type: "output_text", annotations: [], text }],
       },
     }),
     completed,
   ].join("")
-}
 
 // Each OpenAI request takes the next response: a list of SSE chunks, with a
 // number for a pause in milliseconds and "stall" for a stream that never ends.
@@ -120,6 +129,22 @@ const send = (browser: Browser, text: string) =>
     input.dispatchEvent(new Event("input", { bubbles: true }))
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
   })()`)
+
+test(
+  "a reply shows while its text is still streaming",
+  { skip: !hasChromium && "chromium not found", timeout: 180_000 },
+  async () =>
+    withSeededApp(async ({ browser, base }) => {
+      await withChat(browser, base, [
+        [...opening, textDelta("Pumpkins are"), "stall"],
+      ])
+      await send(browser, "What is in season?")
+      // the stop button shows while the reply is still coming
+      await browser.waitFor(
+        `document.body.textContent.includes("Pumpkins are") && !(${submit}).disabled`,
+      )
+    }),
+)
 
 test(
   "a tool call stopped with the reply stays stopped after the next message",
@@ -190,7 +215,7 @@ test(
       ])
 
       await browser.click(
-        `document.querySelector('.overflow-y-auto a[href="/groceries?list=Party"]')`,
+        `document.querySelector('[role="log"] a[href="/groceries?list=Party"]')`,
       )
       await browser.waitFor(`location.pathname === "/groceries"`)
       await browser.waitFor(

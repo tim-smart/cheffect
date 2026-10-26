@@ -14,10 +14,7 @@ const markEmptyDay = `(() => {
   const empty = [...document.querySelectorAll("main p")].find(
     (p) => p.textContent === "Nothing planned",
   )
-  let day = empty.parentElement
-  while (!day.querySelector('button[aria-label="Add a note"]')) {
-    day = day.parentElement
-  }
+  const day = empty.closest('[role="listitem"]')
   day.setAttribute("data-test-day", "")
   day.scrollIntoView({ block: "center" })
   return true
