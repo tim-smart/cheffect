@@ -103,14 +103,15 @@ test(
         await browser.evaluate(`(() => {
           const request = window.__chatRequests[1]
           return {
-            url: request.url,
+            // the path under the API URL is the client library's
+            underApiUrl: request.url.startsWith("https://llm.example.com/v1/"),
             authorization: request.authorization,
             model: request.body.model,
             users: request.body.input.filter((message) => message.role === "user").flatMap((message) => message.content.map((part) => part.text)),
           }
         })()`),
         {
-          url: "https://llm.example.com/v1/responses",
+          underApiUrl: true,
           authorization: "Bearer replacement-api-key",
           model: "replacement-chat-model",
           users: ["What is in season?", "And next month?"],
