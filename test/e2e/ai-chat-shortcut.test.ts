@@ -2,16 +2,19 @@ import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import { hasChromium, journalSettled, withSeededApp } from "./harness"
 
-// Ctrl+J (⌘J on Apple keyboards) opens the chat from anywhere and closes it
-// again, from the message field too. Chromium here runs on Linux, so Ctrl.
+// Ctrl+/ (⌘/ on Apple keyboards) opens the chat from anywhere and closes it
+// again, from the message field too, and focus goes back where it was. An
+// open menu keeps the key. Chromium here runs on Linux, so Ctrl.
 
 const input = `document.querySelector('textarea[placeholder="Type your message..."]')`
 const panel = `document.querySelector('[role="region"][aria-label="AI Sous-chef"]')`
+const chatButton = `document.querySelector('[aria-label="Open AI Chat"]')`
+const recipeOptions = `document.querySelector('[aria-label="Recipe options"]')`
 // the `modifiers` bit for Ctrl
 const ctrl = 2
 
 test(
-  "Ctrl+J toggles the AI chat",
+  "Ctrl+/ toggles the AI chat and returns focus",
   { skip: !hasChromium && "chromium not found", timeout: 120_000 },
   async () =>
     withSeededApp(async ({ browser, base, recipeId }) => {
@@ -28,30 +31,61 @@ test(
       )
       await journalSettled(browser)
       await browser.navigate(`${base}/recipes/${recipeId}`)
-      await browser.waitFor(`!!document.querySelector("main h1")`)
+      await browser.waitFor(`!!${recipeOptions}`)
       assert.equal(
-        await browser.evaluate(
-          `document.querySelector('[aria-label="Open AI Chat"]').title`,
-        ),
-        "AI Sous-chef (Ctrl+J)",
+        await browser.evaluate(`(${chatButton}).title`),
+        "AI Sous-chef (Ctrl+/)",
         "the chat button names its shortcut",
       )
+      const toggle = () => browser.press("/", "Slash", 191, ctrl)
 
-      await browser.press("j", "KeyJ", 74, ctrl)
+      // nothing had focus, so closing leaves it on the chat button
+      await toggle()
       await browser.waitFor(
         `(${panel}).checkVisibility() && document.activeElement === ${input}`,
       )
-
-      // the message field has focus, and the shortcut still closes the chat
-      await browser.press("j", "KeyJ", 74, ctrl)
-      await browser.waitFor(`!(${panel}).checkVisibility()`)
+      await toggle()
+      await browser.waitFor(
+        `!(${panel}).checkVisibility() && document.activeElement === ${chatButton}`,
+      )
       assert.equal(
         await browser.evaluate(`(${input}).value`),
         "",
-        "no j was typed",
+        "no / was typed",
       )
 
-      await browser.press("j", "KeyJ", 74, ctrl)
+      // closing returns focus to the control that had it
+      await browser.evaluate(`(${recipeOptions}).focus()`)
+      await toggle()
+      await browser.waitFor(
+        `(${panel}).checkVisibility() && document.activeElement === ${input}`,
+      )
+      await toggle()
+      await browser.waitFor(
+        `!(${panel}).checkVisibility() && document.activeElement === ${recipeOptions}`,
+      )
+
+      // an open menu holds focus, so it keeps the key
+      await browser.press("Enter", "Enter", 13)
+      await browser.waitFor(`!!document.activeElement.closest('[role="menu"]')`)
+      await toggle()
+      await browser.evaluate(
+        `new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))`,
+      )
+      assert.equal(
+        await browser.evaluate(`(${panel}).checkVisibility()`),
+        false,
+      )
+      assert.equal(
+        await browser.evaluate(
+          `!!document.activeElement.closest('[role="menu"]')`,
+        ),
+        true,
+        "the menu keeps focus",
+      )
+      await browser.press("Escape", "Escape", 27)
+      await browser.waitFor(`!document.querySelector('[role="menu"]')`)
+      await toggle()
       await browser.waitFor(`(${panel}).checkVisibility()`)
     }),
 )

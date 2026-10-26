@@ -39,27 +39,49 @@ import { router, scrollRestorationKey } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
 
-// ⌘J on Apple keyboards and Ctrl+J elsewhere opens and closes the chat. ⌘K is
-// left for search, and J is where other apps put their assistant
+// ⌘/ on Apple keyboards and Ctrl+/ elsewhere opens and closes the chat. No
+// browser binds Ctrl+/, and Safari's ⌘/ only toggles its status bar. Ctrl+J
+// is Downloads in Chrome and Edge, ⌘. is Stop in Firefox, and ⌘; checks
+// spelling in the message field
 const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
-const toggleShortcut = isApple ? "⌘J" : "Ctrl+J"
-const toggleKeyShortcuts = isApple ? "Meta+J" : "Control+J"
+const toggleShortcut = isApple ? "⌘/" : "Ctrl+/"
+const toggleKeyShortcuts = isApple ? "Meta+/" : "Control+/"
+// layers that hold focus until they close, and get the shortcut's key
+const modalLayers =
+  "[role=dialog], [role=alertdialog], [role=menu], [role=listbox]"
 
 export function AiChatModal() {
   const aiEnabled = useAtomValue(isAiEnabledAtom)
   const [isOpen, setIsOpen] = useAtom(aiChatOpenAtom)
   const ref = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const pushedHistoryRef = useRef(false)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
 
   const open = () => {
     if (!aiEnabled) {
       router.navigate({ to: "/settings" })
       return
     }
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement !== document.body
+        ? document.activeElement
+        : null
     setIsOpen(true)
     ref.current?.classList.remove("hidden")
     inputRef.current?.focus()
+  }
+
+  // Minimizing puts focus back where it was before the chat opened, or on
+  // the chat button when there was nowhere or it has gone
+  const minimize = () => {
+    setIsOpen(false)
+    const target = returnFocusRef.current
+    returnFocusRef.current = null
+    const returnTo = target?.isConnected ? target : buttonRef.current
+    returnTo?.focus({ preventScroll: true })
   }
 
   // Handle history state when modal opens/closes
@@ -110,26 +132,25 @@ export function AiChatModal() {
   }, [isOpen])
 
   // The shortcut works from anywhere, the message field included: it needs
-  // the modifier, so it never takes a key that would type text. It doesn't
-  // open the chat over a dialog, which keeps focus to itself
+  // the modifier, so it never takes a key that would type text. Shift is
+  // fine, as some layouts need it for "/", but not Alt: AltGr is Ctrl+Alt
+  // on Windows, and types "/" on some layouts. A dialog or menu keeps the
+  // key, since the chat can't take focus from it
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
-        (e.key !== "j" && e.key !== "J") ||
+        e.key !== "/" ||
         (isApple ? !e.metaKey || e.ctrlKey : !e.ctrlKey || e.metaKey) ||
         e.altKey ||
-        e.shiftKey
+        (e.target instanceof Element && e.target.closest(modalLayers) !== null)
       ) {
         return
       }
       e.preventDefault()
       if (e.repeat) return
       if (isOpen) {
-        setIsOpen(false)
-      } else if (
-        !(e.target instanceof Element) ||
-        e.target.closest("[role=dialog], [role=alertdialog]") === null
-      ) {
+        minimize()
+      } else {
         open()
       }
     }
@@ -145,6 +166,7 @@ export function AiChatModal() {
         <TimerList />
         {/* Floating Action Button */}
         <button
+          ref={buttonRef}
           onClick={open}
           className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg motion-safe:active:scale-95 transition-transform"
           aria-label="Open AI Chat"
@@ -165,6 +187,7 @@ export function AiChatModal() {
         <ModalContent
           inputRef={inputRef}
           onClose={() => setIsOpen(false)}
+          onMinimize={minimize}
           open={isOpen}
         />
       </div>
@@ -175,10 +198,12 @@ export function AiChatModal() {
 function ModalContent({
   inputRef,
   onClose,
+  onMinimize,
   open,
 }: {
   readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
   readonly onClose: () => void
+  readonly onMinimize: () => void
   readonly open: boolean
 }) {
   const { scrollRef, contentRef, scrollToBottom } = useStickToBottom({
@@ -266,7 +291,7 @@ function ModalContent({
               {maximized ? <Minimize2 /> : <Maximize2 />}
             </Button>
             <Button
-              onClick={() => onClose()}
+              onClick={onMinimize}
               className="rounded-full"
               size="icon"
               variant="ghost"
