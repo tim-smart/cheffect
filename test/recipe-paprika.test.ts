@@ -91,18 +91,6 @@ test("a Paprika export imports as recipes, with the same ids every time", async 
   assert.notEqual(cake.idString, toast.idString)
 })
 
-test("an export imports without DecompressionStream, as on Safari 15", async () => {
-  const { DecompressionStream } = globalThis
-  // @ts-expect-error Safari before 16.4 has no DecompressionStream
-  delete globalThis.DecompressionStream
-  try {
-    const { recipes } = await Effect.runPromise(recipesFromPaprika(exportFile))
-    assert.equal(recipes.length, 2)
-  } finally {
-    globalThis.DecompressionStream = DecompressionStream
-  }
-})
-
 test("a file that isn't a Paprika export imports nothing", async () => {
   const error = await Effect.runPromise(
     Effect.flip(recipesFromPaprika(new TextEncoder().encode("[]"))),

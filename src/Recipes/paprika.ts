@@ -53,8 +53,8 @@ const PaprikaRecipeJson = Schema.fromJsonString(PaprikaRecipe)
 
 // Archive
 //
-// Read with fflate rather than `DecompressionStream`, which Safari only has
-// from 16.4.
+// Read with fflate. `DecompressionStream` could inflate the entries, but it
+// can't read the zip around them.
 
 const fail = (message: string) => new PaprikaImportError({ message })
 
