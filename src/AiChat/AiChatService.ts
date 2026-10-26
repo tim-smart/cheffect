@@ -68,6 +68,7 @@ import {
 } from "@/domain/AiMemoryEntry"
 import { AiChatTurnId, PromptJson } from "@/domain/AiChatTurn"
 import { AiChatTurnEvent, AiMemoryEntryEvent } from "./Events"
+import { inactiveAt, isInactive, resumeTurn } from "./Inactivity"
 import { AiChatRepo } from "./Repo"
 import { aiChatRuntime } from "./runtime"
 import { Timer, TimerId } from "@/domain/Timer"
@@ -737,18 +738,29 @@ ${MenuEntry.toXml(entries)}`
       // History is the `aiChatTurns` snapshot, so turns from other devices
       // and clears show up here too. While a reply streams, the snapshot only
       // replaces the history the next message builds on, not what's shown.
-      const chat = yield* repo.history.pipe(
-        Effect.flatMap(AiChat.fromPrompt),
-        Effect.catch(() => AiChat.empty),
+      const initial = yield* repo.conversation.pipe(
+        Effect.orElseSucceed(() => ({
+          history: Prompt.empty,
+          lastTurnAt: undefined,
+        })),
       )
+      const chat = yield* AiChat.fromPrompt(initial.history)
       registry.set(currentPromptAtom, yield* Ref.get(chat.history))
       let sending = false
 
-      yield* repo.historyStream.pipe(
-        Stream.runForEach((history) =>
+      // The chat was last used at its latest turn, resumes included, so a
+      // resume on another device brings the chat back here too.
+      let lastTurnAt = initial.lastTurnAt
+      const updateLastActive = () => registry.set(lastActiveAtom, lastTurnAt)
+      updateLastActive()
+
+      yield* repo.conversationStream.pipe(
+        Stream.runForEach((conversation) =>
           Effect.gen(function* () {
-            yield* Ref.set(chat.history, history)
-            if (!sending) registry.set(currentPromptAtom, history)
+            yield* Ref.set(chat.history, conversation.history)
+            if (!sending) registry.set(currentPromptAtom, conversation.history)
+            lastTurnAt = conversation.lastTurnAt
+            updateLastActive()
           }),
         ),
         Effect.tapCause(Effect.logError),
@@ -799,6 +811,9 @@ ${MenuEntry.toXml(entries)}`
             config: { reasoning: { effort: "medium" } },
           }).pipe(Effect.provideService(OpenAiClient.OpenAiClient, client))
           const message = yield* makeMessage(options)
+          // A message to an inactive chat that wasn't resumed starts afresh.
+          const now = yield* DateTime.now
+          if (isInactive(lastTurnAt, now.epochMilliseconds)) yield* clear
           previous = yield* Ref.get(chat.history)
           shown = previous
           sending = true
@@ -872,10 +887,21 @@ ${MenuEntry.toXml(entries)}`
       const clear = Effect.gen(function* () {
         const ids = yield* repo.turnIds.pipe(Effect.orDie)
         yield* Ref.set(chat.history, Prompt.empty)
+        lastTurnAt = undefined
+        updateLastActive()
         yield* writeMany(ids.map((id) => AiChatTurnEvent.remove({ id: id })))
       })
 
-      return { send, clear } as const
+      // Set locally first, so a send right after a resume doesn't wait on the
+      // snapshot to see it.
+      const resume = Effect.gen(function* () {
+        const now = yield* DateTime.now
+        lastTurnAt = now.epochMilliseconds
+        updateLastActive()
+        yield* write(resumeTurn(now.epochMilliseconds))
+      })
+
+      return { send, clear, resume } as const
     }),
   },
 ) {
@@ -899,6 +925,31 @@ export const currentPromptAtom = Atom.make<Prompt.Prompt>(Prompt.empty).pipe(
   Atom.keepAlive,
 )
 
+// When the chat was last used, on any device: its latest turn.
+export const lastActiveAtom = Atom.make<number | undefined>(undefined).pipe(
+  Atom.keepAlive,
+)
+
+// Whether the chat has gone inactive. It turns over on a timer, and is checked
+// again whenever the page comes back into view, as timers can stall while a
+// device sleeps.
+export const isInactiveAtom = Atom.make((get) => {
+  const lastActive = get(lastActiveAtom)
+  if (lastActive === undefined) return false
+  const onVisible = () => {
+    if (document.visibilityState === "visible") get.refreshSelf()
+  }
+  document.addEventListener("visibilitychange", onVisible)
+  get.addFinalizer(() =>
+    document.removeEventListener("visibilitychange", onVisible),
+  )
+  const remaining = inactiveAt(lastActive) - Date.now()
+  if (remaining <= 0) return true
+  const timer = setTimeout(() => get.setSelf(true), remaining)
+  get.addFinalizer(() => clearTimeout(timer))
+  return false
+})
+
 export const sendAtom = runtime.fn<{
   readonly text: string
   readonly files: FileList | null
@@ -916,6 +967,13 @@ export const clearAtom = runtime.fn<void>()(
     const ai = yield* AiChatService
     yield* ai.clear
     get.set(currentPromptAtom, Prompt.empty)
+  }),
+)
+
+export const resumeAtom = runtime.fn<void>()(
+  Effect.fnUntraced(function* () {
+    const ai = yield* AiChatService
+    yield* ai.resume
   }),
 )
 

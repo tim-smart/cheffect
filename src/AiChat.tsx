@@ -10,6 +10,7 @@ import {
   Minimize2,
   Minus,
   Paperclip,
+  RotateCcw,
   Send,
   Square,
   X,
@@ -19,6 +20,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import type * as Prompt from "effect/ai/Prompt"
 import { useAtom, useAtomSet, useAtomValue } from "@effect/atom-react"
 import { Streamdown } from "streamdown"
+import { formatDistanceToNowStrict } from "date-fns"
 import { useStickToBottom } from "use-stick-to-bottom"
 import { cn } from "./lib/utils"
 import { aiChatOpenAtom } from "./atoms"
@@ -26,7 +28,10 @@ import { groceryCurrentListAtom } from "./Groceries/currentList"
 import {
   clearAtom,
   currentPromptAtom,
+  isInactiveAtom,
   isVisualMessage,
+  lastActiveAtom,
+  resumeAtom,
   sendAtom,
 } from "./AiChat/AiChatService"
 import { ToolActivityList, type ToolCall } from "./AiChat/ToolActivity"
@@ -284,6 +289,7 @@ function MessagesList({
   const isLoading = useAtomValue(sendAtom, AsyncResult.isWaiting)
   const messages = currentPrompt.content
   const setInput = useAtomSet(inputAtom)
+  const inactive = useAtomValue(isInactiveAtom) && !isLoading
 
   useEffect(() => {
     onNewMessage()
@@ -323,44 +329,85 @@ function MessagesList({
   const lastToolsIndex = items.findLastIndex((item) => item.kind === "tools")
   const activeToolsIndex = lastToolsIndex > lastUserIndex ? lastToolsIndex : -1
   return (
-    <div ref={ref} className="space-y-3 py-4">
-      {items.map((item, i) =>
-        item.kind === "tools" ? (
-          <ToolActivityList
-            key={i}
-            calls={item.calls}
-            active={isLoading && i === activeToolsIndex}
-          />
-        ) : (
-          <div
-            key={i}
-            className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+    <div ref={ref} className="py-4">
+      <div
+        className={cn(
+          "space-y-3 motion-safe:transition-opacity motion-safe:duration-700",
+          inactive && "opacity-40",
+        )}
+      >
+        {items.map((item, i) =>
+          item.kind === "tools" ? (
+            <ToolActivityList
+              key={i}
+              calls={item.calls}
+              active={isLoading && i === activeToolsIndex}
+            />
+          ) : (
             <div
-              role="article"
-              className={cn(
-                // 60ch of text plus the px-4 padding, but never wider
-                // than 90% of the panel on narrow screens
-                `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
-                item.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted dark:bg-border text-foreground",
-              )}
+              key={i}
+              className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {item.parts.map((part, idx) => (
-                <Streamdown
-                  key={idx}
-                  animated
-                  isAnimating={isLoading && item.role === "assistant"}
-                  linkSafety={{ enabled: false }}
-                >
-                  {part.text}
-                </Streamdown>
-              ))}
+              <div
+                role="article"
+                className={cn(
+                  // 60ch of text plus the px-4 padding, but never wider
+                  // than 90% of the panel on narrow screens
+                  `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
+                  item.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted dark:bg-border text-foreground",
+                )}
+              >
+                {item.parts.map((part, idx) => (
+                  <Streamdown
+                    key={idx}
+                    animated
+                    isAnimating={isLoading && item.role === "assistant"}
+                    linkSafety={{ enabled: false }}
+                  >
+                    {part.text}
+                  </Streamdown>
+                ))}
+              </div>
             </div>
-          </div>
-        ),
+          ),
+        )}
+      </div>
+      {inactive && <ResumeBar inputRef={inputRef} />}
+    </div>
+  )
+}
+
+// A chat left alone for a while is set aside: the next message starts a new
+// chat unless this brings the old one back.
+function ResumeBar({
+  inputRef,
+}: {
+  readonly inputRef: React.RefObject<HTMLTextAreaElement | null>
+}) {
+  const lastActive = useAtomValue(lastActiveAtom)
+  const resume = useAtomSet(resumeAtom)
+  return (
+    <div className="sticky bottom-0 -mx-4 mt-3 flex flex-col items-center gap-2 bg-linear-to-t from-card from-60% to-transparent px-4 pt-6 pb-1">
+      {lastActive !== undefined && (
+        <p className="text-xs text-muted-foreground">
+          Last used {formatDistanceToNowStrict(lastActive, { addSuffix: true })}
+        </p>
       )}
+      <Button
+        variant="outline"
+        size="sm"
+        className="rounded-full bg-card"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          resume()
+          inputRef.current?.focus()
+        }}
+      >
+        <RotateCcw />
+        Resume chat
+      </Button>
     </div>
   )
 }
@@ -501,6 +548,8 @@ function PromptInput({
   const isLoading = useAtomValue(sendAtom, AsyncResult.isWaiting)
 
   const clear = useAtomSet(clearAtom)
+  // Sending to an inactive chat starts a new one
+  const inactive = useAtomValue(isInactiveAtom) && !isLoading
 
   return (
     <form
@@ -624,7 +673,9 @@ function PromptInput({
             e.preventDefault()
             handleSubmit(e)
           }}
-          placeholder="Type your message..."
+          placeholder={
+            inactive ? "Start a new chat..." : "Type your message..."
+          }
           className={cn(
             "flex-1 rounded-lg border-2 border-border bg-card px-3 py-2 text-base focus:border-primary focus:outline-none field-sizing-content resize-none",
             // keep 16px text so iOS doesn't zoom, and scroll extra lines
