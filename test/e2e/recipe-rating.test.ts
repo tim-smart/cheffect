@@ -57,6 +57,8 @@ test(
   () =>
     withSeededApp(async ({ browser, base, recipeId }) => {
       const url = `${base}/recipes/${recipeId}`
+      // a mid-range phone: the keys below arrive faster than a write lands
+      await browser.throttleCpu(4)
       await reloadAndExpect(browser, url, 0)
 
       // the first star is the tab stop on an unrated recipe; Right chooses

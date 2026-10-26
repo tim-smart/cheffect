@@ -1,6 +1,5 @@
 "use client"
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state"
 import { type LucideProps, StarIcon } from "lucide-react"
 import type { KeyboardEvent, MouseEvent, ReactElement, ReactNode } from "react"
 import {
@@ -154,11 +153,48 @@ export const Rating = ({
   const [hoverValue, setHoverValue] = useState<number | null>(null)
   const [focusedStar, setFocusedStar] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [value, onValueChange] = useControllableState({
-    defaultProp: defaultValue,
-    prop: controlledValue,
-    onChange: controlledOnValueChange,
-  })
+  const isControlled = controlledValue !== undefined
+  const [uncontrolledValue, setUncontrolledValue] = useState<number | null>(
+    defaultValue,
+  )
+  const value = isControlled ? controlledValue : uncontrolledValue
+
+  // The values chosen so far that the parent has not handed back as `value`.
+  // A parent that saves before it re-renders still passes the old value for
+  // a moment, so a quick reversal has to be judged against the last choice
+  // and not against what is still shown as saved: Right then Left at one
+  // star asks for two and then for one again, and comparing that one with
+  // the old one would drop it as a no-op while the two in flight goes on to
+  // win. Each value the parent hands back retires it and the ones before it
+  const inFlight = useRef<Array<number | null>>([])
+  useEffect(() => {
+    const landed = inFlight.current.indexOf(value)
+    inFlight.current = landed === -1 ? [] : inFlight.current.slice(landed + 1)
+  }, [value])
+
+  const select = useCallback(
+    (
+      event: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLButtonElement>,
+      next: number | null,
+    ) => {
+      inFlight.current.push(next)
+      if (!isControlled) {
+        setUncontrolledValue(next)
+      }
+      onChange?.(event, next)
+      controlledOnValueChange?.(next)
+    },
+    [isControlled, onChange, controlledOnValueChange],
+  )
+
+  // What the user last chose, or the saved value once every choice has landed
+  const chosen = useCallback(
+    () =>
+      inFlight.current.length > 0
+        ? inFlight.current[inFlight.current.length - 1]
+        : value,
+    [value],
+  )
 
   const handleValueChange = useCallback(
     (
@@ -166,10 +202,9 @@ export const Rating = ({
       newValue: number,
     ) => {
       if (!readOnly) {
-        // Toggle off if clicking the same value
-        const valueToSet = newValue === value ? null : newValue
-        onChange?.(event, valueToSet)
-        onValueChange?.(valueToSet)
+        // Toggle off if clicking the chosen value
+        const valueToSet = newValue === chosen() ? null : newValue
+        select(event, valueToSet)
         // A tap on a touch screen hovers the star and never leaves it, so
         // the preview would hide a cleared value; the new value shows itself
         setHoverValue(null)
@@ -178,7 +213,7 @@ export const Rating = ({
         }
       }
     },
-    [readOnly, onChange, onValueChange, value],
+    [readOnly, select, chosen],
   )
 
   const handleKeyDown = useCallback(
@@ -221,12 +256,11 @@ export const Rating = ({
       // The arrows choose as they move, like a radio group, and a key at
       // the end of the row stays where it is. Only a click on the chosen
       // star clears the rating, so the keys never go through the toggle
-      if (next !== value) {
-        onChange?.(event, next)
-        onValueChange?.(next)
+      if (next !== chosen()) {
+        select(event, next)
       }
     },
-    [focusedStar, value, children, readOnly, onChange, onValueChange],
+    [focusedStar, value, children, readOnly, select, chosen],
   )
 
   useEffect(() => {
