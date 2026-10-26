@@ -1,6 +1,5 @@
 "use client"
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state"
 import { type LucideProps, StarIcon } from "lucide-react"
 import type { KeyboardEvent, MouseEvent, ReactElement, ReactNode } from "react"
 import {
@@ -17,6 +16,7 @@ import { cn } from "@/lib/utils"
 
 type RatingContextValue = {
   value: number
+  total: number
   readOnly: boolean
   hoverValue: number | null
   focusedStar: number | null
@@ -52,6 +52,7 @@ export const RatingButton = ({
 }: RatingButtonProps) => {
   const {
     value,
+    total,
     readOnly,
     hoverValue,
     focusedStar,
@@ -65,8 +66,10 @@ export const RatingButton = ({
   const isActive = index < (hoverValue ?? focusedStar ?? value ?? 0)
   let tabIndex = -1
 
+  // The chosen star is the one in the tab order; with nothing chosen yet,
+  // the first star is, so the keyboard can still reach the control
   if (!readOnly) {
-    tabIndex = value === index + 1 ? 0 : -1
+    tabIndex = (value || 1) === index + 1 ? 0 : -1
   }
 
   const handleClick = useCallback(
@@ -92,13 +95,17 @@ export const RatingButton = ({
 
   return (
     <button
+      aria-checked={value === index + 1}
+      aria-label={`${index + 1} of ${total}`}
       className={cn(
         "rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "p-0.5",
         readOnly && "cursor-default",
         className,
       )}
+      data-active={isActive}
       disabled={readOnly}
+      role="radio"
       onBlur={handleBlur}
       onClick={handleClick}
       onFocus={handleFocus}
@@ -146,11 +153,49 @@ export const Rating = ({
   const [hoverValue, setHoverValue] = useState<number | null>(null)
   const [focusedStar, setFocusedStar] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [value, onValueChange] = useControllableState({
-    defaultProp: defaultValue,
-    prop: controlledValue,
-    onChange: controlledOnValueChange,
-  })
+  const isControlled = controlledValue !== undefined
+  const [uncontrolledValue, setUncontrolledValue] = useState<number | null>(
+    defaultValue,
+  )
+  const ownerValue = isControlled ? controlledValue : uncontrolledValue
+
+  // The values chosen so far that the owner has not handed back yet. An
+  // owner that saves before it re-renders still passes the old value for a
+  // moment, so a quick reversal has to be judged against the last choice
+  // and not against what is still shown as saved: Right then Left at one
+  // star asks for two and then for one again, and comparing that one with
+  // the old one would drop it as a no-op while the two in flight goes on to
+  // win. Each value the owner hands back retires it and the ones before it
+  const [inFlight, setInFlight] = useState<Array<number | null>>([])
+  useEffect(() => {
+    setInFlight((queue) => {
+      const landed = queue.indexOf(ownerValue)
+      if (landed === -1) {
+        return queue.length === 0 ? queue : []
+      }
+      return queue.slice(landed + 1)
+    })
+  }, [ownerValue])
+
+  // What the user last chose, or the owner's value once every choice has
+  // landed. The row reports this as its selection, so a key moves the
+  // checked star the moment it is pressed and not once the owner has saved
+  const value = inFlight.length > 0 ? inFlight[inFlight.length - 1] : ownerValue
+
+  const select = useCallback(
+    (
+      event: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLButtonElement>,
+      next: number | null,
+    ) => {
+      setInFlight((queue) => [...queue, next])
+      if (!isControlled) {
+        setUncontrolledValue(next)
+      }
+      onChange?.(event, next)
+      controlledOnValueChange?.(next)
+    },
+    [isControlled, onChange, controlledOnValueChange],
+  )
 
   const handleValueChange = useCallback(
     (
@@ -158,16 +203,18 @@ export const Rating = ({
       newValue: number,
     ) => {
       if (!readOnly) {
-        // Toggle off if clicking the same value
+        // Toggle off if clicking the chosen value
         const valueToSet = newValue === value ? null : newValue
-        onChange?.(event, valueToSet)
-        onValueChange?.(valueToSet)
+        select(event, valueToSet)
+        // A tap on a touch screen hovers the star and never leaves it, so
+        // the preview would hide a cleared value; the new value shows itself
+        setHoverValue(null)
         if (valueToSet === null) {
           setFocusedStar(null)
         }
       }
     },
-    [readOnly, onChange, onValueChange, value],
+    [readOnly, select, value],
   )
 
   const handleKeyDown = useCallback(
@@ -177,32 +224,44 @@ export const Rating = ({
       }
 
       const total = Children.count(children)
-      let newValue = focusedStar !== null ? focusedStar : (value ?? 0)
+      const current = focusedStar ?? value ?? 0
+      let next: number
 
       switch (event.key) {
         case "ArrowRight":
-          if (event.shiftKey || event.metaKey) {
-            newValue = total
-          } else {
-            newValue = Math.min(total, newValue + 1)
-          }
+        case "ArrowDown":
+          next =
+            event.shiftKey || event.metaKey
+              ? total
+              : Math.min(total, current + 1)
           break
         case "ArrowLeft":
-          if (event.shiftKey || event.metaKey) {
-            newValue = 1
-          } else {
-            newValue = Math.max(1, newValue - 1)
-          }
+        case "ArrowUp":
+          next = event.shiftKey || event.metaKey ? 1 : Math.max(1, current - 1)
+          break
+        case "Home":
+          next = 1
+          break
+        case "End":
+          next = total
           break
         default:
           return
       }
 
       event.preventDefault()
-      setFocusedStar(newValue)
-      handleValueChange(event, newValue)
+      setFocusedStar(next)
+      // A pointer parked over the row would otherwise keep showing its
+      // preview over what the keys choose, the ends of the row included
+      setHoverValue(null)
+      // The arrows choose as they move, like a radio group, and a key at
+      // the end of the row stays where it is. Only a click on the chosen
+      // star clears the rating, so the keys never go through the toggle
+      if (next !== value) {
+        select(event, next)
+      }
     },
-    [focusedStar, value, children, readOnly, handleValueChange],
+    [focusedStar, value, children, readOnly, select],
   )
 
   useEffect(() => {
@@ -214,6 +273,7 @@ export const Rating = ({
 
   const contextValue: RatingContextValue = {
     value: value ?? 0,
+    total: Children.count(children),
     readOnly,
     hoverValue,
     focusedStar,

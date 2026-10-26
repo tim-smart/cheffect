@@ -3,6 +3,7 @@ import * as Schema from "effect/Schema"
 import * as EventGroup from "effect/eventlog/EventGroup"
 import * as EventRow from "effect/eventlog/EventRow"
 import { Recipe, RecipeEdit, type RecipeId } from "@/domain/Recipe"
+import type { Rating } from "@/domain/Rating"
 import { patchFields } from "@/lib/eventFields"
 import { uuidKey } from "@/lib/Id"
 
@@ -41,6 +42,14 @@ export const recipeIngredientScale = (
   ingredientScale: number,
   updatedAt: DateTime.Utc,
 ) => RecipeEvent.patch({ id: id }, { ingredientScale, updatedAt })
+
+// Only the rating: it is set from the recipe page without a form, so it must
+// not undo an edit in flight. `null` clears it.
+export const recipeRated = (
+  id: RecipeId,
+  rating: typeof Rating.Type | null,
+  updatedAt: DateTime.Utc,
+) => RecipeEvent.patch({ id: id }, { rating, updatedAt })
 
 export const recipeDeleted = (id: RecipeId, deletedAt: DateTime.Utc) =>
   RecipeEvent.patch({ id: id }, { deletedAt })
