@@ -33,6 +33,7 @@ test("only files the model can read can be attached", () => {
     undefined,
   )
   assert.equal(attachmentType({ name: "txt", type: "" }), undefined)
+  assert.equal(attachmentType({ name: "a.constructor", type: "" }), undefined)
 })
 
 test("text files are sent as their contents, images stay files", () => {
@@ -50,6 +51,15 @@ test("text files are sent as their contents, images stay files", () => {
           fileName: "soup.md",
           data: new TextEncoder().encode("# Soup\n\nBoil water."),
         }),
+        // Saved as UTF-16 with a byte order mark
+        Prompt.filePart({
+          mediaType: "text/plain",
+          fileName: "dessert.txt",
+          data: new Uint8Array([
+            0xff, 0xfe, 0x43, 0x00, 0x72, 0x00, 0xe8, 0x00, 0x6d, 0x00, 0x65,
+            0x00,
+          ]),
+        }),
         Prompt.textPart({ text: "Make this vegan" }),
       ],
     }),
@@ -62,6 +72,7 @@ test("text files are sent as their contents, images stay files", () => {
     Prompt.textPart({
       text: '<file name="soup.md">\n# Soup\n\nBoil water.\n</file>',
     }),
+    Prompt.textPart({ text: '<file name="dessert.txt">\nCrème\n</file>' }),
     Prompt.textPart({ text: "Make this vegan" }),
   ])
 })
