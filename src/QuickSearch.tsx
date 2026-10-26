@@ -24,6 +24,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 // are told apart as the chat's ⌘J does
 const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
 
+/** The shortcut as this keyboard writes it, for hints */
+export const quickSearchShortcut = isApple ? "⌘K" : "Ctrl+K"
+
 const isShortcut = (e: KeyboardEvent) =>
   e.key.toLowerCase() === "k" &&
   !e.shiftKey &&

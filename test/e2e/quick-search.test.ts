@@ -25,12 +25,14 @@ const meta = 4
 const keyboards = [
   {
     name: "Ctrl+K",
+    label: "Ctrl+K",
     userAgent: "Mozilla/5.0 (X11; Linux x86_64)",
     modifier: ctrl,
     other: meta,
   },
   {
     name: "⌘K on a Mac",
+    label: "⌘K",
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
     modifier: meta,
     other: ctrl,
@@ -72,6 +74,13 @@ for (const keyboard of keyboards) {
           await browser.setViewport(1280, 900, { mobile: false })
           await browser.navigate(`${base}/`)
           await browser.waitFor(`!!${pageSearch}`)
+          // The recipes page's search field tells this keyboard's shortcut
+          assert.equal(
+            await browser.evaluate(
+              `${pageSearch}.parentElement.querySelector("kbd")?.textContent`,
+            ),
+            keyboard.label,
+          )
 
           // A query typed into the recipes page, with the field still focused
           await browser.evaluate(`${pageSearch}.focus()`)
