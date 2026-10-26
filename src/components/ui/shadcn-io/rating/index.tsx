@@ -157,27 +157,37 @@ export const Rating = ({
   const [uncontrolledValue, setUncontrolledValue] = useState<number | null>(
     defaultValue,
   )
-  const value = isControlled ? controlledValue : uncontrolledValue
+  const ownerValue = isControlled ? controlledValue : uncontrolledValue
 
-  // The values chosen so far that the parent has not handed back as `value`.
-  // A parent that saves before it re-renders still passes the old value for
-  // a moment, so a quick reversal has to be judged against the last choice
+  // The values chosen so far that the owner has not handed back yet. An
+  // owner that saves before it re-renders still passes the old value for a
+  // moment, so a quick reversal has to be judged against the last choice
   // and not against what is still shown as saved: Right then Left at one
   // star asks for two and then for one again, and comparing that one with
   // the old one would drop it as a no-op while the two in flight goes on to
-  // win. Each value the parent hands back retires it and the ones before it
-  const inFlight = useRef<Array<number | null>>([])
+  // win. Each value the owner hands back retires it and the ones before it
+  const [inFlight, setInFlight] = useState<Array<number | null>>([])
   useEffect(() => {
-    const landed = inFlight.current.indexOf(value)
-    inFlight.current = landed === -1 ? [] : inFlight.current.slice(landed + 1)
-  }, [value])
+    setInFlight((queue) => {
+      const landed = queue.indexOf(ownerValue)
+      if (landed === -1) {
+        return queue.length === 0 ? queue : []
+      }
+      return queue.slice(landed + 1)
+    })
+  }, [ownerValue])
+
+  // What the user last chose, or the owner's value once every choice has
+  // landed. The row reports this as its selection, so a key moves the
+  // checked star the moment it is pressed and not once the owner has saved
+  const value = inFlight.length > 0 ? inFlight[inFlight.length - 1] : ownerValue
 
   const select = useCallback(
     (
       event: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLButtonElement>,
       next: number | null,
     ) => {
-      inFlight.current.push(next)
+      setInFlight((queue) => [...queue, next])
       if (!isControlled) {
         setUncontrolledValue(next)
       }
@@ -187,15 +197,6 @@ export const Rating = ({
     [isControlled, onChange, controlledOnValueChange],
   )
 
-  // What the user last chose, or the saved value once every choice has landed
-  const chosen = useCallback(
-    () =>
-      inFlight.current.length > 0
-        ? inFlight.current[inFlight.current.length - 1]
-        : value,
-    [value],
-  )
-
   const handleValueChange = useCallback(
     (
       event: MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLButtonElement>,
@@ -203,7 +204,7 @@ export const Rating = ({
     ) => {
       if (!readOnly) {
         // Toggle off if clicking the chosen value
-        const valueToSet = newValue === chosen() ? null : newValue
+        const valueToSet = newValue === value ? null : newValue
         select(event, valueToSet)
         // A tap on a touch screen hovers the star and never leaves it, so
         // the preview would hide a cleared value; the new value shows itself
@@ -213,7 +214,7 @@ export const Rating = ({
         }
       }
     },
-    [readOnly, select, chosen],
+    [readOnly, select, value],
   )
 
   const handleKeyDown = useCallback(
@@ -256,11 +257,11 @@ export const Rating = ({
       // The arrows choose as they move, like a radio group, and a key at
       // the end of the row stays where it is. Only a click on the chosen
       // star clears the rating, so the keys never go through the toggle
-      if (next !== chosen()) {
+      if (next !== value) {
         select(event, next)
       }
     },
-    [focusedStar, value, children, readOnly, select, chosen],
+    [focusedStar, value, children, readOnly, select],
   )
 
   useEffect(() => {
