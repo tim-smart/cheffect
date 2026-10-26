@@ -25,6 +25,7 @@ import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { generateUuidBytes } from "@/lib/Id"
 import { RecipeEditEvent, RecipeEvent, recipeUpdate } from "./Events"
 import { RecipeRepo, searchRecipes } from "./Repo"
+import { recipesFromPaprika } from "./paprika"
 import {
   importRecipesAtom,
   liveRecipesAtom,
@@ -221,6 +222,31 @@ export const importAtom = recipesRuntime.fn<File>()(
       decoded.map((recipe) => new Recipe({ ...recipe, ingredientScale: 1 })),
     )
   }),
+)
+
+export const importPaprikaAtom = recipesRuntime.fn<File>()(
+  Effect.fnUntraced(
+    function* (file, get) {
+      const buffer = yield* Effect.promise(() => file.arrayBuffer())
+      const recipes = yield* recipesFromPaprika(new Uint8Array(buffer))
+      return yield* get.setResult(importRecipesAtom, recipes)
+    },
+    withToast((_) => ({
+      loading: "Importing recipes from Paprika",
+      onExit(exit, toastId) {
+        if (Exit.isFailure(exit)) {
+          return toast.error("Failed to import from Paprika", { id: toastId })
+        }
+        const added = exit.value
+        toast.success(
+          added === 0
+            ? "No new recipes to import"
+            : `Imported ${added} ${added === 1 ? "recipe" : "recipes"}`,
+          { id: toastId, cancel: undefined },
+        )
+      },
+    })),
+  ),
 )
 
 export const recipeSelectedStep = Atom.family((_id: string) =>

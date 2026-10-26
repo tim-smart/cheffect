@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { clearAiMemoryAtom } from "@/AiChat/runtime"
 import { SyncSettings } from "@/Sync/SyncSettings"
-import { exportAtom, importAtom } from "@/Recipes/atoms"
+import { exportAtom, importAtom, importPaprikaAtom } from "@/Recipes/atoms"
 import {
   aiChatModel,
   aiCountry,
@@ -84,6 +84,9 @@ function SettingsPage() {
   const importRecipes = useAtomSet(importAtom)
   const importRef = useRef<HTMLInputElement>(null)
 
+  const importPaprika = useAtomSet(importPaprikaAtom)
+  const importPaprikaRef = useRef<HTMLInputElement>(null)
+
   const clearMemory = useAtomSet(clearAiMemoryAtom)
 
   return (
@@ -144,6 +147,14 @@ function SettingsPage() {
                   <Import />
                   Import recipes
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    importPaprikaRef.current?.click()
+                  }}
+                >
+                  <Import />
+                  Import from Paprika
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <input
@@ -168,6 +179,19 @@ function SettingsPage() {
                 const file = e.target.files?.[0]
                 if (!file) return
                 importRecipes(file)
+              }}
+            />
+            <input
+              ref={importPaprikaRef}
+              type="file"
+              className="hidden"
+              accept=".paprikarecipes,.paprikarecipe"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                // Cleared so picking the same file again imports it again.
+                e.target.value = ""
+                if (!file) return
+                importPaprika(file)
               }}
             />
           </div>
