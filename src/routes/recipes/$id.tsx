@@ -540,18 +540,22 @@ export function RecipeDetails({
 
 // Rated in place: a tap on a star saves it, a tap on the chosen star clears
 // it. There is no form to open and nothing to submit, so rating a recipe is
-// one touch at the end of cooking it. The stars are set at the size of the
-// row's text and close together, as a word of five letters; each is still a
-// thumb-sized target, since the buttons sit edge to edge and reach above and
-// below the row without pushing it apart. An empty star is outlined in the
-// row's own ink, which clears 3:1 against the page in both themes; a lighter
-// tint did not
+// one touch at the end of cooking it. The stars stand a little taller than
+// the row's capitals, centred on them, and close together, as a word of five
+// letters; the buttons sit edge to edge, so a tap between two stars still
+// lands on one, and reach above and below the row without pushing it apart.
+// A mouse picks out an 18px button reliably but a finger does not, so on a
+// touch screen each button is 24px wide, the WCAG minimum, and the stars
+// spread to match; the row is still led by the first star's ink. The phone's 15px text sits a pixel higher in its line than the desktop's
+// 16px, so the stars are raised to meet it there. An empty star is outlined
+// in the row's own ink, which clears 3:1 against the page in both themes; a
+// lighter tint did not
 function RecipeRating({ recipe }: { recipe: Recipe }) {
   const write = useWrite()
   const rating = recipe.rating === null ? null : Math.round(recipe.rating)
   return (
     <RatingUi
-      className="-ml-1 gap-0"
+      className="-ml-0.5 gap-0 pointer-coarse:-ml-1.25"
       value={rating}
       onValueChange={(value) =>
         write(
@@ -566,8 +570,8 @@ function RecipeRating({ recipe }: { recipe: Recipe }) {
       {Arr.range(1, 5).map((i) => (
         <RatingButton
           key={i}
-          size={18}
-          className="-my-1.5 flex h-9 w-[26px] items-center justify-center text-muted-foreground transition-[color,scale] duration-150 motion-safe:active:scale-90 data-[active=true]:text-primary"
+          size={15}
+          className="-my-1.5 flex h-9 w-[18px] -translate-y-px items-center justify-center p-0 pointer-coarse:w-6 md:translate-y-0 text-muted-foreground transition-[color,scale] duration-150 motion-safe:active:scale-90 data-[active=true]:text-primary"
         />
       ))}
     </RatingUi>
