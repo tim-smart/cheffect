@@ -263,6 +263,12 @@ const openPage = async (chrome: Chromium) => {
     await mouse("mousePressed", x, y, what, 1)
     await mouse("mouseReleased", x, y, what, 0)
   }
+  /** Moves the pointer to the centre of an element and leaves it there. */
+  const hover = async (element: string) => {
+    const what = `hover(${element.slice(0, 60)})`
+    const { x, y } = await settledCentre(element, "hover")
+    await mouse("mouseMoved", x, y, what, 0)
+  }
   /**
    * Presses the centre of an element, drags `offsetY` pixels off it and
    * releases there, so the press ends without a click on the element.
@@ -358,6 +364,7 @@ const openPage = async (chrome: Chromium) => {
     waitFor,
     navigate,
     click,
+    hover,
     cancelledPress,
     swipe,
     press,

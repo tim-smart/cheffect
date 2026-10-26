@@ -215,6 +215,9 @@ export const Rating = ({
 
       event.preventDefault()
       setFocusedStar(next)
+      // A pointer parked over the row would otherwise keep showing its
+      // preview over what the keys choose, the ends of the row included
+      setHoverValue(null)
       // The arrows choose as they move, like a radio group, and a key at
       // the end of the row stays where it is. Only a click on the chosen
       // star clears the rating, so the keys never go through the toggle
