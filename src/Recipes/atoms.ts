@@ -28,7 +28,6 @@ import { RecipeRepo, searchRecipes } from "./Repo"
 import { recipesFromPaprika } from "./paprika"
 import {
   importRecipesAtom,
-  liveRecipesAtom,
   modifiedRecipeByIdAtom,
   recipeByIdAtom,
   recipesAtom,
@@ -195,33 +194,6 @@ export const newModifiedRecipeAtom = recipesRuntime.fn<string>()(
 
 export const checkedIngredientsAtom = Atom.family((_recipeId: string) =>
   Atom.make(HashSet.empty<string>()).pipe(Atom.keepAlive),
-)
-
-export const exportAtom = recipesRuntime.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const recipes = yield* get.setResult(liveRecipesAtom, undefined)
-    const json = yield* Schema.encodeEffect(Recipe.arrayJson)(recipes)
-    const file = new File(
-      [JSON.stringify(json)],
-      `cheffect-recipes-${new Date().toISOString()}.txt`,
-      { type: "text/plain" },
-    )
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file] })
-    }
-  }),
-)
-
-export const importAtom = recipesRuntime.fn<File>()(
-  Effect.fnUntraced(function* (file, get) {
-    const text = yield* Effect.promise(() => file.text())
-    const json = JSON.parse(text)
-    const decoded = yield* Schema.decodeEffect(Recipe.arrayJson)(json)
-    yield* get.setResult(
-      importRecipesAtom,
-      decoded.map((recipe) => new Recipe({ ...recipe, ingredientScale: 1 })),
-    )
-  }),
 )
 
 export const importPaprikaAtom = recipesRuntime.fn<File>()(

@@ -270,7 +270,6 @@ export class Recipe extends Model.Class<Recipe>("Recipe")({
   deletedAt: Model.GeneratedByApp(Schema.NullOr(Schema.DateTimeUtcFromMillis)),
 }) {
   static array = Schema.Array(Recipe)
-  static arrayJson = Schema.Array(Recipe.json)
   static xml = UnknownToXml.pipe(
     Schema.decodeTo(
       Schema.Struct({

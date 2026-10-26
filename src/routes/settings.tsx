@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select"
 import { clearAiMemoryAtom } from "@/AiChat/runtime"
 import { SyncSettings } from "@/Sync/SyncSettings"
-import { exportAtom, importAtom, importPaprikaAtom } from "@/Recipes/atoms"
+import { importPaprikaAtom } from "@/Recipes/atoms"
 import {
   aiChatModel,
   aiCountry,
@@ -80,10 +80,6 @@ function SettingsPage() {
   const [importAllResult, importAllData] = useAtom(importAllAtom)
   const importAllRef = useRef<HTMLInputElement>(null)
 
-  const exportRecipes = useAtomSet(exportAtom)
-  const importRecipes = useAtomSet(importAtom)
-  const importRef = useRef<HTMLInputElement>(null)
-
   const importPaprika = useAtomSet(importPaprikaAtom)
   const importPaprikaRef = useRef<HTMLInputElement>(null)
 
@@ -106,7 +102,7 @@ function SettingsPage() {
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => {
                     exportAllData()
@@ -122,30 +118,7 @@ function SettingsPage() {
                   }}
                 >
                   <Import />
-                  <div className="flex flex-col">
-                    Import all data
-                    <span className="text-xs text-muted-foreground max-w-56">
-                      Merges into this device. Doesn't bring back anything
-                      deleted since the export, and overwrites settings and
-                      aisles.
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    exportRecipes()
-                  }}
-                >
-                  <Share />
-                  Export recipes
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    importRef.current?.click()
-                  }}
-                >
-                  <Import />
-                  Import recipes
+                  Import all data
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -153,13 +126,7 @@ function SettingsPage() {
                   }}
                 >
                   <Import />
-                  <div className="flex flex-col">
-                    Import from Paprika
-                    <span className="text-xs text-muted-foreground max-w-56">
-                      Keeps web image links. Photos saved in Paprika aren't
-                      imported yet.
-                    </span>
-                  </div>
+                  Import from Paprika
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -174,17 +141,6 @@ function SettingsPage() {
                 e.target.value = ""
                 if (!file) return
                 importAllData(file)
-              }}
-            />
-            <input
-              ref={importRef}
-              type="file"
-              className="hidden"
-              accept="text/plain"
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                importRecipes(file)
               }}
             />
             <input
