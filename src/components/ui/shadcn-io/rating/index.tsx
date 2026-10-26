@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 
 type RatingContextValue = {
   value: number
+  total: number
   readOnly: boolean
   hoverValue: number | null
   focusedStar: number | null
@@ -52,6 +53,7 @@ export const RatingButton = ({
 }: RatingButtonProps) => {
   const {
     value,
+    total,
     readOnly,
     hoverValue,
     focusedStar,
@@ -65,8 +67,10 @@ export const RatingButton = ({
   const isActive = index < (hoverValue ?? focusedStar ?? value ?? 0)
   let tabIndex = -1
 
+  // The chosen star is the one in the tab order; with nothing chosen yet,
+  // the first star is, so the keyboard can still reach the control
   if (!readOnly) {
-    tabIndex = value === index + 1 ? 0 : -1
+    tabIndex = (value || 1) === index + 1 ? 0 : -1
   }
 
   const handleClick = useCallback(
@@ -92,13 +96,17 @@ export const RatingButton = ({
 
   return (
     <button
+      aria-checked={value === index + 1}
+      aria-label={`${index + 1} of ${total}`}
       className={cn(
         "rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         "p-0.5",
         readOnly && "cursor-default",
         className,
       )}
+      data-active={isActive}
       disabled={readOnly}
+      role="radio"
       onBlur={handleBlur}
       onClick={handleClick}
       onFocus={handleFocus}
@@ -162,6 +170,9 @@ export const Rating = ({
         const valueToSet = newValue === value ? null : newValue
         onChange?.(event, valueToSet)
         onValueChange?.(valueToSet)
+        // A tap on a touch screen hovers the star and never leaves it, so
+        // the preview would hide a cleared value; the new value shows itself
+        setHoverValue(null)
         if (valueToSet === null) {
           setFocusedStar(null)
         }
@@ -214,6 +225,7 @@ export const Rating = ({
 
   const contextValue: RatingContextValue = {
     value: value ?? 0,
+    total: Children.count(children),
     readOnly,
     hoverValue,
     focusedStar,

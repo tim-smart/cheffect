@@ -15,7 +15,17 @@ import { cn, quantityFormatter } from "@/lib/utils"
 import { useWrite } from "@/EventLog"
 import { Timer, TimerId } from "@/domain/Timer"
 import { TimerEvent } from "@/Timers/Events"
-import { recipeDeleted, recipeIngredientScale } from "@/Recipes/Events"
+import {
+  recipeDeleted,
+  recipeIngredientScale,
+  recipeRated,
+} from "@/Recipes/Events"
+import { Rating } from "@/domain/Rating"
+import {
+  RatingButton,
+  Rating as RatingUi,
+} from "@/components/ui/shadcn-io/rating"
+import * as Arr from "effect/Array"
 import { generateUuidBytes } from "@/lib/Id"
 import {
   MealPlanDatePicker,
@@ -56,7 +66,6 @@ import {
   Edit,
   MoreVertical,
   SlidersHorizontal,
-  Star,
   Trash,
   Link as LinkIcon,
   PencilLine,
@@ -335,64 +344,59 @@ export function RecipeDetails({
         </h1>
       </header>
 
-      {!recipe.hasNoDetails && (
-        <div className="px-4 pt-3 md:page-wide md:pt-4">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] md:text-[16px] text-muted-foreground">
-            {recipe.prepTime && (
+      {/* The facts row always shows: the rating lives here and can be set
+          on a recipe that has nothing else to say */}
+      <div className="px-4 pt-3 md:page-wide md:pt-4">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[15px] md:text-[16px] text-muted-foreground">
+          {recipe.prepTime && (
+            <span>
+              Prep{" "}
+              <span className="font-medium text-foreground tabular-nums">
+                {Duration.format(recipe.prepTime)}
+              </span>
+            </span>
+          )}
+          {recipe.cookingTime && (
+            <span>
+              Cook{" "}
+              <span className="font-medium text-foreground tabular-nums">
+                {Duration.format(recipe.cookingTime)}
+              </span>
+            </span>
+          )}
+          {recipe.servings && (
+            <span>
+              Serves{" "}
+              <span className="font-medium text-foreground tabular-nums">
+                {recipe.servingsDisplay}
+              </span>
+            </span>
+          )}
+          {recipe.sourceUrl ? (
+            <a
+              href={recipe.sourceUrl}
+              className="flex items-center gap-1"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <LinkIcon className="size-4" />
+              <span className="text-primary underline underline-offset-4 decoration-primary/30">
+                {recipe.sourceName ?? "Source"}
+              </span>
+            </a>
+          ) : (
+            recipe.sourceName && (
               <span>
-                Prep{" "}
-                <span className="font-medium text-foreground tabular-nums">
-                  {Duration.format(recipe.prepTime)}
+                Source{" "}
+                <span className="font-medium text-foreground">
+                  {recipe.sourceName}
                 </span>
               </span>
-            )}
-            {recipe.cookingTime && (
-              <span>
-                Cook{" "}
-                <span className="font-medium text-foreground tabular-nums">
-                  {Duration.format(recipe.cookingTime)}
-                </span>
-              </span>
-            )}
-            {recipe.servings && (
-              <span>
-                Serves{" "}
-                <span className="font-medium text-foreground tabular-nums">
-                  {recipe.servingsDisplay}
-                </span>
-              </span>
-            )}
-            {recipe.sourceUrl ? (
-              <a
-                href={recipe.sourceUrl}
-                className="flex items-center gap-1"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <LinkIcon className="size-4" />
-                <span className="text-primary underline underline-offset-4 decoration-primary/30">
-                  {recipe.sourceName ?? "Source"}
-                </span>
-              </a>
-            ) : (
-              recipe.sourceName && (
-                <span>
-                  Source{" "}
-                  <span className="font-medium text-foreground">
-                    {recipe.sourceName}
-                  </span>
-                </span>
-              )
-            )}
-            {recipe.rating && (
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span>{recipe.rating}</span>
-              </div>
-            )}
-          </div>
+            )
+          )}
+          <RecipeRating recipe={recipe} />
         </div>
-      )}
+      </div>
 
       {modified && <ModifiedBanner recipe={recipe} />}
 
@@ -531,6 +535,38 @@ export function RecipeDetails({
         </div>
       </div>
     </div>
+  )
+}
+
+// Rated in place: a tap on a star saves it, a tap on the chosen star clears
+// it. There is no form to open and nothing to submit, so rating a recipe is
+// one touch at the end of cooking it. Each star is a thumb-sized target with
+// the icon centred, pulled in at the sides so the row's spacing holds
+function RecipeRating({ recipe }: { recipe: Recipe }) {
+  const write = useWrite()
+  const rating = recipe.rating === null ? null : Math.round(recipe.rating)
+  return (
+    <RatingUi
+      className="-mx-1.5"
+      value={rating}
+      onValueChange={(value) =>
+        write(
+          recipeRated(
+            recipe.id,
+            value === null ? null : Rating.make(value),
+            DateTime.nowUnsafe(),
+          ),
+        )
+      }
+    >
+      {Arr.range(1, 5).map((i) => (
+        <RatingButton
+          key={i}
+          size={22}
+          className="flex size-9 items-center justify-center text-muted-foreground/40 transition-[color,scale] duration-150 motion-safe:active:scale-90 data-[active=true]:text-primary"
+        />
+      ))}
+    </RatingUi>
   )
 }
 

@@ -15,8 +15,10 @@ import {
   RecipeEvents,
   recipeDeleted,
   recipeIngredientScale,
+  recipeRated,
   recipeUpdate,
 } from "@/Recipes/Events"
+import { Rating } from "@/domain/Rating"
 import {
   Ingredient,
   IngredientsComponent,
@@ -117,6 +119,17 @@ const scaled = (msecs: number, ingredientScale: number) =>
       .payload,
   })
 
+const rated = (msecs: number, rating: number | null) =>
+  makeEntry({
+    msecs,
+    event: recipeEvent,
+    payload: recipeRated(
+      recipeId,
+      rating === null ? null : Rating.make(rating),
+      at(msecs),
+    ).payload,
+  })
+
 const deleted = (msecs: number) =>
   makeEntry({
     msecs,
@@ -213,4 +226,23 @@ test("a recipe delete newer than an edit keeps the recipe deleted, with the edit
     title: "Carrot soup",
     deletedAt: 3000,
   })
+})
+
+test("a rating set from the recipe page keeps a concurrent edit, and a later tap clears it", async () => {
+  const { recipes } = await converge({
+    layer,
+    read,
+    setup: [created],
+    concurrent: [
+      updated(2000, { title: "Carrot soup" }),
+      rated(2500, 4),
+      scaled(3000, 2),
+      rated(3500, null),
+      rated(4000, 5),
+    ],
+  })
+  assert.deepEqual(
+    pick(only(recipes), ["title", "rating", "ingredientScale", "updatedAt"]),
+    { title: "Carrot soup", rating: 5, ingredientScale: 2, updatedAt: 4000 },
+  )
 })
