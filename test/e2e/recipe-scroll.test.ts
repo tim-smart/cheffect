@@ -61,3 +61,61 @@ test(
       assert.deepEqual(back, { scrollY: listScrollY, topBar: "app header" })
     }),
 )
+
+// On a list longer than the virtualizer mounts, the rows above the restored
+// position are never measured: they sit where the row-height estimate puts
+// them. The estimate must match the measured rows before the first paint, or
+// going back shows different recipes at the old scroll offset.
+
+// The first recipe wholly in view: an expression for its link, and one for
+// where it sits along with the page height.
+const firstInView = `[...document.querySelectorAll('main a[href^="/recipes/"]')]
+  .map((a) => ({ a, rect: a.getBoundingClientRect() }))
+  .filter(({ rect }) => rect.top >= 0)
+  .sort((x, y) => x.rect.top - y.rect.top)[0]`
+const firstInViewAt = `(() => {
+  const first = ${firstInView}
+  return {
+    title: first.a.querySelector("h3").textContent,
+    top: Math.round(first.rect.top),
+    scrollY: Math.round(scrollY),
+    height: document.documentElement.scrollHeight,
+  }
+})()`
+// Rows that mount in the list's first moments rise into place; true once
+// none is still on its way
+const tilesSettled = `![...document.querySelectorAll("[data-index] > div")]
+  .some((row) => row.className.includes("rise-in"))`
+
+test(
+  "back from a recipe restores a long list to the same recipes",
+  { skip: !hasChromium && "chromium not found", timeout: 240_000 },
+  () =>
+    withSeededApp(
+      async ({ browser, base }) => {
+        // wide enough for the measured row to differ from the first estimate
+        await browser.setViewport(600, 844)
+        await browser.navigate(`${base}/`)
+        await browser.waitFor(`document.body.textContent.includes("84 saved")`)
+        await browser.evaluate(
+          `scrollTo(0, Math.round((document.documentElement.scrollHeight - innerHeight) * 0.7))`,
+        )
+        // the rows for the new offset mount on the scroll event
+        await browser.waitFor(`!!(${firstInView}) && ${tilesSettled}`)
+        const before = await browser.evaluate<{ scrollY: number }>(
+          firstInViewAt,
+        )
+        assert.ok(before.scrollY > 0, "the list did not scroll")
+
+        await browser.click(`(${firstInView}).a`)
+        await browser.waitFor(`!document.querySelector("[data-index]")`)
+        await browser.evaluate(`history.back()`)
+        await browser.waitFor(`!!document.querySelector("[data-index]")`)
+        // the router restores the scroll position on mount
+        await browser.waitFor(`scrollY > 0 && ${tilesSettled}`)
+
+        assert.deepEqual(await browser.evaluate(firstInViewAt), before)
+      },
+      { init: `localStorage.setItem("cheffect:devSeedPadding", "80")` },
+    ),
+)

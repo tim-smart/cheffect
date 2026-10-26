@@ -116,3 +116,28 @@ export const seedRecipes: ReadonlyArray<ExtractedRecipe> = [
     sourceName: "Cheffect Test Kitchen",
   }),
 ]
+
+// Plain recipes, as many as `cheffect:devSeedPadding` in local storage asks
+// for, so an e2e test can have a list longer than a screen. Dev builds only.
+export const seedPadding = (): ReadonlyArray<ExtractedRecipe> => {
+  if (!import.meta.env.DEV) return []
+  const count = Number(localStorage.getItem("cheffect:devSeedPadding") ?? 0)
+  return Array.from(
+    { length: Number.isFinite(count) ? count : 0 },
+    (_, index) =>
+      new ExtractedRecipe({
+        title: `Recipe ${String(index + 1).padStart(4, "0")}`,
+        imageUrl: null,
+        prepTime: Duration.minutes(10),
+        cookingTime: Duration.minutes(20),
+        servings: 4,
+        ingredients: [
+          ingredients([
+            new Ingredient({ name: "Salt", quantity: 1, unit: "tsp" }),
+          ]),
+        ],
+        steps: steps(["Season and serve."]),
+        sourceName: null,
+      }),
+  )
+}

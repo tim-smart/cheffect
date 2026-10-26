@@ -1,5 +1,5 @@
 import { seedGroceryItems } from "./seedGroceryItems"
-import { seedRecipes } from "./seedRecipes"
+import { seedPadding, seedRecipes } from "./seedRecipes"
 import { GroceryItem } from "@/domain/GroceryItem"
 import { Menu } from "@/domain/Menu"
 import { MenuEntry } from "@/domain/MenuEntry"
@@ -35,7 +35,9 @@ const seededRecipesAtom = recipesRuntime.atom(
         (a, b) => b.createdAt.epochMilliseconds - a.createdAt.epochMilliseconds,
       )
     }
-    const recipes = seedRecipes.map((recipe) => recipe.asRecipe())
+    const recipes = [...seedRecipes, ...seedPadding()].map((recipe) =>
+      recipe.asRecipe(),
+    )
     for (const recipe of recipes) {
       yield* writeEvent(RecipeEvent.set(recipe))
     }

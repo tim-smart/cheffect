@@ -11,6 +11,8 @@ import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual"
 import {
   memo,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
   type CSSProperties,
   type MouseEvent,
@@ -38,6 +40,10 @@ export const RecipeList = memo(function RecipeList({
   const tileColumns = useTileColumns()
   const columns = tiles ? tileColumns : 1
   const rowCount = Math.ceil(recipes.length / columns)
+  const [initialTileRowHeight] = useState(() =>
+    rememberedTileRowHeight(tileColumns),
+  )
+  const tileRowHeight = useRef(initialTileRowHeight)
   const virtualizer = getScrollElement
     ? useVirtualizer({
         count: recipes.length,
@@ -50,12 +56,34 @@ export const RecipeList = memo(function RecipeList({
           getElement: () => window,
         })?.scrollY,
         count: rowCount,
-        estimateSize: () => (tiles ? (tileColumns > 2 ? 272 : 216) : 81),
+        estimateSize: () => (tiles ? tileRowHeight.current : 81),
         // Ten 81px rows was tuned for the old cards; tile rows are three
         // times taller, so four rows reach about as far past the screen and
         // a keystroke mounts about half as many tiles
         overscan: tiles ? 4 : 10,
       })
+
+  // Every tile row is the same height, but how tall depends on the width of
+  // a column, which the photos keep in proportion to. The height is read off
+  // a mounted row, remembered for the next mount at this width, and made the
+  // estimate for every row of this one
+  const tileRows = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const row = tileRows.current?.firstElementChild
+    if (!row) return
+    // Rounded, as the virtualizer rounds what it measures
+    const height = Math.round(row.getBoundingClientRect().height)
+    if (height === 0 || height === tileRowHeight.current) return
+    tileRowHeight.current = height
+    rememberTileRowHeight(height)
+    // Drops every row's size so the next layout takes the new estimate. The
+    // layout is only rebuilt when it is next read, and a row the browser
+    // re-measures before then is compared against the old one and pins the
+    // rebuild to its own index, leaving the rows above it where they were;
+    // so it is read now
+    virtualizer.measure()
+    virtualizer.getTotalSize()
+  })
 
   // Rows that mount in the first moments rise in, staggered by their place
   // on screen; rows scrolled into view later simply appear
@@ -67,6 +95,7 @@ export const RecipeList = memo(function RecipeList({
   if (tiles) {
     return (
       <div
+        ref={tileRows}
         style={{
           height: `${virtualizer.getTotalSize()}px`,
           width: "100%",
@@ -148,6 +177,37 @@ export const RecipeList = memo(function RecipeList({
   )
 })
 
+// The height of a tile row at a viewport width, kept where the router keeps
+// the scroll position it goes with, so a list that mounts at a restored
+// position, on the way back from a recipe or after a reload, places every
+// row where it was before its first paint. Until a row has been measured at
+// this width, the breakpoint's typical height stands in
+const tileRowHeightKey = "cheffect:tileRowHeight"
+
+function rememberedTileRowHeight(columns: number) {
+  try {
+    const remembered = sessionStorage.getItem(tileRowHeightKey)
+    if (remembered !== null) {
+      const [width, height] = remembered.split(":").map(Number)
+      if (width === document.documentElement.clientWidth) return height
+    }
+  } catch {
+    // storage is unavailable; the typical height will do
+  }
+  return columns > 2 ? 296 : 218
+}
+
+function rememberTileRowHeight(height: number) {
+  try {
+    sessionStorage.setItem(
+      tileRowHeightKey,
+      `${document.documentElement.clientWidth}:${height}`,
+    )
+  } catch {
+    // storage is unavailable; the next mount measures again
+  }
+}
+
 // How many tiles fit a row: the same breakpoints as the grid's classes, so
 // the virtualizer slices rows the way the grid lays them out
 const tileQueries = [
@@ -213,6 +273,8 @@ const RecipeTile = memo(function RecipeTile({ recipe }: { recipe: Recipe }) {
     }),
     ...(recipe.servings !== null ? [`Serves ${recipe.servingsDisplay}`] : []),
   ]
+  // By code point, so an emoji at the front stays whole
+  const initial = [...recipe.title.trim()][0]?.toUpperCase() ?? ""
   return (
     <Link
       to="/recipes/$id"
@@ -220,10 +282,28 @@ const RecipeTile = memo(function RecipeTile({ recipe }: { recipe: Recipe }) {
       className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
     >
       {/* The frame presses in, not the photo inside it, so no gutter of the
-          placeholder opens around a shrunken, square-cornered photo */}
-      <div className="relative h-32 md:h-44 overflow-hidden rounded-xl bg-muted motion-safe:transition-[scale] motion-safe:duration-150 motion-safe:ease-out motion-safe:group-active:scale-[0.97]">
-        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-          <ChefHat className="size-10 opacity-30" />
+          placeholder opens around a shrunken, square-cornered photo. Photos
+          keep one 4:3 crop at every width; a hairline inside the edge stops
+          a pale photo dissolving into the page */}
+      <div
+        data-photo={recipe.imageUrl ? "loading" : "none"}
+        className="group/frame relative aspect-[4/3] overflow-hidden rounded-xl bg-muted motion-safe:transition-[scale] motion-safe:duration-150 motion-safe:ease-out motion-safe:group-active:scale-[0.97] after:pointer-events-none after:absolute after:inset-0 after:rounded-xl after:ring-1 after:ring-inset after:ring-foreground/8"
+      >
+        {/* A recipe without a photo gets a tile of its own: its initial, set
+            in the display face on the brand's warm tint, reads as a recipe
+            rather than a photo that never arrived. The same tile stands in
+            when a photo fails to load */}
+        <div
+          aria-hidden
+          className="absolute inset-0 hidden items-center justify-center bg-primary-muted text-primary/80 group-data-[photo=none]/frame:flex"
+        >
+          {initial ? (
+            <span className="font-display text-[44px] md:text-[56px] font-medium leading-none">
+              {initial}
+            </span>
+          ) : (
+            <ChefHat className="size-10 opacity-60" />
+          )}
         </div>
         {recipe.imageUrl && (
           <FadeImage
@@ -232,12 +312,13 @@ const RecipeTile = memo(function RecipeTile({ recipe }: { recipe: Recipe }) {
             className="absolute inset-0 h-full w-full object-cover"
             onError={(event) => {
               event.currentTarget.hidden = true
+              event.currentTarget.parentElement!.dataset.photo = "none"
             }}
           />
         )}
       </div>
-      {/* A fixed text block keeps every row 216px, which the virtualizer
-          relies on to restore the scroll position exactly */}
+      {/* A fixed text block keeps every row in a list the same height, which
+          the virtualizer relies on to restore the scroll position exactly */}
       <div className="mt-2 h-16 md:mt-3">
         <h3 className="font-display text-[16px] md:text-[17px] font-medium leading-[22px] line-clamp-2">
           {recipe.title}
