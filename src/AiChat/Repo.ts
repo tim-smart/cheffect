@@ -16,7 +16,8 @@ import type { AiChatTurnRow, AiMemoryEntryRow } from "./Table"
 // Memory entries are newest first, as the system prompt lists them. History
 // is the turns sorted by entry time, with the id as the tiebreak, joined into
 // one prompt. A turn whose JSON no longer decodes is left out rather than
-// losing the whole history.
+// losing the whole history. `lastTurnAt` is the latest entry time, or none
+// for an empty chat.
 
 const compareIds = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
@@ -51,6 +52,16 @@ const decodeHistory = (rows: ReadonlyArray<AiChatTurnRow>): Prompt.Prompt =>
     Prompt.empty,
   )
 
+const latestEntryTime = (
+  rows: ReadonlyArray<AiChatTurnRow>,
+): number | undefined =>
+  rows.length === 0 ? undefined : Math.max(...rows.map((row) => row.entryTime))
+
+const decodeConversation = (rows: ReadonlyArray<AiChatTurnRow>) => ({
+  history: decodeHistory(rows),
+  lastTurnAt: latestEntryTime(rows),
+})
+
 export class AiChatRepo extends Context.Service<AiChatRepo>()(
   "cheffect/AiChat/Repo/AiChatRepo",
   {
@@ -60,7 +71,8 @@ export class AiChatRepo extends Context.Service<AiChatRepo>()(
       return {
         memoryEntries: memory.current.pipe(Effect.map(decodeMemory)),
         history: turns.current.pipe(Effect.map(decodeHistory)),
-        historyStream: turns.stream.pipe(Stream.map(decodeHistory)),
+        conversation: turns.current.pipe(Effect.map(decodeConversation)),
+        conversationStream: turns.stream.pipe(Stream.map(decodeConversation)),
         // The turns a clear removes: every one this device can see.
         turnIds: turns.current.pipe(
           Effect.map((rows) => rows.map((row) => row.id)),
