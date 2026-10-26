@@ -7,11 +7,12 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { aiChatOpenAtom } from "@/atoms"
 import { Recipe } from "@/domain/Recipe"
 import { recipeSortByAtom, recipesAtom } from "@/Recipes/atoms"
 import { searchRecipes } from "@/Recipes/Repo"
 import { router } from "@/Router"
-import { useAtomValue } from "@effect/atom-react"
+import { useAtomSet, useAtomValue } from "@effect/atom-react"
 import * as Duration from "effect/Duration"
 import * as Option from "effect/Option"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
@@ -31,7 +32,9 @@ const isShortcut = (e: KeyboardEvent) =>
 
 // A destination picked from the results. Each kind of destination is a group
 // of its own; recipes are the only one so far
-type Go = (navigate: () => void) => void
+type Go = (
+  navigate: (options: { readonly replace: boolean }) => Promise<void>,
+) => void
 
 /**
  * Jumps to a recipe from any screen with ⌘K. The dialog sits over the page,
@@ -46,17 +49,19 @@ export function QuickSearch() {
   // Set when a result is picked: the focus belongs to the page being opened,
   // not to the one being left
   const navigating = useRef(false)
+  const setAiChatOpen = useAtomSet(aiChatOpenAtom)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isShortcut(e)) return
       // The shortcut closes the search as it opened it, but leaves other
-      // dialogs and popovers alone: they hold the focus, and opening over
-      // them would stack modals
+      // dialogs, popovers and menus alone: they hold the focus, and opening
+      // over them would stack modals
       if (
         !open &&
         e.target instanceof Element &&
-        e.target.closest("[role=dialog], [role=alertdialog]") !== null
+        e.target.closest("[role=dialog], [role=alertdialog], [role=menu]") !==
+          null
       ) {
         return
       }
@@ -72,10 +77,17 @@ export function QuickSearch() {
     }
   }, [open])
 
-  const go: Go = (navigate) => {
+  // The chat can cover the page, full screen on phones or maximized, so it
+  // is minimized to show where the search went; its draft and conversation
+  // stay. The chat steps back out of the history entry it pushed when it
+  // closes on that entry, which would undo a navigation still under way. So
+  // the navigation replaces the chat's entry, and the chat closes once it
+  // has landed, finding its entry gone
+  const go: Go = async (navigate) => {
     navigating.current = true
     setOpen(false)
-    navigate()
+    await navigate({ replace: history.state?.aiChatOpen === true })
+    setAiChatOpen(false)
   }
 
   return (
@@ -178,12 +190,13 @@ function RecipeResults({
           key={recipe.idString}
           value={recipe.idString}
           onSelect={() =>
-            go(() => {
+            go(({ replace }) =>
               router.navigate({
                 to: "/recipes/$id",
                 params: { id: recipe.idString },
-              })
-            })
+                replace,
+              }),
+            )
           }
           className="gap-3 rounded-lg px-2 py-2"
         >
