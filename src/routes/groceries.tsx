@@ -655,20 +655,43 @@ const GroceryListItem = memo(function GroceryListItem({
             className={cn(
               "flex-1 min-w-0 flex flex-col leading-tight py-1 justify-center",
               item.recipeIds ? "pt-2" : "min-h-12",
-              `${item.completed ? "text-muted-foreground line-through decoration-border" : ""}`,
+              item.completed && "text-muted-foreground",
             )}
             onClick={() => toggleItem(item)}
           >
             <div>
-              <span>{item.name}</span>
+              {/* Only the name is struck through, in its own colour; the
+                  quantity and recipe fall back a step instead */}
+              <span
+                className={cn(
+                  item.completed &&
+                    "line-through decoration-1 decoration-current",
+                )}
+              >
+                {item.name}
+              </span>
               {item.quantity && (
-                <span className="text-sm text-muted-foreground ml-2 tabular-nums">
+                <span
+                  className={cn(
+                    "text-sm ml-2 tabular-nums",
+                    item.completed
+                      ? "text-muted-foreground/70"
+                      : "text-muted-foreground",
+                  )}
+                >
                   {item.quantity}
                 </span>
               )}
             </div>
             {item.recipeIds && (
-              <div className="text-xs text-muted-foreground [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1">
+              <div
+                className={cn(
+                  "text-xs [&>*:not(:last-child)]:after:content-['•'] pb-1 [&>*:not(:last-child)]:after:mx-1",
+                  item.completed
+                    ? "text-muted-foreground/70"
+                    : "text-muted-foreground",
+                )}
+              >
                 {item.recipeIds.map((id) => (
                   <RecipeTitle key={uuidString(id)} id={id} />
                 ))}
