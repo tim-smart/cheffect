@@ -11,12 +11,7 @@ import {
   type PageText,
   pageText,
 } from "@/Recipes/extractFromHtml"
-import {
-  findYouTubeVideo,
-  type YouTubeVideo,
-  youTubeVideoId,
-  youTubeWatchUrl,
-} from "@/Recipes/youtube"
+import { type YouTubeVideo, youTubeVideoId } from "@/Recipes/youtube"
 import { beautifyChanges } from "@/Groceries/beautify"
 import {
   encodeGroceryItemListXml,
@@ -146,7 +141,7 @@ export class AiHelpers extends Context.Service<AiHelpers>()("AiHelpers", {
     // answer that it holds no recipe, so a video whose recipe is only spoken
     // fails rather than coming back invented.
     const recipeFromYouTube = Effect.fnUntraced(function* (id: string) {
-      const page = findYouTubeVideo(yield* fetcher.html(youTubeWatchUrl(id)))
+      const page = yield* fetcher.youTube(id)
       if (page._tag === "Unavailable") {
         return yield* new VideoImportError({
           message:

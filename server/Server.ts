@@ -12,6 +12,7 @@ import * as RpcServer from "effect/rpc/RpcServer"
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer"
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient"
 import { fetchResponse } from "./fetchGuard"
+import { createYouTubeHandler } from "./youtube"
 
 // The combined image's server: the front end build and the encrypted EventLog
 // server on one origin. Live fan-out is an in-process PubSub, so it must run
@@ -50,6 +51,29 @@ const FetchLayer = HttpRouter.add("GET", "/fetch", (request) =>
       }),
     ),
   ),
+)
+
+const YouTubeLayer = Layer.unwrap(
+  Effect.sync(() => {
+    const handler = createYouTubeHandler({
+      apiKey: process.env.YOUTUBE_API_KEY,
+    })
+    return HttpRouter.add("GET", "/youtube", (request) =>
+      Effect.promise(() =>
+        handler(
+          new URL(request.url, "http://localhost").searchParams.get("id"),
+        ),
+      ).pipe(
+        Effect.map(({ status, headers, body }) =>
+          HttpServerResponse.text(body, {
+            status,
+            headers,
+            contentType: headers["content-type"],
+          }),
+        ),
+      ),
+    )
+  }),
 )
 
 // Front end
@@ -103,6 +127,7 @@ export const layer = (options: {
       FrontendLayer(options.root),
       SyncLayer(options.databasePath),
       FetchLayer,
+      YouTubeLayer,
     ),
     { disableLogger: true },
   ).pipe(

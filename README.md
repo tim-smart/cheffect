@@ -94,6 +94,39 @@ your OpenAI key. With Jina, that's a third party.
 Some sites block every server, so they fail however they are fetched. Allrecipes
 and Serious Eats are two known examples.
 
+### YouTube imports
+
+YouTube imports read the video description, not the audio or captions. A
+description without ingredients cannot produce a recipe. Watch, Shorts, live,
+embed and youtu.be links are resolved to the same video id.
+
+For Docker or Vercel deployments, enable **YouTube Data API v3** in a Google
+Cloud project and set `YOUTUBE_API_KEY` in the server environment. For example,
+pass `-e YOUTUBE_API_KEY=...` when starting the Docker container, or add the
+variable to the Vercel deployment and redeploy. Do not prefix it with `VITE_`: the
+key must never be included in the browser bundle. Restrict the key to YouTube
+Data API v3 and, where possible, your server IP addresses.
+
+With a key, `/youtube?id=...` (Docker) or `/api/youtube?id=...` (Vercel) reads
+public video metadata using the supported
+[`videos.list` API](https://developers.google.com/youtube/v3/docs/videos/list).
+Each uncached lookup costs one quota unit. Concurrent requests for the same
+video share a lookup; successful results are cached in memory for five minutes
+(up to 256 videos per server process). Vercel instances do not share this cache.
+API failures are reported without retrying or falling back to page scraping.
+Private or deleted videos are not supported; an API key does not sign a user in.
+
+Without a key, these routes make one best-effort watch-page request. Static
+builds and `pnpm dev` use their existing Jina HTML endpoint instead. YouTube
+browser requests are skipped because YouTube does not allow cross-origin page
+reads. Consent pages and bot checks can still block the unauthenticated path.
+We do not pass browser cookies, solve challenges, or rotate identities.
+
+These metadata routes are unauthenticated. On public deployments, protect them
+with your reverse proxy/authentication or rate limits to prevent others from
+spending your API quota. Monitor quota use in Google Cloud. The API receives the
+video id, never your OpenAI key.
+
 ### The `/fetch` route
 
 The Docker image serves `GET /fetch?url=...` and the Vercel build serves
