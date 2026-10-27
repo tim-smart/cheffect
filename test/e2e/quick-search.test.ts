@@ -25,12 +25,14 @@ const meta = 4
 const keyboards = [
   {
     name: "Ctrl+K",
+    label: "Ctrl+K",
     userAgent: "Mozilla/5.0 (X11; Linux x86_64)",
     modifier: ctrl,
     other: meta,
   },
   {
     name: "⌘K on a Mac",
+    label: "⌘K",
     userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
     modifier: meta,
     other: ctrl,
@@ -72,6 +74,13 @@ for (const keyboard of keyboards) {
           await browser.setViewport(1280, 900, { mobile: false })
           await browser.navigate(`${base}/`)
           await browser.waitFor(`!!${pageSearch}`)
+          // The recipes page's search field tells this keyboard's shortcut
+          assert.equal(
+            await browser.evaluate(
+              `${pageSearch}.parentElement.querySelector("kbd")?.textContent`,
+            ),
+            keyboard.label,
+          )
 
           // A query typed into the recipes page, with the field still focused
           await browser.evaluate(`${pageSearch}.focus()`)
@@ -177,3 +186,61 @@ for (const keyboard of keyboards) {
       ),
   )
 }
+
+// A changed query starts its results at the top, with the first selected,
+// however the list was scrolled: by hand, where the first result stays the
+// same, or by the keys, where the selection moved down the list. The padding
+// recipes are "Recipe 0001" onwards, so every "Recipe 0…" query leads with
+// 0001
+test(
+  "a query typed after scrolling the results shows them from the top",
+  { skip: !hasChromium && "chromium not found", timeout: 180_000 },
+  () =>
+    withSeededApp(
+      async ({ browser }) => {
+        const list = `${dialog}.querySelector("[cmdk-list]")`
+        const first = `${dialog}.querySelector("[cmdk-item]")`
+        await browser.setViewport(1280, 900, { mobile: false })
+        await browser.press("k", "KeyK", 75, ctrl)
+        await browser.waitFor(`document.activeElement === ${dialogInput}`)
+        await type(browser, dialogInput, "Recipe 0")
+        await browser.waitFor(
+          `${first}?.textContent.includes("Recipe 0001") && ${list}.scrollHeight > ${list}.clientHeight`,
+        )
+        await browser.evaluate(`${list}.scrollTop = ${list}.scrollHeight`)
+        await browser.waitFor(`${list}.scrollTop > 0`)
+
+        await type(browser, dialogInput, "Recipe 000")
+        await browser.waitFor(
+          `${dialog}.querySelectorAll("[cmdk-item]").length === 9`,
+        )
+        const expectFirstAtTop = async () => {
+          await sleep(300)
+          assert.equal(await browser.evaluate(`${list}.scrollTop`), 0)
+          assert.equal(
+            await browser.evaluate(
+              `${first}.getAttribute("data-selected") === "true"`,
+            ),
+            true,
+            "the first result is the selected one",
+          )
+        }
+        await expectFirstAtTop()
+
+        // End selects the last result, scrolling to it; Backspace widens the
+        // query again
+        await browser.press("End", "End", 35)
+        await browser.waitFor(
+          `${dialog}.querySelector('[cmdk-item][data-selected="true"]')?.textContent.includes("Recipe 0009") && ${list}.scrollTop > 0`,
+        )
+        await browser.press("Backspace", "Backspace", 8)
+        await browser.waitFor(
+          `${dialogInput}.value === "Recipe 00" && ${dialog}.querySelectorAll("[cmdk-item]").length === 50`,
+        )
+        await expectFirstAtTop()
+      },
+      {
+        init: `Object.defineProperty(Navigator.prototype, "userAgent", { get: () => "Mozilla/5.0 (X11; Linux x86_64)" }); localStorage.setItem("cheffect:devSeedPadding", "80")`,
+      },
+    ),
+)

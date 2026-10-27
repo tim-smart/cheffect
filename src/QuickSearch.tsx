@@ -24,6 +24,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 // are told apart as the chat's ⌘J does
 const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
 
+/** The shortcut as this keyboard writes it, for hints */
+export const quickSearchShortcut = isApple ? "⌘K" : "Ctrl+K"
+
 const isShortcut = (e: KeyboardEvent) =>
   e.key.toLowerCase() === "k" &&
   !e.shiftKey &&
@@ -124,15 +127,35 @@ function SearchCommand({ go }: { readonly go: Go }) {
   // deferred: there are few of them, and cmdk selects the first result as
   // the query changes, which has to be the first of the new results
   const [query, setQuery] = useState("")
+  // Every query starts its results at the top, with the first selected. cmdk
+  // selects the first result itself, but scrolls to it only when the
+  // selection changes, and before the results show it, so it lands on the
+  // result the old query had selected. The selection is cleared with the
+  // query, leaving cmdk nothing to scroll to, and the list goes to the top
+  const [selected, setSelected] = useState("")
+  const listRef = useRef<HTMLDivElement>(null)
   return (
-    <Command shouldFilter={false} loop className="rounded-none bg-background">
+    <Command
+      shouldFilter={false}
+      loop
+      value={selected}
+      onValueChange={setSelected}
+      className="rounded-none bg-background"
+    >
       <CommandInput
         value={query}
-        onValueChange={setQuery}
+        onValueChange={(query: string) => {
+          setQuery(query)
+          setSelected("")
+          if (listRef.current) listRef.current.scrollTop = 0
+        }}
         placeholder="Search recipes..."
         className="h-13 text-base md:text-sm"
       />
-      <CommandList className="max-h-[min(24rem,60vh)] scroll-py-2 overscroll-contain">
+      <CommandList
+        ref={listRef}
+        className="max-h-[min(24rem,60vh)] scroll-py-2 overscroll-contain"
+      >
         <CommandEmpty className="py-10 text-center text-sm text-muted-foreground">
           No recipes found
         </CommandEmpty>

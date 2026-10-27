@@ -19,6 +19,7 @@ import {
   recipeSortByAtom,
 } from "@/Recipes/atoms"
 import { RecipeList } from "@/Recipes/List"
+import { quickSearchShortcut } from "@/QuickSearch"
 
 export const Route = createFileRoute("/")({
   component: CheffectHome,
@@ -82,8 +83,18 @@ function SearchInput() {
             const target = e.target as HTMLInputElement
             target.blur()
           }}
-          className={`pl-10 h-11 bg-card! rounded-full shadow-none ${searchQuery ? "pr-9" : ""}`}
+          className={`peer pl-10 h-11 bg-card! rounded-full shadow-none ${searchQuery ? "pr-9" : "pointer-fine:pr-20"}`}
         />
+        {/* Where the search shortcut is told, for keyboards: it opens the
+            search over any screen. Shown while the field is empty and idle */}
+        {!searchQuery && (
+          <kbd
+            aria-hidden
+            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 hidden pointer-fine:inline-flex h-5 items-center rounded-md border border-border px-1.5 font-sans text-[11px] font-medium leading-none text-muted-foreground peer-focus:hidden"
+          >
+            {quickSearchShortcut}
+          </kbd>
+        )}
         {searchQuery && (
           <button
             type="button"
