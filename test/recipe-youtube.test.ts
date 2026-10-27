@@ -352,12 +352,17 @@ test("a dubbed video's transcript is in its original language", async () => {
         languageCode: lang,
         kind: "asr",
       }))
-  const transcriptIn = async (audio: Array<unknown>) => {
+  const transcriptIn = async (
+    audio: Array<unknown>,
+    tracks = captionTracks,
+  ) => {
     const { prompts } = await transcriptImport(description, (url) =>
       url.pathname === "/youtubei/v1/player"
         ? Response.json({
             streamingData: { adaptiveFormats: audio },
-            captions: { playerCaptionsTracklistRenderer: { captionTracks } },
+            captions: {
+              playerCaptionsTracklistRenderer: { captionTracks: tracks },
+            },
           })
         : Response.json({
             events: [
@@ -368,6 +373,13 @@ test("a dubbed video's transcript is in its original language", async () => {
     return /Transcript:\\nSpoken (\w+)/.exec(prompts[0])?.[1]
   }
   assert.equal(await transcriptIn([]), "en")
+  // With neither English nor an original to go by, any track still helps.
+  assert.ok(
+    await transcriptIn(
+      [],
+      captionTracks.filter((track) => track.languageCode !== "en"),
+    ),
+  )
   assert.equal(
     await transcriptIn([
       { audioTrack: { id: "en-US.3", displayName: "English (US)" } },

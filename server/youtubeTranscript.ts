@@ -98,7 +98,8 @@ const spokenLanguage = (
 }
 
 // Manual captions before auto-generated ones, then the video's language before
-// English. Without either, a manual track is still the best guess.
+// English. Without either, a manual track is still the best guess, and any
+// track is better than none.
 const pickTrack = (
   tracks: ReadonlyArray<Track>,
   spoken: string | undefined,
@@ -116,7 +117,11 @@ const pickTrack = (
       return r === undefined ? [] : [{ track, r }]
     })
     .sort((a, b) => a.r - b.r)
-  return ranked[0]?.track ?? tracks.find((track) => track.kind !== "asr")
+  return (
+    ranked[0]?.track ??
+    tracks.find((track) => track.kind !== "asr") ??
+    tracks[0]
+  )
 }
 
 // Caption events as one paragraph, without sound cues such as "[Music]", cut
