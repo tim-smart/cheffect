@@ -88,3 +88,41 @@ test("a direct fetch that never answers falls through to the endpoint", async ()
     [page, `https://r.jina.ai/${encodeURIComponent(page)}`],
   )
 })
+
+test("YouTube uses one metadata request, with no browser watch request or retries on quota errors", async () => {
+  const requests: string[] = []
+  const result = { _tag: "Unavailable", reason: "YouTube API quota exceeded" }
+  const exit = await PageFetcher.make(
+    "https://example.test/fetch?url={url}",
+    "https://example.test/youtube?id={id}",
+  ).pipe(
+    Effect.flatMap((fetcher) => fetcher.youTube("abcdefghijk")),
+    Effect.provide(FetchHttpClient.layer),
+    Effect.provideService(FetchHttpClient.Fetch, (async (input) => {
+      requests.push(String(input))
+      return Response.json(result, { status: 403 })
+    }) as typeof globalThis.fetch),
+    Effect.runPromise,
+  )
+  assert.deepEqual(exit, result)
+  assert.deepEqual(requests, ["https://example.test/youtube?id=abcdefghijk"])
+})
+
+test("static YouTube imports go straight to the HTML endpoint and do not retry bot walls", async () => {
+  const requests: string[] = []
+  const result = await PageFetcher.make("https://r.jina.ai/{url}").pipe(
+    Effect.flatMap((fetcher) => fetcher.youTube("abcdefghijk")),
+    Effect.provide(FetchHttpClient.layer),
+    Effect.provideService(FetchHttpClient.Fetch, (async (input) => {
+      requests.push(String(input))
+      return new Response("bot check", { status: 403 })
+    }) as typeof globalThis.fetch),
+    Effect.runPromise,
+  )
+  assert.equal(result._tag, "Unavailable")
+  if (result._tag === "Unavailable")
+    assert.match(result.reason!, /blocked|API/i)
+  assert.deepEqual(requests, [
+    "https://r.jina.ai/https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dabcdefghijk",
+  ])
+})

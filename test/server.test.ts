@@ -140,6 +140,14 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
     )
     assert.equal(fetched.status, 403)
     assert.equal(fetched.headers.get("access-control-allow-origin"), "*")
+
+    const video = yield* get("/youtube?id=invalid")
+    assert.equal(video.status, 400)
+    assert.match(video.headers.get("content-type")!, /application\/json/)
+    assert.equal(
+      (yield* Effect.promise(() => video.json()))._tag,
+      "Unavailable",
+    )
   }).pipe(Effect.provide(ServerLayer), Effect.runPromise)
 })
 

@@ -15,9 +15,20 @@ export interface YouTubeVideo {
 
 // A page without `videoDetails` is one YouTube refused to serve, usually with
 // a reason such as "Sign in to confirm you're not a bot".
-export type YouTubePage =
-  | { readonly _tag: "Video"; readonly video: YouTubeVideo }
-  | { readonly _tag: "Unavailable"; readonly reason: string | null }
+export const YouTubePage = Schema.Union([
+  Schema.TaggedStruct("Video", {
+    video: Schema.Struct({
+      title: Schema.NullOr(Schema.String),
+      channel: Schema.NullOr(Schema.String),
+      description: Schema.NullOr(Schema.String),
+      thumbnail: Schema.NullOr(Schema.String),
+    }),
+  }),
+  Schema.TaggedStruct("Unavailable", {
+    reason: Schema.NullOr(Schema.String),
+  }),
+])
+export type YouTubePage = typeof YouTubePage.Type
 
 const youTubeHosts = new Set([
   "youtube.com",
@@ -26,6 +37,7 @@ const youTubeHosts = new Set([
 ])
 
 const videoIdPattern = /^[\w-]{11}$/
+export const isYouTubeVideoId = (id: string): boolean => videoIdPattern.test(id)
 
 // The video id of a YouTube watch, Shorts, live or embed link, or a youtu.be
 // share link, or null for any other URL.
@@ -36,6 +48,7 @@ export const youTubeVideoId = (input: string): string | null => {
   } catch {
     return null
   }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null
   const host = url.hostname.toLowerCase()
   const id =
     host === "youtu.be"
