@@ -21,7 +21,7 @@ import * as Option from "effect/Option"
 import type * as Atom from "effect/reactivity/Atom"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import React, { useRef, useState } from "react"
+import React, { useId, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -162,8 +162,14 @@ export const NumberInput: FormReact.FieldComponent<
      * A unit shown inside the field after the number, like "min".
      */
     readonly suffix?: React.ReactNode
+    /**
+     * The unit in full for assistive technology, like "minutes", when the
+     * shown suffix is an abbreviation.
+     */
+    readonly suffixLabel?: string
   }
-> = ({ field, props: { label, suffix, onBlur, ...props } }) => {
+> = ({ field, props: { label, suffix, suffixLabel, onBlur, ...props } }) => {
+  const suffixId = useId()
   const inputProps = {
     type: "number",
     step: "any",
@@ -190,10 +196,21 @@ export const NumberInput: FormReact.FieldComponent<
         // from its input instead
         <InputGroup className="has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-ring/50 has-[input:focus-visible]:ring-[3px]">
           <FormControl>
-            <InputGroupInput {...inputProps} />
+            <InputGroupInput {...inputProps} aria-describedby={suffixId} />
           </FormControl>
           <InputGroupAddon align="inline-end">
-            <InputGroupText>{suffix}</InputGroupText>
+            {/* The field is described by the unit: the full word when the
+                shown one is an abbreviation */}
+            <InputGroupText id={suffixId}>
+              {suffixLabel === undefined ? (
+                suffix
+              ) : (
+                <>
+                  <span aria-hidden>{suffix}</span>
+                  <span className="sr-only">{suffixLabel}</span>
+                </>
+              )}
+            </InputGroupText>
           </InputGroupAddon>
         </InputGroup>
       )}

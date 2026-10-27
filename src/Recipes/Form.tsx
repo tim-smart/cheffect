@@ -69,11 +69,13 @@ export function RecipeForm({
               <recipeForm.prepTime
                 label="Prep time"
                 suffix="min"
+                suffixLabel="minutes"
                 className="no-step-button"
               />
               <recipeForm.cookingTime
                 label="Cook time"
                 suffix="min"
+                suffixLabel="minutes"
                 className="no-step-button"
               />
               <recipeForm.servings
@@ -254,7 +256,7 @@ const ImageUrlInput: FormReact.FieldComponent<string, InputProps> = ({
     <FormControl>
       <Input
         {...props}
-        type="url"
+        type="text"
         inputMode="url"
         autoComplete="off"
         autoCapitalize="off"
@@ -359,7 +361,7 @@ const IngredientList: FormReact.FieldComponent<
           onClick={add}
           size="sm"
           variant="ghost"
-          className="-ml-2 text-primary hover:text-primary"
+          className="-ml-2 [&_svg]:text-primary"
         >
           <Plus />
           Add ingredient
@@ -412,7 +414,7 @@ const TipList: FormReact.FieldComponent<
           onClick={() => field.onChange([...tips, ""])}
           size="sm"
           variant="ghost"
-          className="-ml-2 text-primary hover:text-primary"
+          className="-ml-2 [&_svg]:text-primary"
         >
           <Plus />
           Add tip
