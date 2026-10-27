@@ -21,7 +21,7 @@ import * as Option from "effect/Option"
 import type * as Atom from "effect/reactivity/Atom"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
-import React, { useRef, useState } from "react"
+import React, { useId, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -37,6 +37,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 import { DurationFromMinutes } from "@/domain/Duration"
 import { Rating } from "@/domain/Rating"
 
@@ -151,26 +157,66 @@ export const TextArea: FormReact.FieldComponent<
 
 export const NumberInput: FormReact.FieldComponent<
   typeof NumberOrNull,
-  InputProps
-> = ({ field, props: { label, onBlur, ...props } }) => (
-  <FormItem className="w-full">
-    {label && <FormLabel>{label}</FormLabel>}
-    <FormControl>
-      <Input
-        type="number"
-        step="any"
-        {...props}
-        name={field.path}
-        value={field.value ?? ""}
-        onChange={(e) => field.onChange(e.target.value)}
-        onBlur={(e) => {
-          onBlur?.(e)
-          field.onBlur()
-        }}
-      />
-    </FormControl>
-  </FormItem>
-)
+  InputProps & {
+    /**
+     * A unit shown inside the field after the number, like "min".
+     */
+    readonly suffix?: React.ReactNode
+    /**
+     * The unit in full for assistive technology, like "minutes", when the
+     * shown suffix is an abbreviation.
+     */
+    readonly suffixLabel?: string
+  }
+> = ({ field, props: { label, suffix, suffixLabel, onBlur, ...props } }) => {
+  const suffixId = useId()
+  const inputProps = {
+    type: "number",
+    step: "any",
+    ...props,
+    name: field.path,
+    value: field.value ?? "",
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      field.onChange(e.target.value),
+    onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+      onBlur?.(e)
+      field.onBlur()
+    },
+  }
+  return (
+    <FormItem className="w-full">
+      {label && <FormLabel>{label}</FormLabel>}
+      {suffix === undefined ? (
+        <FormControl>
+          <Input {...inputProps} />
+        </FormControl>
+      ) : (
+        // FormControl's slot sets the input's data-slot, so the group's own
+        // focus style never matches; the group takes an input's focus style
+        // from its input instead
+        <InputGroup className="has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-ring/50 has-[input:focus-visible]:ring-[3px]">
+          <FormControl>
+            <InputGroupInput {...inputProps} aria-describedby={suffixId} />
+          </FormControl>
+          <InputGroupAddon align="inline-end">
+            {/* The field is described by the unit: the full word when the
+                shown one is an abbreviation */}
+            <InputGroupText id={suffixId}>
+              {suffixLabel === undefined ? (
+                suffix
+              ) : (
+                <>
+                  <span aria-hidden>{suffix}</span>
+                  <span className="sr-only">{suffixLabel}</span>
+                </>
+              )}
+            </InputGroupText>
+          </InputGroupAddon>
+        </InputGroup>
+      )}
+    </FormItem>
+  )
+}
 
 export interface SelectProps {
   readonly options: ReadonlyArray<{ label: string; value: string }>

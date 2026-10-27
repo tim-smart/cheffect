@@ -1,7 +1,7 @@
 import { RecipeFormSchema, RecipeInsert } from "@/domain/RecipeForm"
 import { useWrite } from "@/EventLog"
 import { RecipeEvent } from "@/Recipes/Events"
-import { RecipeForm } from "@/Recipes/Form"
+import { RecipeForm, RecipeFormHeader } from "@/Recipes/Form"
 import { router } from "@/Router"
 import { createFileRoute } from "@tanstack/react-router"
 import * as Schema from "effect/Schema"
@@ -19,6 +19,7 @@ function AddRecipe() {
   }
   return (
     <div className="pb-content">
+      <RecipeFormHeader title="New recipe" />
       <RecipeForm onSubmit={onSubmit} />
     </div>
   )
