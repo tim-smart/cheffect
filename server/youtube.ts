@@ -7,6 +7,7 @@ import {
   type YouTubePage,
 } from "../src/Recipes/youtube.js"
 import { fetchPage, type FetchResponse } from "./fetchGuard.js"
+import { fetchYouTubeTranscript } from "./youtubeTranscript.js"
 
 const Snippets = Schema.Struct({
   items: Schema.Array(
@@ -49,8 +50,11 @@ const reply = (page: YouTubePage, status = 200): FetchResponse => ({
   body: JSON.stringify(page),
 })
 
-// Keys stay on the server. Only public video snippets are read; no cookies,
-// private videos, transcripts, or player/bot-check workarounds are involved.
+// Keys stay on the server. Only public videos are read, with no cookies or
+// bot-check workarounds. The metadata comes from the Data API or the watch
+// page. The transcript comes from an unofficial player request
+// (`youtubeTranscript.ts`) that may stop working at any time, so it is
+// best-effort: without one the video is returned with its description only.
 export const createYouTubeHandler = (
   options: {
     readonly apiKey?: string
@@ -66,7 +70,7 @@ export const createYouTubeHandler = (
 
   const result = (page: YouTubePage, status = 200) => ({ page, status })
 
-  const load = async (
+  const loadVideo = async (
     id: string,
   ): Promise<{ page: YouTubePage; status: number }> => {
     if (!apiKey) {
@@ -143,7 +147,21 @@ export const createYouTubeHandler = (
         channel: snippet.channelTitle.trim() || null,
         description: snippet.description.trim() || null,
         thumbnail,
+        transcript: null,
       },
+    })
+  }
+
+  // The transcript is only looked for once the video is known.
+  const load = async (
+    id: string,
+  ): Promise<{ page: YouTubePage; status: number }> => {
+    const loaded = await loadVideo(id)
+    if (loaded.page._tag !== "Video") return loaded
+    const transcript = await fetchYouTubeTranscript(id, fetch)
+    return result({
+      _tag: "Video",
+      video: { ...loaded.page.video, transcript },
     })
   }
 

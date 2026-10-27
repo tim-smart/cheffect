@@ -115,7 +115,9 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
           )
           return findYouTubeVideo(yield* response.text)
         },
-        Effect.timeout("20 seconds"),
+        // The server looks up the transcript after the video, each with its
+        // own deadline.
+        Effect.timeout("30 seconds"),
         Effect.orElseSucceed(
           () =>
             ({

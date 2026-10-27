@@ -11,6 +11,8 @@ export interface YouTubeVideo {
   readonly channel: string | null
   readonly description: string | null
   readonly thumbnail: string | null
+  // What is said in the video, when the server could read its captions.
+  readonly transcript: string | null
 }
 
 // A page without `videoDetails` is one YouTube refused to serve, usually with
@@ -22,6 +24,7 @@ export const YouTubePage = Schema.Union([
       channel: Schema.NullOr(Schema.String),
       description: Schema.NullOr(Schema.String),
       thumbnail: Schema.NullOr(Schema.String),
+      transcript: Schema.NullOr(Schema.String),
     }),
   }),
   Schema.TaggedStruct("Unavailable", {
@@ -146,6 +149,7 @@ export const findYouTubeVideo = (html: string): YouTubePage => {
         channel: nonEmpty(details.author),
         description: nonEmpty(details.shortDescription),
         thumbnail: nonEmpty(largest?.url),
+        transcript: null,
       },
     }
   }

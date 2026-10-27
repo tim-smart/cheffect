@@ -20,8 +20,10 @@ test("public video metadata uses the authenticated API, sharing and expiring cac
     apiKey: "server-secret",
     now: () => now,
     fetch: async (input, init) => {
-      calls++
       const url = new URL(String(input))
+      if (url.origin === "https://www.youtube.com")
+        return new Response(null, { status: 404 })
+      calls++
       assert.equal(url.origin, "https://www.googleapis.com")
       assert.equal(url.pathname, "/youtube/v3/videos")
       assert.equal(url.searchParams.get("part"), "snippet")
@@ -45,6 +47,7 @@ test("public video metadata uses the authenticated API, sharing and expiring cac
       channel: "Potato Kitchen",
       description: "1kg potatoes\nBoil and roast.",
       thumbnail: "https://i.ytimg.com/large.jpg",
+      transcript: null,
     },
   })
   assert.doesNotMatch(JSON.stringify(first), /server-secret/)

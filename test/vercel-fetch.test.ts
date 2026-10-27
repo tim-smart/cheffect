@@ -21,6 +21,7 @@ test("the compiled Vercel import endpoints run in native Node ESM", async () => 
         "server/fetchGuard.ts",
         "api/youtube.ts",
         "server/youtube.ts",
+        "server/youtubeTranscript.ts",
         "src/Recipes/youtube.ts",
       ],
       outbase: root,

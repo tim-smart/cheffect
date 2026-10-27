@@ -96,9 +96,10 @@ and Serious Eats are two known examples.
 
 ### YouTube imports
 
-YouTube imports read the video description, not the audio or captions. A
-description without ingredients cannot produce a recipe. Watch, Shorts, live,
-embed and youtu.be links are resolved to the same video id.
+YouTube imports read the video description and, on Docker and Vercel
+deployments, the video's transcript when one can be fetched. A video whose
+description and transcript both lack the ingredients cannot produce a recipe.
+Watch, Shorts, live, embed and youtu.be links are resolved to the same video id.
 
 For Docker or Vercel deployments, enable **YouTube Data API v3** in a Google
 Cloud project and set `YOUTUBE_API_KEY` in the server environment. For example,
@@ -116,11 +117,30 @@ video share a lookup; successful results are cached in memory for five minutes
 API failures are reported without retrying or falling back to page scraping.
 Private or deleted videos are not supported; an API key does not sign a user in.
 
-Without a key, these routes make one best-effort watch-page request. Static
-builds and `pnpm dev` use their existing Jina HTML endpoint instead. YouTube
-browser requests are skipped because YouTube does not allow cross-origin page
-reads. Consent pages and bot checks can still block the unauthenticated path.
+Without a key, these routes read metadata from one best-effort watch-page
+request. Static builds and `pnpm dev` use their existing Jina HTML endpoint
+instead. YouTube browser requests are skipped because YouTube does not allow
+cross-origin page reads. Consent pages and bot checks can still block the unauthenticated path.
 We do not pass browser cookies, solve challenges, or rotate identities.
+
+#### Transcripts
+
+Transcripts are best-effort and unofficial. YouTube's API only lets a video's
+owner download captions, so the server asks YouTube's internal player endpoint,
+the one its Android app uses, for the caption tracks. YouTube can change or
+block this without notice. It also blocks most of these requests from cloud and
+datacenter IP addresses (Vercel and most Docker hosts), so expect transcripts to
+be missing in production more often than not. When the transcript can't be
+fetched for any reason, the import uses the description alone. The API key is
+not used or needed for transcripts.
+
+Manual captions are preferred over auto-generated ones, in the video's language
+or else English. The transcript is flattened to plain text and capped at 15,000
+characters. Auto-generated captions often mishear quantities, and many recipe
+Shorts have no speech at all (music with on-screen text), so a transcript does
+not guarantee a recipe. We do not download audio, read on-screen text, pass
+cookies, solve bot checks, or use proxies. The transcript is cached with the
+video metadata.
 
 These metadata routes are unauthenticated. On public deployments, protect them
 with your reverse proxy/authentication or rate limits to prevent others from
