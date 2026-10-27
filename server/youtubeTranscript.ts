@@ -26,6 +26,22 @@ const Track = Schema.Struct({
 type Track = typeof Track.Type
 
 const Player = Schema.Struct({
+  streamingData: Schema.optional(
+    Schema.Struct({
+      adaptiveFormats: Schema.optional(
+        Schema.Array(
+          Schema.Struct({
+            audioTrack: Schema.optional(
+              Schema.Struct({
+                id: Schema.optional(Schema.String),
+                displayName: Schema.optional(Schema.String),
+              }),
+            ),
+          }),
+        ),
+      ),
+    }),
+  ),
   captions: Schema.optional(
     Schema.Struct({
       playerCaptionsTracklistRenderer: Schema.optional(
@@ -59,14 +75,35 @@ const json = async (response: Response): Promise<unknown> => {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"))
 }
 
-const language = (code: string) => code.split("-")[0].toLowerCase()
+// "en-US", or an audio track id such as "en-US.4", as "en".
+const language = (code: string) => code.split(/[-.]/)[0].toLowerCase()
+
+// The language the video was recorded in. A video with AI-dubbed audio has an
+// auto-generated caption track for every dub, so the original is the audio
+// track YouTube names as such ("English (US) original", in English for
+// `hl: "en"`). Otherwise a lone auto-generated track is in the spoken
+// language. Several of them and no original audio track settle nothing.
+const spokenLanguage = (
+  player: typeof Player.Type,
+  tracks: ReadonlyArray<Track>,
+): string | undefined => {
+  const original = player.streamingData?.adaptiveFormats?.find((format) =>
+    format.audioTrack?.displayName?.toLowerCase().includes("original"),
+  )?.audioTrack?.id
+  if (original !== undefined) return language(original)
+  const generated = tracks.filter((track) => track.kind === "asr")
+  return generated.length === 1
+    ? language(generated[0].languageCode)
+    : undefined
+}
 
 // Manual captions before auto-generated ones, then the video's language before
-// English. The auto-generated track is in the spoken language, so it names the
-// video's language. Without either, a manual track is still the best guess.
-const pickTrack = (tracks: ReadonlyArray<Track>): Track | undefined => {
-  const spoken = tracks.find((track) => track.kind === "asr")
-  const preferred = [spoken && language(spoken.languageCode), "en"]
+// English. Without either, a manual track is still the best guess.
+const pickTrack = (
+  tracks: ReadonlyArray<Track>,
+  spoken: string | undefined,
+): Track | undefined => {
+  const preferred = [spoken, "en"]
   const rank = (track: Track) => {
     const index = preferred.indexOf(language(track.languageCode))
     return index === -1
@@ -119,10 +156,10 @@ export const fetchYouTubeTranscript = async (
       ),
     )
     if (Option.isNone(player)) return null
-    const track = pickTrack(
+    const tracks =
       player.value.captions?.playerCaptionsTracklistRenderer?.captionTracks ??
-        [],
-    )
+      []
+    const track = pickTrack(tracks, spokenLanguage(player.value, tracks))
     if (track === undefined) return null
     const url = new URL(track.baseUrl, "https://www.youtube.com")
     if (url.origin !== "https://www.youtube.com") return null

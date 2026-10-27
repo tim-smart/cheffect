@@ -340,3 +340,39 @@ test("a video imports from its description when the transcript can't be read", a
   assert.match(prompts[0], /1kg baby potatoes/)
   assert.doesNotMatch(prompts[0], /Transcript/)
 })
+
+// An AI-dubbed video has an auto-generated track per dub, listed by language
+// name, so the first one is not the spoken language.
+test("a dubbed video's transcript is in its original language", async () => {
+  const captionTracks =
+    "bn nl en fr de iw hi id it ja ko ml pl pt pa ru es ta te uk"
+      .split(" ")
+      .map((lang) => ({
+        baseUrl: `https://www.youtube.com/api/timedtext?v=x&lang=${lang}`,
+        languageCode: lang,
+        kind: "asr",
+      }))
+  const transcriptIn = async (audio: Array<unknown>) => {
+    const { prompts } = await transcriptImport(description, (url) =>
+      url.pathname === "/youtubei/v1/player"
+        ? Response.json({
+            streamingData: { adaptiveFormats: audio },
+            captions: { playerCaptionsTracklistRenderer: { captionTracks } },
+          })
+        : Response.json({
+            events: [
+              { segs: [{ utf8: `Spoken ${url.searchParams.get("lang")}` }] },
+            ],
+          }),
+    )
+    return /Transcript:\\nSpoken (\w+)/.exec(prompts[0])?.[1]
+  }
+  assert.equal(await transcriptIn([]), "en")
+  assert.equal(
+    await transcriptIn([
+      { audioTrack: { id: "en-US.3", displayName: "English (US)" } },
+      { audioTrack: { id: "es.4", displayName: "Spanish original" } },
+    ]),
+    "es",
+  )
+})
