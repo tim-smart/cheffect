@@ -83,18 +83,20 @@ const pickTrack = (tracks: ReadonlyArray<Track>): Track | undefined => {
 }
 
 // Caption events as one paragraph, without sound cues such as "[Music]", cut
-// at a word near the limit.
+// at a word near the limit. A cue can't contain "[", which keeps the cleanup
+// linear: with it, every unclosed "[" would rescan the rest of the text.
 const flatten = (timedtext: typeof Timedtext.Type): string | null => {
   const text = (timedtext.events ?? [])
     .map((event) => (event.segs ?? []).map((seg) => seg.utf8 ?? "").join(""))
     .join(" ")
-    .replace(/\[[^\]]*\]|♪/g, " ")
+    .replace(/\[[^[\]]*\]|♪/g, " ")
     .replace(/\s+/g, " ")
     .trim()
   if (text === "") return null
   if (text.length <= maxTranscriptLength) return text
-  const cut = text.slice(0, maxTranscriptLength)
-  return `${cut.slice(0, cut.lastIndexOf(" "))} …`
+  const cut = text.slice(0, maxTranscriptLength - 2)
+  const space = cut.lastIndexOf(" ")
+  return `${space > 0 ? cut.slice(0, space) : cut} …`
 }
 
 // The video's spoken transcript as plain text, or null when there is none or

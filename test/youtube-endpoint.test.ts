@@ -87,3 +87,37 @@ test("API failures are actionable, never leak credentials, and never fall back t
     assert.equal(calls, 1)
   }
 })
+
+test("a hostile caption track is cleaned quickly and stays within the transcript cap", async () => {
+  const handler = createYouTubeHandler({
+    apiKey: "server-secret",
+    fetch: async (input) => {
+      const url = new URL(String(input))
+      if (url.origin === "https://www.googleapis.com")
+        return Response.json({ items: [{ id, snippet }] })
+      if (url.pathname === "/youtubei/v1/player")
+        return Response.json({
+          captions: {
+            playerCaptionsTracklistRenderer: {
+              captionTracks: [
+                {
+                  baseUrl: "https://www.youtube.com/api/timedtext?v=x",
+                  languageCode: "en",
+                },
+              ],
+            },
+          },
+        })
+      // Unclosed cue brackets made the cleanup quadratic: 14s for these.
+      return Response.json({
+        events: [{ segs: [{ utf8: `${"[".repeat(100_000)} olive oil` }] }],
+      })
+    },
+  })
+  const start = Date.now()
+  const result = await handler(id)
+  assert.ok(Date.now() - start < 2_000)
+  const { video } = JSON.parse(result.body)
+  assert.equal(video.description, "1kg potatoes\nBoil and roast.")
+  assert.ok(video.transcript.length <= 15_000)
+})

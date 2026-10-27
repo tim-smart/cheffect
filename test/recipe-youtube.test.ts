@@ -245,7 +245,10 @@ test("a video with no recipe to read fails without one being invented", async ()
 
 // The transcript comes from YouTube's player endpoint, best-effort: it adds
 // to the description when it can be read and is left out when it can't.
-const transcriptImport = (player: (url: URL) => Response | Promise<Response>) =>
+const transcriptImport = (
+  videoDescription: string,
+  player: (url: URL) => Response | Promise<Response>,
+) =>
   importFrom(
     "https://youtube.com/shorts/abcdefghijk",
     "",
@@ -262,7 +265,7 @@ const transcriptImport = (player: (url: URL) => Response | Promise<Response>) =>
                 snippet: {
                   title: "Smashed potatoes",
                   channelTitle: "Potato Kitchen",
-                  description: "Crispy every time #shorts",
+                  description: videoDescription,
                   thumbnails: {},
                 },
               },
@@ -278,40 +281,44 @@ test("a spoken recipe is imported from the video's transcript", async () => {
   const captions = (text: string) => ({
     events: [{ segs: [{ utf8: "[Music]" }] }, { segs: [{ utf8: text }] }],
   })
-  const { exit, prompts } = await transcriptImport((url) => {
-    if (url.pathname === "/youtubei/v1/player") {
-      return Response.json({
-        captions: {
-          playerCaptionsTracklistRenderer: {
-            captionTracks: [
-              {
-                baseUrl:
-                  "https://www.youtube.com/api/timedtext?v=x&lang=en&kind=asr",
-                languageCode: "en",
-                kind: "asr",
-              },
-              {
-                baseUrl: "https://www.youtube.com/api/timedtext?v=x&lang=de",
-                languageCode: "de",
-              },
-              {
-                baseUrl: "https://www.youtube.com/api/timedtext?v=x&lang=en-GB",
-                languageCode: "en-GB",
-              },
-            ],
+  const { exit, prompts } = await transcriptImport(
+    "Crispy every time #shorts",
+    (url) => {
+      if (url.pathname === "/youtubei/v1/player") {
+        return Response.json({
+          captions: {
+            playerCaptionsTracklistRenderer: {
+              captionTracks: [
+                {
+                  baseUrl:
+                    "https://www.youtube.com/api/timedtext?v=x&lang=en&kind=asr",
+                  languageCode: "en",
+                  kind: "asr",
+                },
+                {
+                  baseUrl: "https://www.youtube.com/api/timedtext?v=x&lang=de",
+                  languageCode: "de",
+                },
+                {
+                  baseUrl:
+                    "https://www.youtube.com/api/timedtext?v=x&lang=en-GB",
+                  languageCode: "en-GB",
+                },
+              ],
+            },
           },
-        },
-      })
-    }
-    assert.equal(url.searchParams.get("fmt"), "json3")
-    return Response.json(
-      captions(
-        url.searchParams.get("lang") === "en-GB"
-          ? "Take a kilo of baby potatoes and three tablespoons of olive oil"
-          : "take a kilo of baby potatoes and tree table spoons",
-      ),
-    )
-  })
+        })
+      }
+      assert.equal(url.searchParams.get("fmt"), "json3")
+      return Response.json(
+        captions(
+          url.searchParams.get("lang") === "en-GB"
+            ? "Take a kilo of baby potatoes and three tablespoons of olive oil"
+            : "take a kilo of baby potatoes and tree table spoons",
+        ),
+      )
+    },
+  )
   assert.equal(exit._tag, "Success")
   assert.match(prompts[0], /Crispy every time/)
   assert.match(
@@ -322,7 +329,7 @@ test("a spoken recipe is imported from the video's transcript", async () => {
 })
 
 test("a video imports from its description when the transcript can't be read", async () => {
-  const { exit, prompts, fetched } = await transcriptImport(() =>
+  const { exit, prompts, fetched } = await transcriptImport(description, () =>
     Response.json(
       { playabilityStatus: { status: "LOGIN_REQUIRED" } },
       { status: 403 },
@@ -330,6 +337,6 @@ test("a video imports from its description when the transcript can't be read", a
   )
   assert.equal(exit._tag, "Success")
   assert.deepEqual(fetched, ["https://cheffect.test/youtube?id=abcdefghijk"])
-  assert.match(prompts[0], /Crispy every time/)
+  assert.match(prompts[0], /1kg baby potatoes/)
   assert.doesNotMatch(prompts[0], /Transcript/)
 })
