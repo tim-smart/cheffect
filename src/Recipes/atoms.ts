@@ -25,9 +25,9 @@ import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { generateUuidBytes } from "@/lib/Id"
 import { RecipeEditEvent, RecipeEvent, recipeUpdate } from "./Events"
 import { RecipeRepo, searchRecipes } from "./Repo"
+import { recipesFromPaprika } from "./paprika"
 import {
   importRecipesAtom,
-  liveRecipesAtom,
   modifiedRecipeByIdAtom,
   recipeByIdAtom,
   recipesAtom,
@@ -197,31 +197,42 @@ export const checkedIngredientsAtom = Atom.family((_recipeId: string) =>
   Atom.make(HashSet.empty<string>()).pipe(Atom.keepAlive),
 )
 
-export const exportAtom = recipesRuntime.fn<void>()(
-  Effect.fnUntraced(function* (_, get) {
-    const recipes = yield* get.setResult(liveRecipesAtom, undefined)
-    const json = yield* Schema.encodeEffect(Recipe.arrayJson)(recipes)
-    const file = new File(
-      [JSON.stringify(json)],
-      `cheffect-recipes-${new Date().toISOString()}.txt`,
-      { type: "text/plain" },
-    )
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file] })
-    }
-  }),
-)
-
-export const importAtom = recipesRuntime.fn<File>()(
-  Effect.fnUntraced(function* (file, get) {
-    const text = yield* Effect.promise(() => file.text())
-    const json = JSON.parse(text)
-    const decoded = yield* Schema.decodeEffect(Recipe.arrayJson)(json)
-    yield* get.setResult(
-      importRecipesAtom,
-      decoded.map((recipe) => new Recipe({ ...recipe, ingredientScale: 1 })),
-    )
-  }),
+export const importPaprikaAtom = recipesRuntime.fn<File>()(
+  Effect.fnUntraced(
+    function* (file, get) {
+      const buffer = yield* Effect.promise(() => file.arrayBuffer())
+      const { recipes, photosLeftOut } = yield* recipesFromPaprika(
+        new Uint8Array(buffer),
+      )
+      const added = yield* get.setResult(importRecipesAtom, recipes)
+      return {
+        added: added.length,
+        withoutPhoto: added.filter((r) => photosLeftOut.has(r.idString)).length,
+      }
+    },
+    withToast((_) => ({
+      loading: "Importing recipes from Paprika",
+      onExit(exit, toastId) {
+        if (Exit.isFailure(exit)) {
+          return toast.error("Failed to import from Paprika", { id: toastId })
+        }
+        const { added, withoutPhoto } = exit.value
+        toast.success(
+          added === 0
+            ? "No new recipes to import"
+            : `Imported ${added} ${added === 1 ? "recipe" : "recipes"}`,
+          {
+            id: toastId,
+            cancel: undefined,
+            description:
+              withoutPhoto === 0
+                ? undefined
+                : `${withoutPhoto} ${withoutPhoto === 1 ? "has" : "have"} no photo. Photos saved in Paprika aren't imported yet.`,
+          },
+        )
+      },
+    })),
+  ),
 )
 
 export const recipeSelectedStep = Atom.family((_id: string) =>

@@ -27,21 +27,19 @@ export const recipesRuntime = Atom.runtime((get) =>
   ),
 ).pipe(Atom.keepAlive)
 
-// Every live recipe, read when called rather than cached in an atom.
-export const liveRecipesAtom = recipesRuntime.fn<void>()(() =>
-  RecipeRepo.use((repo) => repo.live),
-)
-
 // Writes recipes as new `set` entries. A `set` replaces the whole recipe, so
 // one that already exists here is skipped, and importing the same file twice
 // changes nothing.
 export const importRecipesAtom = recipesRuntime.fn<ReadonlyArray<Recipe>>()(
   Effect.fnUntraced(function* (recipes) {
     const existing = yield* RecipeRepo.use((repo) => repo.current)
+    const added: Array<Recipe> = []
     for (const recipe of recipes) {
       if (existing.byId.has(recipe.idString)) continue
       yield* writeEvent(RecipeEvent.set(recipe))
+      added.push(recipe)
     }
+    return added
   }),
 )
 

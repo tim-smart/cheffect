@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -22,7 +32,7 @@ import {
 } from "@/components/ui/select"
 import { clearAiMemoryAtom } from "@/AiChat/runtime"
 import { SyncSettings } from "@/Sync/SyncSettings"
-import { exportAtom, importAtom } from "@/Recipes/atoms"
+import { importPaprikaAtom } from "@/Recipes/atoms"
 import {
   aiChatModel,
   aiCountry,
@@ -79,10 +89,13 @@ function SettingsPage() {
   const exportAllData = useAtomSet(exportAllAtom)
   const [importAllResult, importAllData] = useAtom(importAllAtom)
   const importAllRef = useRef<HTMLInputElement>(null)
+  // The picked file waits here until the import is confirmed. It stays set
+  // after closing so the dialog keeps its text while it fades out.
+  const [importAllFile, setImportAllFile] = useState<File>()
+  const [confirmImportAll, setConfirmImportAll] = useState(false)
 
-  const exportRecipes = useAtomSet(exportAtom)
-  const importRecipes = useAtomSet(importAtom)
-  const importRef = useRef<HTMLInputElement>(null)
+  const importPaprika = useAtomSet(importPaprikaAtom)
+  const importPaprikaRef = useRef<HTMLInputElement>(null)
 
   const clearMemory = useAtomSet(clearAiMemoryAtom)
 
@@ -103,7 +116,7 @@ function SettingsPage() {
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => {
                     exportAllData()
@@ -119,30 +132,15 @@ function SettingsPage() {
                   }}
                 >
                   <Import />
-                  <div className="flex flex-col">
-                    Import all data
-                    <span className="text-xs text-muted-foreground max-w-56">
-                      Merges into this device. Doesn't bring back anything
-                      deleted since the export, and overwrites settings and
-                      aisles.
-                    </span>
-                  </div>
+                  Import all data
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
-                    exportRecipes()
-                  }}
-                >
-                  <Share />
-                  Export recipes
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    importRef.current?.click()
+                    importPaprikaRef.current?.click()
                   }}
                 >
                   <Import />
-                  Import recipes
+                  Import from Paprika
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -156,18 +154,50 @@ function SettingsPage() {
                 // Cleared so picking the same file again imports it again.
                 e.target.value = ""
                 if (!file) return
-                importAllData(file)
+                setImportAllFile(file)
+                setConfirmImportAll(true)
               }}
             />
+            <AlertDialog
+              open={confirmImportAll}
+              onOpenChange={setConfirmImportAll}
+            >
+              <AlertDialogContent className="sm:max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Import all data?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Recipes, meal plans, menus and groceries from{" "}
+                    <span className="font-medium text-foreground break-words">
+                      {importAllFile?.name}
+                    </span>{" "}
+                    are merged into this device. Your settings and grocery
+                    aisles are replaced by the ones in the file. Anything
+                    deleted since the export doesn't come back.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (importAllFile) importAllData(importAllFile)
+                    }}
+                  >
+                    Import and replace settings
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <input
-              ref={importRef}
+              ref={importPaprikaRef}
               type="file"
               className="hidden"
-              accept="text/plain"
+              accept=".paprikarecipes,.paprikarecipe"
               onChange={(e) => {
                 const file = e.target.files?.[0]
+                // Cleared so picking the same file again imports it again.
+                e.target.value = ""
                 if (!file) return
-                importRecipes(file)
+                importPaprika(file)
               }}
             />
           </div>
