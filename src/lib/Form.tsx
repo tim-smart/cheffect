@@ -37,6 +37,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { FormControl, FormItem, FormLabel } from "@/components/ui/form"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 import { DurationFromMinutes } from "@/domain/Duration"
 import { Rating } from "@/domain/Rating"
 
@@ -151,26 +157,49 @@ export const TextArea: FormReact.FieldComponent<
 
 export const NumberInput: FormReact.FieldComponent<
   typeof NumberOrNull,
-  InputProps
-> = ({ field, props: { label, onBlur, ...props } }) => (
-  <FormItem className="w-full">
-    {label && <FormLabel>{label}</FormLabel>}
-    <FormControl>
-      <Input
-        type="number"
-        step="any"
-        {...props}
-        name={field.path}
-        value={field.value ?? ""}
-        onChange={(e) => field.onChange(e.target.value)}
-        onBlur={(e) => {
-          onBlur?.(e)
-          field.onBlur()
-        }}
-      />
-    </FormControl>
-  </FormItem>
-)
+  InputProps & {
+    /**
+     * A unit shown inside the field after the number, like "min".
+     */
+    readonly suffix?: React.ReactNode
+  }
+> = ({ field, props: { label, suffix, onBlur, ...props } }) => {
+  const inputProps = {
+    type: "number",
+    step: "any",
+    ...props,
+    name: field.path,
+    value: field.value ?? "",
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      field.onChange(e.target.value),
+    onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+      onBlur?.(e)
+      field.onBlur()
+    },
+  }
+  return (
+    <FormItem className="w-full">
+      {label && <FormLabel>{label}</FormLabel>}
+      {suffix === undefined ? (
+        <FormControl>
+          <Input {...inputProps} />
+        </FormControl>
+      ) : (
+        // FormControl's slot sets the input's data-slot, so the group's own
+        // focus style never matches; the group takes an input's focus style
+        // from its input instead
+        <InputGroup className="has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-ring/50 has-[input:focus-visible]:ring-[3px]">
+          <FormControl>
+            <InputGroupInput {...inputProps} />
+          </FormControl>
+          <InputGroupAddon align="inline-end">
+            <InputGroupText>{suffix}</InputGroupText>
+          </InputGroupAddon>
+        </InputGroup>
+      )}
+    </FormItem>
+  )
+}
 
 export interface SelectProps {
   readonly options: ReadonlyArray<{ label: string; value: string }>

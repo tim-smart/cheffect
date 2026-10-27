@@ -4,7 +4,12 @@ import { RecipeInsert } from "@/domain/RecipeForm"
 import { useWrite } from "@/EventLog"
 import { recipeUpdate } from "@/Recipes/Events"
 import { recipeFormByIdAtom } from "@/Recipes/atoms"
-import { RecipeForm, RecipeFormSkeleton, recipeFormId } from "@/Recipes/Form"
+import {
+  RecipeForm,
+  RecipeFormHeader,
+  RecipeFormSkeleton,
+  recipeFormId,
+} from "@/Recipes/Form"
 import { NoRecipeFound } from "@/Recipes/NoRecipeFound"
 import { router } from "@/Router"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
@@ -13,7 +18,7 @@ import { useAtomValue } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import * as DateTime from "effect/DateTime"
 import * as Schema from "effect/Schema"
-import { ArrowLeft, Save } from "lucide-react"
+import { Save } from "lucide-react"
 import { useState } from "react"
 
 export const Route = createFileRoute("/edit/$id")({
@@ -32,7 +37,21 @@ function EditRecipeScreen() {
       const [initialValue, recipe] = found.value
       return (
         <div className="pb-content">
-          <Header recipe={recipe} formId={recipeFormId} saving={saving} />
+          <RecipeFormHeader
+            title={recipe.title}
+            action={
+              <Button
+                type="submit"
+                form={recipeFormId}
+                size="sm"
+                variant="outline"
+                disabled={saving}
+              >
+                <Save />
+                Save
+              </Button>
+            }
+          />
           <RecipeForm
             initialValue={initialValue}
             variant="edit"
@@ -65,46 +84,4 @@ function EditRecipeScreen() {
       )
     })
     .render()
-}
-
-function Header({
-  recipe,
-  formId,
-  saving,
-}: {
-  recipe: {
-    readonly title: string
-  }
-  formId: string
-  saving: boolean
-}) {
-  return (
-    <header className="bg-background border-b border-border sticky top-bar-offset z-10 md:border-b-0">
-      <div className="page-wide py-4 md:pt-6 md:pb-2">
-        <div className="flex items-center gap-3 -ml-2 md:min-h-11">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2"
-            onClick={() => router.history.back()}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-lg font-semibold line-clamp-1 flex-1 md:font-display md:text-[32px] md:leading-tight md:font-medium md:tracking-tight">
-            {recipe.title}
-          </h1>
-          <Button
-            type="submit"
-            form={formId}
-            size="sm"
-            variant="outline"
-            disabled={saving}
-          >
-            <Save />
-            Save
-          </Button>
-        </div>
-      </div>
-    </header>
-  )
 }
