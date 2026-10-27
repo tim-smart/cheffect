@@ -234,11 +234,157 @@ test("a video with no recipe to read fails without one being invented", async ()
     askedModel: false,
   })
   assert.deepEqual(await failure(video("  ")), {
-    message: "This video has no description to find a recipe in",
+    message: "This video has no description or transcript to find a recipe in",
     askedModel: false,
   })
   assert.deepEqual(await failure(video("#crepe #gadgets #viral"), null), {
-    message: "No recipe found in this video's description",
+    message: "No recipe found in this video's description or transcript",
     askedModel: true,
   })
+})
+
+// The transcript comes from YouTube's player endpoint, best-effort: it adds
+// to the description when it can be read and is left out when it can't.
+const transcriptImport = (
+  videoDescription: string,
+  player: (url: URL) => Response | Promise<Response>,
+) =>
+  importFrom(
+    "https://youtube.com/shorts/abcdefghijk",
+    "",
+    extracted,
+    createYouTubeHandler({
+      apiKey: "test-key",
+      fetch: async (input) => {
+        const url = new URL(String(input))
+        if (url.origin === "https://www.googleapis.com") {
+          return Response.json({
+            items: [
+              {
+                id: "abcdefghijk",
+                snippet: {
+                  title: "Smashed potatoes",
+                  channelTitle: "Potato Kitchen",
+                  description: videoDescription,
+                  thumbnails: {},
+                },
+              },
+            ],
+          })
+        }
+        return player(url)
+      },
+    }),
+  )
+
+test("a spoken recipe is imported from the video's transcript", async () => {
+  const captions = (text: string) => ({
+    events: [{ segs: [{ utf8: "[Music]" }] }, { segs: [{ utf8: text }] }],
+  })
+  const { exit, prompts } = await transcriptImport(
+    "Crispy every time #shorts",
+    (url) => {
+      if (url.pathname === "/youtubei/v1/player") {
+        return Response.json({
+          captions: {
+            playerCaptionsTracklistRenderer: {
+              captionTracks: [
+                {
+                  baseUrl:
+                    "https://www.youtube.com/api/timedtext?v=x&lang=en&kind=asr",
+                  languageCode: "en",
+                  kind: "asr",
+                },
+                {
+                  baseUrl: "https://www.youtube.com/api/timedtext?v=x&lang=de",
+                  languageCode: "de",
+                },
+                {
+                  baseUrl:
+                    "https://www.youtube.com/api/timedtext?v=x&lang=en-GB",
+                  languageCode: "en-GB",
+                },
+              ],
+            },
+          },
+        })
+      }
+      assert.equal(url.searchParams.get("fmt"), "json3")
+      return Response.json(
+        captions(
+          url.searchParams.get("lang") === "en-GB"
+            ? "Take a kilo of baby potatoes and three tablespoons of olive oil"
+            : "take a kilo of baby potatoes and tree table spoons",
+        ),
+      )
+    },
+  )
+  assert.equal(exit._tag, "Success")
+  assert.match(prompts[0], /Crispy every time/)
+  assert.match(
+    prompts[0],
+    /Transcript:\\nTake a kilo of baby potatoes and three tablespoons of olive oil/,
+  )
+  assert.doesNotMatch(prompts[0], /Music/)
+})
+
+test("a video imports from its description when the transcript can't be read", async () => {
+  const { exit, prompts, fetched } = await transcriptImport(description, () =>
+    Response.json(
+      { playabilityStatus: { status: "LOGIN_REQUIRED" } },
+      { status: 403 },
+    ),
+  )
+  assert.equal(exit._tag, "Success")
+  assert.deepEqual(fetched, ["https://cheffect.test/youtube?id=abcdefghijk"])
+  assert.match(prompts[0], /1kg baby potatoes/)
+  assert.doesNotMatch(prompts[0], /Transcript/)
+})
+
+// An AI-dubbed video has an auto-generated track per dub, listed by language
+// name, so the first one is not the spoken language.
+test("a dubbed video's transcript is in its original language", async () => {
+  const captionTracks =
+    "bn nl en fr de iw hi id it ja ko ml pl pt pa ru es ta te uk"
+      .split(" ")
+      .map((lang) => ({
+        baseUrl: `https://www.youtube.com/api/timedtext?v=x&lang=${lang}`,
+        languageCode: lang,
+        kind: "asr",
+      }))
+  const transcriptIn = async (
+    audio: Array<unknown>,
+    tracks = captionTracks,
+  ) => {
+    const { prompts } = await transcriptImport(description, (url) =>
+      url.pathname === "/youtubei/v1/player"
+        ? Response.json({
+            streamingData: { adaptiveFormats: audio },
+            captions: {
+              playerCaptionsTracklistRenderer: { captionTracks: tracks },
+            },
+          })
+        : Response.json({
+            events: [
+              { segs: [{ utf8: `Spoken ${url.searchParams.get("lang")}` }] },
+            ],
+          }),
+    )
+    return /Transcript:\\nSpoken (\w+)/.exec(prompts[0])?.[1]
+  }
+  assert.equal(await transcriptIn([]), "en")
+  // With neither English nor an original to go by, any track still helps.
+  assert.ok(
+    await transcriptIn(
+      [],
+      captionTracks.filter((track) => track.languageCode !== "en"),
+    ),
+  )
+  assert.equal(
+    await transcriptIn([
+      { audioTrack: { id: "en-US.3", displayName: "English (US)" } },
+      { audioTrack: { id: "es.4", displayName: "Spanish original" } },
+    ]),
+    "es",
+  )
 })

@@ -20,8 +20,10 @@ test("public video metadata uses the authenticated API, sharing and expiring cac
     apiKey: "server-secret",
     now: () => now,
     fetch: async (input, init) => {
-      calls++
       const url = new URL(String(input))
+      if (url.origin === "https://www.youtube.com")
+        return new Response(null, { status: 404 })
+      calls++
       assert.equal(url.origin, "https://www.googleapis.com")
       assert.equal(url.pathname, "/youtube/v3/videos")
       assert.equal(url.searchParams.get("part"), "snippet")
@@ -45,6 +47,7 @@ test("public video metadata uses the authenticated API, sharing and expiring cac
       channel: "Potato Kitchen",
       description: "1kg potatoes\nBoil and roast.",
       thumbnail: "https://i.ytimg.com/large.jpg",
+      transcript: null,
     },
   })
   assert.doesNotMatch(JSON.stringify(first), /server-secret/)
@@ -83,4 +86,38 @@ test("API failures are actionable, never leak credentials, and never fall back t
     assert.doesNotMatch(result.body, /server-secret/)
     assert.equal(calls, 1)
   }
+})
+
+test("a hostile caption track is cleaned quickly and stays within the transcript cap", async () => {
+  const handler = createYouTubeHandler({
+    apiKey: "server-secret",
+    fetch: async (input) => {
+      const url = new URL(String(input))
+      if (url.origin === "https://www.googleapis.com")
+        return Response.json({ items: [{ id, snippet }] })
+      if (url.pathname === "/youtubei/v1/player")
+        return Response.json({
+          captions: {
+            playerCaptionsTracklistRenderer: {
+              captionTracks: [
+                {
+                  baseUrl: "https://www.youtube.com/api/timedtext?v=x",
+                  languageCode: "en",
+                },
+              ],
+            },
+          },
+        })
+      // Unclosed cue brackets made the cleanup quadratic: 14s for these.
+      return Response.json({
+        events: [{ segs: [{ utf8: `${"[".repeat(100_000)} olive oil` }] }],
+      })
+    },
+  })
+  const start = Date.now()
+  const result = await handler(id)
+  assert.ok(Date.now() - start < 2_000)
+  const { video } = JSON.parse(result.body)
+  assert.equal(video.description, "1kg potatoes\nBoil and roast.")
+  assert.ok(video.transcript.length <= 15_000)
 })
