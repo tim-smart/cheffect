@@ -18,6 +18,11 @@ export const router = createRouter({
   defaultPendingComponent: () => null,
 })
 
+// The location the last navigation left, set before the new route mounts, so
+// a screen can tell where it was reached from as it renders
+let leftLocation: ParsedLocation | undefined
+export const previousLocation = () => leftLocation
+
 // TanStack resets the window scroll in a layout effect a commit after the new
 // route renders, so the browser first paints the new page at the old page's
 // offset, with its sticky header over the app bar. Reset it in the commit
@@ -28,7 +33,8 @@ let newHistoryEntry = false
 router.history.subscribe(({ action }) => {
   newHistoryEntry = action.type === "PUSH" || action.type === "REPLACE"
 })
-router.subscribe("onBeforeRouteMount", ({ toLocation }) => {
+router.subscribe("onBeforeRouteMount", ({ fromLocation, toLocation }) => {
+  leftLocation = fromLocation
   if (!newHistoryEntry) return
   newHistoryEntry = false
   if (!router._scroll.n || toLocation.hash) return
