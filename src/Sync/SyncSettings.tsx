@@ -103,21 +103,20 @@ function ServerUrlField() {
         }}
         onBlur={save}
       />
-      {invalid ||
-        (Option.isSome(fallback) && (
-          <p
-            id="syncServerUrlHint"
-            className={
-              invalid
-                ? "text-sm text-destructive"
-                : "text-sm text-muted-foreground"
-            }
-          >
-            {invalid
-              ? "Enter an address starting with wss://, ws://, https:// or http://."
-              : "Leave blank to sync with the server this app is served from."}
-          </p>
-        ))}
+      {(invalid || Option.isSome(fallback)) && (
+        <p
+          id="syncServerUrlHint"
+          className={
+            invalid
+              ? "text-sm text-destructive"
+              : "text-sm text-muted-foreground"
+          }
+        >
+          {invalid
+            ? "Enter an address starting with wss://, ws://, https:// or http://."
+            : "Leave blank to sync with the server this app is served from."}
+        </p>
+      )}
     </form>
   )
 }
