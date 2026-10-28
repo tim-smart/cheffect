@@ -125,24 +125,15 @@ function ServerUrlField() {
 function SyncServerImportsField() {
   const [enabled, setEnabled] = useAtom(syncServerImportsAtom)
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="syncServerImports"
-          checked={enabled}
-          aria-describedby="syncServerImportsHint"
-          onCheckedChange={(checked) => setEnabled(checked === true)}
-        />
-        <Label htmlFor="syncServerImports">
-          Use this server for recipe imports
-        </Label>
-      </div>
-      <p id="syncServerImportsHint" className="text-sm text-muted-foreground">
-        While sync is on, recipe pages and YouTube videos are fetched through
-        it. Unlike your synced data, the URLs and videos you import reach it
-        unencrypted. A server on another origin needs CORS_ALLOWED_ORIGINS set
-        to this app's address.
-      </p>
+    <div className="flex items-center gap-2">
+      <Checkbox
+        id="syncServerImports"
+        checked={enabled}
+        onCheckedChange={(checked) => setEnabled(checked === true)}
+      />
+      <Label htmlFor="syncServerImports">
+        Use this server for recipe imports
+      </Label>
     </div>
   )
 }
