@@ -25,6 +25,18 @@ You can self-host Cheffect using Docker. The image runs one Node process that
 serves the web app and an encrypted sync server on the same origin, at `/sync`.
 Apps loaded from it sync to that server by default once sync is turned on.
 
+### Using the Published Image
+
+Every push to `main` publishes an image to the GitHub Container Registry, tagged
+`latest` and with the commit (`sha-<short sha>`):
+
+```bash
+docker pull ghcr.io/tim-smart/cheffect:latest
+```
+
+Use `ghcr.io/tim-smart/cheffect:latest` in place of `cheffect` in the commands
+below, or build the image yourself.
+
 ### Building the Docker Image
 
 ```bash
