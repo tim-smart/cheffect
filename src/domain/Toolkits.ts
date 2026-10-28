@@ -61,7 +61,7 @@ export class toolkit extends Toolkit.make(
   }),
   Tool.make("SuggestRecipeEdit", {
     description:
-      "Suggest edits to an existing recipe. Only send the fields that change; the rest keep the values the user currently sees. The user reviews the edits before saving them.",
+      "Suggest edits to an existing recipe. Only send the fields that change; the rest keep their current values, including earlier unsaved edits. The user reviews the edits before saving them.",
     parameters: Schema.Struct({
       recipeId: Schema.String,
       changes: RecipeChanges,

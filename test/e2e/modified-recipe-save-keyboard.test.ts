@@ -10,16 +10,18 @@ import fixture from "../fixtures/openai-web-search-stream.json" with { type: "js
 const envelope = (type: string) =>
   fixture.find((event) => event.type === type)!.response
 
-// One response from the model: a SuggestRecipeEdit call that renames the recipe
+// One response from the model: a SuggestRecipeEdit call that renames the
+// recipe and replaces its method
 const editCallStream = (recipeId: string, title: string) => {
+  // Strict mode sends every field, with null for the ones left unchanged
   const args = JSON.stringify({
     recipeId,
-    recipe: {
+    changes: {
       title,
       imageUrl: null,
-      prepTime: 5,
+      prepTime: null,
       cookingTime: null,
-      servings: 2,
+      servings: null,
       ingredients: [
         {
           name: "Flour",
@@ -32,6 +34,7 @@ const editCallStream = (recipeId: string, title: string) => {
         { text: "Serve.", tips: [] },
       ],
       sourceName: null,
+      clear: null,
     },
   })
   const item = {

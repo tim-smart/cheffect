@@ -51,16 +51,9 @@ import type * as IndexedDb from "@effect/platform-browser/IndexedDb"
 import type { QueryBuilder } from "@/IndexedDb"
 import * as DateTime from "effect/DateTime"
 import { aiChatModel, aiCountry, mealPlanWeekStart } from "@/Settings"
-import {
-  modifiedRecipeByIdAtom,
-  recipeForDisplayAtom,
-  recipeSelectedStep,
-  showOriginalRecipeAtom,
-} from "@/Recipes/atoms"
-import { shownRecipes } from "@/Recipes/runtime"
+import { recipeForDisplayAtom, recipeSelectedStep } from "@/Recipes/atoms"
+import { assistantRecipes } from "@/Recipes/runtime"
 import { RecipeRepo } from "@/Recipes/Repo"
-import { ExtractedRecipe } from "@/domain/Recipe"
-import * as HashSet from "effect/HashSet"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { generateUuidBytes, uuidString } from "@/lib/Id"
 import { type EventPayload, writeEvent, writeEvents } from "@/EventLog"
@@ -97,7 +90,7 @@ const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
     const registry = yield* AtomRegistry.AtomRegistry
     const recipes = yield* RecipeRepo
-    const shown = yield* shownRecipes
+    const shown = yield* assistantRecipes
     const mealPlan = yield* MealPlanRepo
     const menus = yield* MenuRepo
     const extractJobs = yield* RecipeExtractJobRepo
@@ -136,33 +129,9 @@ const ToolkitLayer = toolkit.toLayer(
         }
       }),
       SuggestRecipeEdit: Effect.fnUntraced(function* ({ changes, recipeId }) {
-        const current = yield* shown.byId(recipeId).pipe(Effect.orDie)
-        if (Option.isNone(current)) {
-          return {
-            _tag: "Transient",
-            value: null,
-          }
-        }
-        // The changes apply to the version the user sees, and the user is
-        // switched to the edits so they see the suggestion.
-        const recipe = current.value
-        registry.set(
-          modifiedRecipeByIdAtom(recipe.idString),
-          Option.some(
-            new ExtractedRecipe({
-              title: recipe.title,
-              imageUrl: recipe.imageUrl,
-              prepTime: recipe.prepTime,
-              cookingTime: recipe.cookingTime,
-              servings: recipe.servings,
-              ingredients: recipe.ingredients,
-              steps: recipe.steps,
-              sourceName: recipe.sourceName,
-              ...changes,
-            }),
-          ),
-        )
-        registry.update(showOriginalRecipeAtom, HashSet.remove(recipe.idString))
+        yield* shown
+          .suggestEdit(recipeId, changes)
+          .pipe(Effect.provideContext(context), Effect.orDie)
         return {
           _tag: "Transient",
           value: null,
@@ -687,7 +656,7 @@ ${currentTimeAndCountry}`
           const edits = !isModified
             ? ""
             : recipe === original
-              ? `The recipe has unsaved edits, but the user switched back to the original. The details below are the original. A new edit replaces the unsaved ones.
+              ? `The recipe has unsaved edits, but the user switched back to the original. The details below are the original. A new edit is added to the unsaved ones, and fields you don't send keep their unsaved values.
 
 `
               : `The recipe has unsaved edits, and the user is viewing them. The details below include those edits.
@@ -713,7 +682,7 @@ ${recipe.toXml()}
 
 **Important:**
 
-When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes. Only send the fields you change, and set the rest to null. \`ingredients\` and \`steps\` replace the whole list, so include the unchanged entries when changing them.
+When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes. Only send the fields you change, and set the rest to null. To remove a value, list the field in \`clear\`. \`ingredients\` and \`steps\` replace the whole list, so include the unchanged entries when changing them.
 
 When converting ingredient units, **do not** change the following units:
 

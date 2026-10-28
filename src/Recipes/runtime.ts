@@ -2,9 +2,11 @@ import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Atom from "effect/reactivity/Atom"
 import * as AtomRegistry from "effect/reactivity/AtomRegistry"
+import * as Semaphore from "effect/Semaphore"
 import {
   ExtractedRecipe,
   Recipe,
+  type RecipeChanges,
   RecipeIdFromString,
   SortByValue,
 } from "@/domain/Recipe"
@@ -144,11 +146,14 @@ export const recipeForDisplayAtom = Atom.family((id: string) =>
   }),
 )
 
-// Recipe reads for the assistant. They return what the user sees on each
-// recipe page, so the assistant works from the same version as the user.
-export const shownRecipes = Effect.gen(function* () {
+// Recipe reads and edits for the assistant. Reads return what the user sees on
+// each recipe page, so the assistant works from the same version as the user.
+export const assistantRecipes = Effect.gen(function* () {
   const registry = yield* AtomRegistry.AtomRegistry
   const repo = yield* RecipeRepo
+  // A model response can suggest several edits at once. Each one reads the
+  // pending edit after the previous one is written, so none is lost.
+  const editLock = Semaphore.makeUnsafe(1)
   const asShown = Effect.map(repo.edits, (edits) => {
     const originals = registry.get(showOriginalRecipeAtom)
     return (recipe: Recipe) =>
@@ -165,5 +170,36 @@ export const shownRecipes = Effect.gen(function* () {
       Effect.zipWith(repo.byId(id), asShown, (found, shown) =>
         Option.map(found, shown),
       ),
+    // Merges the changes into the pending edit, or starts one from the saved
+    // recipe. "Show original" only previews, so a hidden pending edit is kept,
+    // and the user is switched back to the edits to see the suggestion.
+    // `false` when the recipe is missing.
+    suggestEdit: (id: string, changes: RecipeChanges) =>
+      Effect.gen(function* () {
+        const recipe = yield* repo.byId(id)
+        if (Option.isNone(recipe)) return false
+        const pending = yield* repo.editById(id)
+        const base = Option.getOrElse(pending, () => recipe.value)
+        const { clear = [], ...set } = changes
+        const edit = {
+          id: recipe.value.id,
+          title: base.title,
+          imageUrl: base.imageUrl,
+          prepTime: base.prepTime,
+          cookingTime: base.cookingTime,
+          servings: base.servings,
+          ingredients: base.ingredients,
+          steps: base.steps,
+          sourceName: base.sourceName,
+          ...set,
+        }
+        for (const field of clear) edit[field] = null
+        yield* writeEvent(RecipeEditEvent.set(edit))
+        registry.update(
+          showOriginalRecipeAtom,
+          HashSet.remove(recipe.value.idString),
+        )
+        return true
+      }).pipe(editLock.withPermits(1)),
   } as const
 })
