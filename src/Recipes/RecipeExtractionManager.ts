@@ -137,4 +137,4 @@ export const RecipeExtractionManager = Layer.effectDiscard(
       Effect.forkScoped,
     )
   }),
-).pipe(Layer.provide(AiHelpers.layer))
+)

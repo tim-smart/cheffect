@@ -76,7 +76,7 @@ export const openAiClientLayer = Atom.make((get) => {
 
 // Rebuilt when the sync server or its import checkbox changes, so the next
 // import uses them without a reload.
-export const pageFetcherLayer = Atom.make((get) =>
+const pageFetcherLayer = Atom.make((get) =>
   PageFetcher.layer(get(importServerUrlAtom)),
 )
 
@@ -335,12 +335,17 @@ ${encodeGroceryItemListXml(items)}
     } as const
   }),
 }) {
-  static readonly layer = Layer.effect(this, this.make)
-
   static runtime = Atom.runtime((get) =>
-    AiHelpers.layer.pipe(
-      Layer.provide(get(pageFetcherLayer)),
-      Layer.provideMerge(get(openAiClientLayer)),
-    ),
+    get(aiHelpersLayer).pipe(Layer.provideMerge(get(openAiClientLayer))),
   )
 }
+
+// A new layer whenever the fetcher or the model changes. Runtimes in a registry
+// share layers by identity, so a single `AiHelpers` layer would keep the
+// service built with the old fetcher for as long as any runtime holds it.
+export const aiHelpersLayer = Atom.make((get) =>
+  Layer.effect(AiHelpers, AiHelpers.make).pipe(
+    Layer.provide(get(pageFetcherLayer)),
+    Layer.provide(get(openAiClientLayer)),
+  ),
+)

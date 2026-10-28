@@ -8,8 +8,8 @@ import { RecipeExtractionManager } from "./RecipeExtractionManager"
 import {
   AiHelpers,
   isAiEnabledAtom,
+  aiHelpersLayer,
   openAiClientLayer,
-  pageFetcherLayer,
 } from "@/services/AiHelpers"
 import * as HashSet from "effect/HashSet"
 import { Recipe, RecipeId, RecipeIdFromString } from "@/domain/Recipe"
@@ -50,8 +50,7 @@ export {
 
 export const extractRuntime = Atom.runtime((get) =>
   RecipeExtractionManager.pipe(
-    Layer.provideMerge(AiHelpers.layer),
-    Layer.provideMerge(get(pageFetcherLayer)),
+    Layer.provideMerge(get(aiHelpersLayer)),
     Layer.provideMerge(get(openAiClientLayer)),
     Layer.provideMerge(get(recipesRuntime.layer)),
   ),

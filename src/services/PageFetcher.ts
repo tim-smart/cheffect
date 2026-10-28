@@ -80,6 +80,7 @@ export class ImportServerError extends Schema.TaggedError<ImportServerError>()(
 const importServerError =
   (server: string, what: string) =>
   (error: unknown): ImportServerError => {
+    if (error instanceof ImportServerError) return error
     const status =
       error instanceof HttpClientError.HttpClientError
         ? error.response?.status
@@ -169,9 +170,21 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
               globalThis.location?.href,
             )
             const response = yield* rawClient.get(target)
-            return yield* Schema.decodeUnknownEffect(YouTubePage)(
+            const page = yield* Schema.decodeUnknownEffect(YouTubePage)(
               yield* response.json,
             )
+            // A server the user picked is named with its status, keeping its
+            // reason.
+            if (
+              server !== undefined &&
+              page._tag === "Unavailable" &&
+              response.status >= 300
+            ) {
+              return yield* new ImportServerError({
+                message: `The import server ${server} couldn't read the video (${response.status}).${page.reason === null ? "" : ` ${page.reason}`}`,
+              })
+            }
+            return page
           }
           const response = yield* client.execute(
             endpointRequest(endpoint, youTubeWatchUrl(id)),
