@@ -350,6 +350,55 @@ export const RecipeEdit = Schema.Struct(
   ]),
 )
 
+// The fields an assistant edit changes. A missing field keeps the value the
+// user sees. OpenAI sends a missing field as null, so an edit cannot clear a
+// field.
+export const RecipeChanges = Schema.Struct({
+  title: Schema.optionalKey(ExtractedRecipe.fields.title),
+  imageUrl: Schema.optionalKey(
+    Schema.String.annotate({ description: "An image URL for the recipe." }),
+  ),
+  prepTime: Schema.optionalKey(
+    DurationFromMinutes.pipe(
+      Schema.annotateEncoded({
+        description: "The time it takes to prepare the recipe in minutes.",
+      }),
+    ),
+  ),
+  cookingTime: Schema.optionalKey(
+    DurationFromMinutes.pipe(
+      Schema.annotateEncoded({
+        description:
+          "The time it takes to cook the recipe in minutes. This is different from prep time.",
+      }),
+    ),
+  ),
+  servings: Schema.optionalKey(
+    Schema.Finite.annotate({
+      description: "The number of persons the recipe serves.",
+    }),
+  ),
+  ingredients: Schema.optionalKey(
+    Schema.Array(IngredientsComponent).annotate({
+      description:
+        "Replaces every ingredient component, so include the unchanged ones.",
+    }),
+  ),
+  steps: Schema.optionalKey(
+    Schema.Array(Step).annotate({
+      description: "Replaces every step, so include the unchanged ones.",
+    }),
+  ),
+  sourceName: Schema.optionalKey(
+    Schema.String.annotate({
+      description: "The name of the source of the recipe, e.g., 'AllRecipes'.",
+    }),
+  ),
+}).annotate({
+  description:
+    "Only the fields to change. Set every other field to null to keep its current value.",
+})
+
 const filterZero = Option.liftPredicate(Predicate.not(Duration.isZero))
 
 export const SortBy = [

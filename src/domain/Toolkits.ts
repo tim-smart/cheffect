@@ -3,7 +3,7 @@ import * as Toolkit from "effect/ai/Toolkit"
 import * as Schema from "effect/Schema"
 import * as SchemaTransformation from "effect/SchemaTransformation"
 import * as Struct from "effect/Struct"
-import { ExtractedRecipe, Recipe } from "./Recipe"
+import { ExtractedRecipe, Recipe, RecipeChanges } from "./Recipe"
 import { GroceryItem } from "./GroceryItem"
 import { Menu } from "./Menu"
 import { MenuEntry } from "./MenuEntry"
@@ -36,14 +36,16 @@ export const TransientResponse = taggedResponse("Transient")
 export class toolkit extends Toolkit.make(
   OpenAiTool.WebSearch({}),
   Tool.make("SearchRecipes", {
-    description: "Search the users recipe database by title and ingredients",
+    description:
+      "Search the users recipe database by title and ingredients. Recipes with unsaved edits are returned as the user currently sees them.",
     parameters: Schema.Struct({
       query: Schema.String,
     }),
     success: TransientResponse(Schema.Array(Recipe.json)),
   }),
   Tool.make("RecipeById", {
-    description: "Get a recipe by its unique ID",
+    description:
+      "Get a recipe by its unique ID, as the user currently sees it. Unsaved edits are included unless the user switched to the original.",
     parameters: Schema.Struct({
       id: Schema.String,
     }),
@@ -59,10 +61,10 @@ export class toolkit extends Toolkit.make(
   }),
   Tool.make("SuggestRecipeEdit", {
     description:
-      "Suggest edits to an existing recipe. The recipe parameter must contain ALL fields from the original recipe, not just the changed fields. Copy all existing values and only modify the specific fields that need to change.",
+      "Suggest edits to an existing recipe. Only send the fields that change; the rest keep the values the user currently sees. The user reviews the edits before saving them.",
     parameters: Schema.Struct({
       recipeId: Schema.String,
-      recipe: ExtractedRecipe,
+      changes: RecipeChanges,
     }),
     success: TransientResponse(Schema.Null),
   }),

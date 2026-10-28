@@ -53,10 +53,14 @@ import * as DateTime from "effect/DateTime"
 import { aiChatModel, aiCountry, mealPlanWeekStart } from "@/Settings"
 import {
   modifiedRecipeByIdAtom,
-  recipeByIdAtom,
+  recipeForDisplayAtom,
   recipeSelectedStep,
+  showOriginalRecipeAtom,
 } from "@/Recipes/atoms"
+import { shownRecipes } from "@/Recipes/runtime"
 import { RecipeRepo } from "@/Recipes/Repo"
+import { ExtractedRecipe } from "@/domain/Recipe"
+import * as HashSet from "effect/HashSet"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
 import { generateUuidBytes, uuidString } from "@/lib/Id"
 import { type EventPayload, writeEvent, writeEvents } from "@/EventLog"
@@ -93,6 +97,7 @@ const ToolkitLayer = toolkit.toLayer(
   Effect.gen(function* () {
     const registry = yield* AtomRegistry.AtomRegistry
     const recipes = yield* RecipeRepo
+    const shown = yield* shownRecipes
     const mealPlan = yield* MealPlanRepo
     const menus = yield* MenuRepo
     const extractJobs = yield* RecipeExtractJobRepo
@@ -115,13 +120,11 @@ const ToolkitLayer = toolkit.toLayer(
       addGroceryItems(items).pipe(Effect.provideContext(context), Effect.orDie)
     return toolkit.of({
       SearchRecipes: Effect.fnUntraced(function* ({ query }) {
-        const found = yield* recipes
-          .search({ query, sortBy: "title" })
-          .pipe(Effect.orDie)
+        const found = yield* shown.search(query).pipe(Effect.orDie)
         return { _tag: "Transient", value: found } as const
       }),
       RecipeById: Effect.fnUntraced(function* ({ id }) {
-        const recipe = yield* recipes.byId(id).pipe(Effect.orDie)
+        const recipe = yield* shown.byId(id).pipe(Effect.orDie)
         return { _tag: "Transient", value: Option.getOrNull(recipe) } as const
       }),
       CreateRecipe: Effect.fnUntraced(function* ({ recipe }) {
@@ -132,15 +135,34 @@ const ToolkitLayer = toolkit.toLayer(
           value: { recipeId: newRecipe.idString },
         }
       }),
-      SuggestRecipeEdit: Effect.fnUntraced(function* ({ recipe, recipeId }) {
-        const original = yield* recipes.byId(recipeId).pipe(Effect.orDie)
-        if (Option.isNone(original)) {
+      SuggestRecipeEdit: Effect.fnUntraced(function* ({ changes, recipeId }) {
+        const current = yield* shown.byId(recipeId).pipe(Effect.orDie)
+        if (Option.isNone(current)) {
           return {
             _tag: "Transient",
             value: null,
           }
         }
-        registry.set(modifiedRecipeByIdAtom(recipeId), Option.some(recipe))
+        // The changes apply to the version the user sees, and the user is
+        // switched to the edits so they see the suggestion.
+        const recipe = current.value
+        registry.set(
+          modifiedRecipeByIdAtom(recipe.idString),
+          Option.some(
+            new ExtractedRecipe({
+              title: recipe.title,
+              imageUrl: recipe.imageUrl,
+              prepTime: recipe.prepTime,
+              cookingTime: recipe.cookingTime,
+              servings: recipe.servings,
+              ingredients: recipe.ingredients,
+              steps: recipe.steps,
+              sourceName: recipe.sourceName,
+              ...changes,
+            }),
+          ),
+        )
+        registry.update(showOriginalRecipeAtom, HashSet.remove(recipe.idString))
         return {
           _tag: "Transient",
           value: null,
@@ -649,7 +671,7 @@ ${entry.content}`,
 
         const viewedRecipe = location.pathname.startsWith("/recipes/")
           ? yield* Atom.getResult(
-              recipeByIdAtom(location.pathname.split("/")[2]),
+              recipeForDisplayAtom(location.pathname.split("/")[2]),
             )
           : Option.none()
 
@@ -660,8 +682,17 @@ The user is currently browsing the a list of their recipes.
 
 ${currentTimeAndCountry}`
         } else if (Option.isSome(viewedRecipe)) {
-          const recipe = viewedRecipe.value
+          const { original, resolved: recipe, isModified } = viewedRecipe.value
           const selectedStep = registry.get(recipeSelectedStep(recipe.idString))
+          const edits = !isModified
+            ? ""
+            : recipe === original
+              ? `The recipe has unsaved edits, but the user switched back to the original. The details below are the original. A new edit replaces the unsaved ones.
+
+`
+              : `The recipe has unsaved edits, and the user is viewing them. The details below include those edits.
+
+`
 
           return `${baseSystemPrompt}${memoryPrompt}
 
@@ -676,13 +707,13 @@ ${
 
 `
     : ""
-}Here are the details of the recipe (original scale shown):
+}${edits}Here are the details of the recipe (original scale shown):
 
 ${recipe.toXml()}
 
 **Important:**
 
-When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes. **Important:** You must include ALL fields from the original recipe in your edit, not just the fields you are changing. Copy all existing values and only modify the specific fields that need to change.
+When suggesting modifications to the recipe, use the \`SuggestRecipeEdit\` tool to propose changes. Only send the fields you change, and set the rest to null. \`ingredients\` and \`steps\` replace the whole list, so include the unchanged entries when changing them.
 
 When converting ingredient units, **do not** change the following units:
 

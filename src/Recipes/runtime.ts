@@ -1,6 +1,7 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Atom from "effect/reactivity/Atom"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
 import {
   ExtractedRecipe,
   Recipe,
@@ -15,7 +16,13 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { eventLogAtom, writeEvent, writeEventAtom } from "@/EventLog"
 import { RecipeEditEvent, RecipeEvent } from "./Events"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
-import { findRecipe, findRecipeEdit, RecipeRepo, searchRecipes } from "./Repo"
+import {
+  findRecipe,
+  findRecipeEdit,
+  recipeAsShown,
+  RecipeRepo,
+  searchRecipes,
+} from "./Repo"
 import { kvsRuntime } from "@/lib/atom"
 
 // The repos share the EventLog runtime's query builder and Reactivity, so
@@ -127,22 +134,36 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
 export const recipeForDisplayAtom = Atom.family((id: string) =>
   Atom.make((get) => {
     const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
-    return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes, edits }) => {
-      const modified = findRecipeEdit(edits, id)
-      return Option.map(findRecipe(recipes, id), (original) => {
-        const resolved =
-          showOriginal || Option.isNone(modified)
-            ? original
-            : new Recipe({
-                ...original,
-                ...modified.value,
-              })
-        return {
-          original,
-          resolved,
-          isModified: Option.isSome(modified),
-        } as const
-      })
-    })
+    return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes, edits }) =>
+      Option.map(findRecipe(recipes, id), (original) => ({
+        original,
+        resolved: recipeAsShown(original, edits, showOriginal),
+        isModified: Option.isSome(findRecipeEdit(edits, id)),
+      })),
+    )
   }),
 )
+
+// Recipe reads for the assistant. They return what the user sees on each
+// recipe page, so the assistant works from the same version as the user.
+export const shownRecipes = Effect.gen(function* () {
+  const registry = yield* AtomRegistry.AtomRegistry
+  const repo = yield* RecipeRepo
+  const asShown = Effect.map(repo.edits, (edits) => {
+    const originals = registry.get(showOriginalRecipeAtom)
+    return (recipe: Recipe) =>
+      recipeAsShown(recipe, edits, HashSet.has(originals, recipe.idString))
+  })
+  return {
+    search: (query: string) =>
+      Effect.zipWith(
+        repo.search({ query, sortBy: "title" }),
+        asShown,
+        (found, shown) => found.map(shown),
+      ),
+    byId: (id: string) =>
+      Effect.zipWith(repo.byId(id), asShown, (found, shown) =>
+        Option.map(found, shown),
+      ),
+  } as const
+})
