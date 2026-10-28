@@ -42,8 +42,8 @@ export function SyncSettings() {
   const [joinRequest, setJoinRequest] = useState<JoinRequest>()
   return (
     <>
-      <ServerUrlField />
       <EnableSyncField />
+      <ServerUrlField />
       <SyncKeyField />
       <JoinAnotherCollection onJoin={setJoinRequest} />
       <JoinDialog
@@ -100,18 +100,21 @@ function ServerUrlField() {
         }}
         onBlur={save}
       />
-      <p
-        id="syncServerUrlHint"
-        className={
-          invalid ? "text-sm text-destructive" : "text-sm text-muted-foreground"
-        }
-      >
-        {invalid
-          ? "Enter an address starting with wss://, ws://, https:// or http://."
-          : Option.isSome(fallback)
-            ? "Leave blank to sync with the server this app is served from."
-            : "Your sync server's address. Sync stays off until there is one."}
-      </p>
+      {invalid ||
+        (Option.isSome(fallback) && (
+          <p
+            id="syncServerUrlHint"
+            className={
+              invalid
+                ? "text-sm text-destructive"
+                : "text-sm text-muted-foreground"
+            }
+          >
+            {invalid
+              ? "Enter an address starting with wss://, ws://, https:// or http://."
+              : "Leave blank to sync with the server this app is served from."}
+          </p>
+        ))}
     </form>
   )
 }
@@ -129,11 +132,6 @@ function EnableSyncField() {
         aria-describedby={hasServer ? undefined : "syncEnabledHint"}
         onCheckedChange={setEnabled}
       />
-      {hasServer ? null : (
-        <p id="syncEnabledHint" className="text-sm text-muted-foreground">
-          Enter a sync server URL first.
-        </p>
-      )}
     </div>
   )
 }
