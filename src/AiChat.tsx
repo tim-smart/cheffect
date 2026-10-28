@@ -424,7 +424,9 @@ function MessagesList({
                   // than 90% of the panel on narrow screens
                   `max-w-[min(90%,calc(60ch+2rem))] rounded-2xl px-4 py-2 leading-tight overflow-auto break-words`,
                   item.role === "user"
-                    ? "bg-primary text-primary-foreground"
+                    ? // Streamdown colors links text-primary, which would
+                      // vanish into the bubble
+                      "bg-primary text-primary-foreground [&_a]:text-primary-foreground"
                     : "bg-muted dark:bg-border text-foreground",
                 )}
               >
