@@ -64,6 +64,19 @@ export const findRecipeEdit = (
 ): Option.Option<typeof RecipeEdit.Type> =>
   Option.fromUndefinedOr(edits.get(id.toLowerCase()))
 
+// The recipe the user sees: its pending edit applied, unless they switched
+// back to the original.
+export const recipeAsShown = (
+  recipe: Recipe,
+  edits: RecipeEdits,
+  showOriginal: boolean,
+): Recipe => {
+  const edit = edits.get(recipe.idString)
+  return showOriginal || edit === undefined
+    ? recipe
+    : new Recipe({ ...recipe, ...edit })
+}
+
 const sorters: Record<SortBy, (a: Recipe, b: Recipe) => number> = {
   createdAt: (a, b) =>
     b.createdAt.epochMilliseconds - a.createdAt.epochMilliseconds,
@@ -203,6 +216,7 @@ export class RecipeRepo extends Context.Service<RecipeRepo>()(
           current.pipe(
             Effect.map((recipes) => searchRecipes(recipes, options)),
           ),
+        edits: currentEdits,
         editById: (id: string) =>
           currentEdits.pipe(Effect.map((edits) => findRecipeEdit(edits, id))),
       } as const

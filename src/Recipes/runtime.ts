@@ -1,9 +1,12 @@
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Atom from "effect/reactivity/Atom"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
+import * as Semaphore from "effect/Semaphore"
 import {
   ExtractedRecipe,
   Recipe,
+  type RecipeChanges,
   RecipeIdFromString,
   SortByValue,
 } from "@/domain/Recipe"
@@ -15,7 +18,13 @@ import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { eventLogAtom, writeEvent, writeEventAtom } from "@/EventLog"
 import { RecipeEditEvent, RecipeEvent } from "./Events"
 import { RecipeExtractJobRepo } from "@/RecipeExtractJobs/Repo"
-import { findRecipe, findRecipeEdit, RecipeRepo, searchRecipes } from "./Repo"
+import {
+  findRecipe,
+  findRecipeEdit,
+  recipeAsShown,
+  RecipeRepo,
+  searchRecipes,
+} from "./Repo"
 import { kvsRuntime } from "@/lib/atom"
 
 // The repos share the EventLog runtime's query builder and Reactivity, so
@@ -127,22 +136,70 @@ export const modifiedRecipeByIdAtom = Atom.family((id: string) =>
 export const recipeForDisplayAtom = Atom.family((id: string) =>
   Atom.make((get) => {
     const showOriginal = HashSet.has(get(showOriginalRecipeAtom), id)
-    return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes, edits }) => {
-      const modified = findRecipeEdit(edits, id)
-      return Option.map(findRecipe(recipes, id), (original) => {
-        const resolved =
-          showOriginal || Option.isNone(modified)
-            ? original
-            : new Recipe({
-                ...original,
-                ...modified.value,
-              })
-        return {
-          original,
-          resolved,
-          isModified: Option.isSome(modified),
-        } as const
-      })
-    })
+    return AsyncResult.map(get(recipeSnapshotsAtom), ({ recipes, edits }) =>
+      Option.map(findRecipe(recipes, id), (original) => ({
+        original,
+        resolved: recipeAsShown(original, edits, showOriginal),
+        isModified: Option.isSome(findRecipeEdit(edits, id)),
+      })),
+    )
   }),
 )
+
+// Recipe reads and edits for the assistant. Reads return what the user sees on
+// each recipe page, so the assistant works from the same version as the user.
+export const assistantRecipes = Effect.gen(function* () {
+  const registry = yield* AtomRegistry.AtomRegistry
+  const repo = yield* RecipeRepo
+  // A model response can suggest several edits at once. Each one reads the
+  // pending edit after the previous one is written, so none is lost.
+  const editLock = Semaphore.makeUnsafe(1)
+  const asShown = Effect.map(repo.edits, (edits) => {
+    const originals = registry.get(showOriginalRecipeAtom)
+    return (recipe: Recipe) =>
+      recipeAsShown(recipe, edits, HashSet.has(originals, recipe.idString))
+  })
+  return {
+    search: (query: string) =>
+      Effect.zipWith(
+        repo.search({ query, sortBy: "title" }),
+        asShown,
+        (found, shown) => found.map(shown),
+      ),
+    byId: (id: string) =>
+      Effect.zipWith(repo.byId(id), asShown, (found, shown) =>
+        Option.map(found, shown),
+      ),
+    // Merges the changes into the pending edit, or starts one from the saved
+    // recipe. "Show original" only previews, so a hidden pending edit is kept,
+    // and the user is switched back to the edits to see the suggestion.
+    // `false` when the recipe is missing.
+    suggestEdit: (id: string, changes: RecipeChanges) =>
+      Effect.gen(function* () {
+        const recipe = yield* repo.byId(id)
+        if (Option.isNone(recipe)) return false
+        const pending = yield* repo.editById(id)
+        const base = Option.getOrElse(pending, () => recipe.value)
+        const { clear = [], ...set } = changes
+        const edit = {
+          id: recipe.value.id,
+          title: base.title,
+          imageUrl: base.imageUrl,
+          prepTime: base.prepTime,
+          cookingTime: base.cookingTime,
+          servings: base.servings,
+          ingredients: base.ingredients,
+          steps: base.steps,
+          sourceName: base.sourceName,
+          ...set,
+        }
+        for (const field of clear) edit[field] = null
+        yield* writeEvent(RecipeEditEvent.set(edit))
+        registry.update(
+          showOriginalRecipeAtom,
+          HashSet.remove(recipe.value.idString),
+        )
+        return true
+      }).pipe(editLock.withPermits(1)),
+  } as const
+})

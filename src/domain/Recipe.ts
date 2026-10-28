@@ -350,6 +350,67 @@ export const RecipeEdit = Schema.Struct(
   ]),
 )
 
+// The fields an assistant edit changes. A missing field keeps its current
+// value. OpenAI sends a missing field as null, so removing a value goes
+// through `clear` instead.
+export const RecipeChanges = Schema.Struct({
+  title: Schema.optionalKey(ExtractedRecipe.fields.title),
+  imageUrl: Schema.optionalKey(
+    Schema.String.annotate({ description: "An image URL for the recipe." }),
+  ),
+  prepTime: Schema.optionalKey(
+    DurationFromMinutes.pipe(
+      Schema.annotateEncoded({
+        description: "The time it takes to prepare the recipe in minutes.",
+      }),
+    ),
+  ),
+  cookingTime: Schema.optionalKey(
+    DurationFromMinutes.pipe(
+      Schema.annotateEncoded({
+        description:
+          "The time it takes to cook the recipe in minutes. This is different from prep time.",
+      }),
+    ),
+  ),
+  servings: Schema.optionalKey(
+    Schema.Finite.annotate({
+      description: "The number of persons the recipe serves.",
+    }),
+  ),
+  ingredients: Schema.optionalKey(
+    Schema.Array(IngredientsComponent).annotate({
+      description:
+        "Replaces every ingredient component, so include the unchanged ones.",
+    }),
+  ),
+  steps: Schema.optionalKey(
+    Schema.Array(Step).annotate({
+      description: "Replaces every step, so include the unchanged ones.",
+    }),
+  ),
+  sourceName: Schema.optionalKey(
+    Schema.String.annotate({
+      description: "The name of the source of the recipe, e.g., 'AllRecipes'.",
+    }),
+  ),
+  clear: Schema.optionalKey(
+    Schema.Array(
+      Schema.Literals([
+        "imageUrl",
+        "prepTime",
+        "cookingTime",
+        "servings",
+        "sourceName",
+      ]),
+    ).annotate({ description: "Fields to remove from the recipe." }),
+  ),
+}).annotate({
+  description:
+    "Only the fields to change. Set every other field to null to keep its current value.",
+})
+export type RecipeChanges = typeof RecipeChanges.Type
+
 const filterZero = Option.liftPredicate(Predicate.not(Duration.isZero))
 
 export const SortBy = [
