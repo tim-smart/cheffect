@@ -25,28 +25,10 @@ You can self-host Cheffect using Docker. The image runs one Node process that
 serves the web app and an encrypted sync server on the same origin, at `/sync`.
 Apps loaded from it sync to that server by default once sync is turned on.
 
-### Using the Published Image
-
-Every push to `main` publishes an image to the GitHub Container Registry, tagged
-`latest` and with the commit (`sha-<short sha>`):
-
-```bash
-docker pull ghcr.io/tim-smart/cheffect:latest
-```
-
-Use `ghcr.io/tim-smart/cheffect:latest` in place of `cheffect` in the commands
-below, or build the image yourself.
-
-### Building the Docker Image
-
-```bash
-docker build -t cheffect .
-```
-
 ### Running the Container
 
 ```bash
-docker run -d -p 8080:8080 -v cheffect-data:/data --name cheffect cheffect
+docker run -d -p 8080:8080 -v cheffect-data:/data --name cheffect ghcr.io/tim-smart/cheffect:latest
 ```
 
 The application will be available at http://localhost:8080
@@ -89,118 +71,6 @@ volumes:
 Without Docker, `pnpm build` produces the same two parts: the web app in `dist/`
 and the server in `dist-server/main.mjs` (`pnpm start`). A plain `pnpm build`
 has no default sync server; users enter one in Settings.
-
-## Importing recipes from URLs
-
-To import a recipe from a URL, the app needs the page's HTML. It asks the site
-directly first. That works for sites that allow cross-origin requests, and the
-request comes from your own browser. Most recipe sites don't allow it, so the
-app falls back to a fetch service picked for the build. There's nothing to set
-up:
-
-- The Docker image uses its own server's `/fetch` route.
-- Deployments on Vercel use `api/fetch.ts`, served by the same deployment.
-- Any other build, `pnpm dev` included, uses
-  [Jina Reader](https://jina.ai/reader/) without a key, which allows 20
-  requests a minute.
-
-The fetch service receives the URL of each recipe imported this way, but not
-your OpenAI key. With Jina, that's a third party.
-
-Some sites block every server, so they fail however they are fetched. Allrecipes
-and Serious Eats are two known examples.
-
-### Importing through your sync server
-
-Under Settings → Sync, **Use this server for recipe imports** sends imports
-through your sync server instead, while sync is on. Page fetches go to the
-`fetch` route next to its `/sync` address and YouTube imports to `youtube`, so
-`wss://home.example.com/cheffect/sync` imports through
-`https://home.example.com/cheffect/fetch`. It's off by default. The sync server
-only ever sees encrypted entries, but import URLs and video ids reach it in
-plain text.
-
-This helps most when the server runs at home. Sites and YouTube transcripts that
-block datacenter IP addresses usually let a home connection through. If the
-server can't be reached the import fails, rather than quietly falling back to
-the build's default.
-
-A server on another origin than the app has to allow it. Set
-`CORS_ALLOWED_ORIGINS` on the server to the app's origin, for example
-`-e CORS_ALLOWED_ORIGINS=https://cheffect.example.com`. It takes a
-comma-separated list of origins, or `*` for any origin. Unset, only the app
-served by that same server can read `/fetch` and `/youtube`.
-
-Browsers also block an `https` app from calling a plain `http` server (mixed
-content), `localhost` excepted. To use a home server from a hosted app, put it
-behind HTTPS, for example with a reverse proxy or `tailscale serve`.
-
-### YouTube imports
-
-YouTube imports read the video description and, on Docker and Vercel
-deployments, the video's transcript when one can be fetched. A video whose
-description and transcript both lack the ingredients cannot produce a recipe.
-Watch, Shorts, live, embed and youtu.be links are resolved to the same video id.
-
-For Docker or Vercel deployments, enable **YouTube Data API v3** in a Google
-Cloud project and set `YOUTUBE_API_KEY` in the server environment. For example,
-pass `-e YOUTUBE_API_KEY=...` when starting the Docker container, or add the
-variable to the Vercel deployment and redeploy. Do not prefix it with `VITE_`: the
-key must never be included in the browser bundle. Restrict the key to YouTube
-Data API v3 and, where possible, your server IP addresses.
-
-With a key, `/youtube?id=...` (Docker) or `/api/youtube?id=...` (Vercel) reads
-public video metadata using the supported
-[`videos.list` API](https://developers.google.com/youtube/v3/docs/videos/list).
-Each uncached lookup costs one quota unit. Concurrent requests for the same
-video share a lookup; successful results are cached in memory for five minutes
-(up to 256 videos per server process). Vercel instances do not share this cache.
-API failures are reported without retrying or falling back to page scraping.
-Private or deleted videos are not supported; an API key does not sign a user in.
-
-Without a key, these routes read metadata from one best-effort watch-page
-request. Static builds and `pnpm dev` use their existing Jina HTML endpoint
-instead, and get no transcripts, unless they
-[import through a sync server](#importing-through-your-sync-server). YouTube browser requests are skipped because YouTube does not allow
-cross-origin page reads. Consent pages and bot checks can still block the unauthenticated path.
-We do not pass browser cookies, solve challenges, or rotate identities.
-
-#### Transcripts
-
-Transcripts are best-effort and unofficial. YouTube's API only lets a video's
-owner download captions, so the server asks YouTube's internal player endpoint,
-the one its Android app uses, for the caption tracks. YouTube can change or
-block this without notice. It also blocks most of these requests from cloud and
-datacenter IP addresses (Vercel and most Docker hosts), so expect transcripts to
-be missing in production more often than not. When the transcript can't be
-fetched for any reason, the import uses the description alone. The API key is
-not used or needed for transcripts.
-
-Manual captions are preferred over auto-generated ones, in the video's language
-or else English. The transcript is flattened to plain text and capped at 15,000
-characters. Auto-generated captions often mishear quantities, and many recipe
-Shorts have no speech at all (music with on-screen text), so a transcript does
-not guarantee a recipe. We do not download audio, read on-screen text, pass
-cookies, solve bot checks, or use proxies. The transcript is cached with the
-video metadata.
-
-These metadata routes are unauthenticated. On public deployments, protect them
-with your reverse proxy/authentication or rate limits to prevent others from
-spending your API quota. Monitor quota use in Google Cloud. The API receives the
-video id, never your OpenAI key.
-
-### The `/fetch` route
-
-The Docker image serves `GET /fetch?url=...` and the Vercel build serves
-`/api/fetch?url=...`. Both fetch only public http(s) addresses. Private,
-loopback and link-local addresses are refused, every redirect is checked again,
-and fetches stop after 15 seconds or 2 MB. Pages come back as sandboxed plain
-text, so opening a `/fetch` link in a browser never runs the page's scripts on
-the app's origin. Other origins can read the answers only when listed in
-`CORS_ALLOWED_ORIGINS`, which applies to `/youtube` too, on Docker and Vercel
-alike. There is no authentication, so if it
-faces the internet anyone can use it to fetch pages. Put it behind your own
-reverse proxy or authentication if that matters to you.
 
 ## Tests
 
