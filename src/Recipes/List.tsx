@@ -18,6 +18,7 @@ import {
   type MouseEvent,
 } from "react"
 import { FadeImage } from "@/components/FadeImage"
+import { previousLocation } from "@/Router"
 
 // Memoised, so the urgent render of a keystroke skips the list while its
 // deferred results are pending
@@ -86,7 +87,8 @@ export const RecipeList = memo(function RecipeList({
   })
 
   // Rows that mount in the first moments rise in, staggered by their place
-  // on screen; rows scrolled into view later simply appear
+  // on screen; rows scrolled into view later simply appear. Coming back from
+  // a recipe, the list is already known and the rows are there at once
   const entering = useEntering()
 
   if (recipes.length === 0) {
@@ -237,10 +239,14 @@ function useTileColumns() {
 }
 
 // True for the first moments after mount, long enough for a staggered
-// entrance to finish before the class is dropped
+// entrance to finish before the class is dropped. Never true when the list
+// mounts on the way back from a recipe
 function useEntering() {
-  const [entering, setEntering] = useState(true)
+  const [entering, setEntering] = useState(
+    () => !previousLocation()?.pathname.startsWith("/recipes/"),
+  )
   useEffect(() => {
+    if (!entering) return
     const timeout = setTimeout(() => setEntering(false), 900)
     return () => clearTimeout(timeout)
   }, [])
