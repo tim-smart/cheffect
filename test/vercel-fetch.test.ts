@@ -18,6 +18,7 @@ test("the compiled Vercel import endpoints run in native Node ESM", async () => 
       absWorkingDir: root,
       entryPoints: [
         "api/fetch.ts",
+        "server/cors.ts",
         "server/fetchGuard.ts",
         "api/youtube.ts",
         "server/youtube.ts",

@@ -35,7 +35,8 @@ import { freshIndexedDb } from "./harness/indexeddb"
 
 // The combined image's server: one process serves the front end
 // build and the encrypted EventLog server on `/sync`. `server/main.ts` reads
-// `PORT` and `DATABASE_PATH` and launches this same layer.
+// `PORT`, `DATABASE_PATH` and `CORS_ALLOWED_ORIGINS` and launches this same
+// layer.
 
 const root = fileURLToPath(new URL("./fixtures/web", import.meta.url))
 
@@ -139,7 +140,6 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
       `/fetch?url=${encodeURIComponent(`http://127.0.0.1:${port}/`)}`,
     )
     assert.equal(fetched.status, 403)
-    assert.equal(fetched.headers.get("access-control-allow-origin"), "*")
 
     const video = yield* get("/youtube?id=invalid")
     assert.equal(video.status, 400)
@@ -149,6 +149,39 @@ test("serves the front end with an SPA fallback and cache headers by path", asyn
       "Unavailable",
     )
   }).pipe(Effect.provide(ServerLayer), Effect.runPromise)
+})
+
+// An app on another origin may read `/fetch` and `/youtube` only when its
+// origin is in `CORS_ALLOWED_ORIGINS`.
+test("import routes allow only the origins in CORS_ALLOWED_ORIGINS", async () => {
+  await Effect.gen(function* () {
+    const port = yield* serverPort
+    const fromOrigin = (path: string, origin: string) =>
+      Effect.promise(() =>
+        fetch(`http://localhost:${port}${path}`, { headers: { origin } }),
+      )
+    for (const path of ["/fetch?url=", "/youtube?id=invalid"]) {
+      const allowed = yield* fromOrigin(path, "https://app.example.test")
+      assert.equal(
+        allowed.headers.get("access-control-allow-origin"),
+        "https://app.example.test",
+        path,
+      )
+      assert.equal(allowed.headers.get("vary"), "origin", path)
+      const other = yield* fromOrigin(path, "https://other.example.test")
+      assert.equal(other.headers.get("access-control-allow-origin"), null, path)
+    }
+  }).pipe(
+    Effect.provide(
+      Server.layer({
+        root,
+        port: 0,
+        databasePath: ":memory:",
+        corsAllowedOrigins: "https://app.example.test, https://b.example.test",
+      }),
+    ),
+    Effect.runPromise,
+  )
 })
 
 // The app's own sync atoms against two servers. Changing the server URL

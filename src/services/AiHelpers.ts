@@ -22,6 +22,7 @@ import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
 import { openAiApiKey, openAiApiUrl, openAiModel } from "@/Settings"
+import { importServerUrlAtom } from "@/EventLog"
 import * as Option from "effect/Option"
 import * as HttpClient from "effect/http/HttpClient"
 import * as Schedule from "effect/Schedule"
@@ -72,6 +73,12 @@ export const openAiClientLayer = Atom.make((get) => {
     ),
   )
 })
+
+// Rebuilt when the sync server or its import checkbox changes, so the next
+// import uses them without a reload.
+const pageFetcherLayer = Atom.make((get) =>
+  PageFetcher.layer(get(importServerUrlAtom)),
+)
 
 const jsonLdPrompt = `Convert the provided schema.org Recipe, given as JSON, into the recipe format.
 
@@ -328,11 +335,17 @@ ${encodeGroceryItemListXml(items)}
     } as const
   }),
 }) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(PageFetcher.layer),
-  )
-
   static runtime = Atom.runtime((get) =>
-    AiHelpers.layer.pipe(Layer.provideMerge(get(openAiClientLayer))),
+    get(aiHelpersLayer).pipe(Layer.provideMerge(get(openAiClientLayer))),
   )
 }
+
+// A new layer whenever the fetcher or the model changes. Runtimes in a registry
+// share layers by identity, so a single `AiHelpers` layer would keep the
+// service built with the old fetcher for as long as any runtime holds it.
+export const aiHelpersLayer = Atom.make((get) =>
+  Layer.effect(AiHelpers, AiHelpers.make).pipe(
+    Layer.provide(get(pageFetcherLayer)),
+    Layer.provide(get(openAiClientLayer)),
+  ),
+)

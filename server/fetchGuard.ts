@@ -251,8 +251,8 @@ export interface FetchResponse {
 }
 
 // The `/fetch?url=` answer: the page as text with the site's status, or an
-// error status with a short reason. Any origin may call it, because the app
-// can be served from anywhere. The page is the site's HTML but is served as
+// error status with a short reason. Which other origins may read it is up to
+// `CORS_ALLOWED_ORIGINS` (`cors.ts`). The page is the site's HTML but is served as
 // plain text, unsniffable and sandboxed: the endpoint shares the app's origin,
 // so a page opened from a `/fetch` link must never run as a document there.
 export const fetchResponse = async (
@@ -260,7 +260,6 @@ export const fetchResponse = async (
   options?: FetchOptions,
 ): Promise<FetchResponse> => {
   const headers = {
-    "access-control-allow-origin": "*",
     "cache-control": "no-store",
     "content-type": "text/plain; charset=utf-8",
     "x-content-type-options": "nosniff",

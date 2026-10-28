@@ -3,9 +3,24 @@ import * as assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
+import * as Option from "effect/Option"
 import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as TestClock from "effect/testing/TestClock"
-import { PageFetcher } from "@/services/PageFetcher"
+import * as Layer from "effect/Layer"
+import * as LanguageModel from "effect/ai/LanguageModel"
+import * as Atom from "effect/reactivity/Atom"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
+import {
+  syncEnabledAtom,
+  syncServerImportsAtom,
+  syncServerUrlAtom,
+} from "@/EventLog"
+import {
+  AiHelpers,
+  aiHelpersLayer,
+  openAiClientLayer,
+} from "@/services/AiHelpers"
+import { ImportServerError, PageFetcher } from "@/services/PageFetcher"
 
 // A recipe page is fetched directly first, once, and through the build's
 // fetch endpoint when that fails or doesn't answer in time. Only the endpoint
@@ -125,4 +140,107 @@ test("static YouTube imports go straight to the HTML endpoint and do not retry b
   assert.deepEqual(requests, [
     "https://r.jina.ai/https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dabcdefghijk",
   ])
+})
+
+const video = "https://www.youtube.com/watch?v=abcdefghijk"
+const home = "https://home.example.test/cheffect"
+
+// The checkbox changes while another runtime holds the AI layer, as the
+// grocery and extraction runtimes do. Each import must use the endpoints the
+// settings give at that moment, turning it on and off again. Every request
+// fails, so each import shows only where it went, and the model is never
+// called.
+test("imports follow the sync server checkbox while another AI runtime is alive", async () => {
+  const storage = new Map<string, string>()
+  ;(globalThis as any).localStorage = {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => void storage.set(key, value),
+    removeItem: (key: string) => void storage.delete(key),
+  }
+  const registry = AtomRegistry.make({
+    initialValues: [
+      Atom.initialValue(
+        openAiClientLayer,
+        Layer.succeed(LanguageModel.LanguageModel, {} as any) as any,
+      ),
+    ],
+  })
+  registry.set(
+    syncServerUrlAtom,
+    Option.some(`wss://home.example.test/cheffect/sync`),
+  )
+  registry.set(syncEnabledAtom, true)
+
+  const other = Atom.runtime((get) => get(aiHelpersLayer))
+  registry.mount(other)
+
+  let requests: string[] = []
+  const importBoth = AiHelpers.runtime.fn<void>()(() =>
+    AiHelpers.use((ai) =>
+      Effect.all([
+        Effect.exit(ai.recipeFromUrl(page)),
+        Effect.exit(ai.recipeFromUrl(video)),
+      ]),
+    ).pipe(
+      Effect.provideService(FetchHttpClient.Fetch, (async (input) => {
+        requests.push(input instanceof Request ? input.url : String(input))
+        return new Response("", { status: 403 })
+      }) as typeof globalThis.fetch),
+    ),
+  )
+  registry.mount(importBoth)
+  const importWith = async (useForImports: boolean) => {
+    registry.set(syncServerImportsAtom, useForImports)
+    // the other runtime is built with these settings before the import runs
+    await Effect.runPromise(AtomRegistry.getResult(registry, other))
+    requests = []
+    registry.set(importBoth, undefined)
+    await Effect.runPromise(
+      AtomRegistry.getResult(registry, importBoth, { suspendOnWaiting: true }),
+    )
+    return requests
+  }
+
+  const buildDefaults = [
+    page,
+    `https://r.jina.ai/${encodeURIComponent(page)}`,
+    `https://r.jina.ai/${encodeURIComponent(video)}`,
+  ]
+  try {
+    assert.deepEqual(await importWith(false), buildDefaults)
+    assert.deepEqual(await importWith(true), [
+      page,
+      `${home}/fetch?url=${encodeURIComponent(page)}`,
+      `${home}/youtube?id=abcdefghijk`,
+    ])
+    assert.deepEqual(await importWith(false), buildDefaults)
+  } finally {
+    registry.dispose()
+  }
+})
+
+// The import server's own reason is kept, along with its name and status.
+test("a YouTube failure from the import server names it and its status", async () => {
+  const error = await PageFetcher.use((fetcher) =>
+    fetcher.youTube("abcdefghijk"),
+  ).pipe(
+    Effect.flip,
+    Effect.provide(
+      PageFetcher.layer(Option.some(`wss://home.example.test/cheffect/sync`)),
+    ),
+    Effect.provideService(FetchHttpClient.Fetch, (async () =>
+      Response.json(
+        {
+          _tag: "Unavailable",
+          reason: "Video imports are busy. Try again later.",
+        },
+        { status: 503 },
+      )) as typeof globalThis.fetch),
+    Effect.runPromise,
+  )
+  assert.ok(error instanceof ImportServerError)
+  assert.equal(
+    error.message,
+    "The import server home.example.test couldn't read the video (503). Video imports are busy. Try again later.",
+  )
 })

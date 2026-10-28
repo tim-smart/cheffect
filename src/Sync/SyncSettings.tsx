@@ -19,6 +19,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -29,21 +30,23 @@ import {
   parseSyncServerUrl,
   serverUrlAtom,
   syncEnabledAtom,
+  syncServerImportsAtom,
   syncServerUrlAtom,
 } from "@/EventLog"
 import { JoinDialog } from "./JoinDialog"
 import { makeShareLink, parseJoinInput, type JoinRequest } from "./ShareLink"
 
-// Controls the server URL, Enable Sync, the sync key and joining another
-// collection. Changing the server or toggling sync takes effect without a
-// reload: the remote follows the settings, and a new server receives this
-// device's whole journal on its first connection.
+// Controls Enable Sync, the server URL, whether imports use it, the sync key
+// and joining another collection. Changing the server or toggling sync takes
+// effect without a reload: the remote follows the settings, and a new server
+// receives this device's whole journal on its first connection.
 export function SyncSettings() {
   const [joinRequest, setJoinRequest] = useState<JoinRequest>()
   return (
     <>
       <EnableSyncField />
       <ServerUrlField />
+      <SyncServerImportsField />
       <SyncKeyField />
       <JoinAnotherCollection onJoin={setJoinRequest} />
       <JoinDialog
@@ -116,6 +119,22 @@ function ServerUrlField() {
           </p>
         ))}
     </form>
+  )
+}
+
+function SyncServerImportsField() {
+  const [enabled, setEnabled] = useAtom(syncServerImportsAtom)
+  return (
+    <div className="flex items-center gap-2">
+      <Checkbox
+        id="syncServerImports"
+        checked={enabled}
+        onCheckedChange={(checked) => setEnabled(checked === true)}
+      />
+      <Label htmlFor="syncServerImports">
+        Use this server for recipe imports
+      </Label>
+    </div>
   )
 }
 
