@@ -3,6 +3,7 @@ import * as assert from "node:assert/strict"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import * as Fiber from "effect/Fiber"
+import * as Option from "effect/Option"
 import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as TestClock from "effect/testing/TestClock"
 import { PageFetcher } from "@/services/PageFetcher"
@@ -123,6 +124,45 @@ test("static YouTube imports go straight to the HTML endpoint and do not retry b
   if (result._tag === "Unavailable")
     assert.match(result.reason!, /blocked|API/i)
   assert.deepEqual(requests, [
+    "https://r.jina.ai/https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dabcdefghijk",
+  ])
+})
+
+// Both imports through the import server setting's layer. Every request fails,
+// so each shows only where it went: the direct attempt, then the endpoint.
+const importThrough = (server: Option.Option<string>) => {
+  const requests: string[] = []
+  return Effect.gen(function* () {
+    const fetcher = yield* PageFetcher
+    yield* Effect.exit(fetcher.html(page))
+    yield* fetcher.youTube("abcdefghijk")
+  }).pipe(
+    Effect.provide(PageFetcher.layer(server)),
+    Effect.provideService(FetchHttpClient.Fetch, (async (input) => {
+      requests.push(input instanceof Request ? input.url : String(input))
+      return new Response("", { status: 403 })
+    }) as typeof globalThis.fetch),
+    Effect.runPromise,
+    (promise) => promise.then(() => requests),
+  )
+}
+
+test("an import server takes both page fetches and YouTube lookups", async () => {
+  const requests = await importThrough(
+    Option.some("https://home.example.test/api/"),
+  )
+  assert.deepEqual(requests, [
+    page,
+    `https://home.example.test/api/fetch?url=${encodeURIComponent(page)}`,
+    "https://home.example.test/api/youtube?id=abcdefghijk",
+  ])
+})
+
+test("a blank import server keeps the build's endpoints", async () => {
+  const requests = await importThrough(Option.none())
+  assert.deepEqual(requests, [
+    page,
+    `https://r.jina.ai/${encodeURIComponent(page)}`,
     "https://r.jina.ai/https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dabcdefghijk",
   ])
 })

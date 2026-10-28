@@ -94,6 +94,25 @@ your OpenAI key. With Jina, that's a third party.
 Some sites block every server, so they fail however they are fetched. Allrecipes
 and Serious Eats are two known examples.
 
+### Using your own import server
+
+Settings → AI Settings → **Import server** points imports at a Cheffect server
+of your choice: the Docker image's address, or a Vercel deployment's address
+followed by `/api` (for example `https://example.vercel.app/api`). Page fetches
+then go through its `/fetch` route, and YouTube imports through its `/youtube`
+route. Leave it blank to keep the build's default. The field is hidden in the
+Docker image, which already uses its own server.
+
+This helps most when the server runs at home. Sites and YouTube transcripts that
+block datacenter IP addresses usually let a home connection through. The server
+sees the URL of every recipe you import and the id of every video. The setting
+is stored on each device and is not synced.
+
+The hosted app is served over HTTPS, and browsers block it from calling a plain
+`http://` server (mixed content), `localhost` excepted. To use a home server
+from the hosted app, put it behind HTTPS, for example with a reverse proxy or
+`tailscale serve`.
+
 ### YouTube imports
 
 YouTube imports read the video description and, on Docker and Vercel
@@ -119,7 +138,9 @@ Private or deleted videos are not supported; an API key does not sign a user in.
 
 Without a key, these routes read metadata from one best-effort watch-page
 request. Static builds and `pnpm dev` use their existing Jina HTML endpoint
-instead. YouTube browser requests are skipped because YouTube does not allow
+instead, and get no transcripts, unless an
+[import server](#using-your-own-import-server) is set. With one, YouTube imports
+go to its `/youtube` route, which answers any origin. YouTube browser requests are skipped because YouTube does not allow
 cross-origin page reads. Consent pages and bot checks can still block the unauthenticated path.
 We do not pass browser cookies, solve challenges, or rotate identities.
 

@@ -4,6 +4,7 @@ import * as HttpClientRequest from "effect/http/HttpClientRequest"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
+import * as Option from "effect/Option"
 import * as Schedule from "effect/Schedule"
 import * as Schema from "effect/Schema"
 import {
@@ -15,7 +16,8 @@ import {
 // Fetches the HTML of a page to import a recipe from. The browser tries the
 // page directly first, which works for sites that allow cross-origin requests
 // and comes from the user's own IP. Otherwise the request goes through a fetch
-// endpoint, a `{url}` template picked for the build.
+// endpoint, a `{url}` template picked for the build or derived from the
+// import server setting.
 
 // The Docker image and Vercel deployments fetch through their own server.
 // Every other build, dev included, uses Jina Reader, which allows
@@ -34,6 +36,38 @@ export const defaultYouTubeEndpoint = (): string | undefined =>
     : import.meta.env?.VITE_VERCEL === "true"
       ? "/api/youtube?id={id}"
       : undefined
+
+// An import server set in Settings replaces both endpoints. It is the base
+// URL `/fetch` and `/youtube` live under: the Docker image's origin, or a
+// Vercel deployment's `/api`. Trailing slashes are dropped, and a query or
+// fragment would end up in the middle of the endpoint, so neither is allowed.
+export const parseImportServerUrl = (input: string): Option.Option<string> => {
+  const trimmed = input.trim().replace(/\/+$/, "")
+  if (trimmed.includes("?") || trimmed.includes("#")) return Option.none()
+  return Option.liftThrowable((url: string) => new URL(url))(trimmed).pipe(
+    Option.filter(
+      (url) =>
+        (url.protocol === "http:" || url.protocol === "https:") &&
+        url.host !== "",
+    ),
+    Option.map(() => trimmed),
+  )
+}
+
+// The endpoints for the import server setting. Blank means the build's own.
+export const importEndpoints = (
+  server: Option.Option<string>,
+): { readonly fetch: string; readonly youTube: string | undefined } =>
+  Option.match(Option.flatMap(server, parseImportServerUrl), {
+    onNone: () => ({
+      fetch: defaultFetchEndpoint(),
+      youTube: defaultYouTubeEndpoint(),
+    }),
+    onSome: (base) => ({
+      fetch: `${base}/fetch?url={url}`,
+      youTube: `${base}/youtube?id={id}`,
+    }),
+  })
 
 // Headers some endpoints need to return the page's raw HTML.
 const hostHeaders: Record<string, Record<string, string>> = {
@@ -132,8 +166,11 @@ export class PageFetcher extends Context.Service<PageFetcher>()(
     }),
   },
 ) {
-  static readonly layer = Layer.effect(
-    this,
-    this.make(defaultFetchEndpoint(), defaultYouTubeEndpoint()),
-  ).pipe(Layer.provide(FetchHttpClient.layer))
+  static readonly layer = (server: Option.Option<string>) => {
+    const endpoints = importEndpoints(server)
+    return Layer.effect(
+      this,
+      this.make(endpoints.fetch, endpoints.youTube),
+    ).pipe(Layer.provide(FetchHttpClient.layer))
+  }
 }

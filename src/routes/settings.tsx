@@ -42,8 +42,10 @@ import {
   Setting,
   exportAllAtom,
   importAllAtom,
+  importServerUrlAtom,
   openAiModel,
 } from "@/Settings"
+import { parseImportServerUrl } from "@/services/PageFetcher"
 import { useAtom, useAtomSet, useAtomSuspense } from "@effect/atom-react"
 import { createFileRoute } from "@tanstack/react-router"
 import {
@@ -55,6 +57,7 @@ import {
   Command,
 } from "@/components/ui/command"
 import { Schema } from "effect"
+import * as Option from "effect/Option"
 import type * as SchemaAST from "effect/SchemaAST"
 import {
   CheckIcon,
@@ -268,6 +271,10 @@ function SettingsPage() {
             )}
           />
           <SettingCombobox setting={aiCountry} options={countryOptions} />
+          {/* The Docker image already imports through the user's own server */}
+          {import.meta.env.VITE_SYNC_SAME_ORIGIN === "true" ? null : (
+            <ImportServerField />
+          )}
           <Button
             type="button"
             variant="secondary"
@@ -296,6 +303,65 @@ function SettingsPage() {
         </SettingSection>
       </main>
     </div>
+  )
+}
+
+function ImportServerField() {
+  const [stored, setStored] = useAtom(importServerUrlAtom)
+  const [value, setValue] = useState(() => Option.getOrElse(stored, () => ""))
+  const [invalid, setInvalid] = useState(false)
+
+  const save = () => {
+    if (value.trim() === "") {
+      setInvalid(false)
+      setValue("")
+      setStored(Option.none())
+      return
+    }
+    const url = parseImportServerUrl(value)
+    setInvalid(Option.isNone(url))
+    if (Option.isSome(url)) {
+      setValue(url.value)
+      setStored(url)
+    }
+  }
+
+  return (
+    <form
+      className="flex flex-col gap-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        save()
+      }}
+    >
+      <Label htmlFor="importServerUrl">Import server</Label>
+      <Input
+        id="importServerUrl"
+        type="url"
+        inputMode="url"
+        autoComplete="off"
+        spellCheck={false}
+        placeholder="https://cheffect.example.com"
+        value={value}
+        aria-invalid={invalid}
+        aria-describedby="importServerUrlHint"
+        onChange={(e) => {
+          setValue(e.target.value)
+          setInvalid(false)
+        }}
+        onBlur={save}
+      />
+      <p
+        id="importServerUrlHint"
+        className={
+          invalid ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+        }
+      >
+        {invalid
+          ? "Enter an address starting with https:// or http://, without ? or #."
+          : "A Cheffect server to fetch recipe pages and YouTube videos through. It sees every URL and video you import. An https app can't reach an http server unless it's on localhost. Leave blank to use the default."}
+      </p>
+    </form>
   )
 }
 

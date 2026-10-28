@@ -7,7 +7,11 @@ import * as Option from "effect/Option"
 import * as Stream from "effect/Stream"
 import { GroceryAisle, GroceryItem } from "@/domain/GroceryItem"
 import { compareText } from "@/lib/text"
-import { AiHelpers, openAiClientLayer } from "@/services/AiHelpers"
+import {
+  AiHelpers,
+  openAiClientLayer,
+  pageFetcherLayer,
+} from "@/services/AiHelpers"
 import { groceryCurrentListAtom } from "./currentList"
 import {
   aisleOrder,
@@ -119,6 +123,7 @@ export const groceryNameAutoCompleteAtom = Atom.make((get) => {
 
 const beautifyRuntime = Atom.runtime((get) =>
   Layer.mergeAll(AiHelpers.layer, get(groceriesRuntime.layer)).pipe(
+    Layer.provide(get(pageFetcherLayer)),
     Layer.provide(get(openAiClientLayer)),
   ),
 )

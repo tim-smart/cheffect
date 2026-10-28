@@ -21,7 +21,12 @@ import {
 import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import { openAiApiKey, openAiApiUrl, openAiModel } from "@/Settings"
+import {
+  importServerUrlAtom,
+  openAiApiKey,
+  openAiApiUrl,
+  openAiModel,
+} from "@/Settings"
 import * as Option from "effect/Option"
 import * as HttpClient from "effect/http/HttpClient"
 import * as Schedule from "effect/Schedule"
@@ -72,6 +77,12 @@ export const openAiClientLayer = Atom.make((get) => {
     ),
   )
 })
+
+// Rebuilt when the import server setting changes, so the next import uses it
+// without a reload.
+export const pageFetcherLayer = Atom.make((get) =>
+  PageFetcher.layer(get(importServerUrlAtom)),
+)
 
 const jsonLdPrompt = `Convert the provided schema.org Recipe, given as JSON, into the recipe format.
 
@@ -328,11 +339,12 @@ ${encodeGroceryItemListXml(items)}
     } as const
   }),
 }) {
-  static readonly layer = Layer.effect(this, this.make).pipe(
-    Layer.provide(PageFetcher.layer),
-  )
+  static readonly layer = Layer.effect(this, this.make)
 
   static runtime = Atom.runtime((get) =>
-    AiHelpers.layer.pipe(Layer.provideMerge(get(openAiClientLayer))),
+    AiHelpers.layer.pipe(
+      Layer.provide(get(pageFetcherLayer)),
+      Layer.provideMerge(get(openAiClientLayer)),
+    ),
   )
 }
