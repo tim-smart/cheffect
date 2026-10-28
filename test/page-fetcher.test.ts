@@ -6,6 +6,13 @@ import * as Fiber from "effect/Fiber"
 import * as Option from "effect/Option"
 import * as FetchHttpClient from "effect/http/FetchHttpClient"
 import * as TestClock from "effect/testing/TestClock"
+import * as AtomRegistry from "effect/reactivity/AtomRegistry"
+import {
+  importServerUrlAtom,
+  syncEnabledAtom,
+  syncServerImportsAtom,
+  syncServerUrlAtom,
+} from "@/EventLog"
 import { PageFetcher } from "@/services/PageFetcher"
 
 // A recipe page is fetched directly first, once, and through the build's
@@ -128,39 +135,52 @@ test("static YouTube imports go straight to the HTML endpoint and do not retry b
   ])
 })
 
-// Both imports through the import server setting's layer. Every request fails,
-// so each shows only where it went: the direct attempt, then the endpoint.
-const importThrough = (server: Option.Option<string>) => {
+// Both imports with the sync settings applied. Every request fails, so each
+// shows only where it went: the direct attempt, then the endpoint.
+const importThrough = (useForImports: boolean) => {
+  const storage = new Map<string, string>()
+  ;(globalThis as any).localStorage = {
+    getItem: (key: string) => storage.get(key) ?? null,
+    setItem: (key: string, value: string) => void storage.set(key, value),
+    removeItem: (key: string) => void storage.delete(key),
+  }
+  const registry = AtomRegistry.make()
+  registry.set(
+    syncServerUrlAtom,
+    Option.some("wss://home.example.test/cheffect/sync"),
+  )
+  registry.set(syncEnabledAtom, true)
+  registry.set(syncServerImportsAtom, useForImports)
   const requests: string[] = []
   return Effect.gen(function* () {
     const fetcher = yield* PageFetcher
     yield* Effect.exit(fetcher.html(page))
-    yield* fetcher.youTube("abcdefghijk")
+    yield* Effect.exit(fetcher.youTube("abcdefghijk"))
   }).pipe(
-    Effect.provide(PageFetcher.layer(server)),
+    Effect.provide(PageFetcher.layer(registry.get(importServerUrlAtom))),
     Effect.provideService(FetchHttpClient.Fetch, (async (input) => {
       requests.push(input instanceof Request ? input.url : String(input))
       return new Response("", { status: 403 })
     }) as typeof globalThis.fetch),
     Effect.runPromise,
-    (promise) => promise.then(() => requests),
+    (promise) =>
+      promise.then(() => {
+        registry.dispose()
+        return requests
+      }),
   )
 }
 
-test("an import server takes both page fetches and YouTube lookups", async () => {
-  const requests = await importThrough(
-    Option.some("https://home.example.test/api/"),
-  )
-  assert.deepEqual(requests, [
+test("imports go through the sync server when it is used for imports", async () => {
+  assert.deepEqual(await importThrough(true), [
     page,
-    `https://home.example.test/api/fetch?url=${encodeURIComponent(page)}`,
-    "https://home.example.test/api/youtube?id=abcdefghijk",
+    `https://home.example.test/cheffect/fetch?url=${encodeURIComponent(page)}`,
+    "https://home.example.test/cheffect/youtube?id=abcdefghijk",
   ])
 })
 
-test("a blank import server keeps the build's endpoints", async () => {
-  const requests = await importThrough(Option.none())
-  assert.deepEqual(requests, [
+test("imports keep the build's endpoints when the sync server isn't used for them", async () => {
+  assert.deepEqual(await importThrough(false), [
     page,
     `https://r.jina.ai/${encodeURIComponent(page)}`,
     "https://r.jina.ai/https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dabcdefghijk",

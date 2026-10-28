@@ -101,6 +101,7 @@ export const storeId: StoreId = StoreId.make("rows")
 export const identityKey = "cheffect:identity"
 export const syncServerUrlKey = "cheffect:syncServerUrl"
 export const syncEnabledKey = "cheffect:syncEnabled"
+export const syncServerImportsKey = "cheffect:syncServerImports"
 
 export const loadOrCreateIdentity: Effect.Effect<
   EventLog.Identity["Service"],
@@ -207,6 +208,20 @@ export const serverUrlAtom = Atom.make((get) =>
 
 export const syncUrlAtom = Atom.make((get) =>
   get(syncEnabledAtom) ? get(serverUrlAtom) : Option.none(),
+)
+
+// Off by default. The sync server only ever sees encrypted entries, but import
+// URLs and video ids go to it in plain text.
+export const syncServerImportsAtom = Atom.kvs({
+  runtime: kvsRuntime,
+  key: syncServerImportsKey,
+  schema: Schema.Boolean,
+  defaultValue: () => false,
+})
+
+// The sync URL imports go through, or none for the build's own endpoints.
+export const importServerUrlAtom = Atom.make((get) =>
+  get(syncServerImportsAtom) ? get(syncUrlAtom) : Option.none(),
 )
 
 const syncServerProtocols = new Set(["ws:", "wss:", "http:", "https:"])

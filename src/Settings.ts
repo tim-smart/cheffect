@@ -148,16 +148,6 @@ export const openAiApiUrl = new Setting({
   initialValue: "https://api.openai.com/v1",
 })
 
-// The server recipe imports fetch pages and YouTube videos through, when the
-// build's own won't do. Like the sync server it belongs to this device, not the
-// collection: a home server may be reachable from only some devices.
-export const importServerUrlAtom = Atom.kvs({
-  runtime: kvsRuntime,
-  key: "cheffect:importServerUrl",
-  schema: Schema.OptionFromNullishOr(Schema.String, undefined),
-  defaultValue: Option.none,
-})
-
 export const aiChatModel = new Setting({
   name: "aiChatModel",
   label: "AI chat model",

@@ -40,7 +40,9 @@ docker run -d -p 8080:8080 -v cheffect-data:/data --name cheffect cheffect
 The application will be available at http://localhost:8080
 
 The sync database is stored at `/data/cheffect-sync.db`. Set `PORT` (default
-`8080`) or `DATABASE_PATH` to change either.
+`8080`) or `DATABASE_PATH` to change either. Set `CORS_ALLOWED_ORIGINS` to let
+an app served elsewhere import through this server (see
+[Importing through your sync server](#importing-through-your-sync-server)).
 
 ### Docker Compose Example
 
@@ -64,7 +66,9 @@ volumes:
   process's memory, so two containers sharing a database won't see each other's
   writes until clients reconnect.
 - **The server is open.** Anyone who can reach it can store data on it. It only
-  ever sees encrypted entries, so the risk is disk use. If it faces the internet,
+  ever sees encrypted entries, so the risk is disk use. Recipe imports are the
+  exception: if you opt in to importing through it, it sees the URLs and video
+  ids you import. If it faces the internet,
   put it behind your own reverse proxy, VPN or authentication.
 - **Backups are optional.** If the volume is lost, the server starts with a new
   identity and every device uploads its full history again on its next sync.
@@ -94,24 +98,30 @@ your OpenAI key. With Jina, that's a third party.
 Some sites block every server, so they fail however they are fetched. Allrecipes
 and Serious Eats are two known examples.
 
-### Using your own import server
+### Importing through your sync server
 
-Settings → AI Settings → **Import server** points imports at a Cheffect server
-of your choice: the Docker image's address, or a Vercel deployment's address
-followed by `/api` (for example `https://example.vercel.app/api`). Page fetches
-then go through its `/fetch` route, and YouTube imports through its `/youtube`
-route. Leave it blank to keep the build's default. The field is hidden in the
-Docker image, which already uses its own server.
+Under Settings → Sync, **Use this server for recipe imports** sends imports
+through your sync server instead, while sync is on. Page fetches go to the
+`fetch` route next to its `/sync` address and YouTube imports to `youtube`, so
+`wss://home.example.com/cheffect/sync` imports through
+`https://home.example.com/cheffect/fetch`. It's off by default. The sync server
+only ever sees encrypted entries, but import URLs and video ids reach it in
+plain text.
 
 This helps most when the server runs at home. Sites and YouTube transcripts that
-block datacenter IP addresses usually let a home connection through. The server
-sees the URL of every recipe you import and the id of every video. The setting
-is stored on each device and is not synced.
+block datacenter IP addresses usually let a home connection through. If the
+server can't be reached the import fails, rather than quietly falling back to
+the build's default.
 
-The hosted app is served over HTTPS, and browsers block it from calling a plain
-`http://` server (mixed content), `localhost` excepted. To use a home server
-from the hosted app, put it behind HTTPS, for example with a reverse proxy or
-`tailscale serve`.
+A server on another origin than the app has to allow it. Set
+`CORS_ALLOWED_ORIGINS` on the server to the app's origin, for example
+`-e CORS_ALLOWED_ORIGINS=https://cheffect.example.com`. It takes a
+comma-separated list of origins, or `*` for any origin. Unset, only the app
+served by that same server can read `/fetch` and `/youtube`.
+
+Browsers also block an `https` app from calling a plain `http` server (mixed
+content), `localhost` excepted. To use a home server from a hosted app, put it
+behind HTTPS, for example with a reverse proxy or `tailscale serve`.
 
 ### YouTube imports
 
@@ -138,9 +148,8 @@ Private or deleted videos are not supported; an API key does not sign a user in.
 
 Without a key, these routes read metadata from one best-effort watch-page
 request. Static builds and `pnpm dev` use their existing Jina HTML endpoint
-instead, and get no transcripts, unless an
-[import server](#using-your-own-import-server) is set. With one, YouTube imports
-go to its `/youtube` route, which answers any origin. YouTube browser requests are skipped because YouTube does not allow
+instead, and get no transcripts, unless they
+[import through a sync server](#importing-through-your-sync-server). YouTube browser requests are skipped because YouTube does not allow
 cross-origin page reads. Consent pages and bot checks can still block the unauthenticated path.
 We do not pass browser cookies, solve challenges, or rotate identities.
 
@@ -175,7 +184,9 @@ The Docker image serves `GET /fetch?url=...` and the Vercel build serves
 loopback and link-local addresses are refused, every redirect is checked again,
 and fetches stop after 15 seconds or 2 MB. Pages come back as sandboxed plain
 text, so opening a `/fetch` link in a browser never runs the page's scripts on
-the app's origin. There is no authentication, so if it
+the app's origin. Other origins can read the answers only when listed in
+`CORS_ALLOWED_ORIGINS`, which applies to `/youtube` too, on Docker and Vercel
+alike. There is no authentication, so if it
 faces the internet anyone can use it to fetch pages. Put it behind your own
 reverse proxy or authentication if that matters to you.
 

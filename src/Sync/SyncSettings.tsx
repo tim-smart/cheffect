@@ -19,6 +19,7 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -29,21 +30,23 @@ import {
   parseSyncServerUrl,
   serverUrlAtom,
   syncEnabledAtom,
+  syncServerImportsAtom,
   syncServerUrlAtom,
 } from "@/EventLog"
 import { JoinDialog } from "./JoinDialog"
 import { makeShareLink, parseJoinInput, type JoinRequest } from "./ShareLink"
 
-// Controls the server URL, Enable Sync, the sync key and joining another
-// collection. Changing the server or toggling sync takes effect without a
-// reload: the remote follows the settings, and a new server receives this
-// device's whole journal on its first connection.
+// Controls Enable Sync, the server URL, whether imports use it, the sync key
+// and joining another collection. Changing the server or toggling sync takes
+// effect without a reload: the remote follows the settings, and a new server
+// receives this device's whole journal on its first connection.
 export function SyncSettings() {
   const [joinRequest, setJoinRequest] = useState<JoinRequest>()
   return (
     <>
       <EnableSyncField />
       <ServerUrlField />
+      <SyncServerImportsField />
       <SyncKeyField />
       <JoinAnotherCollection onJoin={setJoinRequest} />
       <JoinDialog
@@ -116,6 +119,31 @@ function ServerUrlField() {
           </p>
         ))}
     </form>
+  )
+}
+
+function SyncServerImportsField() {
+  const [enabled, setEnabled] = useAtom(syncServerImportsAtom)
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="syncServerImports"
+          checked={enabled}
+          aria-describedby="syncServerImportsHint"
+          onCheckedChange={(checked) => setEnabled(checked === true)}
+        />
+        <Label htmlFor="syncServerImports">
+          Use this server for recipe imports
+        </Label>
+      </div>
+      <p id="syncServerImportsHint" className="text-sm text-muted-foreground">
+        While sync is on, recipe pages and YouTube videos are fetched through
+        it. Unlike your synced data, the URLs and videos you import reach it
+        unencrypted. A server on another origin needs CORS_ALLOWED_ORIGINS set
+        to this app's address.
+      </p>
+    </div>
   )
 }
 

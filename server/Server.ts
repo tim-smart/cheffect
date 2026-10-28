@@ -11,7 +11,8 @@ import * as RpcSerialization from "effect/rpc/RpcSerialization"
 import * as RpcServer from "effect/rpc/RpcServer"
 import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer"
 import * as SqliteClient from "@effect/sql-sqlite-node/SqliteClient"
-import { fetchResponse } from "./fetchGuard"
+import { corsHeaders } from "./cors"
+import { type FetchResponse, fetchResponse } from "./fetchGuard"
 import { createYouTubeHandler } from "./youtube"
 
 // The combined image's server: the front end build and the encrypted EventLog
@@ -35,46 +36,54 @@ const SyncLayer = (databasePath: string) =>
 //
 // `/fetch?url=` fetches a page for the recipe importer, so imports work for
 // sites that don't allow cross-origin requests. See `fetchGuard.ts` for what
-// it refuses to fetch.
+// it refuses to fetch. `/youtube?id=` does the same for videos.
 
-const FetchLayer = HttpRouter.add("GET", "/fetch", (request) =>
-  Effect.promise(() =>
-    fetchResponse(
-      new URL(request.url, "http://localhost").searchParams.get("url"),
-    ),
-  ).pipe(
-    Effect.map(({ status, headers, body }) =>
-      HttpServerResponse.text(body, {
-        status,
-        headers,
-        contentType: headers["content-type"],
-      }),
-    ),
-  ),
-)
+const importResponse = (
+  request: HttpServerRequest.HttpServerRequest,
+  corsAllowedOrigins: string | undefined,
+  { status, headers, body }: FetchResponse,
+) =>
+  HttpServerResponse.text(body, {
+    status,
+    headers: {
+      ...headers,
+      ...corsHeaders(request.headers.origin, corsAllowedOrigins),
+    },
+    contentType: headers["content-type"],
+  })
 
-const YouTubeLayer = Layer.unwrap(
-  Effect.sync(() => {
-    const handler = createYouTubeHandler({
-      apiKey: process.env.YOUTUBE_API_KEY,
-    })
-    return HttpRouter.add("GET", "/youtube", (request) =>
-      Effect.promise(() =>
-        handler(
-          new URL(request.url, "http://localhost").searchParams.get("id"),
-        ),
-      ).pipe(
-        Effect.map(({ status, headers, body }) =>
-          HttpServerResponse.text(body, {
-            status,
-            headers,
-            contentType: headers["content-type"],
-          }),
-        ),
+const FetchLayer = (corsAllowedOrigins: string | undefined) =>
+  HttpRouter.add("GET", "/fetch", (request) =>
+    Effect.promise(() =>
+      fetchResponse(
+        new URL(request.url, "http://localhost").searchParams.get("url"),
       ),
-    )
-  }),
-)
+    ).pipe(
+      Effect.map((response) =>
+        importResponse(request, corsAllowedOrigins, response),
+      ),
+    ),
+  )
+
+const YouTubeLayer = (corsAllowedOrigins: string | undefined) =>
+  Layer.unwrap(
+    Effect.sync(() => {
+      const handler = createYouTubeHandler({
+        apiKey: process.env.YOUTUBE_API_KEY,
+      })
+      return HttpRouter.add("GET", "/youtube", (request) =>
+        Effect.promise(() =>
+          handler(
+            new URL(request.url, "http://localhost").searchParams.get("id"),
+          ),
+        ).pipe(
+          Effect.map((response) =>
+            importResponse(request, corsAllowedOrigins, response),
+          ),
+        ),
+      )
+    }),
+  )
 
 // Front end
 //
@@ -121,13 +130,15 @@ export const layer = (options: {
   readonly port: number
   // A SQLite file, or `:memory:`.
   readonly databasePath: string
+  // `CORS_ALLOWED_ORIGINS`, see `cors.ts`.
+  readonly corsAllowedOrigins?: string | undefined
 }) =>
   HttpRouter.serve(
     Layer.mergeAll(
       FrontendLayer(options.root),
       SyncLayer(options.databasePath),
-      FetchLayer,
-      YouTubeLayer,
+      FetchLayer(options.corsAllowedOrigins),
+      YouTubeLayer(options.corsAllowedOrigins),
     ),
     { disableLogger: true },
   ).pipe(

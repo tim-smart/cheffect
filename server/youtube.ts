@@ -40,12 +40,9 @@ const unavailable = (reason: string): YouTubePage => ({
   _tag: "Unavailable",
   reason,
 })
-// Any origin may call it, like `/fetch`: an app served from elsewhere can use
-// this server for imports.
 const reply = (page: YouTubePage, status = 200): FetchResponse => ({
   status,
   headers: {
-    "access-control-allow-origin": "*",
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
     "x-content-type-options": "nosniff",

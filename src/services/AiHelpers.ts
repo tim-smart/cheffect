@@ -21,12 +21,8 @@ import {
 import * as DateTime from "effect/DateTime"
 import * as Atom from "effect/reactivity/Atom"
 import * as AsyncResult from "effect/reactivity/AsyncResult"
-import {
-  importServerUrlAtom,
-  openAiApiKey,
-  openAiApiUrl,
-  openAiModel,
-} from "@/Settings"
+import { openAiApiKey, openAiApiUrl, openAiModel } from "@/Settings"
+import { importServerUrlAtom } from "@/EventLog"
 import * as Option from "effect/Option"
 import * as HttpClient from "effect/http/HttpClient"
 import * as Schedule from "effect/Schedule"
@@ -78,8 +74,8 @@ export const openAiClientLayer = Atom.make((get) => {
   )
 })
 
-// Rebuilt when the import server setting changes, so the next import uses it
-// without a reload.
+// Rebuilt when the sync server or its import checkbox changes, so the next
+// import uses them without a reload.
 export const pageFetcherLayer = Atom.make((get) =>
   PageFetcher.layer(get(importServerUrlAtom)),
 )

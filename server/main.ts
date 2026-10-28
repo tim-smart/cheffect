@@ -15,7 +15,10 @@ const MainLayer = Layer.unwrap(
     const databasePath = yield* Config.String("DATABASE_PATH").pipe(
       Config.withDefault("cheffect-sync.db"),
     )
-    return Server.layer({ root, port, databasePath })
+    const corsAllowedOrigins = yield* Config.String(
+      "CORS_ALLOWED_ORIGINS",
+    ).pipe(Config.withDefault(""))
+    return Server.layer({ root, port, databasePath, corsAllowedOrigins })
   }),
 )
 
