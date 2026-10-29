@@ -1,18 +1,6 @@
 allowBuilds:
   esbuild: true
 
-# Effect snapshots use pkg.pr.new URLs for transitive dependencies.
-blockExoticSubdeps: false
-
-overrides:
-  "@effect/opentelemetry": https://pkg.pr.new/@effect/opentelemetry@f73059d
-  "@effect/platform-browser": https://pkg.pr.new/@effect/platform-browser@f73059d
-  "@effect/platform-bun": https://pkg.pr.new/@effect/platform-bun@f73059d
-  "@effect/platform-node": https://pkg.pr.new/@effect/platform-node@f73059d
-  "@effect/platform-node-shared": https://pkg.pr.new/@effect/platform-node-shared@f73059d
-  "@effect/vitest": https://pkg.pr.new/@effect/vitest@f73059d
-  effect: https://pkg.pr.new/effect@f73059d
-
 patchedDependencies:
   mdast-util-gfm-autolink-literal@2.0.1: patches/mdast-util-gfm-autolink-literal@2.0.1.patch
 
@@ -21,3 +9,20 @@ packageExtensions:
   "@lucas-barake/effect-form-react":
     peerDependencies:
       "@types/react": "*"
+
+minimumReleaseAgeExclude:
+  - "@effect/ai-openai@4.1.0"
+  - "@effect/atom-react@4.1.0"
+  - "@effect/platform-browser@4.1.0"
+  - "@effect/platform-node-shared@4.1.0"
+  - "@effect/platform-node@4.1.0"
+  - "@effect/sql-sqlite-node@4.1.0"
+  - "@effect/tsgo-darwin-arm64@0.63.0"
+  - "@effect/tsgo-darwin-x64@0.63.0"
+  - "@effect/tsgo-linux-arm64@0.63.0"
+  - "@effect/tsgo-linux-arm@0.63.0"
+  - "@effect/tsgo-linux-x64@0.63.0"
+  - "@effect/tsgo-win32-arm64@0.63.0"
+  - "@effect/tsgo-win32-x64@0.63.0"
+  - "@effect/tsgo@0.63.0"
+  - effect@4.1.0
