@@ -168,9 +168,9 @@ function GroceryList() {
               {/* On desktops the count sits beside the name, as on Recipes */}
               <div className="md:flex md:items-baseline md:gap-4">
                 <ListCombobox>
-                  <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight flex items-center gap-1">
+                  <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight">
                     {currentList ?? "Grocery list"}
-                    <ChevronDown className="block size-5 text-muted-foreground" />
+                    <ChevronDown className="inline-block align-middle ml-1 size-5 text-muted-foreground" />
                   </h1>
                 </ListCombobox>
                 <p
