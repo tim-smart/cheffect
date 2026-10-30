@@ -168,9 +168,13 @@ function GroceryList() {
               {/* On desktops the count sits beside the name, as on Recipes */}
               <div className="md:flex md:items-baseline md:gap-4">
                 <ListCombobox>
-                  <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight">
+                  <h1 className="font-display text-[26px] md:text-[32px] md:leading-none font-medium tracking-tight text-left">
                     {currentList ?? "Grocery list"}
-                    <ChevronDown className="inline-block align-middle ml-1 size-5 text-muted-foreground" />
+                    {/* The word joiner keeps the chevron with the last word */}
+                    <span className="whitespace-nowrap">
+                      {"\u2060"}
+                      <ChevronDown className="inline-block align-middle ml-1 size-5 text-muted-foreground" />
+                    </span>
                   </h1>
                 </ListCombobox>
                 <p
