@@ -36,7 +36,7 @@ import {
   sendAtom,
 } from "./AiChat/AiChatService"
 import { ToolActivityList, type ToolCall } from "./AiChat/ToolActivity"
-import { accept, attachmentType } from "./AiChat/Attachments"
+import { accept, attachmentType, pastedImages } from "./AiChat/Attachments"
 import { router, scrollRestorationKey } from "./Router"
 import { isAiEnabledAtom } from "./services/AiHelpers"
 import { useVisualViewport, virtualKeyboard } from "./lib/hooks"
@@ -615,6 +615,36 @@ function PromptInput({
 
   const fileRef = useRef<HTMLInputElement>(null)
   const [files, setFiles] = useState<FileList | null>(null)
+  const attach = (selectedFiles: ReadonlyArray<File>) => {
+    const unsupported = selectedFiles.filter(
+      (f) => attachmentType(f) === undefined,
+    )
+    if (unsupported.length > 0) {
+      toast.error(`Can't attach ${unsupported.map((f) => f.name).join(", ")}`, {
+        description:
+          "Attach images (PNG, JPEG, WebP, GIF), PDFs, or text, Markdown, CSV or JSON files.",
+      })
+    }
+    const supported = selectedFiles.filter(
+      (f) => attachmentType(f) !== undefined,
+    )
+    if (supported.length === 0) return
+    setFiles((prevFiles) => {
+      const dataTransfer = new DataTransfer()
+      const names = new Set<string>()
+      if (prevFiles) {
+        Array.from(prevFiles).forEach((f) => {
+          names.add(f.name)
+          return dataTransfer.items.add(f)
+        })
+      }
+      supported.forEach((f) => {
+        if (names.has(f.name)) return
+        return dataTransfer.items.add(f)
+      })
+      return dataTransfer.files
+    })
+  }
 
   const isLoading = useAtomValue(sendAtom, AsyncResult.isWaiting)
 
@@ -711,42 +741,11 @@ function PromptInput({
             accept={accept}
             multiple
             onChange={(e) => {
-              const selectedFiles = Array.from(e.target.files ?? [])
-              const unsupported = selectedFiles.filter(
-                (f) => attachmentType(f) === undefined,
-              )
-              if (unsupported.length > 0) {
-                toast.error(
-                  `Can't attach ${unsupported.map((f) => f.name).join(", ")}`,
-                  {
-                    description:
-                      "Attach images (PNG, JPEG, WebP, GIF), PDFs, or text, Markdown, CSV or JSON files.",
-                  },
-                )
-              }
+              attach(Array.from(e.target.files ?? []))
               // Reset the input value to allow selecting the same file again
               setTimeout(() => {
                 e.target.value = ""
               }, 0)
-              const supported = selectedFiles.filter(
-                (f) => attachmentType(f) !== undefined,
-              )
-              if (supported.length === 0) return
-              setFiles((prevFiles) => {
-                const dataTransfer = new DataTransfer()
-                const names = new Set<string>()
-                if (prevFiles) {
-                  Array.from(prevFiles).forEach((f) => {
-                    names.add(f.name)
-                    return dataTransfer.items.add(f)
-                  })
-                }
-                supported.forEach((f) => {
-                  if (names.has(f.name)) return
-                  return dataTransfer.items.add(f)
-                })
-                return dataTransfer.files
-              })
             }}
           />
         </div>
@@ -754,6 +753,15 @@ function PromptInput({
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onPaste={(e) => {
+            const images = pastedImages(
+              e.clipboardData,
+              files ? Array.from(files, (f) => f.name) : [],
+            )
+            if (images.length === 0) return
+            e.preventDefault()
+            attach(images)
+          }}
           onKeyDown={(e) => {
             if (e.key !== "Enter" || e.shiftKey) return
             e.preventDefault()

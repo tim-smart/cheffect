@@ -76,3 +76,40 @@ export const inlineTextFiles = (prompt: Prompt.Prompt): Prompt.Prompt =>
         : message,
     ),
   )
+
+const imageExtensions = new Map([
+  ["image/png", "png"],
+  ["image/jpeg", "jpg"],
+  ["image/webp", "webp"],
+  ["image/gif", "gif"],
+])
+
+// The images to attach from a paste, or none when the clipboard holds text.
+// Word, Excel and the like copy a picture of the text along with it, so text
+// wins and pastes as usual. Browsers name every pasted image "image.png", so
+// each one gets a name that isn't taken yet.
+export const pastedImages = (
+  clipboard: {
+    readonly files: ArrayLike<File>
+    readonly getData: (format: string) => string
+  },
+  takenNames: Iterable<string>,
+): Array<File> => {
+  if (clipboard.getData("text/plain") !== "") return []
+  const taken = new Set(takenNames)
+  return Array.from(clipboard.files)
+    .filter((file) => file.type.startsWith("image/"))
+    .map((file) => {
+      const extension =
+        imageExtensions.get(file.type) ?? file.type.slice("image/".length)
+      let name = `Pasted image.${extension}`
+      for (let n = 2; taken.has(name); n++) {
+        name = `Pasted image ${n}.${extension}`
+      }
+      taken.add(name)
+      return new File([file], name, {
+        type: file.type,
+        lastModified: file.lastModified,
+      })
+    })
+}

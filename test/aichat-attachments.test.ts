@@ -1,7 +1,11 @@
 import { test } from "node:test"
 import * as assert from "node:assert/strict"
 import * as Prompt from "effect/ai/Prompt"
-import { attachmentType, inlineTextFiles } from "@/AiChat/Attachments"
+import {
+  attachmentType,
+  inlineTextFiles,
+  pastedImages,
+} from "@/AiChat/Attachments"
 
 // The chat model reads images and PDFs as files, and text files once they're
 // read into the message. Anything else can't be attached.
@@ -75,4 +79,52 @@ test("text files are sent as their contents, images stay files", () => {
     Prompt.textPart({ text: '<file name="dessert.txt">\nCrème\n</file>' }),
     Prompt.textPart({ text: "Make this vegan" }),
   ])
+})
+
+// A paste attaches the images on the clipboard, unless it holds text.
+
+const clipboard = (files: Array<File>, text = "") => ({
+  files,
+  getData: (format: string) => (format === "text/plain" ? text : ""),
+})
+
+test("pasted images are attached under names not already taken", async () => {
+  const screenshot = new File([new Uint8Array([1, 2, 3])], "image.png", {
+    type: "image/png",
+  })
+  const photo = new File([new Uint8Array([4])], "image.jpeg", {
+    type: "image/jpeg",
+  })
+  const notes = new File(["Boil water"], "notes.txt", { type: "text/plain" })
+
+  const pasted = pastedImages(clipboard([screenshot, photo, notes]), [
+    "Pasted image.png",
+    "soup.md",
+  ])
+  assert.deepEqual(
+    pasted.map((file) => [file.name, file.type]),
+    [
+      ["Pasted image 2.png", "image/png"],
+      ["Pasted image.jpg", "image/jpeg"],
+    ],
+  )
+  assert.deepEqual(
+    new Uint8Array(await pasted[0].arrayBuffer()),
+    new Uint8Array([1, 2, 3]),
+  )
+
+  // Two images in one paste get names of their own
+  assert.deepEqual(
+    pastedImages(clipboard([screenshot, screenshot]), []).map((f) => f.name),
+    ["Pasted image.png", "Pasted image 2.png"],
+  )
+})
+
+test("text on the clipboard pastes as text", () => {
+  const picture = new File([new Uint8Array([1])], "image.png", {
+    type: "image/png",
+  })
+  // As copied from a spreadsheet: the cells, and a picture of them
+  assert.deepEqual(pastedImages(clipboard([picture], "1 cup\tflour"), []), [])
+  assert.deepEqual(pastedImages(clipboard([], "flour"), []), [])
 })
