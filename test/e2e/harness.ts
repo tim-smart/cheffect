@@ -263,6 +263,26 @@ const openPage = async (chrome: Chromium) => {
     await mouse("mousePressed", x, y, what, 1)
     await mouse("mouseReleased", x, y, what, 0)
   }
+  /** Taps with a real touch sequence, including the browser-generated click. */
+  const tap = async (element: string) => {
+    const what = `tap(${element.slice(0, 60)})`
+    const { x, y } = await settledCentre(element, "tap")
+    await sendOrCrash(
+      "Emulation.setTouchEmulationEnabled",
+      { enabled: true },
+      what,
+    )
+    await sendOrCrash(
+      "Input.dispatchTouchEvent",
+      { type: "touchStart", touchPoints: [{ x, y }] },
+      what,
+    )
+    await sendOrCrash(
+      "Input.dispatchTouchEvent",
+      { type: "touchEnd", touchPoints: [] },
+      what,
+    )
+  }
   /** Moves the pointer to the centre of an element and leaves it there. */
   const hover = async (element: string) => {
     const what = `hover(${element.slice(0, 60)})`
@@ -376,6 +396,7 @@ const openPage = async (chrome: Chromium) => {
     waitFor,
     navigate,
     click,
+    tap,
     hover,
     cancelledPress,
     swipe,

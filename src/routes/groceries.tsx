@@ -789,7 +789,7 @@ function NameAutoComplete({ form }: { form: ItemForm }) {
   const results = useAtomValue(groceryNameAutoCompleteAtom)
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const onClick = (value: string) => {
+  const addSuggestion = (value: string) => {
     setName(value)
     inputRef.current?.focus()
     submitForm(inputRef.current?.form)
@@ -813,13 +813,6 @@ function NameAutoComplete({ form }: { form: ItemForm }) {
           if (e.relatedTarget?.hasAttribute("cmdk-list")) return
           setFocused(false)
         }}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter") return
-          const input = e.target as HTMLInputElement
-          setTimeout(() => {
-            submitForm(input.form)
-          }, 0)
-        }}
       />
       <div
         className={cn(
@@ -829,19 +822,22 @@ function NameAutoComplete({ form }: { form: ItemForm }) {
       >
         <CommandList className="animate-in fade-in-0 zoom-in-95 absolute top-2 z-1 w-full rounded-xl bg-background border shadow-lg">
           <CommandGroup>
-            <CommandItem value="-" className="hidden" />
+            <CommandItem
+              value="-"
+              className="hidden"
+              onSelect={() => submitForm(inputRef.current?.form)}
+            />
             {results.map((name) => (
               <CommandItem
                 key={name}
                 className="justify-between"
-                onSelect={setName}
+                // Submitting removes the suggestions. Wait for selection
+                // (click or Enter), not pointerup, so a touch tap cannot
+                // retarget its click to the grocery below.
+                onSelect={() => addSuggestion(name)}
                 onPointerDown={(e: React.PointerEvent<HTMLDivElement>) =>
                   e.preventDefault()
                 }
-                onPointerUp={(e: React.PointerEvent<HTMLDivElement>) => {
-                  e.preventDefault()
-                  onClick(name)
-                }}
               >
                 <span className="truncate">{name}</span>
                 <Button
